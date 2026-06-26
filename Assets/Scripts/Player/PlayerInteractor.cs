@@ -43,7 +43,7 @@ namespace Cyverse.Player
             if (target != null && target.CanInteract)
             {
                 if (HudUI.Instance != null)
-                    HudUI.Instance.ShowPrompt($"[{interactKey}]  {target.Prompt}");
+                    HudUI.Instance.SetInteract(true, target.Prompt, interactKey.ToString());
 
                 if (Input.GetKeyDown(interactKey))
                     target.Interact(gameObject);
@@ -56,7 +56,7 @@ namespace Cyverse.Player
 
         private void HidePrompt()
         {
-            if (HudUI.Instance != null) HudUI.Instance.HidePrompt();
+            if (HudUI.Instance != null) HudUI.Instance.SetInteract(false);
         }
     }
 }
