@@ -13,7 +13,8 @@ namespace Cyverse.UI
     public class ControlsOverlay : MonoBehaviour
     {
         public bool onlyFirstTime = true;
-        public float autoHideSeconds = 12f;
+        public float minDisplaySeconds = 5f;  // stays at least this long
+        public float autoHideSeconds = 14f;
 
         private CanvasGroup group;
         private bool dismissing;
@@ -41,9 +42,18 @@ namespace Cyverse.UI
             if (!dismissing)
             {
                 elapsed += Time.unscaledDeltaTime;
+
+                // Keep it up for a guaranteed minimum so it's actually readable;
+                // ignore (and re-baseline) input until then.
+                if (elapsed < minDisplaySeconds)
+                {
+                    lastMouse = Input.mousePosition;
+                    return;
+                }
+
                 bool move = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) ||
                             Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D);
-                bool mouse = (Input.mousePosition - lastMouse).sqrMagnitude > 6f;
+                bool mouse = (Input.mousePosition - lastMouse).sqrMagnitude > 25f;
                 if (move || mouse || elapsed >= autoHideSeconds) dismissing = true;
             }
             else

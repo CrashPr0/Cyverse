@@ -12,9 +12,9 @@ Shader "Cyverse/GridFloor"
         _MinorEmission ("Minor Grid Emission", Range(0, 2)) = 0.35
         _Smoothness ("Smoothness", Range(0,1)) = 0.88
         _Metallic ("Metallic", Range(0,1)) = 0.35
-        _Emission ("Emission Strength", Float) = 2.5
+        _Emission ("Emission Strength", Float) = 1.8
         _FadeDistance ("Fade Distance (m)", Float) = 26
-        _PulseStrength ("Pulse Strength", Range(0, 3)) = 1.2
+        _PulseStrength ("Pulse Strength", Range(0, 3)) = 0.5
         _PulseSpeed ("Pulse Speed", Float) = 2.5
     }
     SubShader
@@ -29,7 +29,6 @@ Shader "Cyverse/GridFloor"
         struct Input
         {
             float3 worldPos;
-            float3 viewDir;
         };
 
         fixed4 _BaseColor, _LineColor;
@@ -52,15 +51,12 @@ Shader "Cyverse/GridFloor"
             float dist = length(IN.worldPos.xz);
             float fade = saturate(1.0 - dist / max(_FadeDistance, 0.001));
 
-            // grazing-angle brightening
-            float rim = pow(1.0 - saturate(normalize(IN.viewDir).z), 3.0);
-
             // pulse ring travelling outward from the centre
             float ring = sin(dist * 0.6 - _Time.y * _PulseSpeed * _CyMotion);
             ring = smoothstep(0.85, 1.0, ring);
 
             float lines = saturate(major + minor * _MinorEmission);
-            float emit = lines * fade + ring * _PulseStrength * fade + rim * 0.5;
+            float emit = lines * fade + ring * _PulseStrength * fade;
 
             o.Albedo = _BaseColor.rgb;
             o.Metallic = _Metallic;

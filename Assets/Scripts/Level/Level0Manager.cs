@@ -9,9 +9,10 @@ using Cyverse.UI;
 namespace Cyverse.Level
 {
     /// <summary>
-    /// Orchestrates Level 0: plays the intro, tracks which learning stations
-    /// the player has reviewed, updates the objective banner, and triggers the
-    /// "Access Granted" completion once every station is done.
+    /// Orchestrates Level 0: on Start it discovers every station in the scene
+    /// (so it works for both the procedural and hand-built scenes), plays the
+    /// intro, tracks which stations have been reviewed, updates the objective
+    /// banner, and triggers the "Access Granted" completion.
     /// </summary>
     public class Level0Manager : MonoBehaviour
     {
@@ -25,20 +26,22 @@ namespace Cyverse.Level
             Instance = this;
         }
 
-        /// <summary>Bootstrap calls this for each station it spawns.</summary>
-        public void Register(InteractableStation station)
+        void Start()
         {
-            stations.Add(station);
-            station.Completed += OnStationCompleted;
-        }
+            foreach (var s in FindObjectsOfType<InteractableStation>())
+                Register(s);
 
-        /// <summary>Kick off the level: play the intro, then show the objective.</summary>
-        public void Begin()
-        {
             if (DialogueManager.Instance != null)
                 DialogueManager.Instance.Play(Level0Content.Intro(), UpdateObjective);
             else
                 UpdateObjective();
+        }
+
+        private void Register(InteractableStation station)
+        {
+            if (stations.Contains(station)) return;
+            stations.Add(station);
+            station.Completed += OnStationCompleted;
         }
 
         private void OnStationCompleted(InteractableStation station)

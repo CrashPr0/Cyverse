@@ -24,6 +24,21 @@ This document covers opening, running, and extending **Level 0**.
 > (`Assets/Scripts/Level/Level0Bootstrap.cs`). Press Play — the level builds
 > itself. This is the only object the scene needs.
 
+### Building an editable scene (recommended for tweaking)
+
+To lay the level out and tune it by hand instead of at runtime:
+
+1. `File → New Scene → Empty`.
+2. Menu **CyVerse → Build Level 0 Scene**. This generates the whole level as
+   real GameObjects (floor, walls, lights, player, systems, stations).
+3. Move/retune/replace objects, swap materials, etc., then **File → Save**.
+4. Press Play — it's fully playable. The systems self-wire: `Level0Manager`
+   discovers the stations and `StationSetup` (on each station) loads its
+   content from its **Topic** dropdown, so you can add/remove stations freely.
+
+Don't keep a `Level0Bootstrap` object in a hand-built scene, or the level will
+be built twice. Both paths use the same `SceneFactory`, so they look identical.
+
 ## Controls
 
 | Action            | Key             |
@@ -66,7 +81,10 @@ completion, matching the CyVerse Script.
 | `Settings/AccessibilitySettings.cs`    | Esc menu: audio, caption scale, sensitivity     |
 | `Level/Level0Content.cs`               | All Level 0 narration text (edit copy here)     |
 | `Level/Level0Manager.cs`               | Intro, station tracking, completion             |
-| `Level/Level0Bootstrap.cs`            | Assembles the whole level + visual style        |
+| `Level/SceneFactory.cs`                | Shared construction (runtime + editor builder)  |
+| `Level/Level0Bootstrap.cs`            | Runtime entry point (calls SceneFactory)        |
+| `Level/StationSetup.cs`                | Per-station topic/content + completion feedback  |
+| `Editor/Level0SceneBuilder.cs`         | Menu: CyVerse > Build Level 0 Scene             |
 | `Level/Rotator.cs`                     | Slow spin for holograms / centerpiece           |
 | `Audio/ProceduralAudio.cs`             | Generates footstep/click/confirm SFX at runtime |
 | `Audio/Sfx.cs`                         | One-shot SFX, scaled by the SFX volume channel  |
