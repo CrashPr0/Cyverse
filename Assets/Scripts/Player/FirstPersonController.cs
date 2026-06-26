@@ -1,0 +1,98 @@
+using UnityEngine;
+using Cyverse.Core;
+using Cyverse.Settings;
+
+namespace Cyverse.Player
+{
+    /// <summary>
+    /// Desktop / WebGL first-person movement: WASD to move, mouse to look.
+    /// No jumping or VR — matches the Level 0 demo requirements. Movement is
+    /// suspended while a dialogue beat or the settings menu is active.
+    /// </summary>
+    [RequireComponent(typeof(CharacterController))]
+    public class FirstPersonController : MonoBehaviour
+    {
+        [Header("Movement")]
+        public float moveSpeed = 4.5f;
+        public float gravity = -9.81f;
+
+        [Header("Look")]
+        public float lookSensitivity = 2f;
+        public float maxPitch = 85f;
+
+        private CharacterController controller;
+        private Transform cam;
+        private float pitch;
+        private float verticalVelocity;
+
+        void Awake()
+        {
+            controller = GetComponent<CharacterController>();
+            if (Camera.main != null) cam = Camera.main.transform;
+        }
+
+        void Start()
+        {
+            LockCursor(true);
+        }
+
+        void Update()
+        {
+            // Still apply gravity while "busy" so the player doesn't hover,
+            // but ignore movement and look input.
+            if (GameState.Busy)
+            {
+                ApplyGravityOnly();
+                return;
+            }
+
+            HandleLook();
+            HandleMove();
+        }
+
+        private void HandleLook()
+        {
+            float userScale = AccessibilitySettings.Instance != null
+                ? AccessibilitySettings.Instance.MouseSensitivity
+                : 1f;
+            float sens = lookSensitivity * userScale;
+
+            float mouseX = Input.GetAxis("Mouse X") * sens;
+            float mouseY = Input.GetAxis("Mouse Y") * sens;
+
+            transform.Rotate(Vector3.up * mouseX);
+
+            pitch = Mathf.Clamp(pitch - mouseY, -maxPitch, maxPitch);
+            if (cam != null) cam.localEulerAngles = new Vector3(pitch, 0f, 0f);
+        }
+
+        private void HandleMove()
+        {
+            float h = Input.GetAxisRaw("Horizontal");
+            float v = Input.GetAxisRaw("Vertical");
+
+            Vector3 move = transform.right * h + transform.forward * v;
+            move = Vector3.ClampMagnitude(move, 1f) * moveSpeed;
+
+            if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
+            verticalVelocity += gravity * Time.deltaTime;
+            move.y = verticalVelocity;
+
+            controller.Move(move * Time.deltaTime);
+        }
+
+        private void ApplyGravityOnly()
+        {
+            if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
+            verticalVelocity += gravity * Time.deltaTime;
+            controller.Move(new Vector3(0f, verticalVelocity, 0f) * Time.deltaTime);
+        }
+
+        /// <summary>Lock + hide the cursor for play, or release it for menus.</summary>
+        public static void LockCursor(bool locked)
+        {
+            Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
+            Cursor.visible = !locked;
+        }
+    }
+}
