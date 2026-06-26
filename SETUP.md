@@ -71,6 +71,7 @@ completion, matching the CyVerse Script.
 | `Audio/ProceduralAudio.cs`             | Generates footstep/click/confirm SFX at runtime |
 | `Audio/Sfx.cs`                         | One-shot SFX, scaled by the SFX volume channel  |
 | `UI/ScreenFader.cs`                    | Fade-from-black on start / fade-to-black        |
+| `UI/ControlsOverlay.cs`                | First-time controls card (fades on first move)  |
 | `Resources/Shaders/GridFloor.shader`   | Glowing tech-grid floor (`Cyverse/GridFloor`)   |
 | `Resources/Shaders/Hologram.shader`    | Holographic panels (`Cyverse/Hologram`)         |
 

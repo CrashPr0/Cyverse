@@ -70,7 +70,7 @@ namespace Cyverse.Dialogue
                 {
                     string label = string.IsNullOrEmpty(line.speaker)
                         ? line.text
-                        : $"{line.speaker}: {line.text}";
+                        : $"<b><color=#5BC8FF>{line.speaker}</color></b>\n{line.text}";
 
                     if (HudUI.Instance != null) HudUI.Instance.ShowCaption(label);
 

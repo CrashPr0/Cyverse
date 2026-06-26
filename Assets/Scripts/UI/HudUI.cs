@@ -95,6 +95,40 @@ namespace Cyverse.UI
             return f;
         }
 
+        /// <summary>Give a panel a consistent look: tinted bg, accent outline,
+        /// and a thin accent bar along the top edge. Shared by the dialogue box,
+        /// settings card and controls overlay.</summary>
+        public static void StylePanel(GameObject panel, Color bg, Color accent)
+        {
+            var img = panel.GetComponent<Image>();
+            if (img == null) img = panel.AddComponent<Image>();
+            img.color = bg;
+
+            var outline = panel.AddComponent<Outline>();
+            outline.effectColor = new Color(accent.r, accent.g, accent.b, 0.9f);
+            outline.effectDistance = new Vector2(2.5f, 2.5f);
+
+            var bar = new GameObject("AccentBar", typeof(RectTransform), typeof(Image));
+            bar.transform.SetParent(panel.transform, false);
+            var brt = bar.GetComponent<RectTransform>();
+            brt.anchorMin = new Vector2(0, 1);
+            brt.anchorMax = new Vector2(1, 1);
+            brt.pivot = new Vector2(0.5f, 1);
+            brt.sizeDelta = new Vector2(0, 5);
+            brt.anchoredPosition = Vector2.zero;
+            var barImg = bar.GetComponent<Image>();
+            barImg.color = accent;
+            barImg.raycastTarget = false;
+        }
+
+        /// <summary>Cheap dark outline behind text for legibility on any background.</summary>
+        public static void AddOutline(Graphic g)
+        {
+            var o = g.gameObject.AddComponent<Outline>();
+            o.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            o.effectDistance = new Vector2(1.5f, -1.5f);
+        }
+
         // ---- Public API -----------------------------------------------------
 
         /// <summary>Show/hide the interaction affordance (crosshair grow + E badge).</summary>
@@ -154,6 +188,7 @@ namespace Cyverse.UI
             rt.pivot = new Vector2(0.5f, 1f);
             rt.anchoredPosition = new Vector2(0, -24);
             rt.sizeDelta = new Vector2(1200, 60);
+            AddOutline(objectiveText);
             objectiveText.text = string.Empty;
         }
 
@@ -166,15 +201,27 @@ namespace Cyverse.UI
             prt.anchorMax = new Vector2(0.5f, 0f);
             prt.pivot = new Vector2(0.5f, 0f);
             prt.anchoredPosition = new Vector2(0, 60);
-            prt.sizeDelta = new Vector2(1400, 160);
-            captionPanel.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f);
+            prt.sizeDelta = new Vector2(1400, 170);
+            StylePanel(captionPanel, new Color(0.02f, 0.04f, 0.07f, 0.82f), Accent);
 
             captionText = CreateText("CaptionText", captionPanel.transform, BaseCaptionSize, TextAnchor.MiddleCenter);
             var rt = captionText.rectTransform;
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(20, 12);
-            rt.offsetMax = new Vector2(-20, -12);
+            rt.offsetMin = new Vector2(28, 18);
+            rt.offsetMax = new Vector2(-28, -18);
+            AddOutline(captionText);
+
+            // "continue" hint in the corner of the dialogue box
+            var hint = CreateText("ContinueHint", captionPanel.transform, 18, TextAnchor.LowerRight);
+            hint.color = new Color(0.6f, 0.85f, 1f, 0.9f);
+            var hrt = hint.rectTransform;
+            hrt.anchorMin = new Vector2(1, 0);
+            hrt.anchorMax = new Vector2(1, 0);
+            hrt.pivot = new Vector2(1, 0);
+            hrt.anchoredPosition = new Vector2(-18, 8);
+            hrt.sizeDelta = new Vector2(280, 26);
+            hint.text = "[Space] Continue";
 
             captionPanel.SetActive(false);
         }

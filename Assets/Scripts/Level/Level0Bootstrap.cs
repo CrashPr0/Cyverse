@@ -164,6 +164,7 @@ namespace Cyverse.Level
             sys.AddComponent<HudUI>();
             sys.AddComponent<Sfx>();
             sys.AddComponent<ScreenFader>();
+            sys.AddComponent<ControlsOverlay>();
             sys.AddComponent<DialogueManager>();
             sys.AddComponent<AccessibilitySettings>();
             sys.AddComponent<Level0Manager>();

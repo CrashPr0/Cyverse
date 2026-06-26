@@ -120,15 +120,15 @@ namespace Cyverse.Settings
             if (menuText == null) return;
 
             var sb = new StringBuilder();
-            sb.AppendLine("<b>SETTINGS</b>");
-            sb.AppendLine();
             for (int i = 0; i < rows.Length; i++)
             {
-                string cursor = i == selected ? "<color=#5BC8FF>> </color>" : "   ";
-                sb.AppendLine($"{cursor}{rows[i]}:  {ValueLabel(i)}");
+                bool sel = i == selected;
+                string cursor = sel ? "<color=#5BC8FF>> </color>" : "   ";
+                string name = sel ? $"<color=#5BC8FF>{rows[i]}</color>" : rows[i];
+                sb.AppendLine($"{cursor}{name}:  {ValueLabel(i)}");
+                sb.AppendLine();
             }
-            sb.AppendLine();
-            sb.AppendLine("<size=20>Up/Down: select    Left/Right: adjust    Esc: resume</size>");
+            sb.AppendLine("<size=20><color=#8FB8CC>Up/Down: select    Left/Right: adjust    Esc: resume</color></size>");
             menuText.text = sb.ToString();
         }
 
@@ -176,28 +176,58 @@ namespace Cyverse.Settings
         {
             if (HudUI.Instance == null) return;
 
-            var go = new GameObject("SettingsPanel", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(HudUI.Instance.Canvas.transform, false);
-            var prt = go.GetComponent<RectTransform>();
+            // Dimmed backdrop behind the card.
+            var backdrop = new GameObject("SettingsBackdrop", typeof(RectTransform), typeof(Image));
+            backdrop.transform.SetParent(HudUI.Instance.Canvas.transform, false);
+            var prt = backdrop.GetComponent<RectTransform>();
             prt.anchorMin = Vector2.zero;
             prt.anchorMax = Vector2.one;
             prt.offsetMin = Vector2.zero;
             prt.offsetMax = Vector2.zero;
-            go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.88f);
-            panel = go;
+            backdrop.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+            panel = backdrop;
 
+            // Centred settings card with accent styling (matches the dialogue box).
+            var card = new GameObject("SettingsCard", typeof(RectTransform), typeof(Image));
+            card.transform.SetParent(backdrop.transform, false);
+            var crt = card.GetComponent<RectTransform>();
+            crt.anchorMin = new Vector2(0.5f, 0.5f);
+            crt.anchorMax = new Vector2(0.5f, 0.5f);
+            crt.pivot = new Vector2(0.5f, 0.5f);
+            crt.sizeDelta = new Vector2(760, 600);
+            HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.95f), HudUI.Accent);
+
+            // Header.
+            var header = new GameObject("Header", typeof(RectTransform));
+            header.transform.SetParent(card.transform, false);
+            var htext = header.AddComponent<Text>();
+            htext.font = HudUI.UIFont;
+            htext.fontSize = 36;
+            htext.fontStyle = FontStyle.Bold;
+            htext.alignment = TextAnchor.UpperCenter;
+            htext.color = HudUI.Accent;
+            htext.text = "SETTINGS";
+            var hrt = header.GetComponent<RectTransform>();
+            hrt.anchorMin = new Vector2(0, 1);
+            hrt.anchorMax = new Vector2(1, 1);
+            hrt.pivot = new Vector2(0.5f, 1);
+            hrt.sizeDelta = new Vector2(0, 60);
+            hrt.anchoredPosition = new Vector2(0, -24);
+
+            // Settings list.
             var txtGo = new GameObject("SettingsText", typeof(RectTransform));
-            txtGo.transform.SetParent(go.transform, false);
+            txtGo.transform.SetParent(card.transform, false);
             var rt = txtGo.GetComponent<RectTransform>();
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(900, 560);
+            rt.anchoredPosition = new Vector2(0, -22);
+            rt.sizeDelta = new Vector2(660, 470);
 
             menuText = txtGo.AddComponent<Text>();
             menuText.font = HudUI.UIFont;
-            menuText.fontSize = 30;
-            menuText.alignment = TextAnchor.MiddleCenter;
+            menuText.fontSize = 28;
+            menuText.alignment = TextAnchor.UpperLeft;
             menuText.color = Color.white;
             menuText.supportRichText = true;
         }
