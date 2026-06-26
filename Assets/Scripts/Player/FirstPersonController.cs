@@ -51,8 +51,19 @@ namespace Cyverse.Player
                 return;
             }
 
+            // Re-acquire pointer lock after a focus loss or (for WebGL) the
+            // first click — browsers/editor only grant lock after a user gesture,
+            // so until then the OS cursor is visible and roams over the HUD.
+            if (Cursor.lockState != CursorLockMode.Locked && Input.GetMouseButtonDown(0))
+                LockCursor(true);
+
             HandleLook();
             HandleMove();
+        }
+
+        void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus && !GameState.Busy) LockCursor(true);
         }
 
         private void HandleLook()
