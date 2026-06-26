@@ -1,4 +1,5 @@
 using UnityEngine;
+using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Interaction;
 using Cyverse.UI;
@@ -46,7 +47,11 @@ namespace Cyverse.Player
                     HudUI.Instance.SetInteract(true, target.Prompt, interactKey.ToString());
 
                 if (Input.GetKeyDown(interactKey))
+                {
+                    if (HudUI.Instance != null) HudUI.Instance.PulseCrosshair();
+                    if (Sfx.Instance != null) Sfx.Instance.PlayClick();
                     target.Interact(gameObject);
+                }
             }
             else
             {

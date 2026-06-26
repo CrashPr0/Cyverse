@@ -1,4 +1,5 @@
 using UnityEngine;
+using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Settings;
 
@@ -20,10 +21,14 @@ namespace Cyverse.Player
         public float lookSensitivity = 2f;
         public float maxPitch = 85f;
 
+        [Header("Footsteps")]
+        public float stepInterval = 2.0f; // metres travelled per footstep
+
         private CharacterController controller;
         private Transform cam;
         private float pitch;
         private float verticalVelocity;
+        private float stepDistance;
 
         void Awake()
         {
@@ -79,6 +84,18 @@ namespace Cyverse.Player
             move.y = verticalVelocity;
 
             controller.Move(move * Time.deltaTime);
+
+            // Footsteps: play one every stepInterval metres of ground travel.
+            if (controller.isGrounded)
+            {
+                Vector3 horiz = new Vector3(controller.velocity.x, 0f, controller.velocity.z);
+                stepDistance += horiz.magnitude * Time.deltaTime;
+                if (stepDistance >= stepInterval)
+                {
+                    stepDistance = 0f;
+                    if (Sfx.Instance != null) Sfx.Instance.PlayFootstep();
+                }
+            }
         }
 
         private void ApplyGravityOnly()

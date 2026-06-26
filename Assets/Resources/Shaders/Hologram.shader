@@ -48,6 +48,7 @@ Shader "Cyverse/Hologram"
             fixed4 _Color;
             float _RimPower, _ScanSpeed, _ScanDensity;
             float _GridDensity, _GridWidth, _BarSpeed, _BarSize, _Alpha;
+            float _CyMotion; // global: 1 = animate, 0 = Reduce Motion
 
             v2f vert (appdata v)
             {
@@ -70,13 +71,13 @@ Shader "Cyverse/Hologram"
                 float grid = 1.0 - smoothstep(0.0, _GridWidth, min(g.x, g.y));
 
                 // fine horizontal scanlines
-                float scan = 0.5 + 0.5 * sin(i.uv.y * _ScanDensity - _Time.y * _ScanSpeed);
+                float scan = 0.5 + 0.5 * sin(i.uv.y * _ScanDensity - _Time.y * _ScanSpeed * _CyMotion);
 
                 // a bright bar sweeping upward
-                float barPos = frac(_Time.y * _BarSpeed);
+                float barPos = frac(_Time.y * _BarSpeed * _CyMotion);
                 float bar = smoothstep(_BarSize, 0.0, abs(i.uv.y - barPos));
 
-                float flicker = 0.92 + 0.08 * sin(_Time.y * 40.0);
+                float flicker = 0.92 + 0.08 * sin(_Time.y * 40.0 * _CyMotion);
 
                 float intensity = (0.18 + rim * 1.4 + grid * 0.5 + scan * 0.18 + bar * 0.9) * flicker;
                 fixed4 col = _Color * intensity;

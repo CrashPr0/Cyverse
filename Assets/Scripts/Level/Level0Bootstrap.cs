@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Dialogue;
 using Cyverse.Interaction;
@@ -33,6 +34,8 @@ namespace Cyverse.Level
         void Awake()
         {
             GameState.Reset();
+            Time.timeScale = 1f;
+            Shader.SetGlobalFloat("_CyMotion", 1f); // settings overrides if Reduce Motion is on
 
             EnsureLighting();
             BuildFloor();
@@ -41,9 +44,10 @@ namespace Cyverse.Level
             BuildNeonTrim();
             BuildCenterpiece();
             BuildPlayer();
-            BuildSystems();   // HUD + Dialogue + Settings + Level0Manager
+            BuildSystems();   // HUD + Audio + Fader + Dialogue + Settings + Level0Manager
             BuildStations();
 
+            if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
             Level0Manager.Instance.Begin();
         }
 
@@ -155,8 +159,11 @@ namespace Cyverse.Level
         private void BuildSystems()
         {
             var sys = new GameObject("GameSystems");
-            // Order matters: HUD builds the canvas the others draw into.
+            // Order matters: HUD builds the canvas the others draw into; Sfx
+            // must exist before AccessibilitySettings (which clicks on Start).
             sys.AddComponent<HudUI>();
+            sys.AddComponent<Sfx>();
+            sys.AddComponent<ScreenFader>();
             sys.AddComponent<DialogueManager>();
             sys.AddComponent<AccessibilitySettings>();
             sys.AddComponent<Level0Manager>();
@@ -207,6 +214,43 @@ namespace Cyverse.Level
             var station = root.AddComponent<InteractableStation>();
             station.Configure(id, prompt, lines);
             Level0Manager.Instance.Register(station);
+
+            // "Reviewed" indicator: a green checkmark (a shape, not colour
+            // alone) plus a confirm chime and a calmer light when completed.
+            var mark = BuildCheckmark(root.transform, basePos + new Vector3(0, 2.7f, 0));
+            mark.SetActive(false);
+            station.Completed += _ =>
+            {
+                mark.SetActive(true);
+                if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
+                l.intensity = 1.2f;
+            };
+        }
+
+        private GameObject BuildCheckmark(Transform parent, Vector3 worldPos)
+        {
+            var mark = new GameObject("ReviewedMark");
+            mark.transform.SetParent(parent, false);
+            mark.transform.position = worldPos;
+            mark.transform.localRotation = Quaternion.identity;
+
+            var mat = MakeEmissive(new Color(0.30f, 1f, 0.45f), 3f);
+            CreateTickBar(mark.transform, new Vector3(-0.14f, -0.02f, 0f), 45f, new Vector3(0.30f, 0.10f, 0.10f), mat);
+            CreateTickBar(mark.transform, new Vector3(0.10f, 0.10f, 0f), -45f, new Vector3(0.60f, 0.10f, 0.10f), mat);
+            return mark;
+        }
+
+        private static void CreateTickBar(Transform parent, Vector3 localPos, float zRot, Vector3 scale, Material mat)
+        {
+            var bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            bar.name = "TickBar";
+            var col = bar.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+            bar.GetComponent<Renderer>().material = mat;
+            bar.transform.SetParent(parent, false);
+            bar.transform.localPosition = localPos;
+            bar.transform.localRotation = Quaternion.Euler(0f, 0f, zRot);
+            bar.transform.localScale = scale;
         }
 
         // ---- Helpers --------------------------------------------------------

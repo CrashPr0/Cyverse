@@ -35,6 +35,7 @@ Shader "Cyverse/GridFloor"
         fixed4 _BaseColor, _LineColor;
         float _GridScale, _LineWidth, _MinorEmission, _Smoothness, _Metallic;
         float _Emission, _FadeDistance, _PulseStrength, _PulseSpeed;
+        float _CyMotion; // global: 1 = animate, 0 = Reduce Motion
 
         float gridLines (float2 coord, float width)
         {
@@ -55,7 +56,7 @@ Shader "Cyverse/GridFloor"
             float rim = pow(1.0 - saturate(normalize(IN.viewDir).z), 3.0);
 
             // pulse ring travelling outward from the centre
-            float ring = sin(dist * 0.6 - _Time.y * _PulseSpeed);
+            float ring = sin(dist * 0.6 - _Time.y * _PulseSpeed * _CyMotion);
             ring = smoothstep(0.85, 1.0, ring);
 
             float lines = saturate(major + minor * _MinorEmission);

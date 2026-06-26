@@ -75,9 +75,17 @@ namespace Cyverse.UI
             if (visible)
             {
                 float pop = Mathf.Lerp(0.8f, 1f, interactGroup.alpha);
-                float pulse = interactActive ? 1f + 0.05f * Mathf.Sin(Time.unscaledTime * 6f) : 1f;
+                bool doPulse = interactActive && !AccessibilitySettings.ReduceMotion;
+                float pulse = doPulse ? 1f + 0.05f * Mathf.Sin(Time.unscaledTime * 6f) : 1f;
                 interactRect.localScale = Vector3.one * pop * pulse;
             }
+        }
+
+        /// <summary>Quick crosshair "kick" when the player activates something.</summary>
+        public void PulseCrosshair()
+        {
+            if (AccessibilitySettings.ReduceMotion) return;
+            crosshairScale = 3.2f; // Update eases it back to the resting size
         }
 
         public static Font LoadFont()

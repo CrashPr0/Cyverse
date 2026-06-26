@@ -68,8 +68,25 @@ completion, matching the CyVerse Script.
 | `Level/Level0Manager.cs`               | Intro, station tracking, completion             |
 | `Level/Level0Bootstrap.cs`            | Assembles the whole level + visual style        |
 | `Level/Rotator.cs`                     | Slow spin for holograms / centerpiece           |
+| `Audio/ProceduralAudio.cs`             | Generates footstep/click/confirm SFX at runtime |
+| `Audio/Sfx.cs`                         | One-shot SFX, scaled by the SFX volume channel  |
+| `UI/ScreenFader.cs`                    | Fade-from-black on start / fade-to-black        |
 | `Resources/Shaders/GridFloor.shader`   | Glowing tech-grid floor (`Cyverse/GridFloor`)   |
 | `Resources/Shaders/Hologram.shader`    | Holographic panels (`Cyverse/Hologram`)         |
+
+## UX & accessibility features
+
+Game-feel: animated crosshair (grows + tints on a target, kicks on press),
+a popping "E" key badge, footstep audio, UI/confirm sounds, a fade-from-black
+on start, and a green ✓ checkmark (a *shape*, not colour alone) when a station
+is reviewed.
+
+Accessibility (Esc menu, all persisted): separate **Master / Voice / SFX**
+volume channels, **caption text scaling**, **look sensitivity**, **field of
+view** (motion-sickness comfort), and **Reduce Motion** (freezes shader
+animation, hologram spin, HUD pulses, and screen fades for photosensitivity).
+Captions cover all narration, the menu is keyboard-navigable, and opening it
+pauses the game. Reduce Motion uses a global shader float `_CyMotion`.
 
 ## Extending Level 0
 
