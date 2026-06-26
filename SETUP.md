@@ -66,7 +66,10 @@ completion, matching the CyVerse Script.
 | `Settings/AccessibilitySettings.cs`    | Esc menu: audio, caption scale, sensitivity     |
 | `Level/Level0Content.cs`               | All Level 0 narration text (edit copy here)     |
 | `Level/Level0Manager.cs`               | Intro, station tracking, completion             |
-| `Level/Level0Bootstrap.cs`            | Assembles the whole level                       |
+| `Level/Level0Bootstrap.cs`            | Assembles the whole level + visual style        |
+| `Level/Rotator.cs`                     | Slow spin for holograms / centerpiece           |
+| `Resources/Shaders/GridFloor.shader`   | Glowing tech-grid floor (`Cyverse/GridFloor`)   |
+| `Resources/Shaders/Hologram.shader`    | Holographic panels (`Cyverse/Hologram`)         |
 
 ## Extending Level 0
 
@@ -89,9 +92,32 @@ completion, matching the CyVerse Script.
 4. Keep textures compressed and the build lean for low-bandwidth / remote users.
 5. `Build` and host the output folder on any static web server.
 
+## Visual style / shaders
+
+Level 0 ships a procedural "high-tech, lived-in working space" look, built in
+`Level0Bootstrap`:
+
+- **Grid floor** — `Cyverse/GridFloor` surface shader: dark, glossy, with
+  emissive cyan grid lines driven by world position. Tune `_LineColor`,
+  `_GridScale`, `_Emission`, `_Metallic`, `_Smoothness` on the material.
+- **Holograms** — `Cyverse/Hologram` transparent/additive shader: Fresnel rim,
+  scrolling scanlines, flicker. Used on the station panels and the rotating
+  centerpiece. Tune `_Color`, `_ScanDensity`, `_ScanSpeed`, `_RimPower`.
+- **Emissive ceiling panels + neon floor trim** and **colored point lights** at
+  each station, against low ambient so the glow reads strongly.
+
+Shaders live under `Assets/Resources/` so they're always included in WebGL
+builds. The bootstrap falls back to emissive Standard materials if a custom
+shader fails to compile, so the scene always runs.
+
+This is a stylised placeholder, not final art — swap the primitives for real
+models/prefabs as they're produced. For a closer match to the concept boards
+(reflective surfaces, richer materials), consider adding a baked **Reflection
+Probe** in the room and, longer term, moving to URP.
+
 ## Render pipeline
 
 The project uses the **Built-in Render Pipeline** for simplicity and broad
-WebGL compatibility. If you later switch to URP for better visuals, the station
-emissive tint in `Level0Bootstrap.Tint()` already uses `_EmissionColor`, which
-both pipelines support.
+WebGL compatibility. The custom shaders above are written for Built-in RP; if
+you migrate to URP later they'll need porting (Shader Graph equivalents), but
+the emissive Standard fallbacks port automatically.

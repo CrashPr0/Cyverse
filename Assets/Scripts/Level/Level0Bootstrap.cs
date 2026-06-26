@@ -10,27 +10,44 @@ using Cyverse.UI;
 namespace Cyverse.Level
 {
     /// <summary>
-    /// Assembles a runnable Level 0 at Play time — lighting, room, player,
-    /// HUD/managers, and the three learning stations — so the team has a working
-    /// vertical slice without hand-wiring a scene. Everything here is intended
-    /// to be replaced piece by piece with real art and a hand-built scene as
-    /// the project grows (see SETUP.md). The only thing the scene needs is one
-    /// GameObject carrying this component.
+    /// Assembles a runnable, stylised Level 0 at Play time: a dark high-tech
+    /// lobby with a glowing grid floor, ceiling light panels, neon trim, a
+    /// rotating holographic centerpiece, and three holographic learning
+    /// stations (I/AM, CIA Triad, NICE Roles). The look is driven by two custom
+    /// shaders (Cyverse/GridFloor and Cyverse/Hologram) plus emissive materials.
+    ///
+    /// This is a procedural placeholder for the art team's concept (futuristic,
+    /// colorful, lived-in working space). Replace primitives with real prefabs
+    /// incrementally — see SETUP.md. The scene only needs this one component.
     /// </summary>
     public class Level0Bootstrap : MonoBehaviour
     {
+        // ---- Palette --------------------------------------------------------
+        private static readonly Color AccentCyan = new Color(0.25f, 0.80f, 1.00f);
+        private static readonly Color PanelWhite = new Color(0.90f, 0.95f, 1.00f);
+        private static readonly Color WallColor = new Color(0.10f, 0.12f, 0.16f);
+        private static readonly Color IamColor = new Color(0.25f, 0.65f, 1.00f);
+        private static readonly Color CiaColor = new Color(0.30f, 1.00f, 0.65f);
+        private static readonly Color NiceColor = new Color(1.00f, 0.72f, 0.25f);
+
         void Awake()
         {
             GameState.Reset();
 
             EnsureLighting();
-            BuildRoom();
+            BuildFloor();
+            BuildWalls();
+            BuildCeilingPanels();
+            BuildNeonTrim();
+            BuildCenterpiece();
             BuildPlayer();
             BuildSystems();   // HUD + Dialogue + Settings + Level0Manager
             BuildStations();
 
             Level0Manager.Instance.Begin();
         }
+
+        // ---- Lighting -------------------------------------------------------
 
         private void EnsureLighting()
         {
@@ -39,34 +56,78 @@ namespace Cyverse.Level
                 var go = new GameObject("Directional Light");
                 var light = go.AddComponent<Light>();
                 light.type = LightType.Directional;
-                light.color = new Color(0.95f, 0.97f, 1f);
-                light.intensity = 1.1f;
-                go.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+                light.color = new Color(0.70f, 0.80f, 1.00f); // cool key light
+                light.intensity = 0.8f;
+                light.shadows = LightShadows.Soft;
+                go.transform.rotation = Quaternion.Euler(55f, -35f, 0f);
             }
-            RenderSettings.ambientLight = new Color(0.35f, 0.38f, 0.45f);
+            // Low ambient so the emissive grid, panels and holograms read strongly.
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.14f, 0.16f, 0.22f);
         }
 
-        private void BuildRoom()
+        // ---- Environment ----------------------------------------------------
+
+        private void BuildFloor()
         {
-            var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            floor.name = "Floor";
-            floor.transform.localScale = new Vector3(4f, 1f, 4f); // ~40 x 40 m
-            Tint(floor, new Color(0.18f, 0.20f, 0.25f));
-
-            CreateWall("Wall_North", new Vector3(0, 2.5f, 20), new Vector3(40, 5, 1));
-            CreateWall("Wall_South", new Vector3(0, 2.5f, -20), new Vector3(40, 5, 1));
-            CreateWall("Wall_East", new Vector3(20, 2.5f, 0), new Vector3(1, 5, 40));
-            CreateWall("Wall_West", new Vector3(-20, 2.5f, 0), new Vector3(1, 5, 40));
+            var floor = Spawn(PrimitiveType.Plane, "Floor", null,
+                Vector3.zero, new Vector3(4f, 1f, 4f), MakeGridFloor(), collider: true);
+            floor.isStatic = true;
         }
 
-        private void CreateWall(string name, Vector3 pos, Vector3 scale)
+        private void BuildWalls()
         {
-            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            wall.name = name;
-            wall.transform.position = pos;
-            wall.transform.localScale = scale;
-            Tint(wall, new Color(0.25f, 0.28f, 0.34f));
+            var mat = MakeStandard(WallColor, smoothness: 0.45f, metallic: 0.25f);
+            CreateWall("Wall_North", new Vector3(0, 2.5f, 20), new Vector3(40, 5, 1), mat);
+            CreateWall("Wall_South", new Vector3(0, 2.5f, -20), new Vector3(40, 5, 1), mat);
+            CreateWall("Wall_East", new Vector3(20, 2.5f, 0), new Vector3(1, 5, 40), mat);
+            CreateWall("Wall_West", new Vector3(-20, 2.5f, 0), new Vector3(1, 5, 40), mat);
         }
+
+        private void CreateWall(string name, Vector3 pos, Vector3 scale, Material mat)
+        {
+            var wall = Spawn(PrimitiveType.Cube, name, null, pos, scale, mat, collider: true);
+            wall.isStatic = true;
+        }
+
+        private void BuildCeilingPanels()
+        {
+            // Rows of bright emissive bars, like recessed ceiling lights.
+            var mat = MakeEmissive(PanelWhite, 1.6f);
+            for (int z = -14; z <= 14; z += 7)
+            {
+                Spawn(PrimitiveType.Cube, "CeilingPanel_" + z, null,
+                    new Vector3(0, 4.92f, z), new Vector3(34f, 0.12f, 0.9f), mat, collider: false);
+            }
+        }
+
+        private void BuildNeonTrim()
+        {
+            var mat = MakeEmissive(AccentCyan, 2.5f);
+            // Glowing skirting where the walls meet the floor.
+            Spawn(PrimitiveType.Cube, "Trim_N", null, new Vector3(0, 0.1f, 19.6f), new Vector3(39.4f, 0.12f, 0.12f), mat, false);
+            Spawn(PrimitiveType.Cube, "Trim_S", null, new Vector3(0, 0.1f, -19.6f), new Vector3(39.4f, 0.12f, 0.12f), mat, false);
+            Spawn(PrimitiveType.Cube, "Trim_E", null, new Vector3(19.6f, 0.1f, 0f), new Vector3(0.12f, 0.12f, 39.4f), mat, false);
+            Spawn(PrimitiveType.Cube, "Trim_W", null, new Vector3(-19.6f, 0.1f, 0f), new Vector3(0.12f, 0.12f, 39.4f), mat, false);
+        }
+
+        private void BuildCenterpiece()
+        {
+            // A tall rotating hologram "server core" as a focal point at the back.
+            var core = Spawn(PrimitiveType.Cylinder, "HoloCore", null,
+                new Vector3(0, 2.6f, 15f), new Vector3(1.6f, 2.2f, 1.6f), MakeHologram(AccentCyan), collider: false);
+            core.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 18f, 0f);
+
+            var glow = new GameObject("HoloCoreLight");
+            glow.transform.position = new Vector3(0, 2.6f, 15f);
+            var l = glow.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = AccentCyan;
+            l.range = 12f;
+            l.intensity = 2.0f;
+        }
+
+        // ---- Player & systems ----------------------------------------------
 
         private void BuildPlayer()
         {
@@ -82,7 +143,8 @@ namespace Cyverse.Level
             var camGo = new GameObject("PlayerCamera");
             camGo.transform.SetParent(player.transform, false);
             camGo.transform.localPosition = new Vector3(0, 1.7f, 0);
-            camGo.AddComponent<Camera>();
+            var cam = camGo.AddComponent<Camera>();
+            cam.backgroundColor = new Color(0.02f, 0.03f, 0.05f);
             camGo.AddComponent<AudioListener>();
             camGo.tag = "MainCamera";
 
@@ -100,40 +162,111 @@ namespace Cyverse.Level
             sys.AddComponent<Level0Manager>();
         }
 
+        // ---- Stations -------------------------------------------------------
+
         private void BuildStations()
         {
             CreateStation("iam", "Inspect the I/AM Kiosk",
-                new Vector3(-5, 1, 3), new Color(0.20f, 0.60f, 1f), Level0Content.IAM());
+                new Vector3(-6, 0, 4), IamColor, Level0Content.IAM());
 
             CreateStation("cia", "Inspect the CIA Triad Hologram",
-                new Vector3(0, 1.2f, 7), new Color(0.20f, 1f, 0.60f), Level0Content.CIA());
+                new Vector3(0, 0, 8), CiaColor, Level0Content.CIA());
 
             CreateStation("nice", "Inspect the NICE Roles Board",
-                new Vector3(5, 1, 3), new Color(1f, 0.70f, 0.20f), Level0Content.Nice());
+                new Vector3(6, 0, 4), NiceColor, Level0Content.Nice());
         }
 
-        private void CreateStation(string id, string prompt, Vector3 pos, Color color, List<DialogueLine> lines)
+        private void CreateStation(string id, string prompt, Vector3 basePos, Color color, List<DialogueLine> lines)
         {
-            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cube.name = "Station_" + id;
-            cube.transform.position = pos;
-            cube.transform.localScale = new Vector3(1.2f, 2f, 1.2f);
-            Tint(cube, color, emissive: true);
+            // Root carries the InteractableStation; the desk child carries the
+            // collider the interactor ray hits (GetComponentInParent finds the root).
+            var root = new GameObject("Station_" + id);
+            root.transform.position = basePos;
 
-            var station = cube.AddComponent<InteractableStation>();
+            Spawn(PrimitiveType.Cube, "Desk", root.transform,
+                basePos + new Vector3(0, 0.55f, 0), new Vector3(1.6f, 1.1f, 1.0f),
+                MakeStandard(new Color(0.12f, 0.14f, 0.18f), 0.6f, 0.4f), collider: true);
+
+            var holo = Spawn(PrimitiveType.Quad, "Hologram", root.transform,
+                basePos + new Vector3(0, 1.9f, 0), new Vector3(1.4f, 1.0f, 1f),
+                MakeHologram(color), collider: false);
+            holo.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 30f, 0f);
+
+            var glow = new GameObject("StationLight");
+            glow.transform.SetParent(root.transform, false);
+            glow.transform.position = basePos + new Vector3(0, 1.8f, 0);
+            var l = glow.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = color;
+            l.range = 7f;
+            l.intensity = 2.5f;
+
+            var station = root.AddComponent<InteractableStation>();
             station.Configure(id, prompt, lines);
             Level0Manager.Instance.Register(station);
         }
 
-        private static void Tint(GameObject go, Color color, bool emissive = false)
+        // ---- Helpers --------------------------------------------------------
+
+        private static GameObject Spawn(PrimitiveType type, string name, Transform parent,
+            Vector3 pos, Vector3 scale, Material mat, bool collider)
         {
-            var mat = go.GetComponent<Renderer>().material;
-            mat.color = color;
-            if (emissive)
+            var go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            if (parent != null) go.transform.SetParent(parent, true);
+            go.transform.position = pos;
+            go.transform.localScale = scale;
+            if (mat != null) go.GetComponent<Renderer>().material = mat;
+            if (!collider)
             {
-                mat.EnableKeyword("_EMISSION");
-                mat.SetColor("_EmissionColor", color * 0.5f);
+                var c = go.GetComponent<Collider>();
+                if (c != null) Destroy(c);
             }
+            return go;
+        }
+
+        private static Material MakeStandard(Color c, float smoothness, float metallic)
+        {
+            var m = new Material(Shader.Find("Standard"));
+            m.color = c;
+            m.SetFloat("_Glossiness", smoothness);
+            m.SetFloat("_Metallic", metallic);
+            return m;
+        }
+
+        private static Material MakeEmissive(Color c, float strength)
+        {
+            var m = new Material(Shader.Find("Standard"));
+            m.color = c;
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", c * strength);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            return m;
+        }
+
+        private static Material MakeHologram(Color c)
+        {
+            Shader s = Shader.Find("Cyverse/Hologram");
+            if (s != null)
+            {
+                var m = new Material(s);
+                m.SetColor("_Color", c);
+                return m;
+            }
+            return MakeEmissive(c, 2.5f); // fallback if the shader didn't compile
+        }
+
+        private static Material MakeGridFloor()
+        {
+            Shader s = Shader.Find("Cyverse/GridFloor");
+            if (s != null)
+            {
+                var m = new Material(s);
+                m.SetColor("_LineColor", AccentCyan);
+                m.SetColor("_BaseColor", new Color(0.05f, 0.06f, 0.09f));
+                return m;
+            }
+            return MakeStandard(new Color(0.08f, 0.09f, 0.12f), 0.8f, 0.3f);
         }
     }
 }
