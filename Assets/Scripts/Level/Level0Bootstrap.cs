@@ -115,11 +115,11 @@ namespace Cyverse.Level
         {
             // A tall rotating hologram "server core" as a focal point at the back.
             var core = Spawn(PrimitiveType.Cylinder, "HoloCore", null,
-                new Vector3(0, 2.6f, 15f), new Vector3(1.6f, 2.2f, 1.6f), MakeHologram(AccentCyan), collider: false);
+                new Vector3(0, 2.6f, 13f), new Vector3(1.6f, 2.2f, 1.6f), MakeHologram(AccentCyan), collider: false);
             core.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 18f, 0f);
 
             var glow = new GameObject("HoloCoreLight");
-            glow.transform.position = new Vector3(0, 2.6f, 15f);
+            glow.transform.position = new Vector3(0, 2.6f, 13f);
             var l = glow.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = AccentCyan;
@@ -166,14 +166,15 @@ namespace Cyverse.Level
 
         private void BuildStations()
         {
+            // A gentle arc facing the player as they enter from the south.
             CreateStation("iam", "Inspect the I/AM Kiosk",
-                new Vector3(-6, 0, 4), IamColor, Level0Content.IAM());
+                new Vector3(-5, 0, 3), IamColor, Level0Content.IAM());
 
             CreateStation("cia", "Inspect the CIA Triad Hologram",
-                new Vector3(0, 0, 8), CiaColor, Level0Content.CIA());
+                new Vector3(0, 0, 7), CiaColor, Level0Content.CIA());
 
             CreateStation("nice", "Inspect the NICE Roles Board",
-                new Vector3(6, 0, 4), NiceColor, Level0Content.Nice());
+                new Vector3(5, 0, 3), NiceColor, Level0Content.Nice());
         }
 
         private void CreateStation(string id, string prompt, Vector3 basePos, Color color, List<DialogueLine> lines)
@@ -190,7 +191,9 @@ namespace Cyverse.Level
             var holo = Spawn(PrimitiveType.Quad, "Hologram", root.transform,
                 basePos + new Vector3(0, 1.9f, 0), new Vector3(1.4f, 1.0f, 1f),
                 MakeHologram(color), collider: false);
-            holo.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 30f, 0f);
+            // Flat panel faces the player rather than spinning — a rotating quad
+            // would disappear edge-on every 90°. The centerpiece cylinder spins.
+            holo.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
             var glow = new GameObject("StationLight");
             glow.transform.SetParent(root.transform, false);

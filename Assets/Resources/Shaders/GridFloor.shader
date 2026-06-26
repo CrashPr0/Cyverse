@@ -1,17 +1,21 @@
-// Glowing tech-grid floor for CyVerse. Built-in Render Pipeline surface shader
-// so it still receives lighting and looks glossy/reflective, with emissive grid
-// lines driven by world position (independent of UVs / tiling).
+// Advanced glowing tech-grid floor for CyVerse. Built-in RP surface shader so it
+// stays glossy/lit. Adds a major + minor grid, distance fade, grazing-angle
+// brightening, and a pulse ring travelling outward from the room centre.
 Shader "Cyverse/GridFloor"
 {
     Properties
     {
         _BaseColor ("Base Color", Color) = (0.05, 0.06, 0.09, 1)
         _LineColor ("Line Color", Color) = (0.2, 0.8, 1, 1)
-        _GridScale ("Grid Cell Size (m)", Float) = 2
-        _LineWidth ("Line Width", Range(0.001, 0.3)) = 0.04
-        _Smoothness ("Smoothness", Range(0,1)) = 0.85
-        _Metallic ("Metallic", Range(0,1)) = 0.3
+        _GridScale ("Major Cell Size (m)", Float) = 4
+        _LineWidth ("Line Width", Range(0.001, 0.3)) = 0.03
+        _MinorEmission ("Minor Grid Emission", Range(0, 2)) = 0.35
+        _Smoothness ("Smoothness", Range(0,1)) = 0.88
+        _Metallic ("Metallic", Range(0,1)) = 0.35
         _Emission ("Emission Strength", Float) = 2.5
+        _FadeDistance ("Fade Distance (m)", Float) = 26
+        _PulseStrength ("Pulse Strength", Range(0, 3)) = 1.2
+        _PulseSpeed ("Pulse Speed", Float) = 2.5
     }
     SubShader
     {
@@ -22,21 +26,45 @@ Shader "Cyverse/GridFloor"
         #pragma surface surf Standard fullforwardshadows
         #pragma target 3.0
 
-        struct Input { float3 worldPos; };
+        struct Input
+        {
+            float3 worldPos;
+            float3 viewDir;
+        };
 
         fixed4 _BaseColor, _LineColor;
-        float _GridScale, _LineWidth, _Smoothness, _Metallic, _Emission;
+        float _GridScale, _LineWidth, _MinorEmission, _Smoothness, _Metallic;
+        float _Emission, _FadeDistance, _PulseStrength, _PulseSpeed;
+
+        float gridLines (float2 coord, float width)
+        {
+            float2 c = abs(frac(coord) - 0.5);
+            return 1.0 - smoothstep(0.0, width, min(c.x, c.y));
+        }
 
         void surf (Input IN, inout SurfaceOutputStandard o)
         {
-            float2 coord = IN.worldPos.xz / max(_GridScale, 0.001);
-            float2 cell = abs(frac(coord) - 0.5);
-            float gl = 1.0 - smoothstep(0.0, _LineWidth, min(cell.x, cell.y));
+            float scale = max(_GridScale, 0.001);
+            float major = gridLines(IN.worldPos.xz / scale, _LineWidth);
+            float minor = gridLines(IN.worldPos.xz / (scale * 0.25), _LineWidth * 0.6);
+
+            float dist = length(IN.worldPos.xz);
+            float fade = saturate(1.0 - dist / max(_FadeDistance, 0.001));
+
+            // grazing-angle brightening
+            float rim = pow(1.0 - saturate(normalize(IN.viewDir).z), 3.0);
+
+            // pulse ring travelling outward from the centre
+            float ring = sin(dist * 0.6 - _Time.y * _PulseSpeed);
+            ring = smoothstep(0.85, 1.0, ring);
+
+            float lines = saturate(major + minor * _MinorEmission);
+            float emit = lines * fade + ring * _PulseStrength * fade + rim * 0.5;
 
             o.Albedo = _BaseColor.rgb;
             o.Metallic = _Metallic;
             o.Smoothness = _Smoothness;
-            o.Emission = _LineColor.rgb * gl * _Emission;
+            o.Emission = _LineColor.rgb * emit * _Emission;
         }
         ENDCG
     }

@@ -1,15 +1,19 @@
-// Holographic display shader for CyVerse station panels and the centerpiece.
-// Built-in Render Pipeline. Transparent + additive so it reads as glowing
-// light: animated scanlines, a Fresnel rim, and a subtle flicker.
+// Advanced holographic display shader for CyVerse. Built-in RP, transparent +
+// additive. Combines a Fresnel edge glow, a procedural grid, fine scanlines, a
+// sweeping scan bar, and flicker for a "live hologram" feel.
 Shader "Cyverse/Hologram"
 {
     Properties
     {
         _Color ("Color", Color) = (0.3, 0.8, 1, 1)
         _RimPower ("Rim Power", Range(0.5, 8)) = 2.5
-        _ScanSpeed ("Scan Speed", Float) = 2
-        _ScanDensity ("Scan Density", Float) = 40
-        _Alpha ("Base Alpha", Range(0,1)) = 0.45
+        _ScanSpeed ("Scanline Speed", Float) = 2
+        _ScanDensity ("Scanline Density", Float) = 60
+        _GridDensity ("Grid Density", Float) = 10
+        _GridWidth ("Grid Line Width", Range(0, 0.2)) = 0.03
+        _BarSpeed ("Scan Bar Speed", Float) = 0.5
+        _BarSize ("Scan Bar Size", Range(0.005, 0.4)) = 0.06
+        _Alpha ("Base Alpha", Range(0,1)) = 0.35
     }
     SubShader
     {
@@ -42,7 +46,8 @@ Shader "Cyverse/Hologram"
             };
 
             fixed4 _Color;
-            float _RimPower, _ScanSpeed, _ScanDensity, _Alpha;
+            float _RimPower, _ScanSpeed, _ScanDensity;
+            float _GridDensity, _GridWidth, _BarSpeed, _BarSize, _Alpha;
 
             v2f vert (appdata v)
             {
@@ -50,8 +55,8 @@ Shader "Cyverse/Hologram"
                 o.pos = UnityObjectToClipPos(v.vertex);
                 o.uv = v.uv;
                 o.worldNormal = UnityObjectToWorldNormal(v.normal);
-                float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.viewDir = normalize(_WorldSpaceCameraPos - worldPos);
+                float3 wp = mul(unity_ObjectToWorld, v.vertex).xyz;
+                o.viewDir = normalize(_WorldSpaceCameraPos - wp);
                 return o;
             }
 
@@ -59,12 +64,23 @@ Shader "Cyverse/Hologram"
             {
                 float ndotv = saturate(dot(normalize(i.worldNormal), normalize(i.viewDir)));
                 float rim = pow(1.0 - ndotv, _RimPower);
-                float scan = 0.5 + 0.5 * sin((i.uv.y * _ScanDensity) - _Time.y * _ScanSpeed);
-                float flicker = 0.92 + 0.08 * sin(_Time.y * 45.0);
 
-                float intensity = (0.30 + rim + scan * 0.25) * flicker;
+                // procedural grid
+                float2 g = abs(frac(i.uv * _GridDensity) - 0.5);
+                float grid = 1.0 - smoothstep(0.0, _GridWidth, min(g.x, g.y));
+
+                // fine horizontal scanlines
+                float scan = 0.5 + 0.5 * sin(i.uv.y * _ScanDensity - _Time.y * _ScanSpeed);
+
+                // a bright bar sweeping upward
+                float barPos = frac(_Time.y * _BarSpeed);
+                float bar = smoothstep(_BarSize, 0.0, abs(i.uv.y - barPos));
+
+                float flicker = 0.92 + 0.08 * sin(_Time.y * 40.0);
+
+                float intensity = (0.18 + rim * 1.4 + grid * 0.5 + scan * 0.18 + bar * 0.9) * flicker;
                 fixed4 col = _Color * intensity;
-                col.a = saturate((_Alpha + rim) * flicker);
+                col.a = saturate((_Alpha + rim + grid * 0.25 + bar * 0.5) * flicker);
                 return col;
             }
             ENDCG
