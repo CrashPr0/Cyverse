@@ -12,7 +12,9 @@ namespace Cyverse.UI
     /// </summary>
     public class ControlsOverlay : MonoBehaviour
     {
-        public bool onlyFirstTime = true;
+        // Show the controls card every session by default (good for classroom /
+        // kiosk play). Set true to only show it the first time on a machine.
+        public bool onlyFirstTime = false;
         public float minDisplaySeconds = 5f;  // stays at least this long
         public float autoHideSeconds = 14f;
 
