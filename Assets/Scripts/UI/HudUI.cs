@@ -160,6 +160,7 @@ namespace Cyverse.UI
 
         public void ShowObjective(string text)
         {
+            PinObjectiveToTop();
             objectiveText.text = text;
         }
 
@@ -182,14 +183,22 @@ namespace Cyverse.UI
         private void BuildObjective()
         {
             objectiveText = CreateText("Objective", Canvas.transform, BaseObjectiveSize, TextAnchor.UpperCenter);
+            AddOutline(objectiveText);
+            PinObjectiveToTop();
+            objectiveText.text = string.Empty;
+        }
+
+        /// <summary>Force the objective banner to the top-centre of the screen.
+        /// Re-asserted on every update so nothing can leave it stranded in the
+        /// middle of the view (e.g. a reset RectTransform in a built scene).</summary>
+        private void PinObjectiveToTop()
+        {
             var rt = objectiveText.rectTransform;
             rt.anchorMin = new Vector2(0.5f, 1f);
             rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
             rt.anchoredPosition = new Vector2(0, -24);
             rt.sizeDelta = new Vector2(1200, 60);
-            AddOutline(objectiveText);
-            objectiveText.text = string.Empty;
         }
 
         private void BuildCaption()
