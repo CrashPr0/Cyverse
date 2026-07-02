@@ -14,11 +14,14 @@ namespace Cyverse.Core
         /// <summary>The pause / accessibility menu is open.</summary>
         public static bool MenuOpen;
 
+        /// <summary>A knowledge-check quiz is on screen.</summary>
+        public static bool QuizActive;
+
         /// <summary>Level 0 has been finished.</summary>
         public static bool LevelComplete;
 
         /// <summary>True whenever normal first-person control should be suspended.</summary>
-        public static bool Busy => DialogueActive || MenuOpen || LevelComplete;
+        public static bool Busy => DialogueActive || MenuOpen || QuizActive || LevelComplete;
 
         /// <summary>
         /// Static fields survive Play-mode restarts when "Enter Play Mode
@@ -28,6 +31,7 @@ namespace Cyverse.Core
         {
             DialogueActive = false;
             MenuOpen = false;
+            QuizActive = false;
             LevelComplete = false;
         }
     }

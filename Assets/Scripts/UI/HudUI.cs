@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Cyverse.Core;
 using Cyverse.Settings;
 
 namespace Cyverse.UI
@@ -39,6 +40,10 @@ namespace Cyverse.UI
         private Text interactLabel;
         private bool interactActive;
 
+        // Score counter
+        private Text scoreText;
+        private float scorePop = 1f;
+
         void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(this); return; }
@@ -47,9 +52,24 @@ namespace Cyverse.UI
             UIFont = LoadFont();
             BuildCanvas();
             BuildObjective();
+            BuildScore();
             BuildCaption();
             BuildInteractPrompt();
             BuildCrosshair();
+
+            ScoreSystem.Changed += OnScoreChanged;
+        }
+
+        void OnDestroy()
+        {
+            if (Instance == this) ScoreSystem.Changed -= OnScoreChanged;
+        }
+
+        private void OnScoreChanged(int total, int delta)
+        {
+            if (scoreText == null) return;
+            scoreText.text = $"SCORE  <b>{total}</b>";
+            if (delta > 0 && !AccessibilitySettings.ReduceMotion) scorePop = 1.45f;
         }
 
         void Update()
@@ -78,6 +98,13 @@ namespace Cyverse.UI
                 bool doPulse = interactActive && !AccessibilitySettings.ReduceMotion;
                 float pulse = doPulse ? 1f + 0.05f * Mathf.Sin(Time.unscaledTime * 6f) : 1f;
                 interactRect.localScale = Vector3.one * pop * pulse;
+            }
+
+            // Score counter pops when points are awarded, then settles back.
+            if (scoreText != null)
+            {
+                scorePop = Mathf.Lerp(scorePop, 1f, k);
+                scoreText.rectTransform.localScale = Vector3.one * scorePop;
             }
         }
 
@@ -199,6 +226,20 @@ namespace Cyverse.UI
             rt.pivot = new Vector2(0.5f, 1f);
             rt.anchoredPosition = new Vector2(0, -24);
             rt.sizeDelta = new Vector2(1200, 60);
+        }
+
+        private void BuildScore()
+        {
+            scoreText = CreateText("Score", Canvas.transform, 26, TextAnchor.UpperRight);
+            var rt = scoreText.rectTransform;
+            rt.anchorMin = new Vector2(1f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(1f, 1f);
+            rt.anchoredPosition = new Vector2(-30, -24);
+            rt.sizeDelta = new Vector2(320, 44);
+            scoreText.color = Accent;
+            AddOutline(scoreText);
+            scoreText.text = "SCORE  <b>0</b>";
         }
 
         private void BuildCaption()

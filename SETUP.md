@@ -72,6 +72,12 @@ completion, matching the CyVerse Script.
 | File                                   | Responsibility                                  |
 | -------------------------------------- | ----------------------------------------------- |
 | `Core/GameState.cs`                    | Global "are we busy?" flags                     |
+| `Core/ScoreSystem.cs`                  | Points + quiz tallies (HUD subscribes)          |
+| `Quiz/QuizSystem.cs`                   | Multiple-choice knowledge-check card (keys 1–3) |
+| `Level/Level0Quiz.cs`                  | Question bank per topic (edit copy here)        |
+| `Interaction/FaceScanner.cs`           | Security Scanner: face-scan completion gate     |
+| `Level/Billboard.cs`                   | World-space signage faces the player            |
+| `UI/ResultsScreen.cs`                  | End card: score, accuracy, time, [R] replay     |
 | `Player/FirstPersonController.cs`      | WASD + mouse look                               |
 | `Player/PlayerInteractor.cs`          | Raycast + interact prompt                       |
 | `Interaction/IInteractable.cs`         | Interactable contract                           |
@@ -92,6 +98,23 @@ completion, matching the CyVerse Script.
 | `UI/ControlsOverlay.cs`                | First-time controls card (fades on first move)  |
 | `Resources/Shaders/GridFloor.shader`   | Glowing tech-grid floor (`Cyverse/GridFloor`)   |
 | `Resources/Shaders/Hologram.shader`    | Holographic panels (`Cyverse/Hologram`)         |
+
+## Gameplay loop (feature-complete Level 0)
+
+1. **Arrive** — fade in, controls card, security-guard intro (captioned).
+2. **Review** — visit the three signed stations (I/AM Kiosk, CIA Triad, NICE
+   Roles). Each plays its lesson, then asks a **knowledge-check** question
+   (answer with `1`/`2`/`3`; a wrong answer shows the explanation).
+3. **Authenticate** — once all stations are reviewed, the **Security Scanner**
+   activates. Press `E` there for the face scan → *"Access Granted — Level:
+   Employee"*, per the CyVerse Script.
+4. **Results** — score, quiz accuracy, and time, with `[R]` to replay.
+
+Scoring: station review **+50**, knowledge check **+100** correct / **+25**
+attempted, face scan **+100** (max **550**). The score counter (top right)
+pops when points land. Questions are drawn from a per-topic pool in
+`Level0Quiz.cs` so replays vary; educators can edit copy there without
+touching gameplay code.
 
 ## UX & accessibility features
 

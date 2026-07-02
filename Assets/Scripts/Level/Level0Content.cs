@@ -53,10 +53,17 @@ namespace Cyverse.Level
                 "Implementation & Operation runs and maintains systems. Protection & Defense identifies and analyzes threats. Investigation handles cybercrime and digital evidence."),
         };
 
+        public static List<DialogueLine> AllReviewed() => new List<DialogueLine>
+        {
+            new DialogueLine("Security Guard",
+                "Excellent work — you've reviewed every station. Head to the Security Scanner and authenticate with a face scan to complete your onboarding.", null, 4f),
+        };
+
         public static List<DialogueLine> Complete() => new List<DialogueLine>
         {
+            new DialogueLine("System", "Scan successful.", null, 2.2f),
             new DialogueLine("System",
-                "Scan successful. Access Granted — Level: Employee. Welcome to CyberVerse.", null, 5f),
+                "Access Granted — Level: Employee. Welcome aboard, Cy95192.", null, 4f),
         };
     }
 }

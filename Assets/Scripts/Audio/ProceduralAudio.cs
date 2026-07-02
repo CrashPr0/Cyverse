@@ -59,6 +59,22 @@ namespace Cyverse.Audio
             return Make("sfx_confirm", data);
         }
 
+        /// <summary>Soft descending two-tone for a wrong answer (gentle, not punishing).</summary>
+        public static AudioClip Deny()
+        {
+            int len = (int)(SR * 0.24f);
+            var data = new float[len];
+            for (int i = 0; i < len; i++)
+            {
+                float ti = (float)i / SR;
+                float t = (float)i / len;
+                float freq = t < 0.5f ? 420f : 300f;
+                float env = Mathf.Exp(-t * 6f);
+                data[i] = Mathf.Sin(2f * Mathf.PI * freq * ti) * env * 0.32f;
+            }
+            return Make("sfx_deny", data);
+        }
+
         private static AudioClip Make(string name, float[] data)
         {
             var clip = AudioClip.Create(name, data.Length, 1, SR, false);

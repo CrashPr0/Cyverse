@@ -13,7 +13,7 @@ namespace Cyverse.Audio
         public static Sfx Instance { get; private set; }
 
         private AudioSource src;
-        private AudioClip footstep, click, confirm;
+        private AudioClip footstep, click, confirm, deny;
 
         void Awake()
         {
@@ -27,6 +27,7 @@ namespace Cyverse.Audio
             footstep = ProceduralAudio.Footstep();
             click = ProceduralAudio.Click();
             confirm = ProceduralAudio.Confirm();
+            deny = ProceduralAudio.Deny();
         }
 
         private float Vol => AccessibilitySettings.Instance != null
@@ -36,5 +37,6 @@ namespace Cyverse.Audio
         public void PlayFootstep() { if (src != null) src.PlayOneShot(footstep, Vol * 0.7f); }
         public void PlayClick() { if (src != null) src.PlayOneShot(click, Vol); }
         public void PlayConfirm() { if (src != null) src.PlayOneShot(confirm, Vol); }
+        public void PlayDeny() { if (src != null) src.PlayOneShot(deny, Vol); }
     }
 }

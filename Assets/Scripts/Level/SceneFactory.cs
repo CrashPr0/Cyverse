@@ -21,7 +21,7 @@ namespace Cyverse.Level
         public static readonly Color CiaColor = new Color(0.30f, 1.00f, 0.65f);
         public static readonly Color NiceColor = new Color(1.00f, 0.72f, 0.25f);
 
-        /// <summary>Build the entire level (environment + player + systems + stations).</summary>
+        /// <summary>Build the entire level (environment + player + systems + stations + scanner).</summary>
         public static void BuildAll()
         {
             BuildLighting();
@@ -30,6 +30,7 @@ namespace Cyverse.Level
             BuildCeilingPanels();
             BuildNeonTrim();
             BuildCenterpiece();
+            BuildScanner();
             BuildPlayer();
             BuildSystems();
             BuildStations();
@@ -142,9 +143,78 @@ namespace Cyverse.Level
             sys.AddComponent<ScreenFader>();
             sys.AddComponent<ControlsOverlay>();
             sys.AddComponent<Dialogue.DialogueManager>();
+            sys.AddComponent<Quiz.QuizSystem>();
+            sys.AddComponent<ResultsScreen>();
             sys.AddComponent<Settings.AccessibilitySettings>();
             sys.AddComponent<Level0Manager>();
             return sys;
+        }
+
+        // ---- Security scanner -------------------------------------------------
+
+        public static GameObject BuildScanner()
+        {
+            var root = new GameObject("SecurityScanner");
+            var basePos = new Vector3(8f, 0f, 15f);
+            root.transform.position = basePos;
+
+            Spawn(PrimitiveType.Cube, "ScannerPedestal", root.transform,
+                basePos + new Vector3(0, 0.75f, 0), new Vector3(1.4f, 1.5f, 0.8f),
+                MakeStandard(new Color(0.12f, 0.14f, 0.18f), 0.6f, 0.4f), collider: true);
+
+            var panel = Spawn(PrimitiveType.Quad, "ScannerPanel", root.transform,
+                basePos + new Vector3(0, 2.3f, 0), new Vector3(1.2f, 1.6f, 1f),
+                MakeHologram(AccentCyan), collider: false);
+            panel.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+
+            var glow = new GameObject("ScannerLight");
+            glow.transform.SetParent(root.transform, false);
+            glow.transform.position = basePos + new Vector3(0, 2.2f, 0);
+            var l = glow.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = AccentCyan;
+            l.range = 8f;
+            l.intensity = 0.8f; // dim until Level0Manager activates it
+
+            MakeSign(root.transform, basePos + new Vector3(0, 3.6f, 0), "SECURITY SCANNER", AccentCyan);
+
+            var scanner = root.AddComponent<Interaction.FaceScanner>();
+            scanner.scanLight = l;
+            return root;
+        }
+
+        // ---- Signage ----------------------------------------------------------
+
+        public static GameObject MakeSign(Transform parent, Vector3 worldPos, string text, Color color)
+        {
+            var go = new GameObject("Sign_" + text.Replace(' ', '_'));
+            if (parent != null) go.transform.SetParent(parent, false);
+            go.transform.position = worldPos;
+
+            var font = HudUI.LoadFont();
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = font;
+            tm.text = text;
+            tm.fontSize = 64;
+            tm.characterSize = 0.045f;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.color = color;
+            // TextMesh renders with its font's material, which must be set explicitly.
+            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+
+            go.AddComponent<Billboard>();
+            return go;
+        }
+
+        private static string SignTitleFor(StationSetup.Topic topic)
+        {
+            switch (topic)
+            {
+                case StationSetup.Topic.CIA: return "CIA TRIAD";
+                case StationSetup.Topic.NICE: return "NICE ROLES";
+                default: return "I/AM KIOSK";
+            }
         }
 
         // ---- Stations -------------------------------------------------------
@@ -181,6 +251,8 @@ namespace Cyverse.Level
             l.color = color;
             l.range = 7f;
             l.intensity = 2.5f;
+
+            MakeSign(root.transform, basePos + new Vector3(0, 3.3f, 0), SignTitleFor(topic), color);
 
             var mark = BuildCheckmark(root.transform, basePos + new Vector3(0, 2.7f, 0));
             mark.SetActive(false);
