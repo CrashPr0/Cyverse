@@ -28,6 +28,7 @@ namespace Cyverse.Level
             BuildFloor();
             BuildWalls();
             BuildCeilingPanels();
+            BuildWallDetail();
             BuildNeonTrim();
             BuildCenterpiece();
             BuildScanner();
@@ -78,11 +79,38 @@ namespace Cyverse.Level
 
         public static void BuildCeilingPanels()
         {
+            // Solid dark ceiling slab so the room reads as an interior (and the
+            // sky never shows), with recessed light bars just below it.
+            var slabMat = MakeStandard(new Color(0.06f, 0.07f, 0.10f), 0.3f, 0.1f);
+            var slab = Spawn(PrimitiveType.Cube, "CeilingSlab", null,
+                new Vector3(0, 5.15f, 0), new Vector3(40f, 0.3f, 40f), slabMat, collider: false);
+            slab.isStatic = true;
+
             var mat = MakeEmissive(PanelWhite, 1.6f);
             for (int z = -14; z <= 14; z += 7)
             {
                 Spawn(PrimitiveType.Cube, "CeilingPanel_" + z, null,
                     new Vector3(0, 4.92f, z), new Vector3(34f, 0.12f, 0.9f), mat, collider: false);
+            }
+        }
+
+        public static void BuildWallDetail()
+        {
+            // Mid-height accent strip on each wall.
+            var stripMat = MakeEmissive(new Color(0.55f, 0.80f, 1f), 1.2f);
+            Spawn(PrimitiveType.Cube, "Strip_N", null, new Vector3(0, 3.4f, 19.45f), new Vector3(39f, 0.08f, 0.08f), stripMat, false);
+            Spawn(PrimitiveType.Cube, "Strip_S", null, new Vector3(0, 3.4f, -19.45f), new Vector3(39f, 0.08f, 0.08f), stripMat, false);
+            Spawn(PrimitiveType.Cube, "Strip_E", null, new Vector3(19.45f, 3.4f, 0), new Vector3(0.08f, 0.08f, 39f), stripMat, false);
+            Spawn(PrimitiveType.Cube, "Strip_W", null, new Vector3(-19.45f, 3.4f, 0), new Vector3(0.08f, 0.08f, 39f), stripMat, false);
+
+            // Structural columns break up the flat walls.
+            var colMat = MakeStandard(new Color(0.08f, 0.09f, 0.13f), 0.55f, 0.35f);
+            for (int i = -16; i <= 16; i += 8)
+            {
+                Spawn(PrimitiveType.Cube, "Column_N" + i, null, new Vector3(i, 2.5f, 19.2f), new Vector3(0.5f, 5f, 0.5f), colMat, true).isStatic = true;
+                Spawn(PrimitiveType.Cube, "Column_S" + i, null, new Vector3(i, 2.5f, -19.2f), new Vector3(0.5f, 5f, 0.5f), colMat, true).isStatic = true;
+                Spawn(PrimitiveType.Cube, "Column_E" + i, null, new Vector3(19.2f, 2.5f, i), new Vector3(0.5f, 5f, 0.5f), colMat, true).isStatic = true;
+                Spawn(PrimitiveType.Cube, "Column_W" + i, null, new Vector3(-19.2f, 2.5f, i), new Vector3(0.5f, 5f, 0.5f), colMat, true).isStatic = true;
             }
         }
 
@@ -100,6 +128,13 @@ namespace Cyverse.Level
             var core = Spawn(PrimitiveType.Cylinder, "HoloCore", null,
                 new Vector3(0, 2.6f, 13f), new Vector3(1.6f, 2.2f, 1.6f), MakeHologram(AccentCyan), collider: false);
             core.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 18f, 0f);
+
+            // Counter-rotating base ring grounds the core visually.
+            var ring = Spawn(PrimitiveType.Cylinder, "HoloCoreRing", null,
+                new Vector3(0, 0.06f, 13f), new Vector3(3.6f, 0.03f, 3.6f), MakeHologram(AccentCyan), collider: false);
+            ring.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, -12f, 0f);
+
+            MakeSign(null, new Vector3(0, 4.55f, 13f), "CYVERSE", new Color(0.75f, 0.92f, 1f), 0.10f);
 
             var glow = new GameObject("HoloCoreLight");
             glow.transform.position = new Vector3(0, 2.6f, 13f);
@@ -185,7 +220,8 @@ namespace Cyverse.Level
 
         // ---- Signage ----------------------------------------------------------
 
-        public static GameObject MakeSign(Transform parent, Vector3 worldPos, string text, Color color)
+        public static GameObject MakeSign(Transform parent, Vector3 worldPos, string text, Color color,
+            float characterSize = 0.045f)
         {
             var go = new GameObject("Sign_" + text.Replace(' ', '_'));
             if (parent != null) go.transform.SetParent(parent, false);
@@ -196,7 +232,7 @@ namespace Cyverse.Level
             tm.font = font;
             tm.text = text;
             tm.fontSize = 64;
-            tm.characterSize = 0.045f;
+            tm.characterSize = characterSize;
             tm.anchor = TextAnchor.MiddleCenter;
             tm.alignment = TextAlignment.Center;
             tm.color = color;
@@ -253,6 +289,12 @@ namespace Cyverse.Level
             l.intensity = 2.5f;
 
             MakeSign(root.transform, basePos + new Vector3(0, 3.3f, 0), SignTitleFor(topic), color);
+
+            // Slow-turning holo ring marks the interaction zone on the floor.
+            var ring = Spawn(PrimitiveType.Cylinder, "StationRing", root.transform,
+                basePos + new Vector3(0, 0.05f, 0), new Vector3(2.4f, 0.02f, 2.4f),
+                MakeHologram(color), collider: false);
+            ring.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 10f, 0f);
 
             var mark = BuildCheckmark(root.transform, basePos + new Vector3(0, 2.7f, 0));
             mark.SetActive(false);

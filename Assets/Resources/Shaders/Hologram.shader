@@ -82,6 +82,12 @@ Shader "Cyverse/Hologram"
                 float intensity = (0.18 + rim * 1.4 + grid * 0.5 + scan * 0.18 + bar * 0.9) * flicker;
                 fixed4 col = _Color * intensity;
                 col.a = saturate((_Alpha + rim + grid * 0.25 + bar * 0.5) * flicker);
+
+                // Soft falloff at the UV borders so panels read as projected
+                // light instead of hard-edged rectangles.
+                float2 eu = min(i.uv, 1.0 - i.uv);
+                float edgeFade = saturate(min(eu.x, eu.y) / 0.10);
+                col.a *= edgeFade;
                 return col;
             }
             ENDCG

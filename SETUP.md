@@ -165,6 +165,15 @@ Level 0 ships a procedural "high-tech, lived-in working space" look, built in
 - **Emissive ceiling panels + neon floor trim** and **colored point lights** at
   each station, against low ambient so the glow reads strongly.
 
+A runtime **VisualDirector** (self-added by Level0Manager, so it upgrades
+saved scenes too) supplies the cinematography: dark solid-colour sky,
+exponential fog, 4x MSAA, additive glow sprites on every point light (fake
+bloom), drifting dust motes (skipped under Reduce Motion), and a subtle
+screen vignette. Fresh builds additionally get a ceiling slab, wall accent
+strips and columns, rotating holo rings under the stations and core, and a
+"CYVERSE" title sign — **rebuild the scene via CyVerse > Build Level 0 Scene
+to pick these up** in an editor-authored scene.
+
 Shaders live under `Assets/Resources/` so they're always included in WebGL
 builds. The bootstrap falls back to emissive Standard materials if a custom
 shader fails to compile, so the scene always runs.

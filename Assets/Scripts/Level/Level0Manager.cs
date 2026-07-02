@@ -51,6 +51,7 @@ namespace Cyverse.Level
             // invisible UI singletons, so adding them is always safe).
             if (Quiz.QuizSystem.Instance == null) gameObject.AddComponent<Quiz.QuizSystem>();
             if (ResultsScreen.Instance == null) gameObject.AddComponent<ResultsScreen>();
+            if (VisualDirector.Instance == null) gameObject.AddComponent<VisualDirector>();
 
             stations.AddRange(FindObjectsOfType<StationSetup>());
             scanner = FindObjectOfType<FaceScanner>();
