@@ -32,6 +32,7 @@ namespace Cyverse.Level
             BuildNeonTrim();
             BuildCenterpiece();
             BuildScanner();
+            PropFactory.BuildFurnishings();
             BuildPlayer();
             BuildSystems();
             BuildStations();

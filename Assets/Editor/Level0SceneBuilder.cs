@@ -60,6 +60,26 @@ namespace Cyverse.EditorTools
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             Debug.Log("CyVerse: Security Scanner added at (8, 0, 15). Move it where you like and save.");
         }
+
+        /// <summary>Upgrade path for existing scenes: adds the furniture set
+        /// (desk pods, lounge, reception, server wall, lockers, drones, plants)
+        /// under a single "Furnishings" root without rebuilding the level.</summary>
+        [MenuItem("CyVerse/Add Furnishings")]
+        public static void AddFurnishings()
+        {
+            if (GameObject.Find("Furnishings") != null)
+            {
+                EditorUtility.DisplayDialog("Add Furnishings",
+                    "This scene already has a Furnishings root. Delete or rename it first " +
+                    "if you want a fresh set.", "OK");
+                return;
+            }
+
+            PropFactory.BuildFurnishings();
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("CyVerse: Furnishings added under a 'Furnishings' root. " +
+                      "Move/edit/delete props freely, then save the scene.");
+        }
     }
 }
 #endif
