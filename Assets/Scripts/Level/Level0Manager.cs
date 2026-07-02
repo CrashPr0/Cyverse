@@ -53,6 +53,10 @@ namespace Cyverse.Level
             if (ResultsScreen.Instance == null) gameObject.AddComponent<ResultsScreen>();
             if (VisualDirector.Instance == null) gameObject.AddComponent<VisualDirector>();
 
+            var cam = Camera.main;
+            if (cam != null && cam.GetComponent<FirstPersonHands>() == null)
+                cam.gameObject.AddComponent<FirstPersonHands>();
+
             stations.AddRange(FindObjectsOfType<StationSetup>());
             scanner = FindObjectOfType<FaceScanner>();
             if (scanner != null) scanner.Completed += CompleteLevel;

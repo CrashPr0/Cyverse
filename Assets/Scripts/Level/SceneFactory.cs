@@ -168,6 +168,7 @@ namespace Cyverse.Level
 
             player.AddComponent<FirstPersonController>();
             player.AddComponent<PlayerInteractor>();
+            camGo.AddComponent<FirstPersonHands>();
             return player;
         }
 
@@ -241,7 +242,48 @@ namespace Cyverse.Level
             go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
 
             go.AddComponent<Billboard>();
+            go.AddComponent<SignFX>();
+
+            // Holo chrome: a glowing underline and a soft glow halo behind the
+            // glyphs, so signs read as projected holograms rather than bare text.
+            float h = characterSize * tm.fontSize * 0.1f;            // approx glyph height
+            float w = Mathf.Max(0.5f, text.Length * h * 0.62f);       // approx text width
+
+            var underline = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            underline.name = "Underline";
+            StripCollider(underline);
+            underline.transform.SetParent(go.transform, false);
+            underline.transform.localPosition = new Vector3(0f, -h * 0.75f, 0.005f);
+            underline.transform.localScale = new Vector3(w, h * 0.06f, 0.01f);
+            underline.GetComponent<Renderer>().sharedMaterial = MakeEmissive(color, 2f);
+
+            Shader glowShader = Shader.Find("Cyverse/GlowSprite");
+            if (glowShader != null)
+            {
+                var halo = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                halo.name = "Halo";
+                StripCollider(halo);
+                halo.transform.SetParent(go.transform, false);
+                halo.transform.localPosition = new Vector3(0f, 0f, 0.03f);
+                halo.transform.localScale = new Vector3(w * 1.5f, h * 2.6f, 1f);
+                var haloMat = new Material(glowShader);
+                Color hc = color;
+                hc.a = 0.30f;
+                haloMat.SetColor("_Color", hc);
+                haloMat.SetFloat("_Intensity", 0.55f);
+                halo.GetComponent<Renderer>().sharedMaterial = haloMat;
+            }
+
             return go;
+        }
+
+        /// <summary>Remove a primitive's collider safely in both play and edit mode.</summary>
+        private static void StripCollider(GameObject go)
+        {
+            var c = go.GetComponent<Collider>();
+            if (c == null) return;
+            if (Application.isPlaying) Object.Destroy(c);
+            else Object.DestroyImmediate(c);
         }
 
         private static string SignTitleFor(StationSetup.Topic topic)

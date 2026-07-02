@@ -95,6 +95,8 @@ completion, matching the CyVerse Script.
 | `Level/PropFactory.cs`                 | Furniture/props: desks, lounge, racks, drones   |
 | `Level/Hoverer.cs`                     | Drone bob/yaw/rotor motion (Reduce Motion aware)|
 | `Level/VisualDirector.cs`              | Fog, glow sprites, dust, vignette (self-adds)   |
+| `Player/FirstPersonHands.cs`           | Procedural gloved hands: bob, hover, reach      |
+| `Level/SignFX.cs`                      | Sign bob + pulse + holo-glitch (self-adds)      |
 | `Audio/ProceduralAudio.cs`             | Generates footstep/click/confirm SFX at runtime |
 | `Audio/Sfx.cs`                         | One-shot SFX, scaled by the SFX volume channel  |
 | `UI/ScreenFader.cs`                    | Fade-from-black on start / fade-to-black        |

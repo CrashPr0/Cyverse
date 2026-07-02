@@ -16,6 +16,9 @@ namespace Cyverse.Player
         public float range = 3.5f;
         public KeyCode interactKey = KeyCode.E;
 
+        /// <summary>True while an interactable is under the crosshair (read by FirstPersonHands).</summary>
+        public static bool TargetInView { get; private set; }
+
         private Camera cam;
 
         void Awake()
@@ -30,6 +33,7 @@ namespace Cyverse.Player
 
             if (GameState.Busy)
             {
+                TargetInView = false;
                 HidePrompt();
                 return;
             }
@@ -41,7 +45,9 @@ namespace Cyverse.Player
                 target = hit.collider.GetComponentInParent<IInteractable>();
             }
 
-            if (target != null && target.CanInteract)
+            TargetInView = target != null && target.CanInteract;
+
+            if (TargetInView)
             {
                 if (HudUI.Instance != null)
                     HudUI.Instance.SetInteract(true, target.Prompt, interactKey.ToString());
@@ -50,6 +56,7 @@ namespace Cyverse.Player
                 {
                     if (HudUI.Instance != null) HudUI.Instance.PulseCrosshair();
                     if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+                    if (FirstPersonHands.Instance != null) FirstPersonHands.Instance.TriggerInteract();
                     target.Interact(gameObject);
                 }
             }

@@ -36,6 +36,16 @@ namespace Cyverse.Level
             AttachLightGlows();
             BuildDust();
             BuildVignette();
+            AnimateSigns();
+        }
+
+        /// <summary>Give bob/pulse/glitch motion to any signage that predates
+        /// SignFX (scenes saved before it existed).</summary>
+        private void AnimateSigns()
+        {
+            foreach (TextMesh tm in FindObjectsOfType<TextMesh>())
+                if (tm.GetComponent<SignFX>() == null)
+                    tm.gameObject.AddComponent<SignFX>();
         }
 
         private void ApplyAtmosphere()
