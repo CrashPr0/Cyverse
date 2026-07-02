@@ -22,12 +22,16 @@ namespace Cyverse.UI
             if (Instance != null && Instance != this) { Destroy(this); return; }
             Instance = this;
 
-            var canvas = gameObject.AddComponent<Canvas>();
+            // Own ROOT canvas GameObject — never add a Canvas to the shared
+            // GameSystems object, or the HUD canvas nested under it collapses to
+            // screen centre.
+            var canvasGo = new GameObject("FadeCanvas", typeof(Canvas));
+            var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 1000; // above the HUD
 
             var go = new GameObject("Fade", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(transform, false);
+            go.transform.SetParent(canvasGo.transform, false);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;

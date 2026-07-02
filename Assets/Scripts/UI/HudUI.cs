@@ -195,8 +195,12 @@ namespace Cyverse.UI
 
         private void BuildCanvas()
         {
+            // IMPORTANT: keep this a ROOT object. If it were parented under a
+            // GameObject that has a Canvas (e.g. GameSystems), it would become a
+            // nested canvas whose RectTransform collapses to a zero-size rect at
+            // screen centre — making every HUD element ignore its anchors and
+            // pile up in the middle.
             var go = new GameObject("HUDCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            go.transform.SetParent(transform, false);
 
             Canvas = go.GetComponent<Canvas>();
             Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
