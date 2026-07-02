@@ -47,9 +47,18 @@ namespace Cyverse.Level
         {
             startTime = Time.time;
 
+            // Self-heal scenes saved before these systems existed (they're
+            // invisible UI singletons, so adding them is always safe).
+            if (Quiz.QuizSystem.Instance == null) gameObject.AddComponent<Quiz.QuizSystem>();
+            if (ResultsScreen.Instance == null) gameObject.AddComponent<ResultsScreen>();
+
             stations.AddRange(FindObjectsOfType<StationSetup>());
             scanner = FindObjectOfType<FaceScanner>();
             if (scanner != null) scanner.Completed += CompleteLevel;
+            else Debug.LogWarning(
+                "Level0Manager: no SecurityScanner in this scene — the level will " +
+                "complete when all stations are reviewed. Add one via the editor " +
+                "menu: CyVerse > Add Security Scanner.");
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
 

@@ -43,6 +43,23 @@ namespace Cyverse.EditorTools
             Debug.Log("CyVerse: Level 0 built into '" + scene.name +
                       "'. Tweak the objects, then File > Save. Tip: build into an empty scene.");
         }
+
+        /// <summary>Upgrade path for scenes saved before the Security Scanner
+        /// existed: adds just the scanner without rebuilding the level.</summary>
+        [MenuItem("CyVerse/Add Security Scanner")]
+        public static void AddScanner()
+        {
+            if (Object.FindObjectOfType<Cyverse.Interaction.FaceScanner>() != null)
+            {
+                EditorUtility.DisplayDialog("Add Security Scanner",
+                    "This scene already has a Security Scanner.", "OK");
+                return;
+            }
+
+            SceneFactory.BuildScanner();
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("CyVerse: Security Scanner added at (8, 0, 15). Move it where you like and save.");
+        }
     }
 }
 #endif
