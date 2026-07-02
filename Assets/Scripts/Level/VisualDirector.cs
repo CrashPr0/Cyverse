@@ -96,36 +96,64 @@ namespace Cyverse.Level
             Shader glowShader = Shader.Find("Cyverse/GlowSprite");
             if (glowShader == null) return;
 
-            var go = new GameObject("DustMotes");
-            go.transform.position = new Vector3(0f, 2.5f, 0f);
+            try
+            {
+                var go = new GameObject("DustMotes");
+                go.transform.position = new Vector3(0f, 2.5f, 0f);
 
-            var ps = go.AddComponent<ParticleSystem>();
-            var main = ps.main;
-            main.startLifetime = 14f;
-            main.startSpeed = 0f;
-            main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.07f);
-            main.startColor = new Color(0.65f, 0.9f, 1f, 0.30f);
-            main.maxParticles = 500;
+                var ps = go.AddComponent<ParticleSystem>();
+                // A fresh ParticleSystem is already playing (playOnAwake); some
+                // module values may not be modified while playing, so stop and
+                // clear before configuring, then start it again.
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
-            var emission = ps.emission;
-            emission.rateOverTime = 22f;
+                var main = ps.main;
+                main.loop = true;
+                main.startLifetime = 14f;
+                main.startSpeed = 0f;
+                main.startSize = MinMax(0.02f, 0.07f);
+                main.startColor = new Color(0.65f, 0.9f, 1f, 0.30f);
+                main.maxParticles = 500;
+                main.prewarm = true; // room is already dusty on arrival
 
-            var shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(34f, 4.6f, 34f);
+                var emission = ps.emission;
+                emission.rateOverTime = 22f;
 
-            var vel = ps.velocityOverLifetime;
-            vel.enabled = true;
-            vel.space = ParticleSystemSimulationSpace.Local;
-            vel.x = new ParticleSystem.MinMaxCurve(-0.05f, 0.05f);
-            vel.y = new ParticleSystem.MinMaxCurve(-0.07f, 0.01f);
-            vel.z = new ParticleSystem.MinMaxCurve(-0.05f, 0.05f);
+                var shape = ps.shape;
+                shape.shapeType = ParticleSystemShapeType.Box;
+                shape.scale = new Vector3(34f, 4.6f, 34f);
 
-            var renderer = go.GetComponent<ParticleSystemRenderer>();
-            var mat = new Material(glowShader);
-            mat.SetColor("_Color", Color.white);
-            mat.SetFloat("_Intensity", 1f);
-            renderer.material = mat;
+                var vel = ps.velocityOverLifetime;
+                vel.enabled = true;
+                vel.space = ParticleSystemSimulationSpace.Local;
+                vel.x = MinMax(-0.05f, 0.05f);
+                vel.y = MinMax(-0.07f, 0.01f);
+                vel.z = MinMax(-0.05f, 0.05f);
+
+                var psRenderer = go.GetComponent<ParticleSystemRenderer>();
+                var mat = new Material(glowShader);
+                mat.SetColor("_Color", Color.white);
+                mat.SetFloat("_Intensity", 1f);
+                psRenderer.material = mat;
+
+                ps.Play();
+            }
+            catch (System.Exception e)
+            {
+                // Atmosphere must never break gameplay — log and carry on.
+                Debug.LogWarning("VisualDirector: dust motes disabled — " + e.Message);
+            }
+        }
+
+        /// <summary>Random-between-two-constants curve, built via properties so
+        /// it can't hit any constructor-overload ambiguity.</summary>
+        private static ParticleSystem.MinMaxCurve MinMax(float min, float max)
+        {
+            var curve = new ParticleSystem.MinMaxCurve();
+            curve.mode = ParticleSystemCurveMode.TwoConstants;
+            curve.constantMin = min;
+            curve.constantMax = max;
+            return curve;
         }
 
         private void BuildVignette()
