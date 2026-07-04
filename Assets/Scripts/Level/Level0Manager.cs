@@ -58,6 +58,7 @@ namespace Cyverse.Level
                 cam.gameObject.AddComponent<FirstPersonHands>();
             if (MainMenu.Instance == null) gameObject.AddComponent<MainMenu>();
             if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
+            if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
 
             stations.AddRange(FindObjectsOfType<StationSetup>());
             scanner = FindObjectOfType<FaceScanner>();

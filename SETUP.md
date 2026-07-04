@@ -47,6 +47,7 @@ be built twice. Both paths use the same `SceneFactory`, so they look identical.
 | Look              | Mouse           |
 | Interact          | `E`             |
 | Advance dialogue  | `Space`         |
+| Glossary          | `G`             |
 | Settings / Pause  | `Esc`           |
 
 In the settings menu: **Up/Down** select a row, **Left/Right** adjust the value.
@@ -97,6 +98,11 @@ completion, matching the CyVerse Script.
 | `Level/VisualDirector.cs`              | Fog, glow sprites, dust, vignette (self-adds)   |
 | `Player/FirstPersonHands.cs`           | Procedural gloved hands: bob, hover, reach      |
 | `Level/SignFX.cs`                      | Sign bob + pulse + holo-glitch (self-adds)      |
+| `Interaction/GuardNPC.cs`              | Security guard: faces player, phase-aware talk  |
+| `UI/GlossaryPanel.cs`                  | G-key glossary card (pauses, keyboard-driven)   |
+| `Level/GlossaryContent.cs`             | Glossary terms/definitions (edit copy here)     |
+| `UI/MainMenu.cs`                       | Title screen (ENTER to begin)                   |
+| `Audio/AmbientHum.cs`                  | Seamless procedural room tone loop              |
 | `Audio/ProceduralAudio.cs`             | Generates footstep/click/confirm SFX at runtime |
 | `Audio/Sfx.cs`                         | One-shot SFX, scaled by the SFX volume channel  |
 | `UI/ScreenFader.cs`                    | Fade-from-black on start / fade-to-black        |

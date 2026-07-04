@@ -20,11 +20,14 @@ namespace Cyverse.Core
         /// <summary>The title screen is showing (before the level begins).</summary>
         public static bool TitleActive;
 
+        /// <summary>The glossary panel is open.</summary>
+        public static bool GlossaryOpen;
+
         /// <summary>Level 0 has been finished.</summary>
         public static bool LevelComplete;
 
         /// <summary>True whenever normal first-person control should be suspended.</summary>
-        public static bool Busy => DialogueActive || MenuOpen || QuizActive || TitleActive || LevelComplete;
+        public static bool Busy => DialogueActive || MenuOpen || QuizActive || TitleActive || GlossaryOpen || LevelComplete;
 
         /// <summary>
         /// Static fields survive Play-mode restarts when "Enter Play Mode
@@ -36,6 +39,7 @@ namespace Cyverse.Core
             MenuOpen = false;
             QuizActive = false;
             TitleActive = false;
+            GlossaryOpen = false;
             LevelComplete = false;
         }
     }

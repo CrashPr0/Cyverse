@@ -95,7 +95,7 @@ namespace Cyverse.UI
                 new Color(0.90f, 0.66f, 0.14f), new Vector2(0, -110)); // Spartan gold
             HudUI.AddOutline(promptText);
 
-            MakeText("Hint", "WASD move   ·   Mouse look   ·   E interact   ·   Esc settings",
+            MakeText("Hint", "WASD move   ·   Mouse look   ·   E interact   ·   G glossary   ·   Esc settings",
                 20, FontStyle.Normal, new Color(0.45f, 0.55f, 0.68f), new Vector2(0, -170));
 
             MakeText("Credit", "San José State University  ·  CyberVerse Project",

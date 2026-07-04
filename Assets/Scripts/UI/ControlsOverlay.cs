@@ -88,7 +88,7 @@ namespace Cyverse.UI
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(0, 60);
-            rt.sizeDelta = new Vector2(560, 380);
+            rt.sizeDelta = new Vector2(560, 430);
             HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.92f), HudUI.Accent);
             group = card.GetComponent<CanvasGroup>();
 
@@ -99,11 +99,12 @@ namespace Cyverse.UI
             hrt.anchorMin = new Vector2(0, 1); hrt.anchorMax = new Vector2(1, 1); hrt.pivot = new Vector2(0.5f, 1);
             hrt.sizeDelta = new Vector2(0, 50); hrt.anchoredPosition = new Vector2(0, -22);
 
-            float y = 60f;
+            float y = 85f;
             AddRow(card.transform, y, "WASD", "Move"); y -= 50f;
             AddRow(card.transform, y, "Mouse", "Look around"); y -= 50f;
             AddRow(card.transform, y, "E", "Interact"); y -= 50f;
             AddRow(card.transform, y, "Space", "Advance dialogue"); y -= 50f;
+            AddRow(card.transform, y, "G", "Glossary"); y -= 50f;
             AddRow(card.transform, y, "Esc", "Settings");
 
             var footer = MakeText(card.transform, "Footer", "Press a movement key to begin", 20,

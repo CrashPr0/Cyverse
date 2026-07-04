@@ -56,7 +56,8 @@ namespace Cyverse.Settings
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Escape) && !GameState.LevelComplete)
+            // Esc is the glossary's close key while it's open — don't fight it.
+            if (Input.GetKeyDown(KeyCode.Escape) && !GameState.LevelComplete && !GameState.GlossaryOpen)
                 SetMenuOpen(!GameState.MenuOpen);
 
             if (!GameState.MenuOpen) return;

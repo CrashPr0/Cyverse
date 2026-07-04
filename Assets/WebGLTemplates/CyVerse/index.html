@@ -5,14 +5,28 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CyVerse — {{{ PRODUCT_NAME }}}</title>
+
+  <!-- Web font via CDN with graceful offline fallback: Google Fonts serves
+       Montserrat with font-display:swap, so text renders immediately in the
+       system-stack fallback and upgrades if/when the CDN responds. If the
+       player is offline or the CDN is blocked, the page silently keeps the
+       fallback design — no layout breakage, no blocking request. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap"
+        media="print" onload="this.media='all'">
+
   <style>
     /* ---------------------------------------------------------------
        CyVerse web shell — San José State University visual identity.
        Palette: SJSU Blue #0055A2 · Spartan Gold #E5A823 · near-navy
        neutrals. White body text on navy for WCAG contrast; gold is
        reserved for accents and large display type only.
-       System font stack (no external fonts): players may be offline
-       or on slow connections per the project brief.
+       Typeface: Montserrat from the Google Fonts CDN when reachable,
+       falling back to the system stack — players may be offline or on
+       slow connections per the project brief, so the CDN is an
+       enhancement, never a dependency.
        --------------------------------------------------------------- */
     :root {
       --sjsu-blue: #0055A2;
@@ -27,7 +41,7 @@
       height: 100%;
       background: var(--navy-950);
       color: var(--text);
-      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      font-family: "Montserrat", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
     }
     body { display: flex; flex-direction: column; }
 

@@ -33,6 +33,7 @@ namespace Cyverse.Level
             BuildCenterpiece();
             BuildScanner();
             PropFactory.BuildFurnishings();
+            Interaction.GuardNPC.Build(new Vector3(2.2f, 0f, -5.5f), 180f);
             BuildPlayer();
             BuildSystems();
             BuildStations();
@@ -182,6 +183,7 @@ namespace Cyverse.Level
             sys.AddComponent<Dialogue.DialogueManager>();
             sys.AddComponent<Quiz.QuizSystem>();
             sys.AddComponent<ResultsScreen>();
+            sys.AddComponent<GlossaryPanel>();
             sys.AddComponent<MainMenu>();
             sys.AddComponent<Audio.AmbientHum>();
             sys.AddComponent<Settings.AccessibilitySettings>();

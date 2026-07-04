@@ -80,6 +80,23 @@ namespace Cyverse.EditorTools
             Debug.Log("CyVerse: Furnishings added under a 'Furnishings' root. " +
                       "Move/edit/delete props freely, then save the scene.");
         }
+
+        /// <summary>Upgrade path: adds the security guard NPC near the spawn
+        /// without rebuilding the level.</summary>
+        [MenuItem("CyVerse/Add Guard NPC")]
+        public static void AddGuard()
+        {
+            if (Object.FindObjectOfType<Cyverse.Interaction.GuardNPC>() != null)
+            {
+                EditorUtility.DisplayDialog("Add Guard NPC",
+                    "This scene already has a Guard NPC.", "OK");
+                return;
+            }
+
+            Cyverse.Interaction.GuardNPC.Build(new Vector3(2.2f, 0f, -5.5f), 180f);
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("CyVerse: Guard NPC added at (2.2, 0, -5.5). Move him where you like and save.");
+        }
     }
 }
 #endif
