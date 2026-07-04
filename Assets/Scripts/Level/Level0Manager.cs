@@ -56,6 +56,8 @@ namespace Cyverse.Level
             var cam = Camera.main;
             if (cam != null && cam.GetComponent<FirstPersonHands>() == null)
                 cam.gameObject.AddComponent<FirstPersonHands>();
+            if (MainMenu.Instance == null) gameObject.AddComponent<MainMenu>();
+            if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
 
             stations.AddRange(FindObjectsOfType<StationSetup>());
             scanner = FindObjectOfType<FaceScanner>();
@@ -66,6 +68,17 @@ namespace Cyverse.Level
                 "menu: CyVerse > Add Security Scanner.");
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
+
+            // Title screen first; the intro dialogue starts once it's dismissed.
+            if (MainMenu.Instance != null)
+                MainMenu.Instance.Show(BeginIntro);
+            else
+                BeginIntro();
+        }
+
+        private void BeginIntro()
+        {
+            startTime = Time.time; // don't count time spent on the title screen
 
             if (DialogueManager.Instance != null)
                 DialogueManager.Instance.Play(Level0Content.Intro(), UpdateObjective);

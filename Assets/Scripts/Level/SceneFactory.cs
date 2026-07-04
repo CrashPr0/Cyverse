@@ -182,6 +182,8 @@ namespace Cyverse.Level
             sys.AddComponent<Dialogue.DialogueManager>();
             sys.AddComponent<Quiz.QuizSystem>();
             sys.AddComponent<ResultsScreen>();
+            sys.AddComponent<MainMenu>();
+            sys.AddComponent<Audio.AmbientHum>();
             sys.AddComponent<Settings.AccessibilitySettings>();
             sys.AddComponent<Level0Manager>();
             return sys;

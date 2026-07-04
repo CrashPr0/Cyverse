@@ -75,6 +75,30 @@ namespace Cyverse.Audio
             return Make("sfx_deny", data);
         }
 
+        /// <summary>
+        /// Low facility hum for room tone, built from stacked sines. Every
+        /// frequency (and the slow swell LFO) completes a whole number of
+        /// cycles over the 6-second clip, so it loops seamlessly.
+        /// </summary>
+        public static AudioClip AmbientLoop()
+        {
+            const float seconds = 6f;
+            int len = (int)(SR * seconds);
+            var data = new float[len];
+            for (int i = 0; i < len; i++)
+            {
+                float t = (float)i / SR;
+                float lfo = 0.75f + 0.25f * Mathf.Sin(2f * Mathf.PI * t / seconds); // 1 cycle
+                float s =
+                    Mathf.Sin(2f * Mathf.PI * 55f * t) * 0.50f +   // 330 cycles
+                    Mathf.Sin(2f * Mathf.PI * 55.5f * t) * 0.35f + // 333 cycles (slow beat vs 55)
+                    Mathf.Sin(2f * Mathf.PI * 110f * t) * 0.22f +  // 660 cycles
+                    Mathf.Sin(2f * Mathf.PI * 220f * t) * 0.06f;   // 1320 cycles
+                data[i] = s * lfo * 0.22f;
+            }
+            return Make("amb_hum", data);
+        }
+
         private static AudioClip Make(string name, float[] data)
         {
             var clip = AudioClip.Create(name, data.Length, 1, SR, false);

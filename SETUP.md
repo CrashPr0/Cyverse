@@ -106,6 +106,9 @@ completion, matching the CyVerse Script.
 
 ## Gameplay loop (feature-complete Level 0)
 
+0. **Title screen** — "CYVERSE / Press ENTER to Begin"; gameplay and the
+   controls card hold until dismissed. Room tone (a generated facility hum)
+   plays under everything.
 1. **Arrive** — fade in, controls card, security-guard intro (captioned).
 2. **Review** — visit the three signed stations (I/AM Kiosk, CIA Triad, NICE
    Roles). Each plays its lesson, then asks a **knowledge-check** question
@@ -113,7 +116,8 @@ completion, matching the CyVerse Script.
 3. **Authenticate** — once all stations are reviewed, the **Security Scanner**
    activates. Press `E` there for the face scan → *"Access Granted — Level:
    Employee"*, per the CyVerse Script.
-4. **Results** — score, quiz accuracy, and time, with `[R]` to replay.
+4. **Results** — score, quiz accuracy, time, and your persistent **best
+   score** (gold "NEW BEST!" when beaten), with `[R]` to replay.
 
 Scoring: station review **+50**, knowledge check **+100** correct / **+25**
 attempted, face scan **+100** (max **550**). The score counter (top right)
@@ -150,7 +154,11 @@ pauses the game. Reduce Motion uses a global shader float `_CyMotion`.
 ## Building for WebGL
 
 1. `File → Build Settings → WebGL → Switch Platform`.
-2. Add `Assets/Scenes/Level0.unity` to **Scenes In Build**.
+2. **Select the SJSU-branded page**: `Player Settings → Resolution and
+   Presentation → WebGL Template → CyVerse`. The built game then ships inside
+   a branded shell (SJSU Blue `#0055A2` header, Spartan Gold `#E5A823`
+   loading bar and accents, fullscreen button, offline-safe system fonts).
+3. Add `Assets/Scenes/Level0.unity` to **Scenes In Build**.
 3. **Player Settings → Publishing Settings → Compression Format:** `Brotli`
    (smaller downloads; needs HTTPS hosting) or `Gzip`.
 4. Keep textures compressed and the build lean for low-bandwidth / remote users.

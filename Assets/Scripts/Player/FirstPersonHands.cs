@@ -87,7 +87,7 @@ namespace Cyverse.Player
             bool hover = PlayerInteractor.TargetInView && !GameState.Busy;
             hoverCur = Vector3.Lerp(hoverCur, hover ? new Vector3(-0.02f, 0.03f, 0.05f) : Vector3.zero, k);
 
-            bool hidden = GameState.MenuOpen || GameState.LevelComplete;
+            bool hidden = GameState.MenuOpen || GameState.TitleActive || GameState.LevelComplete;
             hideCur = Vector3.Lerp(hideCur, hidden ? new Vector3(0f, -0.4f, -0.1f) : Vector3.zero, k);
 
             Vector3 baseR = rightRestPosition;

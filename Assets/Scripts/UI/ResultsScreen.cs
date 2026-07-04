@@ -34,10 +34,21 @@ namespace Cyverse.UI
             int m = Mathf.FloorToInt(seconds / 60f);
             int s = Mathf.FloorToInt(seconds % 60f);
 
+            // Persistent best score (gamification: something to beat on replay).
+            int best = PlayerPrefs.GetInt("cv_best", 0);
+            bool newBest = score > best;
+            if (newBest)
+            {
+                best = score;
+                PlayerPrefs.SetInt("cv_best", best);
+                PlayerPrefs.Save();
+            }
+
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("<color=#4CE087><b>Access Granted — Level: Employee</b></color>");
             sb.AppendLine();
             sb.AppendLine($"Final Score:  <b><color=#5BC8FF>{score}</color></b>");
+            sb.AppendLine($"Best Score:  {best}" + (newBest ? "  <color=#E5A823><b>NEW BEST!</b></color>" : ""));
             sb.AppendLine();
             sb.AppendLine($"Knowledge Check:  {quizCorrect} / {quizTotal} correct");
             sb.AppendLine($"Time:  {m}:{s:00}");

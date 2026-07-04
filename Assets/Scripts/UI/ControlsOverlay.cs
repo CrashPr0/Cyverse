@@ -43,6 +43,13 @@ namespace Cyverse.UI
 
             if (!dismissing)
             {
+                // Wait behind the title screen; the clock starts when play does.
+                if (MainMenu.Active)
+                {
+                    lastMouse = Input.mousePosition;
+                    return;
+                }
+
                 elapsed += Time.unscaledDeltaTime;
 
                 // Keep it up for a guaranteed minimum so it's actually readable;

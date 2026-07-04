@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyVerse — {{{ PRODUCT_NAME }}}</title>
+  <style>
+    /* ---------------------------------------------------------------
+       CyVerse web shell — San José State University visual identity.
+       Palette: SJSU Blue #0055A2 · Spartan Gold #E5A823 · near-navy
+       neutrals. White body text on navy for WCAG contrast; gold is
+       reserved for accents and large display type only.
+       System font stack (no external fonts): players may be offline
+       or on slow connections per the project brief.
+       --------------------------------------------------------------- */
+    :root {
+      --sjsu-blue: #0055A2;
+      --sjsu-gold: #E5A823;
+      --navy-950: #06101f;
+      --navy-900: #0a1a30;
+      --text: #f2f6fb;
+      --text-dim: #9db2c9;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      background: var(--navy-950);
+      color: var(--text);
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+    body { display: flex; flex-direction: column; }
+
+    /* Header band — SJSU blue with a gold keyline. */
+    header {
+      background: var(--sjsu-blue);
+      border-bottom: 4px solid var(--sjsu-gold);
+      padding: 14px 24px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 4px 16px;
+    }
+    header .wordmark {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: #ffffff;
+    }
+    header .wordmark span { color: var(--sjsu-gold); }
+    header .institution {
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      color: #cfe0f2;
+      text-transform: uppercase;
+    }
+
+    /* Stage — the game canvas, centred, 16:9, letterboxed on navy. */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(0, 85, 162, 0.25), transparent 60%),
+        var(--navy-950);
+    }
+    #unity-wrap {
+      position: relative;
+      width: min(100%, 1280px);
+      aspect-ratio: 16 / 9;
+      background: #000;
+      box-shadow: 0 0 0 1px rgba(229, 168, 35, 0.35), 0 24px 60px rgba(0, 0, 0, 0.6);
+    }
+    #unity-canvas { width: 100%; height: 100%; display: block; background: #000; }
+
+    /* Loading overlay — gold progress on blue. */
+    #loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: var(--navy-900);
+    }
+    #loading .load-title {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: var(--text);
+    }
+    #loading .load-title span { color: var(--sjsu-gold); }
+    #loading .load-sub {
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    #progress-track {
+      width: min(60%, 420px);
+      height: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    #progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--sjsu-gold), #f6c453);
+      border-radius: 4px;
+      transition: width 0.2s ease;
+    }
+
+    /* Footer — credits + fullscreen. */
+    footer {
+      background: var(--navy-900);
+      border-top: 1px solid rgba(0, 85, 162, 0.6);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    footer button {
+      background: transparent;
+      border: 1px solid var(--sjsu-gold);
+      color: var(--sjsu-gold);
+      font: inherit;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 6px 16px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    footer button:hover, footer button:focus-visible {
+      background: var(--sjsu-gold);
+      color: var(--navy-950);
+      outline: none;
+    }
+
+    #warning-banner {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 10;
+      text-align: center;
+    }
+    #warning-banner div { padding: 8px; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wordmark">CY<span>VERSE</span></div>
+    <div class="institution">San José State University</div>
+  </header>
+
+  <main>
+    <div id="unity-wrap">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+      <div id="loading">
+        <div class="load-title">CY<span>VERSE</span></div>
+        <div class="load-sub">Loading Level 0 — Onboarding</div>
+        <div id="progress-track"><div id="progress-fill"></div></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div>CyberVerse Project · Cybersecurity education for foundational learners</div>
+    <button id="fullscreen-button" type="button">Fullscreen</button>
+  </footer>
+
+  <div id="warning-banner"></div>
+
+  <script>
+    var canvas = document.querySelector("#unity-canvas");
+    var loadingOverlay = document.querySelector("#loading");
+    var progressFill = document.querySelector("#progress-fill");
+    var warningBanner = document.querySelector("#warning-banner");
+
+    // Unity's banner hook: shows errors (red, sticky) and warnings (gold, timed).
+    function unityShowBanner(msg, type) {
+      function updateBannerVisibility() {
+        warningBanner.style.display = warningBanner.children.length ? "block" : "none";
+      }
+      var div = document.createElement("div");
+      div.innerHTML = msg;
+      warningBanner.appendChild(div);
+      if (type === "error") div.style = "background: #7a1f1f; color: #fff; padding: 10px;";
+      else {
+        if (type === "warning") div.style = "background: #E5A823; color: #06101f; padding: 10px;";
+        setTimeout(function() {
+          warningBanner.removeChild(div);
+          updateBannerVisibility();
+        }, 5000);
+      }
+      updateBannerVisibility();
+    }
+
+    var buildUrl = "Build";
+    var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    var config = {
+      dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+      frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_THREADS
+      workerUrl: buildUrl + "/{{{ WORKER_FILENAME }}}",
+#endif
+#if USE_WASM
+      codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if MEMORY_FILENAME
+      memoryUrl: buildUrl + "/{{{ MEMORY_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+      symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+      productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+      productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+      showBanner: unityShowBanner,
+    };
+
+    var script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = function() {
+      createUnityInstance(canvas, config, function(progress) {
+        progressFill.style.width = (progress * 100) + "%";
+      }).then(function(unityInstance) {
+        loadingOverlay.style.display = "none";
+        document.querySelector("#fullscreen-button").onclick = function() {
+          unityInstance.SetFullscreen(1);
+        };
+      }).catch(function(message) {
+        unityShowBanner(message, "error");
+      });
+    };
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>
