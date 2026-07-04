@@ -102,12 +102,17 @@ namespace Cyverse.Level
                 new Vector3(0.09f, 0.04f, 4.6f), TrimGlow, collider: false);
 
             // Two desks per side, facing the partition; chairs on the outside.
+            // Rotation signs were previously swapped between desk and chair,
+            // which put the chair beyond the monitor (facing the wrong way,
+            // looking at the back of the screen) instead of at the keyboard
+            // facing the monitor. Desk and chair rotations must be opposite in
+            // sign from what you'd naively guess — see BuildDesk/BuildChair docs.
             foreach (float z in new[] { -1.15f, 1.15f })
             {
-                BuildDesk(pod, new Vector3(-0.75f, 0, z), 90f);
-                BuildChair(pod, new Vector3(-1.55f, 0, z), -90f);
-                BuildDesk(pod, new Vector3(0.75f, 0, z), -90f);
-                BuildChair(pod, new Vector3(1.55f, 0, z), 90f);
+                BuildDesk(pod, new Vector3(-0.75f, 0, z), -90f);
+                BuildChair(pod, new Vector3(-1.55f, 0, z), 90f);
+                BuildDesk(pod, new Vector3(0.75f, 0, z), 90f);
+                BuildChair(pod, new Vector3(1.55f, 0, z), -90f);
             }
         }
 
