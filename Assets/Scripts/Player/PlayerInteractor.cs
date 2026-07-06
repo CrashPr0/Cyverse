@@ -19,6 +19,9 @@ namespace Cyverse.Player
         /// <summary>True while an interactable is under the crosshair (read by FirstPersonHands).</summary>
         public static bool TargetInView { get; private set; }
 
+        /// <summary>The interactable under the crosshair, if any (read by stations for hover glow).</summary>
+        public static IInteractable CurrentTarget { get; private set; }
+
         private Camera cam;
 
         void Awake()
@@ -34,6 +37,7 @@ namespace Cyverse.Player
             if (GameState.Busy)
             {
                 TargetInView = false;
+                CurrentTarget = null;
                 HidePrompt();
                 return;
             }
@@ -46,6 +50,7 @@ namespace Cyverse.Player
             }
 
             TargetInView = target != null && target.CanInteract;
+            CurrentTarget = TargetInView ? target : null;
 
             if (TargetInView)
             {

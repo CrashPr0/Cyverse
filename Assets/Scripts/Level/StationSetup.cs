@@ -61,6 +61,7 @@ namespace Cyverse.Level
             if (reviewedMark != null) reviewedMark.SetActive(true);
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
             if (stationLight != null) stationLight.intensity = completedLightIntensity;
+            BurstFX.Spawn(transform.position + Vector3.up * 2.1f, new Color(0.30f, 1f, 0.45f), 26);
 
             if (Level0Manager.Instance != null)
                 Level0Manager.Instance.NotifyStationReviewed();

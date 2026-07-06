@@ -134,9 +134,13 @@ touching gameplay code.
 ## UX & accessibility features
 
 Game-feel: animated crosshair (grows + tints on a target, kicks on press),
-a popping "E" key badge, footstep audio, UI/confirm sounds, a fade-from-black
-on start, and a green ✓ checkmark (a *shape*, not colour alone) when a station
-is reviewed.
+a popping "E" key badge, typewriter dialogue (Space completes, then advances),
+hover-glow on targeted station holograms, floating "+points" popups, particle
+bursts on station review / scan / completion, an animated scan-bar during the
+face scan, pitch-varied footsteps, ambient server blips, drifting patrol
+drones, a fade-from-black on start, and a green ✓ checkmark (a *shape*, not
+colour alone) when a station is reviewed. The results screen awards a themed
+Security Clearance grade (S/A/B/C) and teases Level 1 — Cyber Defense.
 
 Accessibility (Esc menu, all persisted): separate **Master / Voice / SFX**
 volume channels, **caption text scaling**, **look sensitivity**, **field of

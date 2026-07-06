@@ -28,6 +28,13 @@ namespace Cyverse.Interaction
         private bool activated;
         private bool scanning;
         private bool completed;
+        private Renderer panelRenderer;
+
+        void Start()
+        {
+            var panel = transform.Find("ScannerPanel");
+            if (panel != null) panelRenderer = panel.GetComponent<Renderer>();
+        }
 
         /// <summary>Fires once, after the scan and its dialogue have finished.</summary>
         public event Action Completed;
@@ -57,6 +64,20 @@ namespace Cyverse.Interaction
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
 
             float baseIntensity = scanLight != null ? scanLight.intensity : 0f;
+
+            // Drive the hologram's sweep bar hard while scanning — the panel
+            // visibly "works" during the scan, then settles back.
+            Material panelMat = panelRenderer != null ? panelRenderer.material : null;
+            bool hasBar = panelMat != null && panelMat.HasProperty("_BarSpeed");
+            float oldBarSpeed = 0f, oldBarSize = 0f;
+            if (hasBar)
+            {
+                oldBarSpeed = panelMat.GetFloat("_BarSpeed");
+                oldBarSize = panelMat.GetFloat("_BarSize");
+                panelMat.SetFloat("_BarSpeed", 3.5f);
+                panelMat.SetFloat("_BarSize", 0.20f);
+            }
+
             float t = 0f;
             while (t < scanSeconds)
             {
@@ -71,12 +92,18 @@ namespace Cyverse.Interaction
             }
 
             if (scanLight != null) scanLight.intensity = baseIntensity;
+            if (hasBar)
+            {
+                panelMat.SetFloat("_BarSpeed", oldBarSpeed);
+                panelMat.SetFloat("_BarSize", oldBarSize);
+            }
             if (HudUI.Instance != null) HudUI.Instance.HideCaption();
             GameState.DialogueActive = false;
 
             completed = true;
             ScoreSystem.Add(scanPoints);
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
+            BurstFX.Spawn(transform.position + Vector3.up * 2.3f, new Color(0.25f, 0.8f, 1f), 40);
 
             if (DialogueManager.Instance != null)
                 DialogueManager.Instance.Play(Level0Content.Complete(), () => Completed?.Invoke());

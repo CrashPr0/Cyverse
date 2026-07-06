@@ -13,6 +13,7 @@ namespace Cyverse.Audio
         public static Sfx Instance { get; private set; }
 
         private AudioSource src;
+        private AudioSource stepSrc; // separate source so pitch jitter never bends UI sounds
         private AudioClip footstep, click, confirm, deny;
 
         void Awake()
@@ -24,6 +25,10 @@ namespace Cyverse.Audio
             src.playOnAwake = false;
             src.spatialBlend = 0f;
 
+            stepSrc = gameObject.AddComponent<AudioSource>();
+            stepSrc.playOnAwake = false;
+            stepSrc.spatialBlend = 0f;
+
             footstep = ProceduralAudio.Footstep();
             click = ProceduralAudio.Click();
             confirm = ProceduralAudio.Confirm();
@@ -34,7 +39,13 @@ namespace Cyverse.Audio
             ? AccessibilitySettings.Instance.SfxVolume
             : 1f;
 
-        public void PlayFootstep() { if (src != null) src.PlayOneShot(footstep, Vol * 0.7f); }
+        public void PlayFootstep()
+        {
+            if (stepSrc == null) return;
+            // Pitch/volume jitter keeps repeated steps from sounding robotic.
+            stepSrc.pitch = Random.Range(0.86f, 1.14f);
+            stepSrc.PlayOneShot(footstep, Vol * Random.Range(0.55f, 0.75f));
+        }
         public void PlayClick() { if (src != null) src.PlayOneShot(click, Vol); }
         public void PlayConfirm() { if (src != null) src.PlayOneShot(confirm, Vol); }
         public void PlayDeny() { if (src != null) src.PlayOneShot(deny, Vol); }

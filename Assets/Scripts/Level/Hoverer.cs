@@ -13,6 +13,11 @@ namespace Cyverse.Level
         public float bobSpeed = 1.1f;
         public float yawSpeed = 16f;
         public float rotorSpeed = 900f;
+
+        [Tooltip("Slow circular drift around the spawn point (0 = hover in place).")]
+        public float patrolRadius = 1.2f;
+        public float patrolSpeed = 0.22f;
+
         public Transform[] rotors;
 
         private Vector3 basePos;
@@ -29,7 +34,9 @@ namespace Cyverse.Level
             if (AccessibilitySettings.ReduceMotion) return;
 
             float y = Mathf.Sin(Time.time * bobSpeed + seed) * bobAmplitude;
-            transform.position = basePos + Vector3.up * y;
+            float a = Time.time * patrolSpeed + seed;
+            Vector3 drift = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * patrolRadius;
+            transform.position = basePos + drift + Vector3.up * y;
             transform.Rotate(0f, yawSpeed * Time.deltaTime, 0f, Space.World);
 
             if (rotors == null) return;

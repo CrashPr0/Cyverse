@@ -40,6 +40,9 @@ namespace Cyverse.Dialogue
 
         public KeyCode advanceKey = KeyCode.Space;
 
+        [Tooltip("Typewriter reveal speed; 0 disables (instant text).")]
+        public float charsPerSecond = 45f;
+
         private AudioSource voice;
         private Coroutine running;
 
@@ -68,11 +71,12 @@ namespace Cyverse.Dialogue
             {
                 foreach (DialogueLine line in lines)
                 {
-                    string label = string.IsNullOrEmpty(line.speaker)
-                        ? line.text
-                        : $"<b><color=#5BC8FF>{line.speaker}</color></b>\n{line.text}";
-
-                    if (HudUI.Instance != null) HudUI.Instance.ShowCaption(label);
+                    // The speaker header is always shown whole; only the body is
+                    // typed out, so rich-text tags are never cut mid-tag.
+                    string header = string.IsNullOrEmpty(line.speaker)
+                        ? string.Empty
+                        : $"<b><color=#5BC8FF>{line.speaker}</color></b>\n";
+                    string body = line.text ?? string.Empty;
 
                     if (line.clip != null)
                     {
@@ -84,6 +88,26 @@ namespace Cyverse.Dialogue
                     }
 
                     float elapsed = 0f;
+
+                    // Typewriter reveal; the advance key completes it instantly.
+                    if (!AccessibilitySettings.ReduceMotion && charsPerSecond > 0f)
+                    {
+                        float shown = 0f;
+                        while (shown < body.Length)
+                        {
+                            shown += charsPerSecond * Time.deltaTime;
+                            elapsed += Time.deltaTime;
+                            if (HudUI.Instance != null)
+                                HudUI.Instance.ShowCaption(
+                                    header + body.Substring(0, Mathf.Min((int)shown, body.Length)));
+                            if (Input.GetKeyDown(advanceKey)) break;
+                            yield return null;
+                        }
+                    }
+
+                    if (HudUI.Instance != null) HudUI.Instance.ShowCaption(header + body);
+                    yield return null; // the reveal-completing press must not also advance
+
                     float minWait = Mathf.Max(line.minDuration, line.clip != null ? line.clip.length : 0f);
                     while (true)
                     {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Cyverse.Dialogue;
+using Cyverse.Player;
 
 namespace Cyverse.Interaction
 {
@@ -18,6 +19,11 @@ namespace Cyverse.Interaction
         private List<DialogueLine> lines = new List<DialogueLine>();
         private bool completed;
 
+        // Hover glow: the hologram brightens while the player aims at us.
+        private Renderer holoRenderer;
+        private Color holoBaseColor;
+        private float hoverGlow;
+
         /// <summary>Raised once, the first time this station's dialogue completes.</summary>
         public event Action<InteractableStation> Completed;
 
@@ -26,6 +32,27 @@ namespace Cyverse.Interaction
 
         public string Prompt => completed ? $"{promptText}  (reviewed)" : promptText;
         public bool CanInteract => true;
+
+        void Start()
+        {
+            var holo = transform.Find("Hologram");
+            if (holo != null)
+            {
+                holoRenderer = holo.GetComponent<Renderer>();
+                if (holoRenderer != null && holoRenderer.material.HasProperty("_Color"))
+                    holoBaseColor = holoRenderer.material.GetColor("_Color");
+                else
+                    holoRenderer = null;
+            }
+        }
+
+        void Update()
+        {
+            if (holoRenderer == null) return;
+            bool hovered = ReferenceEquals(PlayerInteractor.CurrentTarget, this);
+            hoverGlow = Mathf.MoveTowards(hoverGlow, hovered ? 1f : 0f, 6f * Time.deltaTime);
+            holoRenderer.material.SetColor("_Color", holoBaseColor * (1f + 0.7f * hoverGlow));
+        }
 
         /// <summary>Called by the bootstrap to inject this station's content.</summary>
         public void Configure(string id, string prompt, List<DialogueLine> dialogue)

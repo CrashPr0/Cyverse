@@ -44,14 +44,21 @@ namespace Cyverse.UI
                 PlayerPrefs.Save();
             }
 
+            // Themed letter grade — score-driven, generous at the top end so a
+            // perfect run (550) earns the S.
+            string grade = score >= 520 ? "S" : score >= 450 ? "A" : score >= 350 ? "B" : "C";
+
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("<color=#4CE087><b>Access Granted — Level: Employee</b></color>");
+            sb.AppendLine($"Security Clearance Rating:  <color=#E5A823><b>{grade}</b></color>");
             sb.AppendLine();
             sb.AppendLine($"Final Score:  <b><color=#5BC8FF>{score}</color></b>");
             sb.AppendLine($"Best Score:  {best}" + (newBest ? "  <color=#E5A823><b>NEW BEST!</b></color>" : ""));
             sb.AppendLine();
             sb.AppendLine($"Knowledge Check:  {quizCorrect} / {quizTotal} correct");
             sb.AppendLine($"Time:  {m}:{s:00}");
+            sb.AppendLine();
+            sb.AppendLine("<size=20><color=#5BC8FF>NEXT MISSION:</color> <color=#8FB8CC>Level 1 — Cyber Defense  (in development)</color></size>");
             if (canReload)
             {
                 sb.AppendLine();
@@ -80,7 +87,7 @@ namespace Cyverse.UI
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(0, 30);
-            rt.sizeDelta = new Vector2(720, 480);
+            rt.sizeDelta = new Vector2(740, 560);
             HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.95f), HudUI.Accent);
 
             var header = new GameObject("Header", typeof(RectTransform));
@@ -104,6 +111,8 @@ namespace Cyverse.UI
             bodyText.alignment = TextAnchor.MiddleCenter;
             bodyText.color = Color.white;
             bodyText.supportRichText = true;
+            bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            bodyText.verticalOverflow = VerticalWrapMode.Overflow;
             var brt = body.GetComponent<RectTransform>();
             brt.anchorMin = Vector2.zero; brt.anchorMax = Vector2.one;
             brt.offsetMin = new Vector2(40, 30); brt.offsetMax = new Vector2(-40, -90);

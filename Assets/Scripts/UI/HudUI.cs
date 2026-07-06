@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using Cyverse.Core;
@@ -43,6 +44,7 @@ namespace Cyverse.UI
         // Score counter
         private Text scoreText;
         private float scorePop = 1f;
+        private float objectivePop = 1f;
 
         void Awake()
         {
@@ -69,7 +71,46 @@ namespace Cyverse.UI
         {
             if (scoreText == null) return;
             scoreText.text = $"SCORE  <b>{total}</b>";
-            if (delta > 0 && !AccessibilitySettings.ReduceMotion) scorePop = 1.45f;
+            if (delta > 0 && !AccessibilitySettings.ReduceMotion)
+            {
+                scorePop = 1.45f;
+                SpawnScorePopup(delta);
+            }
+        }
+
+        /// <summary>Floating "+N" that drifts up from the score counter and fades.</summary>
+        private void SpawnScorePopup(int delta)
+        {
+            var t = CreateText("ScorePopup", Canvas.transform, 30, TextAnchor.UpperRight);
+            t.fontStyle = FontStyle.Bold;
+            t.color = delta >= 100 ? new Color(0.90f, 0.66f, 0.14f) : Accent; // gold for the big ones
+            t.text = "+" + delta;
+            AddOutline(t);
+            var rt = t.rectTransform;
+            rt.anchorMin = new Vector2(1f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(1f, 1f);
+            rt.anchoredPosition = new Vector2(-30, -66);
+            rt.sizeDelta = new Vector2(200, 40);
+            StartCoroutine(ScorePopupRoutine(t));
+        }
+
+        private IEnumerator ScorePopupRoutine(Text t)
+        {
+            const float duration = 0.9f;
+            Vector2 start = t.rectTransform.anchoredPosition;
+            float e = 0f;
+            while (e < duration && t != null)
+            {
+                e += Time.unscaledDeltaTime;
+                float p = e / duration;
+                t.rectTransform.anchoredPosition = start + Vector2.up * (46f * p);
+                var c = t.color;
+                c.a = 1f - p * p;
+                t.color = c;
+                yield return null;
+            }
+            if (t != null) Destroy(t.gameObject);
         }
 
         void Update()
@@ -105,6 +146,11 @@ namespace Cyverse.UI
             {
                 scorePop = Mathf.Lerp(scorePop, 1f, k);
                 scoreText.rectTransform.localScale = Vector3.one * scorePop;
+            }
+            if (objectiveText != null)
+            {
+                objectivePop = Mathf.Lerp(objectivePop, 1f, k);
+                objectiveText.rectTransform.localScale = Vector3.one * objectivePop;
             }
         }
 
@@ -188,7 +234,9 @@ namespace Cyverse.UI
         public void ShowObjective(string text)
         {
             PinObjectiveToTop();
+            bool changed = objectiveText.text != text && !string.IsNullOrEmpty(objectiveText.text);
             objectiveText.text = text;
+            if (changed && !AccessibilitySettings.ReduceMotion) objectivePop = 1.3f;
         }
 
         // ---- Construction ---------------------------------------------------

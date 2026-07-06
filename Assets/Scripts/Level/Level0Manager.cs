@@ -145,6 +145,12 @@ namespace Cyverse.Level
             UpdateObjective();
             FirstPersonController.LockCursor(false);
 
+            // Send-off: a gold shower where the player finished.
+            Vector3 burstPos = scanner != null
+                ? scanner.transform.position + Vector3.up * 2.5f
+                : (Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 2f : Vector3.up * 2f);
+            BurstFX.Spawn(burstPos, new Color(0.90f, 0.66f, 0.14f), 70, 3.4f, 1.3f);
+
             if (ResultsScreen.Instance != null)
                 ResultsScreen.Instance.Show(
                     ScoreSystem.Score, ScoreSystem.QuizCorrect, ScoreSystem.QuizTotal,

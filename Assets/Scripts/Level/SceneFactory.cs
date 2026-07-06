@@ -218,6 +218,7 @@ namespace Cyverse.Level
             l.intensity = 0.8f; // dim until Level0Manager activates it
 
             MakeSign(root.transform, basePos + new Vector3(0, 3.6f, 0), "SECURITY SCANNER", AccentCyan);
+            AddPanelLabel(root.transform, basePos + new Vector3(0, 2.3f, -0.025f), "SCAN");
 
             var scanner = root.AddComponent<Interaction.FaceScanner>();
             scanner.scanLight = l;
@@ -300,6 +301,38 @@ namespace Cyverse.Level
             }
         }
 
+        private static string GlyphFor(StationSetup.Topic topic)
+        {
+            switch (topic)
+            {
+                case StationSetup.Topic.CIA: return "CIA";
+                case StationSetup.Topic.NICE: return "NICE";
+                default: return "I/AM";
+            }
+        }
+
+        /// <summary>Static label floating just in front of a holo panel (on the
+        /// approach side), so panels read as "displays" instead of blank glow.</summary>
+        private static void AddPanelLabel(Transform parent, Vector3 worldPos, string text)
+        {
+            var go = new GameObject("PanelLabel");
+            go.transform.SetParent(parent, false);
+            go.transform.position = worldPos;
+            go.transform.rotation = Quaternion.identity; // readable from the south approach
+
+            var font = HudUI.LoadFont();
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = font;
+            tm.text = text;
+            tm.fontSize = 64;
+            tm.characterSize = 0.045f;
+            tm.fontStyle = FontStyle.Bold;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.color = new Color(1f, 1f, 1f, 0.92f);
+            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+        }
+
         // ---- Stations -------------------------------------------------------
 
         public static void BuildStations()
@@ -336,6 +369,7 @@ namespace Cyverse.Level
             l.intensity = 2.5f;
 
             MakeSign(root.transform, basePos + new Vector3(0, 3.3f, 0), SignTitleFor(topic), color);
+            AddPanelLabel(root.transform, basePos + new Vector3(0, 1.9f, -0.025f), GlyphFor(topic));
 
             // Slow-turning holo ring marks the interaction zone on the floor.
             var ring = Spawn(PrimitiveType.Cylinder, "StationRing", root.transform,
