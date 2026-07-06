@@ -43,6 +43,26 @@ namespace Cyverse.Dialogue
         [Tooltip("Typewriter reveal speed; 0 disables (instant text).")]
         public float charsPerSecond = 45f;
 
+        // Browser TTS state: set true when a line is handed to the Web Speech
+        // API, cleared by OnTtsEnd (SendMessage from the .jslib) or a skip.
+        private bool ttsPending;
+
+        /// <summary>Called from WebSpeech.jslib when the browser finishes speaking.</summary>
+        public void OnTtsEnd(string _)
+        {
+            ttsPending = false;
+        }
+
+        private static float PitchFor(string speaker)
+        {
+            switch (speaker)
+            {
+                case "Security Guard": return 0.85f; // lower, authoritative
+                case "System": return 1.15f;         // brighter, synthetic
+                default: return 1.0f;
+            }
+        }
+
         private AudioSource voice;
         private Coroutine running;
 
@@ -60,6 +80,8 @@ namespace Cyverse.Dialogue
         public void Play(List<DialogueLine> lines, Action onComplete = null)
         {
             if (running != null) StopCoroutine(running);
+            Cyverse.Audio.Speech.Cancel(); // a restarted sequence must not talk over itself
+            ttsPending = false;
             running = StartCoroutine(Run(lines, onComplete));
         }
 
@@ -78,14 +100,29 @@ namespace Cyverse.Dialogue
                         : $"<b><color=#5BC8FF>{line.speaker}</color></b>\n";
                     string body = line.text ?? string.Empty;
 
+                    float voiceVol = AccessibilitySettings.Instance != null
+                        ? AccessibilitySettings.Instance.VoiceVolume
+                        : 1f;
+
+                    bool usedTts = false;
                     if (line.clip != null)
                     {
-                        voice.volume = AccessibilitySettings.Instance != null
-                            ? AccessibilitySettings.Instance.VoiceVolume
-                            : 1f;
+                        voice.volume = voiceVol;
                         voice.clip = line.clip;
                         voice.Play();
                     }
+                    else if (Cyverse.Audio.Speech.Available &&
+                             (AccessibilitySettings.Instance == null || AccessibilitySettings.Instance.TtsEnabled))
+                    {
+                        // No recorded clip — let the browser read the line aloud.
+                        Cyverse.Audio.Speech.Speak(body, 1f, PitchFor(line.speaker), voiceVol);
+                        ttsPending = true;
+                        usedTts = true;
+                    }
+
+                    // If the browser's end event never arrives, stop waiting on
+                    // TTS after a generous reading-speed estimate.
+                    float ttsBudget = 1.5f + body.Length / 11f;
 
                     float elapsed = 0f;
 
@@ -113,11 +150,20 @@ namespace Cyverse.Dialogue
                     {
                         elapsed += Time.deltaTime;
                         bool audioDone = line.clip == null || !voice.isPlaying;
+                        bool ttsDone = !usedTts || !ttsPending || elapsed >= ttsBudget;
 
-                        if (Input.GetKeyDown(advanceKey)) { voice.Stop(); break; }
-                        if (elapsed >= minWait && audioDone) break;
+                        if (Input.GetKeyDown(advanceKey))
+                        {
+                            voice.Stop();
+                            Cyverse.Audio.Speech.Cancel();
+                            ttsPending = false;
+                            break;
+                        }
+                        if (elapsed >= minWait && audioDone && ttsDone) break;
                         yield return null;
                     }
+                    Cyverse.Audio.Speech.Cancel(); // budget-exceeded stragglers
+                    ttsPending = false;
 
                     yield return null; // tiny gap so the advance press isn't double-counted
                 }

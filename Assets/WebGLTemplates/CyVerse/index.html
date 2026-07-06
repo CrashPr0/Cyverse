@@ -247,6 +247,9 @@
       createUnityInstance(canvas, config, function(progress) {
         progressFill.style.width = (progress * 100) + "%";
       }).then(function(unityInstance) {
+        // Exposed globally so plugins (e.g. the TTS bridge in WebSpeech.jslib)
+        // can SendMessage back into the game.
+        window.unityInstance = unityInstance;
         loadingOverlay.style.display = "none";
         document.querySelector("#fullscreen-button").onclick = function() {
           unityInstance.SetFullscreen(1);

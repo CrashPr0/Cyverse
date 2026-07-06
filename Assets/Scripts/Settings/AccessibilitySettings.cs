@@ -29,9 +29,12 @@ namespace Cyverse.Settings
         public float MouseSensitivity { get; private set; } = 1f;
         public float FieldOfView { get; private set; } = 60f;
 
+        /// <summary>Browser text-to-speech for unvoiced dialogue (WebGL builds).</summary>
+        public bool TtsEnabled { get; private set; } = true;
+
         private readonly string[] rows =
         {
-            "Master Volume", "Voice Volume", "SFX Volume",
+            "Master Volume", "Voice Volume", "Voiceover (TTS)", "SFX Volume",
             "Caption Size", "Look Sensitivity", "Field of View", "Reduce Motion"
         };
         private int selected;
@@ -94,11 +97,15 @@ namespace Cyverse.Settings
             {
                 case 0: MasterVolume = Step01(MasterVolume + 0.1f * dir); break;
                 case 1: VoiceVolume = Step01(VoiceVolume + 0.1f * dir); break;
-                case 2: SfxVolume = Step01(SfxVolume + 0.1f * dir); break;
-                case 3: CaptionScale = Mathf.Clamp(CaptionScale + 0.1f * dir, 0.6f, 2f); break;
-                case 4: MouseSensitivity = Mathf.Clamp(MouseSensitivity + 0.1f * dir, 0.2f, 3f); break;
-                case 5: FieldOfView = Mathf.Clamp(FieldOfView + 5f * dir, 50f, 100f); break;
-                case 6: ReduceMotion = !ReduceMotion; break;
+                case 2:
+                    TtsEnabled = !TtsEnabled;
+                    if (!TtsEnabled) Audio.Speech.Cancel();
+                    break;
+                case 3: SfxVolume = Step01(SfxVolume + 0.1f * dir); break;
+                case 4: CaptionScale = Mathf.Clamp(CaptionScale + 0.1f * dir, 0.6f, 2f); break;
+                case 5: MouseSensitivity = Mathf.Clamp(MouseSensitivity + 0.1f * dir, 0.2f, 3f); break;
+                case 6: FieldOfView = Mathf.Clamp(FieldOfView + 5f * dir, 50f, 100f); break;
+                case 7: ReduceMotion = !ReduceMotion; break;
             }
             Apply();
             Save();
@@ -139,11 +146,14 @@ namespace Cyverse.Settings
             {
                 case 0: return Percent(MasterVolume);
                 case 1: return Percent(VoiceVolume);
-                case 2: return Percent(SfxVolume);
-                case 3: return $"{CaptionScale:0.0}x";
-                case 4: return $"{MouseSensitivity:0.0}x";
-                case 5: return $"{Mathf.RoundToInt(FieldOfView)}°";
-                case 6: return ReduceMotion ? "On" : "Off";
+                case 2:
+                    if (!TtsEnabled) return "Off";
+                    return Audio.Speech.Available ? "On" : "On (browser builds)";
+                case 3: return Percent(SfxVolume);
+                case 4: return $"{CaptionScale:0.0}x";
+                case 5: return $"{MouseSensitivity:0.0}x";
+                case 6: return $"{Mathf.RoundToInt(FieldOfView)}°";
+                case 7: return ReduceMotion ? "On" : "Off";
                 default: return string.Empty;
             }
         }
@@ -159,6 +169,7 @@ namespace Cyverse.Settings
             MouseSensitivity = PlayerPrefs.GetFloat("cv_mouse", 1f);
             FieldOfView = PlayerPrefs.GetFloat("cv_fov", 60f);
             ReduceMotion = PlayerPrefs.GetInt("cv_reducemotion", 0) == 1;
+            TtsEnabled = PlayerPrefs.GetInt("cv_tts", 1) == 1;
         }
 
         private void Save()
@@ -170,6 +181,7 @@ namespace Cyverse.Settings
             PlayerPrefs.SetFloat("cv_mouse", MouseSensitivity);
             PlayerPrefs.SetFloat("cv_fov", FieldOfView);
             PlayerPrefs.SetInt("cv_reducemotion", ReduceMotion ? 1 : 0);
+            PlayerPrefs.SetInt("cv_tts", TtsEnabled ? 1 : 0);
             PlayerPrefs.Save();
         }
 
@@ -195,7 +207,7 @@ namespace Cyverse.Settings
             crt.anchorMin = new Vector2(0.5f, 0.5f);
             crt.anchorMax = new Vector2(0.5f, 0.5f);
             crt.pivot = new Vector2(0.5f, 0.5f);
-            crt.sizeDelta = new Vector2(760, 600);
+            crt.sizeDelta = new Vector2(760, 700);
             HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.95f), HudUI.Accent);
 
             // Header.
@@ -222,15 +234,17 @@ namespace Cyverse.Settings
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = new Vector2(0, -22);
-            rt.sizeDelta = new Vector2(660, 470);
+            rt.anchoredPosition = new Vector2(0, -30);
+            rt.sizeDelta = new Vector2(660, 580);
 
             menuText = txtGo.AddComponent<Text>();
             menuText.font = HudUI.UIFont;
-            menuText.fontSize = 28;
+            menuText.fontSize = 26;
             menuText.alignment = TextAnchor.UpperLeft;
             menuText.color = Color.white;
             menuText.supportRichText = true;
+            menuText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            menuText.verticalOverflow = VerticalWrapMode.Overflow;
         }
     }
 }

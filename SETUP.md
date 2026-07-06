@@ -143,9 +143,18 @@ colour alone) when a station is reviewed. The results screen awards a themed
 Security Clearance grade (S/A/B/C) and teases Level 1 — Cyber Defense.
 
 Accessibility (Esc menu, all persisted): separate **Master / Voice / SFX**
-volume channels, **caption text scaling**, **look sensitivity**, **field of
-view** (motion-sickness comfort), and **Reduce Motion** (freezes shader
-animation, hologram spin, HUD pulses, and screen fades for photosensitivity).
+volume channels, a **Voiceover (TTS)** toggle, **caption text scaling**,
+**look sensitivity**, **field of view** (motion-sickness comfort), and
+**Reduce Motion** (freezes shader animation, hologram spin, HUD pulses, and
+screen fades for photosensitivity).
+
+**Text-to-speech:** in WebGL builds, any dialogue line without a recorded
+clip is read aloud through the browser's Web Speech API
+(`Assets/Plugins/WebGL/WebSpeech.jslib`) — free, key-less, and
+offline-capable via the player's local OS voices, with per-speaker pitch
+(guard lower, System brighter). Recorded `AudioClip`s always take priority,
+captions always remain on, and skipping a line cancels its speech. In the
+editor and desktop builds TTS is unavailable and silently skipped.
 Captions cover all narration, the menu is keyboard-navigable, and opening it
 pauses the game. Reduce Motion uses a global shader float `_CyMotion`.
 
