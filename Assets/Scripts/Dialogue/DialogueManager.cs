@@ -124,7 +124,7 @@ namespace Cyverse.Dialogue
                     // TTS after a generous reading-speed estimate.
                     float ttsBudget = 1.5f + body.Length / 11f;
 
-                    float elapsed = 0f;
+                    float totalElapsed = 0f;
 
                     // Typewriter reveal; the advance key completes it instantly.
                     if (!AccessibilitySettings.ReduceMotion && charsPerSecond > 0f)
@@ -133,7 +133,7 @@ namespace Cyverse.Dialogue
                         while (shown < body.Length)
                         {
                             shown += charsPerSecond * Time.deltaTime;
-                            elapsed += Time.deltaTime;
+                            totalElapsed += Time.deltaTime;
                             if (HudUI.Instance != null)
                                 HudUI.Instance.ShowCaption(
                                     header + body.Substring(0, Mathf.Min((int)shown, body.Length)));
@@ -145,12 +145,23 @@ namespace Cyverse.Dialogue
                     if (HudUI.Instance != null) HudUI.Instance.ShowCaption(header + body);
                     yield return null; // the reveal-completing press must not also advance
 
+                    // minDuration is how long the FULLY REVEALED text should hold
+                    // before advancing. It must not share a clock with the
+                    // typewriter above — a long line could take longer to type
+                    // out than minDuration, which previously meant the wait-loop's
+                    // elapsed check was already satisfied the instant the last
+                    // character appeared, advancing with zero time to actually
+                    // read it. totalElapsed keeps running (for the TTS timeout,
+                    // which is measured from when speech started); holdElapsed is
+                    // a fresh clock for the reading pause.
+                    float holdElapsed = 0f;
                     float minWait = Mathf.Max(line.minDuration, line.clip != null ? line.clip.length : 0f);
                     while (true)
                     {
-                        elapsed += Time.deltaTime;
+                        holdElapsed += Time.deltaTime;
+                        totalElapsed += Time.deltaTime;
                         bool audioDone = line.clip == null || !voice.isPlaying;
-                        bool ttsDone = !usedTts || !ttsPending || elapsed >= ttsBudget;
+                        bool ttsDone = !usedTts || !ttsPending || totalElapsed >= ttsBudget;
 
                         if (Input.GetKeyDown(advanceKey))
                         {
@@ -159,7 +170,7 @@ namespace Cyverse.Dialogue
                             ttsPending = false;
                             break;
                         }
-                        if (elapsed >= minWait && audioDone && ttsDone) break;
+                        if (holdElapsed >= minWait && audioDone && ttsDone) break;
                         yield return null;
                     }
                     Cyverse.Audio.Speech.Cancel(); // budget-exceeded stragglers
