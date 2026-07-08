@@ -37,7 +37,7 @@ namespace Cyverse.Interaction
         {
             var h = transform.Find("Head");
             if (h != null) { head = h; headBaseY = h.localPosition.y; }
-            seed = Random.Range(0f, 10f);
+            seed = UnityEngine.Random.Range(0f, 10f);
         }
 
         void Update()
