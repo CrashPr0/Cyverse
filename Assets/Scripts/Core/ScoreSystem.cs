@@ -15,6 +15,13 @@ namespace Cyverse.Core
         public static int QuizCorrect;
         public static int QuizTotal;
 
+        /// <summary>Consecutive correct answers (drives the combo multiplier).</summary>
+        public static int Streak;
+        public static int BestStreak;
+
+        /// <summary>x1 → x1.5 (2 in a row) → x2 (3 in a row).</summary>
+        public static float ComboMultiplier => Streak >= 3 ? 2f : Streak >= 2 ? 1.5f : 1f;
+
         /// <summary>(new total, points just added)</summary>
         public static event Action<int, int> Changed;
 
@@ -29,6 +36,8 @@ namespace Cyverse.Core
             Score = 0;
             QuizCorrect = 0;
             QuizTotal = 0;
+            Streak = 0;
+            BestStreak = 0;
             Changed?.Invoke(0, 0);
         }
     }

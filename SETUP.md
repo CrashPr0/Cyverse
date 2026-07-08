@@ -100,8 +100,11 @@ completion, matching the CyVerse Script.
 | `Level/SignFX.cs`                      | Sign bob + pulse + holo-glitch (self-adds)      |
 | `Interaction/GuardNPC.cs`              | Security guard: faces player, phase-aware talk  |
 | `UI/GlossaryPanel.cs`                  | G-key glossary card (pauses, keyboard-driven)   |
-| `Level/GlossaryContent.cs`             | Glossary terms/definitions (edit copy here)     |
-| `UI/MainMenu.cs`                       | Title screen (ENTER to begin)                   |
+| `Level/GlossaryContent.cs`             | Glossary terms/definitions + topic tags         |
+| `Level/GlossaryProgress.cs`            | Tracks unlocked/discovered glossary entries     |
+| `UI/MainMenu.cs`                       | Title screen: callsign entry, ENTER to begin    |
+| `Core/PlayerIdentity.cs`               | Persisted player callsign                       |
+| `Core/ScoreSystem.cs`                  | Score + answer-streak combo multiplier          |
 | `Audio/AmbientHum.cs`                  | Seamless procedural room tone loop              |
 | `Audio/ProceduralAudio.cs`             | Generates footstep/click/confirm SFX at runtime |
 | `Audio/Sfx.cs`                         | One-shot SFX, scaled by the SFX volume channel  |
@@ -112,24 +115,37 @@ completion, matching the CyVerse Script.
 
 ## Gameplay loop (feature-complete Level 0)
 
-0. **Title screen** — "CYVERSE / Press ENTER to Begin"; gameplay and the
-   controls card hold until dismissed. Room tone (a generated facility hum)
-   plays under everything.
+0. **Title screen** — "CYVERSE / Press ENTER to Begin"; type to set your
+   **callsign** (pre-filled with the script's default, replaced on first
+   keystroke, persists between sessions). Gameplay and the controls card hold
+   until dismissed. Room tone (a generated facility hum) plays under everything.
 1. **Arrive** — fade in, controls card, security-guard intro (captioned).
 2. **Review** — visit the three signed stations (I/AM Kiosk, CIA Triad, NICE
    Roles). Each plays its lesson, then asks a **knowledge-check** question
-   (answer with `1`/`2`/`3`; a wrong answer shows the explanation).
+   (answer with `1`/`2`/`3`; a wrong answer shows the explanation). Reviewing a
+   station also **unlocks its glossary terms** — press `G` any time to browse
+   what you've discovered ("X/21 discovered"); undiscovered terms show as
+   "??? (locked)" until you visit the right station.
 3. **Authenticate** — once all stations are reviewed, the **Security Scanner**
    activates. Press `E` there for the face scan → *"Access Granted — Level:
    Employee"*, per the CyVerse Script.
-4. **Results** — score, quiz accuracy, time, and your persistent **best
-   score** (gold "NEW BEST!" when beaten), with `[R]` to replay.
+4. **Results** — score, security clearance grade, rank title, percentile vs.
+   other recruits, quiz accuracy, best streak, time, and your persistent
+   **best score** (gold "NEW BEST!" when beaten), with `[R]` to replay.
 
 Scoring: station review **+50**, knowledge check **+100** correct / **+25**
-attempted, face scan **+100** (max **550**). The score counter (top right)
-pops when points land. Questions are drawn from a per-topic pool in
+attempted, face scan **+100** (max **550**, before combos). The score counter
+(top right) pops when points land, and a **progress ring** (top left) tracks
+station completion — it starts pre-filled at 15% ("orientation complete,
+you're already underway") rather than empty, so the visible gap to 100%
+always looks smaller. Questions are drawn from a per-topic pool in
 `Level0Quiz.cs` so replays vary; educators can edit copy there without
 touching gameplay code.
+
+**Answer streaks:** consecutive correct answers build a combo multiplier —
+2 in a row is x1.5, 3+ is x2 — with an ascending confirm chime and a gold
+"COMBO x2!" toast. A wrong answer resets the streak (but still awards partial
+credit). Your best streak is shown on the results screen.
 
 ## UX & accessibility features
 

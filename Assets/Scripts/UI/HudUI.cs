@@ -46,6 +46,13 @@ namespace Cyverse.UI
         private float scorePop = 1f;
         private float objectivePop = 1f;
 
+        // Progress ring (top-left): endowed-progress onboarding tracker.
+        private Image ringFill;
+        private Text ringLabel;
+        private float ringDisplayed = 0.15f;
+        private float ringTarget = 0.15f;
+        private const float RingEndowedStart = 0.15f;
+
         void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(this); return; }
@@ -55,6 +62,7 @@ namespace Cyverse.UI
             BuildCanvas();
             BuildObjective();
             BuildScore();
+            BuildProgressRing();
             BuildCaption();
             BuildInteractPrompt();
             BuildCrosshair();
@@ -152,6 +160,12 @@ namespace Cyverse.UI
                 objectivePop = Mathf.Lerp(objectivePop, 1f, k);
                 objectiveText.rectTransform.localScale = Vector3.one * objectivePop;
             }
+
+            if (ringFill != null)
+            {
+                ringDisplayed = Mathf.Lerp(ringDisplayed, ringTarget, k);
+                ringFill.fillAmount = ringDisplayed;
+            }
         }
 
         /// <summary>Quick crosshair "kick" when the player activates something.</summary>
@@ -239,6 +253,51 @@ namespace Cyverse.UI
             if (changed && !AccessibilitySettings.ReduceMotion) objectivePop = 1.3f;
         }
 
+        /// <summary>Updates the top-left progress ring. Starts pre-filled
+        /// (endowed progress — "you're already underway") rather than empty, so
+        /// the visible gap to 100% always looks smaller and more finishable.</summary>
+        public void SetProgress(int completed, int total, string label = null)
+        {
+            if (ringFill == null) return;
+            float frac = total > 0 ? Mathf.Clamp01((float)completed / total) : 0f;
+            ringTarget = Mathf.Lerp(RingEndowedStart, 1f, frac);
+            if (ringLabel != null) ringLabel.text = label ?? $"{completed}/{total}";
+        }
+
+        /// <summary>Short-lived centred announcement — used for combo call-outs
+        /// and "glossary entries unlocked" — fades after a beat.</summary>
+        public void ShowToast(string message, Color color)
+        {
+            var t = CreateText("Toast", Canvas.transform, 26, TextAnchor.UpperCenter);
+            t.fontStyle = FontStyle.Bold;
+            t.color = color;
+            t.text = message;
+            AddOutline(t);
+            var rt = t.rectTransform;
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = new Vector2(0, -66);
+            rt.sizeDelta = new Vector2(700, 40);
+            StartCoroutine(ToastRoutine(t, color));
+        }
+
+        private IEnumerator ToastRoutine(Text t, Color baseColor)
+        {
+            const float hold = 1.5f, fade = 0.6f;
+            yield return new WaitForSecondsRealtime(hold);
+            float e = 0f;
+            while (e < fade && t != null)
+            {
+                e += Time.unscaledDeltaTime;
+                var c = baseColor;
+                c.a = baseColor.a * (1f - e / fade);
+                t.color = c;
+                yield return null;
+            }
+            if (t != null) Destroy(t.gameObject);
+        }
+
         // ---- Construction ---------------------------------------------------
 
         private void BuildCanvas()
@@ -292,6 +351,82 @@ namespace Cyverse.UI
             scoreText.color = Accent;
             AddOutline(scoreText);
             scoreText.text = "SCORE  <b>0</b>";
+        }
+
+        private void BuildProgressRing()
+        {
+            var container = new GameObject("ProgressRing", typeof(RectTransform));
+            container.transform.SetParent(Canvas.transform, false);
+            var rt = container.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(30, -24);
+            rt.sizeDelta = new Vector2(60, 60);
+
+            Sprite donut = BuildDonutSprite();
+
+            var baseGo = new GameObject("RingBase", typeof(RectTransform), typeof(Image));
+            baseGo.transform.SetParent(container.transform, false);
+            FillParent(baseGo.GetComponent<RectTransform>());
+            var ringBase = baseGo.GetComponent<Image>();
+            ringBase.sprite = donut;
+            ringBase.color = new Color(1f, 1f, 1f, 0.16f);
+            ringBase.raycastTarget = false;
+
+            var fillGo = new GameObject("RingFill", typeof(RectTransform), typeof(Image));
+            fillGo.transform.SetParent(container.transform, false);
+            FillParent(fillGo.GetComponent<RectTransform>());
+            ringFill = fillGo.GetComponent<Image>();
+            ringFill.sprite = donut;
+            ringFill.color = new Color(0.90f, 0.66f, 0.14f); // Spartan gold — reads as "reward" vs the cyan HUD
+            ringFill.type = Image.Type.Filled;
+            ringFill.fillMethod = Image.FillMethod.Radial360;
+            ringFill.fillOrigin = (int)Image.Origin360.Top;
+            ringFill.fillClockwise = true;
+            ringFill.fillAmount = RingEndowedStart; // endowed progress: never starts empty
+            ringFill.raycastTarget = false;
+
+            ringLabel = CreateText("RingLabel", container.transform, 16, TextAnchor.MiddleCenter);
+            FillParent(ringLabel.rectTransform);
+            AddOutline(ringLabel);
+            ringLabel.text = "0/3";
+
+            ringDisplayed = RingEndowedStart;
+            ringTarget = RingEndowedStart;
+        }
+
+        private static void FillParent(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        /// <summary>Procedural donut texture for the progress ring — a plain
+        /// white ring shape with antialiased edges, tinted by the Image color.</summary>
+        private static Sprite BuildDonutSprite(int size = 128, float innerFrac = 0.66f)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var pixels = new Color[size * size];
+            float c = (size - 1) / 2f;
+            float outerR = size / 2f - 1f;
+            float innerR = outerR * innerFrac;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = x - c, dy = y - c;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy);
+                    float a = Mathf.Clamp01(outerR - d + 1f) * Mathf.Clamp01(d - innerR + 1f);
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(a));
+                }
+            }
+            tex.SetPixels(pixels);
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
         }
 
         private void BuildCaption()

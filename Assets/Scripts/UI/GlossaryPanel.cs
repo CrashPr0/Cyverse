@@ -24,6 +24,7 @@ namespace Cyverse.UI
         private GameObject panel;
         private Text listText;
         private Text defText;
+        private Text headerCounter;
         private int selected;
         private int windowStart;
 
@@ -85,17 +86,32 @@ namespace Cyverse.UI
 
             for (int i = windowStart; i < end; i++)
             {
+                bool unlocked = GlossaryProgress.IsUnlocked(i);
+                string label = unlocked ? entries[i].Term : "<color=#4A5A70>??? (locked)</color>";
                 if (i == selected)
-                    sb.AppendLine($"<color=#5BC8FF>> <b>{entries[i].Term}</b></color>");
+                    sb.AppendLine($"<color=#5BC8FF>> <b>{label}</b></color>");
                 else
-                    sb.AppendLine($"   {entries[i].Term}");
+                    sb.AppendLine($"   {label}");
             }
 
             if (end < entries.Length) sb.AppendLine("<color=#4A5A70>▼ more</color>");
             listText.text = sb.ToString();
 
-            defText.text =
-                $"<b><color=#5BC8FF>{entries[selected].Term}</color></b>\n{entries[selected].Definition}";
+            if (GlossaryProgress.IsUnlocked(selected))
+            {
+                defText.text =
+                    $"<b><color=#5BC8FF>{entries[selected].Term}</color></b>\n{entries[selected].Definition}";
+            }
+            else
+            {
+                string station = entries[selected].Topic.HasValue
+                    ? GlossaryContent.StationName(entries[selected].Topic.Value)
+                    : "another station";
+                defText.text =
+                    $"<b><color=#4A5A70>??? LOCKED</color></b>\nVisit {station} to decrypt this entry.";
+            }
+
+            headerCounter.text = $"({GlossaryProgress.UnlockedCount}/{GlossaryProgress.TotalCount} discovered)";
         }
 
         private void Build()
@@ -128,6 +144,12 @@ namespace Cyverse.UI
             var hrt = header.rectTransform;
             hrt.anchorMin = new Vector2(0, 1); hrt.anchorMax = new Vector2(1, 1); hrt.pivot = new Vector2(0.5f, 1);
             hrt.sizeDelta = new Vector2(0, 56); hrt.anchoredPosition = new Vector2(0, -24);
+
+            headerCounter = MakeText(card.transform, "HeaderCounter", 18, TextAnchor.UpperCenter);
+            headerCounter.color = new Color(0.56f, 0.72f, 0.80f);
+            var hcrt = headerCounter.rectTransform;
+            hcrt.anchorMin = new Vector2(0, 1); hcrt.anchorMax = new Vector2(1, 1); hcrt.pivot = new Vector2(0.5f, 1);
+            hcrt.sizeDelta = new Vector2(0, 26); hcrt.anchoredPosition = new Vector2(0, -62);
 
             listText = MakeText(card.transform, "TermList", 26, TextAnchor.UpperLeft);
             var lrt = listText.rectTransform;

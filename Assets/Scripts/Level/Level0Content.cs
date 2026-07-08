@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Cyverse.Core;
 using Cyverse.Dialogue;
 
 namespace Cyverse.Level
@@ -24,7 +25,7 @@ namespace Cyverse.Level
         public static List<DialogueLine> IAM() => new List<DialogueLine>
         {
             new DialogueLine("I/AM",
-                "Identification is the process of claiming an identity — how you tell a system who you are. A username, employee ID, or email can all serve as identifiers. Your employee ID is Cy95192."),
+                $"Identification is the process of claiming an identity — how you tell a system who you are. A username, employee ID, or email can all serve as identifiers. Your employee ID is {PlayerIdentity.Callsign}."),
             new DialogueLine("I/AM",
                 "Authentication is proving you are who you claim to be: something you know (a password), something you have (a token or device), or something you are (a fingerprint or face scan)."),
             new DialogueLine("I/AM",
@@ -63,7 +64,7 @@ namespace Cyverse.Level
         {
             new DialogueLine("System", "Scan successful.", null, 2.2f),
             new DialogueLine("System",
-                "Access Granted — Level: Employee. Welcome aboard, Cy95192.", null, 4f),
+                $"Access Granted — Level: Employee. Welcome aboard, {PlayerIdentity.Callsign}.", null, 4f),
         };
     }
 }

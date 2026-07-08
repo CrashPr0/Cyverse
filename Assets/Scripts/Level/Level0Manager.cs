@@ -126,9 +126,11 @@ namespace Cyverse.Level
                 case Phase.Review:
                     HudUI.Instance.ShowObjective(
                         $"Objective: Review all stations  ({ReviewedCount}/{stations.Count})");
+                    HudUI.Instance.SetProgress(ReviewedCount, stations.Count);
                     break;
                 case Phase.Authenticate:
                     HudUI.Instance.ShowObjective("Objective: Authenticate at the Security Scanner");
+                    HudUI.Instance.SetProgress(stations.Count, stations.Count, "✓");
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 0 COMPLETE");

@@ -85,7 +85,7 @@ namespace Cyverse.Interaction
                 int pct = Mathf.Min(Mathf.RoundToInt(t / scanSeconds * 100f), 100);
                 if (HudUI.Instance != null)
                     HudUI.Instance.ShowCaption(
-                        $"<b><color=#5BC8FF>SECURITY SCANNER</color></b>\nScanning face…  {pct}%");
+                        $"<b><color=#5BC8FF>SECURITY SCANNER</color></b>\nIdentifying {PlayerIdentity.Callsign}…  {pct}%");
                 if (scanLight != null && !Settings.AccessibilitySettings.ReduceMotion)
                     scanLight.intensity = baseIntensity + Mathf.PingPong(t * 6f, 2f);
                 yield return null;

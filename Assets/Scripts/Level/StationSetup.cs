@@ -63,6 +63,14 @@ namespace Cyverse.Level
             if (stationLight != null) stationLight.intensity = completedLightIntensity;
             BurstFX.Spawn(transform.position + Vector3.up * 2.1f, new Color(0.30f, 1f, 0.45f), 26);
 
+            int newTerms = GlossaryProgress.UnlockTopic(topic);
+            if (newTerms > 0 && UI.HudUI.Instance != null)
+            {
+                string label = newTerms == 1 ? "entry" : "entries";
+                UI.HudUI.Instance.ShowToast(
+                    $"+{newTerms} Glossary {label} unlocked  [G]", new Color(0.90f, 0.66f, 0.14f));
+            }
+
             if (Level0Manager.Instance != null)
                 Level0Manager.Instance.NotifyStationReviewed();
         }

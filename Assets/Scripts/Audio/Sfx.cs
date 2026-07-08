@@ -13,7 +13,8 @@ namespace Cyverse.Audio
         public static Sfx Instance { get; private set; }
 
         private AudioSource src;
-        private AudioSource stepSrc; // separate source so pitch jitter never bends UI sounds
+        private AudioSource stepSrc;  // separate source so pitch jitter never bends UI sounds
+        private AudioSource comboSrc; // separate source so streak pitch-ramp never bends confirm/click
         private AudioClip footstep, click, confirm, deny;
 
         void Awake()
@@ -28,6 +29,10 @@ namespace Cyverse.Audio
             stepSrc = gameObject.AddComponent<AudioSource>();
             stepSrc.playOnAwake = false;
             stepSrc.spatialBlend = 0f;
+
+            comboSrc = gameObject.AddComponent<AudioSource>();
+            comboSrc.playOnAwake = false;
+            comboSrc.spatialBlend = 0f;
 
             footstep = ProceduralAudio.Footstep();
             click = ProceduralAudio.Click();
@@ -49,5 +54,14 @@ namespace Cyverse.Audio
         public void PlayClick() { if (src != null) src.PlayOneShot(click, Vol); }
         public void PlayConfirm() { if (src != null) src.PlayOneShot(confirm, Vol); }
         public void PlayDeny() { if (src != null) src.PlayOneShot(deny, Vol); }
+
+        /// <summary>Ascending confirm chime for answer streaks — each
+        /// consecutive correct answer (up to level 5) rings a touch higher.</summary>
+        public void PlayStreak(int level)
+        {
+            if (comboSrc == null) return;
+            comboSrc.pitch = 1f + Mathf.Clamp(level - 1, 0, 4) * 0.12f;
+            comboSrc.PlayOneShot(confirm, Vol);
+        }
     }
 }

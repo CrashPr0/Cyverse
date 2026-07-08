@@ -80,7 +80,7 @@ namespace Cyverse.Interaction
                     return new List<DialogueLine>
                     {
                         new DialogueLine("Security Guard",
-                            "Welcome aboard, Cy95192. CyberVerse is glad to have you.", null, 3.5f),
+                            $"Welcome aboard, {PlayerIdentity.Callsign}. CyberVerse is glad to have you.", null, 3.5f),
                     };
                 default:
                     return new List<DialogueLine>

@@ -90,12 +90,23 @@ namespace Cyverse.Quiz
             if (correct)
             {
                 ScoreSystem.QuizCorrect++;
-                ScoreSystem.Add(correctPoints);
-                feedbackText.text = $"<color=#4CE087><b>Correct!</b>  +{correctPoints} points</color>";
-                if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
+                ScoreSystem.Streak++;
+                if (ScoreSystem.Streak > ScoreSystem.BestStreak) ScoreSystem.BestStreak = ScoreSystem.Streak;
+
+                float mult = ScoreSystem.ComboMultiplier;
+                int awarded = Mathf.RoundToInt(correctPoints * mult);
+                ScoreSystem.Add(awarded);
+
+                string comboTag = mult > 1f ? $"  <color=#E5A823><b>COMBO x{mult:0.#}!</b></color>" : "";
+                feedbackText.text = $"<color=#4CE087><b>Correct!</b>  +{awarded} points</color>{comboTag}";
+
+                if (Sfx.Instance != null) Sfx.Instance.PlayStreak(ScoreSystem.Streak);
+                if (mult > 1f && UI.HudUI.Instance != null)
+                    UI.HudUI.Instance.ShowToast($"COMBO x{mult:0.#}!", new Color(0.90f, 0.66f, 0.14f));
             }
             else
             {
+                ScoreSystem.Streak = 0;
                 ScoreSystem.Add(wrongPoints);
                 feedbackText.text =
                     $"<color=#FFB347><b>Not quite.</b>  {current.explanation}  +{wrongPoints} points</color>";
