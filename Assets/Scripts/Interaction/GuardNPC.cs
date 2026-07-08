@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Cyverse.Core;
@@ -8,11 +9,12 @@ using Cyverse.Settings;
 namespace Cyverse.Interaction
 {
     /// <summary>
-    /// The security guard from the CyVerse Script, standing near the spawn.
-    /// Built from primitives (navy uniform, Spartan-gold belt and badge, cyan
-    /// visor). Turns to face the player when they're near, breathes subtly,
-    /// and when talked to gives directions appropriate to the current phase
-    /// (review stations → go authenticate → welcome aboard).
+    /// A standing NPC guide, built from primitives (navy uniform, Spartan-gold
+    /// belt and badge, cyan visor). Turns to face the player when they're near
+    /// and breathes subtly. What it says on interact is level-specific: pass a
+    /// <see cref="LinesProvider"/> to <see cref="Build"/> for a custom level's
+    /// dialogue; omitting it falls back to the original Level 0 (onboarding)
+    /// guard behavior, so existing call sites are unaffected.
     /// </summary>
     public class GuardNPC : MonoBehaviour, IInteractable
     {
@@ -23,7 +25,12 @@ namespace Cyverse.Interaction
         private float headBaseY;
         private float seed;
 
-        public string Prompt => "Talk to the Security Guard";
+        /// <summary>Supplies phase-appropriate dialogue for this NPC. If null,
+        /// falls back to the original Level 0 onboarding-guard lines.</summary>
+        public Func<List<DialogueLine>> LinesProvider;
+
+        public string displayName = "Security Guard";
+        public string Prompt => $"Talk to the {displayName}";
         public bool CanInteract => true;
 
         void Start()
@@ -59,10 +66,11 @@ namespace Cyverse.Interaction
         public void Interact(GameObject interactor)
         {
             if (DialogueManager.Instance == null) return;
-            DialogueManager.Instance.Play(LinesForPhase());
+            var lines = LinesProvider != null ? LinesProvider() : Level0OnboardingLines();
+            DialogueManager.Instance.Play(lines);
         }
 
-        private List<DialogueLine> LinesForPhase()
+        private List<DialogueLine> Level0OnboardingLines()
         {
             var phase = Level0Manager.Instance != null
                 ? Level0Manager.Instance.CurrentPhase
@@ -95,19 +103,23 @@ namespace Cyverse.Interaction
 
         // ---- Construction ----------------------------------------------------
 
-        /// <summary>Build the guard (edit- and play-mode safe). Used by
-        /// SceneFactory.BuildAll and the editor menu.</summary>
-        public static GameObject Build(Vector3 position, float rotY)
+        /// <summary>Build a guide NPC (edit- and play-mode safe). Pass
+        /// <paramref name="linesProvider"/> to give a level its own dialogue;
+        /// omit it (as Level 0 does) to keep the original onboarding-guard
+        /// behavior.</summary>
+        public static GameObject Build(Vector3 position, float rotY,
+            string displayName = "Security Guard", string signText = "SECURITY",
+            Func<List<DialogueLine>> linesProvider = null)
         {
             var root = new GameObject("GuardNPC");
             root.transform.position = position;
             root.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
 
-            Material uniform = SceneFactory.MakeStandard(new Color(0.09f, 0.12f, 0.20f), 0.35f, 0.1f);
-            Material trim = SceneFactory.MakeStandard(new Color(0.06f, 0.07f, 0.10f), 0.4f, 0.2f);
-            Material skin = SceneFactory.MakeStandard(new Color(0.72f, 0.55f, 0.44f), 0.25f, 0f);
-            Material gold = SceneFactory.MakeEmissive(new Color(0.90f, 0.66f, 0.14f), 1.1f);
-            Material visor = SceneFactory.MakeEmissive(new Color(0.25f, 0.8f, 1f), 1.8f);
+            Material uniform = BuildKit.MakeStandard(new Color(0.09f, 0.12f, 0.20f), 0.35f, 0.1f);
+            Material trim = BuildKit.MakeStandard(new Color(0.06f, 0.07f, 0.10f), 0.4f, 0.2f);
+            Material skin = BuildKit.MakeStandard(new Color(0.72f, 0.55f, 0.44f), 0.25f, 0f);
+            Material gold = BuildKit.MakeEmissive(new Color(0.90f, 0.66f, 0.14f), 1.1f);
+            Material visor = BuildKit.MakeEmissive(new Color(0.25f, 0.8f, 1f), 1.8f);
 
             Part(root.transform, PrimitiveType.Cube, "LegL", new Vector3(-0.11f, 0.45f, 0f), new Vector3(0.16f, 0.9f, 0.18f), trim);
             Part(root.transform, PrimitiveType.Cube, "LegR", new Vector3(0.11f, 0.45f, 0f), new Vector3(0.16f, 0.9f, 0.18f), trim);
@@ -130,10 +142,12 @@ namespace Cyverse.Interaction
             col.height = 1.9f;
             col.radius = 0.32f;
 
-            root.AddComponent<GuardNPC>();
+            var guard = root.AddComponent<GuardNPC>();
+            guard.displayName = displayName;
+            guard.LinesProvider = linesProvider;
 
-            SceneFactory.MakeSign(root.transform, position + new Vector3(0f, 2.25f, 0f),
-                "SECURITY", new Color(0.90f, 0.66f, 0.14f), 0.022f);
+            BuildKit.MakeSign(root.transform, position + new Vector3(0f, 2.25f, 0f),
+                signText, new Color(0.90f, 0.66f, 0.14f), 0.022f);
             return root;
         }
 

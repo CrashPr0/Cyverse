@@ -97,15 +97,63 @@ namespace Cyverse.Level
             new GlossaryEntry("Adversary",
                 "An individual, group, organization, or government that conducts — or intends to conduct — detrimental activities.",
                 null),
+
+            // --- Level 1: Cyber Defense (SOC Analyst / Protection & Defense) ---
+            // IMPORTANT: always APPEND new entries here, never insert earlier in
+            // the array — GlossaryProgress persists unlocked entries by raw
+            // array index, so reordering would corrupt returning players' saved
+            // progress (silently unlocking the wrong terms).
+            new GlossaryEntry("SIEM",
+                "Security Information and Event Management: a platform that collects and correlates log data from across an organization to spot suspicious activity in real time.",
+                StationSetup.Topic.SIEM),
+            new GlossaryEntry("Log Correlation",
+                "Connecting related log entries from different systems to reveal a pattern (like a single attack) that no single log would show alone.",
+                StationSetup.Topic.SIEM),
+            new GlossaryEntry("Security Event",
+                "An observable occurrence in a system or network — not every event is an incident, but every incident starts as one or more events.",
+                StationSetup.Topic.SIEM),
+            new GlossaryEntry("Alert Triage",
+                "Reviewing and prioritizing security alerts to separate real threats from false positives before they're escalated.",
+                StationSetup.Topic.SIEM),
+
+            new GlossaryEntry("EDR",
+                "Endpoint Detection and Response: software that continuously monitors laptops, servers, and other endpoints for malicious activity and can isolate a compromised device.",
+                StationSetup.Topic.EDR),
+            new GlossaryEntry("Endpoint",
+                "Any device — laptop, phone, server, workstation — that connects to a network and can be a target or entry point for an attack.",
+                StationSetup.Topic.EDR),
+            new GlossaryEntry("Containment",
+                "Isolating an affected system so an attack can't spread further while it's investigated and cleaned up.",
+                StationSetup.Topic.EDR),
+            new GlossaryEntry("AI-Driven Detection",
+                "Using machine learning to recognize attack patterns and anomalies faster and at greater scale than manual review alone.",
+                StationSetup.Topic.EDR),
+
+            new GlossaryEntry("Incident Response",
+                "The organized process of detecting, containing, eradicating, and recovering from a cybersecurity incident.",
+                StationSetup.Topic.INCIDENT),
+            new GlossaryEntry("Mitigation",
+                "Action taken to reduce the severity or likelihood of a threat — patching a vulnerability, blocking an IP, or revoking stolen credentials.",
+                StationSetup.Topic.INCIDENT),
+            new GlossaryEntry("Eradication",
+                "Removing the root cause of an incident — malware, a backdoor, a compromised account — not just its visible symptoms.",
+                StationSetup.Topic.INCIDENT),
+            new GlossaryEntry("Recovery",
+                "Restoring affected systems to normal operation and verifying the threat is fully gone before returning to business as usual.",
+                StationSetup.Topic.INCIDENT),
         };
 
         public static string StationName(StationSetup.Topic topic)
         {
             switch (topic)
             {
+                case StationSetup.Topic.IAM: return "the I/AM Kiosk";
                 case StationSetup.Topic.CIA: return "the CIA Triad Hologram";
                 case StationSetup.Topic.NICE: return "the NICE Roles Board";
-                default: return "the I/AM Kiosk";
+                case StationSetup.Topic.SIEM: return "the SIEM Console";
+                case StationSetup.Topic.EDR: return "the EDR Terminal";
+                case StationSetup.Topic.INCIDENT: return "the Incident Response Board";
+                default: return "another station";
             }
         }
     }

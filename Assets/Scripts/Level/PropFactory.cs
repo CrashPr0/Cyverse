@@ -26,20 +26,20 @@ namespace Cyverse.Level
             return m;
         }
 
-        private static Material BodyDark => Mat("body", () => SceneFactory.MakeStandard(new Color(0.10f, 0.11f, 0.15f), 0.55f, 0.35f));
-        private static Material TopLight => Mat("top", () => SceneFactory.MakeStandard(new Color(0.17f, 0.19f, 0.25f), 0.7f, 0.3f));
-        private static Material Wood => Mat("wood", () => SceneFactory.MakeStandard(new Color(0.44f, 0.32f, 0.21f), 0.45f, 0.05f));
-        private static Material ChairDark => Mat("chair", () => SceneFactory.MakeStandard(new Color(0.07f, 0.08f, 0.11f), 0.4f, 0.2f));
-        private static Material Couch => Mat("couch", () => SceneFactory.MakeStandard(new Color(0.14f, 0.17f, 0.24f), 0.15f, 0f));
-        private static Material Cushion => Mat("cushion", () => SceneFactory.MakeStandard(new Color(0.19f, 0.23f, 0.32f), 0.15f, 0f));
-        private static Material PlantGreen => Mat("plant", () => SceneFactory.MakeStandard(new Color(0.14f, 0.36f, 0.19f), 0.2f, 0f));
-        private static Material PotDark => Mat("pot", () => SceneFactory.MakeStandard(new Color(0.09f, 0.09f, 0.11f), 0.35f, 0.1f));
-        private static Material RackDark => Mat("rack", () => SceneFactory.MakeStandard(new Color(0.06f, 0.07f, 0.10f), 0.5f, 0.4f));
-        private static Material Rug => Mat("rug", () => SceneFactory.MakeStandard(new Color(0.09f, 0.11f, 0.16f), 0.05f, 0f));
-        private static Material Screen => Mat("screen", () => SceneFactory.MakeEmissive(new Color(0.35f, 0.70f, 1f), 0.9f));
-        private static Material LedGreen => Mat("ledg", () => SceneFactory.MakeEmissive(new Color(0.3f, 1f, 0.5f), 2.2f));
-        private static Material LedCyan => Mat("ledc", () => SceneFactory.MakeEmissive(new Color(0.3f, 0.85f, 1f), 2.2f));
-        private static Material TrimGlow => Mat("trim", () => SceneFactory.MakeEmissive(new Color(0.25f, 0.80f, 1f), 1.4f));
+        private static Material BodyDark => Mat("body", () => BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.15f), 0.55f, 0.35f));
+        private static Material TopLight => Mat("top", () => BuildKit.MakeStandard(new Color(0.17f, 0.19f, 0.25f), 0.7f, 0.3f));
+        private static Material Wood => Mat("wood", () => BuildKit.MakeStandard(new Color(0.44f, 0.32f, 0.21f), 0.45f, 0.05f));
+        private static Material ChairDark => Mat("chair", () => BuildKit.MakeStandard(new Color(0.07f, 0.08f, 0.11f), 0.4f, 0.2f));
+        private static Material Couch => Mat("couch", () => BuildKit.MakeStandard(new Color(0.14f, 0.17f, 0.24f), 0.15f, 0f));
+        private static Material Cushion => Mat("cushion", () => BuildKit.MakeStandard(new Color(0.19f, 0.23f, 0.32f), 0.15f, 0f));
+        private static Material PlantGreen => Mat("plant", () => BuildKit.MakeStandard(new Color(0.14f, 0.36f, 0.19f), 0.2f, 0f));
+        private static Material PotDark => Mat("pot", () => BuildKit.MakeStandard(new Color(0.09f, 0.09f, 0.11f), 0.35f, 0.1f));
+        private static Material RackDark => Mat("rack", () => BuildKit.MakeStandard(new Color(0.06f, 0.07f, 0.10f), 0.5f, 0.4f));
+        private static Material Rug => Mat("rug", () => BuildKit.MakeStandard(new Color(0.09f, 0.11f, 0.16f), 0.05f, 0f));
+        private static Material Screen => Mat("screen", () => BuildKit.MakeEmissive(new Color(0.35f, 0.70f, 1f), 0.9f));
+        private static Material LedGreen => Mat("ledg", () => BuildKit.MakeEmissive(new Color(0.3f, 1f, 0.5f), 2.2f));
+        private static Material LedCyan => Mat("ledc", () => BuildKit.MakeEmissive(new Color(0.3f, 0.85f, 1f), 2.2f));
+        private static Material TrimGlow => Mat("trim", () => BuildKit.MakeEmissive(new Color(0.25f, 0.80f, 1f), 1.4f));
 
         // ---- Layout ----------------------------------------------------------
         // Room is 40x40 (±20). Kept clear: spawn (0,-8), the station arc
@@ -279,7 +279,7 @@ namespace Cyverse.Level
             Child(desk, PrimitiveType.Cube, "MonBody", new Vector3(1.05f, 1.35f, -0.7f), new Vector3(0, -35f, 0),
                 new Vector3(0.5f, 0.32f, 0.04f), RackDark, collider: false);
 
-            SceneFactory.MakeSign(desk, new Vector3(0, 1.9f, 0), "RECEPTION",
+            BuildKit.MakeSign(desk, new Vector3(0, 1.9f, 0), "RECEPTION",
                 new Color(0.7f, 0.9f, 1f), 0.028f);
         }
 

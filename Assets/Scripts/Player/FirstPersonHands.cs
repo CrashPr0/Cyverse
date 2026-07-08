@@ -114,8 +114,8 @@ namespace Cyverse.Player
             root.SetParent(transform, false);
             root.localPosition = Vector3.Scale(rightRestPosition, new Vector3(m, 1f, 1f));
 
-            Material glove = SceneFactory.MakeStandard(new Color(0.09f, 0.10f, 0.14f), 0.45f, 0.2f);
-            Material accent = SceneFactory.MakeEmissive(new Color(0.25f, 0.8f, 1f), 1.6f);
+            Material glove = BuildKit.MakeStandard(new Color(0.09f, 0.10f, 0.14f), 0.45f, 0.2f);
+            Material accent = BuildKit.MakeEmissive(new Color(0.25f, 0.8f, 1f), 1.6f);
 
             Part(root, "Forearm", new Vector3(0f, -0.015f, -0.12f), new Vector3(6f, 0f, 0f),
                 new Vector3(0.055f, 0.05f, 0.17f), glove);

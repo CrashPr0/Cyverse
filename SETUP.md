@@ -1,7 +1,10 @@
-# CyVerse — Level 0 Setup
+# CyVerse — Setup
 
 A web-based (WebGL), desktop, first-person cybersecurity learning game. No VR.
-This document covers opening, running, and extending **Level 0**.
+This document covers opening, running, and extending the levels. **Level 0**
+(Onboarding: I/AM, CIA Triad, NICE Roles) is feature-complete; **Level 1**
+(Cyber Defense: SIEM, EDR, Incident Response) is a playable blockout built on
+the same shared foundation — see [Level 1 (blockout)](#level-1-cyber-defense--blockout) below.
 
 ## Requirements
 
@@ -38,6 +41,52 @@ To lay the level out and tune it by hand instead of at runtime:
 
 Don't keep a `Level0Bootstrap` object in a hand-built scene, or the level will
 be built twice. Both paths use the same `SceneFactory`, so they look identical.
+
+## Level 1: Cyber Defense (blockout)
+
+A playable vertical-slice blockout of Room 2 from the concept tables — **SOC
+Analyst / Protection & Defense** — teaching SIEM, EDR, and Incident Response,
+gated by a **Threat Response Console** instead of the Security Scanner.
+
+**Open it:** `Assets/Scenes/Level1.unity` and press Play, or build an editable
+copy the same way as Level 0: `File → New Scene → Empty` → menu
+**CyVerse → Build Level 1 Scene** → tweak → save. Upgrade menus:
+**CyVerse → Add Threat Response Console** / **Add SOC Lead NPC**.
+
+**How it shares Level 0's foundation — the `BuildKit` refactor:** the parts of
+`SceneFactory` that had nothing to do with Level 0's story (materials,
+signage, the room shell, the player rig, the common systems bundle, the
+generic learning-station geometry) were extracted into `Level/BuildKit.cs`.
+`SceneFactory` (Level 0) and `Level1SceneFactory` (Level 1) both build on top
+of `BuildKit`, so neither reinvents the floor shader wiring, the hologram
+signage, or the station geometry — they only supply their own room palette,
+station topics/content, centerpiece, and completion gate.
+
+To keep `StationSetup`, `QuizSystem`, and the glossary reusable across levels
+without duplicating them, three call sites were generalized with **optional**
+delegates that default to Level 0's original behavior (so Level 0 is
+unaffected if left unset):
+- `StationSetup.contentProvider` / `quizProvider` / `onReviewed` — a level's
+  `SceneFactory` wires these per station instead of `StationSetup` hardcoding
+  `Level0Content`/`Level0Quiz`/`Level0Manager`.
+- `GuardNPC.Build(pos, rot, displayName, signText, linesProvider)` — the NPC
+  shell (model, facing, breathing) is shared; each level supplies its own name
+  and phase-aware dialogue. Level 1 reuses it as the "SOC Lead."
+- `ResultsScreen.Show(..., headerText, grantedLine, nextMissionText, replaySuffix)`
+  — same results card, level-specific copy.
+
+`StationSetup.Topic` is one shared enum across all levels (`IAM/CIA/NICE` for
+Level 0, `SIEM/EDR/INCIDENT` for Level 1) so the Quiz and Glossary systems
+never need per-level duplication — extend this enum for future levels.
+**Glossary entries are always appended, never inserted**, because
+`GlossaryProgress` persists unlocked entries by raw array index; reordering
+would corrupt returning players' saved progress.
+
+This is a **blockout**: same room footprint and prop set as Level 0 (by
+design — those coordinates are already playtested for clear sightlines),
+distinguished mainly by palette (a "SOC Red" alert theme vs. Level 0's cyan)
+and content. Treat art pass, unique layout, and custom furnishings as the
+next iteration once the content and flow are validated.
 
 ## Controls
 
@@ -86,12 +135,20 @@ completion, matching the CyVerse Script.
 | `Dialogue/DialogueManager.cs`          | Plays captioned (+ optional voiceover) beats    |
 | `UI/HudUI.cs`                          | Builds the HUD in code                          |
 | `Settings/AccessibilitySettings.cs`    | Esc menu: audio, caption scale, sensitivity     |
+| `Level/BuildKit.cs`                    | **Shared foundation**: room shell, materials, signage, stations, player, common systems — used by every level |
 | `Level/Level0Content.cs`               | All Level 0 narration text (edit copy here)     |
 | `Level/Level0Manager.cs`               | Intro, station tracking, completion             |
-| `Level/SceneFactory.cs`                | Shared construction (runtime + editor builder)  |
+| `Level/SceneFactory.cs`                | Level 0-specific construction (on top of BuildKit) |
 | `Level/Level0Bootstrap.cs`            | Runtime entry point (calls SceneFactory)        |
 | `Level/StationSetup.cs`                | Per-station topic/content + completion feedback  |
 | `Editor/Level0SceneBuilder.cs`         | Menu: CyVerse > Build Level 0 Scene             |
+| `Level/Level1Content.cs`               | Level 1 narration text (SIEM/EDR/Incident Response) |
+| `Level/Level1Quiz.cs`                  | Level 1 knowledge-check question bank           |
+| `Level/Level1Manager.cs`               | Level 1 phase flow (mirrors Level0Manager)      |
+| `Level/Level1SceneFactory.cs`          | Level 1-specific construction (on top of BuildKit) |
+| `Level/Level1Bootstrap.cs`            | Runtime entry point (calls Level1SceneFactory)  |
+| `Interaction/Level1Gate.cs`            | Threat Response Console (Level 1's completion gate) |
+| `Editor/Level1SceneBuilder.cs`         | Menu: CyVerse > Build Level 1 Scene             |
 | `Level/Rotator.cs`                     | Slow spin for holograms / centerpiece           |
 | `Level/PropFactory.cs`                 | Furniture/props: desks, lounge, racks, drones   |
 | `Level/Hoverer.cs`                     | Drone bob/yaw/rotor motion (Reduce Motion aware)|

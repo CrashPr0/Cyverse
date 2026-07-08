@@ -9,23 +9,24 @@ using Cyverse.UI;
 namespace Cyverse.Level
 {
     /// <summary>
-    /// Orchestrates Level 0 as three phases, per the CyVerse Script:
-    ///   Review        — learn at every station (dialogue + knowledge check)
-    ///   Authenticate  — face-scan at the Security Scanner
-    ///   Complete      — "Access Granted", results screen
-    /// On Start it discovers stations and the scanner in the scene, so it works
+    /// Orchestrates Level 1 (Cyber Defense) as three phases, mirroring
+    /// Level0Manager's proven flow:
+    ///   Review    — learn at every station (dialogue + knowledge check)
+    ///   Certify   — certify at the Threat Response Console
+    ///   Complete  — "Certification confirmed", results screen
+    /// On Start it discovers stations and the gate in the scene, so it works
     /// for both the procedural (bootstrap) and hand-built (editor) scenes.
     /// </summary>
-    public class Level0Manager : MonoBehaviour
+    public class Level1Manager : MonoBehaviour
     {
-        public enum Phase { Review, Authenticate, Complete }
+        public enum Phase { Review, Certify, Complete }
 
-        public static Level0Manager Instance { get; private set; }
+        public static Level1Manager Instance { get; private set; }
 
         public Phase CurrentPhase { get; private set; } = Phase.Review;
 
         private readonly List<StationSetup> stations = new List<StationSetup>();
-        private FaceScanner scanner;
+        private Level1Gate gate;
         private float startTime;
 
         void Awake()
@@ -61,12 +62,12 @@ namespace Cyverse.Level
             if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
 
             stations.AddRange(FindObjectsOfType<StationSetup>());
-            scanner = FindObjectOfType<FaceScanner>();
-            if (scanner != null) scanner.Completed += CompleteLevel;
+            gate = FindObjectOfType<Level1Gate>();
+            if (gate != null) gate.Completed += CompleteLevel;
             else Debug.LogWarning(
-                "Level0Manager: no SecurityScanner in this scene — the level will " +
+                "Level1Manager: no Level1Gate in this scene — the level will " +
                 "complete when all stations are reviewed. Add one via the editor " +
-                "menu: CyVerse > Add Security Scanner.");
+                "menu: CyVerse > Add Threat Response Console.");
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
 
@@ -82,7 +83,7 @@ namespace Cyverse.Level
             startTime = Time.time; // don't count time spent on the title screen
 
             if (DialogueManager.Instance != null)
-                DialogueManager.Instance.Play(Level0Content.Intro(), UpdateObjective);
+                DialogueManager.Instance.Play(Level1Content.Intro(), UpdateObjective);
             else
                 UpdateObjective();
         }
@@ -94,18 +95,18 @@ namespace Cyverse.Level
             if (CurrentPhase != Phase.Review) return;
             if (ReviewedCount < stations.Count || stations.Count == 0) return;
 
-            if (scanner != null) BeginAuthenticate();
-            else CompleteLevel(); // no scanner in this scene — finish directly
+            if (gate != null) BeginCertify();
+            else CompleteLevel(); // no gate in this scene — finish directly
         }
 
-        private void BeginAuthenticate()
+        private void BeginCertify()
         {
-            CurrentPhase = Phase.Authenticate;
-            scanner.Activate();
+            CurrentPhase = Phase.Certify;
+            gate.Activate();
             UpdateObjective();
 
             if (DialogueManager.Instance != null)
-                DialogueManager.Instance.Play(Level0Content.AllReviewed());
+                DialogueManager.Instance.Play(Level1Content.AllReviewed());
         }
 
         private int ReviewedCount
@@ -128,12 +129,12 @@ namespace Cyverse.Level
                         $"Objective: Review all stations  ({ReviewedCount}/{stations.Count})");
                     HudUI.Instance.SetProgress(ReviewedCount, stations.Count);
                     break;
-                case Phase.Authenticate:
-                    HudUI.Instance.ShowObjective("Objective: Authenticate at the Security Scanner");
+                case Phase.Certify:
+                    HudUI.Instance.ShowObjective("Objective: Certify at the Threat Response Console");
                     HudUI.Instance.SetProgress(stations.Count, stations.Count, "✓");
                     break;
                 case Phase.Complete:
-                    HudUI.Instance.ShowObjective("LEVEL 0 COMPLETE");
+                    HudUI.Instance.ShowObjective("LEVEL 1 COMPLETE");
                     break;
             }
         }
@@ -148,8 +149,8 @@ namespace Cyverse.Level
             FirstPersonController.LockCursor(false);
 
             // Send-off: a gold shower where the player finished.
-            Vector3 burstPos = scanner != null
-                ? scanner.transform.position + Vector3.up * 2.5f
+            Vector3 burstPos = gate != null
+                ? gate.transform.position + Vector3.up * 2.5f
                 : (Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 2f : Vector3.up * 2f);
             BurstFX.Spawn(burstPos, new Color(0.90f, 0.66f, 0.14f), 70, 3.4f, 1.3f);
 
@@ -157,7 +158,10 @@ namespace Cyverse.Level
                 ResultsScreen.Instance.Show(
                     ScoreSystem.Score, ScoreSystem.QuizCorrect, ScoreSystem.QuizTotal,
                     Time.time - startTime,
-                    nextMissionText: "Level 1 — Cyber Defense is ready. Load it from Build Settings.");
+                    headerText: "LEVEL 1 COMPLETE",
+                    grantedLine: "Certification Confirmed — SOC Analyst",
+                    nextMissionText: "Level 2 — Digital Forensics  (in development)",
+                    replaySuffix: "Level 1");
         }
     }
 }

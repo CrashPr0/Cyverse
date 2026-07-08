@@ -25,9 +25,18 @@ namespace Cyverse.UI
             Instance = this;
         }
 
-        public void Show(int score, int quizCorrect, int quizTotal, float seconds)
+        /// <summary>
+        /// Shows the results card. The trailing string params let a level
+        /// customize the header, opening line, next-mission tease, and replay
+        /// label; omitting them keeps Level 0's original text unchanged.
+        /// </summary>
+        public void Show(int score, int quizCorrect, int quizTotal, float seconds,
+            string headerText = "LEVEL 0 COMPLETE",
+            string grantedLine = "Access Granted — Level: Employee",
+            string nextMissionText = "Level 1 — Cyber Defense  (in development)",
+            string replaySuffix = "Level 0")
         {
-            if (card == null) Build();
+            if (card == null) Build(headerText);
 
             var scene = SceneManager.GetActiveScene();
             canReload = scene.IsValid() && !string.IsNullOrEmpty(scene.name);
@@ -58,7 +67,7 @@ namespace Cyverse.UI
             int percentile = PercentileFor(score);
 
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("<color=#4CE087><b>Access Granted — Level: Employee</b></color>");
+            sb.AppendLine($"<color=#4CE087><b>{grantedLine}</b></color>");
             sb.AppendLine($"Employee ID:  <b>{PlayerIdentity.Callsign}</b>");
             sb.AppendLine();
             sb.AppendLine($"Security Clearance Rating:  <color=#E5A823><b>{grade}</b></color>   Rank:  <color=#E5A823><b>{rank}</b></color>");
@@ -70,12 +79,15 @@ namespace Cyverse.UI
             sb.AppendLine($"Knowledge Check:  {quizCorrect} / {quizTotal} correct");
             sb.AppendLine($"Time:  {m}:{s:00}");
             sb.AppendLine($"<size=22>You scored better than <color=#5BC8FF><b>{percentile}%</b></color> of recruits</size>");
-            sb.AppendLine();
-            sb.AppendLine("<size=20><color=#5BC8FF>NEXT MISSION:</color> <color=#8FB8CC>Level 1 — Cyber Defense  (in development)</color></size>");
+            if (!string.IsNullOrEmpty(nextMissionText))
+            {
+                sb.AppendLine();
+                sb.AppendLine($"<size=20><color=#5BC8FF>NEXT MISSION:</color> <color=#8FB8CC>{nextMissionText}</color></size>");
+            }
             if (canReload)
             {
                 sb.AppendLine();
-                sb.AppendLine("<size=20><color=#8FB8CC>[R]  Replay Level 0</color></size>");
+                sb.AppendLine($"<size=20><color=#8FB8CC>[R]  Replay {replaySuffix}</color></size>");
             }
             bodyText.text = sb.ToString();
 
@@ -114,7 +126,7 @@ namespace Cyverse.UI
             return z > 0f ? 1f - prob : prob;
         }
 
-        private void Build()
+        private void Build(string headerText)
         {
             var canvas = HudUI.Instance != null ? HudUI.Instance.Canvas.transform : null;
             card = new GameObject("ResultsCard", typeof(RectTransform), typeof(Image));
@@ -135,7 +147,7 @@ namespace Cyverse.UI
             ht.fontStyle = FontStyle.Bold;
             ht.alignment = TextAnchor.UpperCenter;
             ht.color = HudUI.Accent;
-            ht.text = "LEVEL 0 COMPLETE";
+            ht.text = headerText;
             var hrt = header.GetComponent<RectTransform>();
             hrt.anchorMin = new Vector2(0, 1); hrt.anchorMax = new Vector2(1, 1); hrt.pivot = new Vector2(0.5f, 1);
             hrt.sizeDelta = new Vector2(0, 60); hrt.anchoredPosition = new Vector2(0, -28);

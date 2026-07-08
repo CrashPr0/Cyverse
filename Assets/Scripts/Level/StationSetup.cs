@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Cyverse.Audio;
@@ -18,7 +19,10 @@ namespace Cyverse.Level
     [RequireComponent(typeof(InteractableStation))]
     public class StationSetup : MonoBehaviour
     {
-        public enum Topic { IAM, CIA, NICE }
+        // Shared across every level so Quiz/Glossary/Station plumbing needs no
+        // per-level duplication — Level 0 uses IAM/CIA/NICE, Level 1 (Cyber
+        // Defense) uses SIEM/EDR/INCIDENT. Extend here for future levels.
+        public enum Topic { IAM, CIA, NICE, SIEM, EDR, INCIDENT }
 
         public Topic topic = Topic.IAM;
         public string prompt = "Inspect";
@@ -36,6 +40,13 @@ namespace Cyverse.Level
         /// <summary>True once dialogue AND the knowledge check are done.</summary>
         public bool IsReviewed { get; private set; }
 
+        // Level-specific hooks, wired by whichever scene factory builds this
+        // station. Leaving all three null preserves the original Level 0
+        // behavior exactly (IAM/CIA/NICE content, Level0Quiz, Level0Manager).
+        public Func<List<DialogueLine>> contentProvider;
+        public Func<QuizQuestion> quizProvider;
+        public Action onReviewed;
+
         void Start()
         {
             var station = GetComponent<InteractableStation>();
@@ -46,8 +57,9 @@ namespace Cyverse.Level
 
         private void OnDialogueDone(InteractableStation station)
         {
+            var question = quizProvider != null ? quizProvider() : Level0Quiz.For(topic);
             if (QuizSystem.Instance != null)
-                QuizSystem.Instance.Ask(Level0Quiz.For(topic), OnQuizAnswered);
+                QuizSystem.Instance.Ask(question, OnQuizAnswered);
             else
                 OnQuizAnswered(true); // no quiz system in scene — skip the check
         }
@@ -71,17 +83,27 @@ namespace Cyverse.Level
                     $"+{newTerms} Glossary {label} unlocked  [G]", new Color(0.90f, 0.66f, 0.14f));
             }
 
-            if (Level0Manager.Instance != null)
+            if (onReviewed != null)
+                onReviewed();
+            else if (Level0Manager.Instance != null)
                 Level0Manager.Instance.NotifyStationReviewed();
         }
 
         private List<DialogueLine> Content()
         {
+            if (contentProvider != null) return contentProvider();
+
+            // Legacy fallback for Level 0 stations built without an explicit
+            // provider (the original SceneFactory/editor-built path).
             switch (topic)
             {
+                case Topic.IAM: return Level0Content.IAM();
                 case Topic.CIA: return Level0Content.CIA();
                 case Topic.NICE: return Level0Content.Nice();
-                default: return Level0Content.IAM();
+                default:
+                    Debug.LogWarning($"StationSetup: no contentProvider set for topic {topic} " +
+                                      "and it has no Level 0 fallback — showing no dialogue.");
+                    return new List<DialogueLine>();
             }
         }
     }
