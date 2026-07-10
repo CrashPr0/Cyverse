@@ -68,6 +68,7 @@ namespace Cyverse.UI
             if (panel == null) return;
 
             GameState.GlossaryOpen = open;
+            GameState.MenuTransitionFrame = Time.frameCount; // Esc must not also toggle settings this frame
             panel.SetActive(open);
             Time.timeScale = open ? 0f : 1f;
             FirstPersonController.LockCursor(!open);

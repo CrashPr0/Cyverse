@@ -30,6 +30,24 @@ namespace Cyverse.Core
         public static bool Busy => DialogueActive || MenuOpen || QuizActive || TitleActive || GlossaryOpen || LevelComplete;
 
         /// <summary>
+        /// A full-screen menu/modal currently owns the screen (title, settings,
+        /// glossary, quiz, or results). THE standard for UI exclusivity: only
+        /// one of these may be visible at a time — anything wanting to open
+        /// must check this first, and passive overlays (controls card, etc.)
+        /// must hide while it's true. Dialogue captions are gameplay, not a
+        /// menu, so DialogueActive is deliberately not included.
+        /// </summary>
+        public static bool AnyMenuOpen => TitleActive || MenuOpen || GlossaryOpen || QuizActive || LevelComplete;
+
+        /// <summary>
+        /// Frame on which a menu last opened or closed. Menus that share a key
+        /// (Esc closes the glossary AND toggles settings) must ignore input on
+        /// this frame, or one keypress can close one menu and open another in
+        /// the same Update cycle (whichever component happens to run later).
+        /// </summary>
+        public static int MenuTransitionFrame = -1;
+
+        /// <summary>
         /// Static fields survive Play-mode restarts when "Enter Play Mode
         /// Options" disables domain reload, so the bootstrap resets them.
         /// </summary>
@@ -41,6 +59,7 @@ namespace Cyverse.Core
             TitleActive = false;
             GlossaryOpen = false;
             LevelComplete = false;
+            MenuTransitionFrame = -1;
         }
     }
 }

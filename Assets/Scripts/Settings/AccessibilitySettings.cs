@@ -59,8 +59,15 @@ namespace Cyverse.Settings
 
         void Update()
         {
-            // Esc is the glossary's close key while it's open — don't fight it.
-            if (Input.GetKeyDown(KeyCode.Escape) && !GameState.LevelComplete && !GameState.GlossaryOpen)
+            // One-menu-at-a-time standard: Esc toggles settings only when
+            // settings is already the open menu, or when nothing owns the
+            // screen. This keeps it from stacking over the title screen, the
+            // glossary (whose close key is also Esc), a quiz, or the results.
+            // The MenuTransitionFrame check stops the Esc press that closed
+            // the glossary from also opening settings later this same frame.
+            bool canToggle = (GameState.MenuOpen || !GameState.AnyMenuOpen)
+                             && Time.frameCount != GameState.MenuTransitionFrame;
+            if (Input.GetKeyDown(KeyCode.Escape) && canToggle)
                 SetMenuOpen(!GameState.MenuOpen);
 
             if (!GameState.MenuOpen) return;
@@ -74,6 +81,7 @@ namespace Cyverse.Settings
         public void SetMenuOpen(bool open)
         {
             GameState.MenuOpen = open;
+            GameState.MenuTransitionFrame = Time.frameCount; // no shared-key double-handling this frame
             if (panel != null) panel.SetActive(open);
             FirstPersonController.LockCursor(!open);
             Time.timeScale = open ? 0f : 1f; // a pause menu should actually pause

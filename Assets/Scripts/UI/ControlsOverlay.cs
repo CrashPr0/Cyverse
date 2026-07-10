@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Cyverse.Core;
 using Cyverse.Settings;
 
 namespace Cyverse.UI
@@ -41,15 +42,21 @@ namespace Cyverse.UI
         {
             if (group == null) return;
 
+            // One-menu-at-a-time standard: this card is a passive overlay, so
+            // it fully HIDES whenever any modal (title, settings, glossary,
+            // quiz, results) owns the screen — it must never stack on top of
+            // one — and all its timers freeze until the screen is free again.
+            bool blocked = GameState.AnyMenuOpen;
+            if (group.gameObject.activeSelf == blocked)
+                group.gameObject.SetActive(!blocked);
+            if (blocked)
+            {
+                lastMouse = Input.mousePosition; // menu mouse motion must not dismiss it
+                return;
+            }
+
             if (!dismissing)
             {
-                // Wait behind the title screen; the clock starts when play does.
-                if (MainMenu.Active)
-                {
-                    lastMouse = Input.mousePosition;
-                    return;
-                }
-
                 elapsed += Time.unscaledDeltaTime;
 
                 // Keep it up for a guaranteed minimum so it's actually readable;
@@ -112,6 +119,12 @@ namespace Cyverse.UI
             var frt = footer.rectTransform;
             frt.anchorMin = new Vector2(0, 0); frt.anchorMax = new Vector2(1, 0); frt.pivot = new Vector2(0.5f, 0);
             frt.sizeDelta = new Vector2(0, 36); frt.anchoredPosition = new Vector2(0, 14);
+
+            // If a modal (usually the title screen) is already up when we're
+            // built, start hidden — Update re-shows the card once the screen
+            // is free. Prevents any first-frame overlap regardless of the
+            // Start-order between this and the menu that opens the modal.
+            if (GameState.AnyMenuOpen) card.SetActive(false);
         }
 
         private void AddRow(Transform parent, float y, string key, string label)

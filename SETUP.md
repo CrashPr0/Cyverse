@@ -204,6 +204,27 @@ touching gameplay code.
 "COMBO x2!" toast. A wrong answer resets the streak (but still awards partial
 credit). Your best streak is shown on the results screen.
 
+## UI exclusivity standard (one menu at a time)
+
+`GameState.AnyMenuOpen` is the single source of truth for "a full-screen
+menu/modal owns the screen" (title, settings, glossary, quiz, results —
+dialogue captions are gameplay, not a menu). The rules every UI element
+follows:
+
+1. **Modals never stack.** Anything that wants to open checks first: the
+   settings menu's Esc only toggles when settings is already open or nothing
+   owns the screen; the glossary's G is gated on `!GameState.Busy`; quizzes
+   can only trigger through interaction (blocked while busy).
+2. **Passive overlays hide under modals.** The controls card fully hides
+   (and freezes its timers) while `AnyMenuOpen` is true, and resumes when
+   the screen is free — it can never overlap the title screen or any menu.
+3. **Shared keys can't double-fire.** `GameState.MenuTransitionFrame` records
+   the frame a menu opened/closed; the Esc press that closes the glossary is
+   ignored by settings that same frame instead of immediately reopening a
+   different menu.
+
+Follow the same three rules when adding any new menu or overlay.
+
 ## UX & accessibility features
 
 Game-feel: animated crosshair (grows + tints on a target, kicks on press),
