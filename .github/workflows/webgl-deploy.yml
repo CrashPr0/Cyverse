@@ -1,0 +1,58 @@
+# CyVerse — WebGL build & deploy to GitHub Pages.
+#
+# ONE-TIME SETUP (see also SETUP.md "Web deployment"):
+#   1. Add repo secrets (Settings → Secrets and variables → Actions):
+#        UNITY_LICENSE  — contents of your Unity .ulf license file
+#        UNITY_EMAIL    — Unity account email
+#        UNITY_PASSWORD — Unity account password
+#      To get the .ulf for a personal license, follow game-ci's activation
+#      guide: https://game.ci/docs/github/activation
+#   2. Enable Pages: Settings → Pages → Source: "gh-pages" branch.
+#   3. In Unity, run "CyVerse > Add Scenes To Build Settings" and select the
+#      CyVerse WebGL template (Player Settings → Resolution and Presentation),
+#      then commit ProjectSettings so the build uses them.
+#
+# USAGE: Actions tab → "WebGL Build & Deploy" → Run workflow. The game then
+# updates at https://<owner>.github.io/<repo>/ within a few minutes.
+name: WebGL Build & Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-WebGL-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-WebGL-
+
+      - name: Build WebGL
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+          # unityVersion is read from ProjectSettings/ProjectVersion.txt by default.
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/WebGL/WebGL
+          # Unity WebGL builds are pre-compressed; .nojekyll keeps Pages from
+          # mangling files that start with underscores (Build/ contents).
+          enable_jekyll: false

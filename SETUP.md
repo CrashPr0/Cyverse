@@ -1,10 +1,40 @@
 # CyVerse — Setup
 
 A web-based (WebGL), desktop, first-person cybersecurity learning game. No VR.
-This document covers opening, running, and extending the levels. **Level 0**
-(Onboarding: I/AM, CIA Triad, NICE Roles) is feature-complete; **Level 1**
-(Cyber Defense: SIEM, EDR, Incident Response) is a playable blockout built on
-the same shared foundation — see [Level 1 (blockout)](#level-1-cyber-defense--blockout) below.
+This document covers opening, running, and extending the levels.
+
+## Game flow
+
+The game now boots through a scene chain instead of straight into a level:
+
+```
+PasswordLock  →  Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → …
+ (entry scene)   (level select)           (unlock in order)
+```
+
+- **PasswordLock** — the first thing a player sees: a login terminal. The
+  memo beside it *gives* them the password (`C1@scg2laC!`) and teaches why
+  it's strong (it's a passphrase in disguise). Typing it in is the lesson.
+- **Hub** — a level-select room. Four doors on the east wall (Level 1 I/AM,
+  Level 2 Cyber Defense, Levels 3–4 in development) plus an optional
+  **Orientation** door on the west wall that loads the original Level 0 demo.
+  Doors unlock in order: finishing Level *N* unlocks Level *N+1*
+  (`Core/LevelProgress.cs`, persisted in PlayerPrefs). A concierge NPC
+  comments on your progress.
+- **Levels** — each level returns you to the Hub when complete.
+
+**Required once per machine:** run the menu **CyVerse → Add Scenes To Build
+Settings**. Scene loading (`SceneManager.LoadScene`) only works for scenes
+registered in Build Settings; the menu registers the whole chain in the right
+order (PasswordLock first, so it's also the entry scene of a build). If you
+skip this, doors show a toast telling you to run it instead of failing silently.
+
+Feature status: **Level 0** (Onboarding: I/AM, CIA Triad, NICE Roles) is
+feature-complete; **Level 2 — Cyber Defense** (SIEM, EDR, Incident Response;
+scene file `Level1.unity`, built before the renumbering) is a playable
+blockout — see [below](#level-2-cyber-defense--blockout); **Level 1 — I/AM**
+is a blockout of the new standard level template — see
+[the level template](#level-1-iam--the-standard-level-template).
 
 ## Requirements
 
@@ -18,8 +48,10 @@ the same shared foundation — see [Level 1 (blockout)](#level-1-cyber-defense--
 1. Open **Unity Hub → Add → Add project from disk** and select this folder.
 2. Open it with Unity 2022.3.x. Unity will import packages and generate the
    `Library/`, `ProjectSettings/` defaults, and `.meta` files on first launch.
-3. Open the scene: `Assets/Scenes/Level0.unity`.
-4. Press **Play**.
+3. Run the menu **CyVerse → Add Scenes To Build Settings** (once).
+4. To play the full flow, open `Assets/Scenes/PasswordLock.unity` and press
+   **Play**. To jump straight into a level, open its scene instead
+   (`Hub.unity`, `Level0.unity`, `Level1_IAM.unity`, `Level1.unity`).
 
 > **If `Level0.unity` won't open** in your Unity version, you don't need it:
 > create a new empty scene (`File → New Scene → Empty`), add an empty
@@ -42,11 +74,53 @@ To lay the level out and tune it by hand instead of at runtime:
 Don't keep a `Level0Bootstrap` object in a hand-built scene, or the level will
 be built twice. Both paths use the same `SceneFactory`, so they look identical.
 
-## Level 1: Cyber Defense (blockout)
+## Level 1 (I/AM) — the standard level template
+
+`Assets/Scenes/Level1_IAM.unity` is the blockout of the layout every story
+level will follow (the "8-step" template):
+
+1. **Enter** the room from the Main Hub (door in the Hub's east wall).
+2. The first room is a **video viewing room** with a **locked door** ahead.
+3. A **Briefing Screen** (`Interaction/VideoStation.cs`) plays the lesson —
+   `E` to play/pause/replay, `←`/`→` to **scrub**; a progress bar tracks it.
+4. The locked door (`Interaction/LockedDoor.cs`) **unlocks after one complete
+   viewing** (`VideoStation.FirstCompleted` → `LockedDoor.Unlock()`).
+5. The video stays **repeatable and scrubbable** afterwards.
+6. The door slides open into the **working space**.
+7. The player completes the **task** there (for I/AM: review all four
+   stations — Identification, Authentication, Authorization, Accountability).
+8. Completion is **persisted** (`LevelProgress.MarkCompleted(1)`), the results
+   screen shows, and the **exit door back to the Hub unlocks** — where the
+   next level's door is now open.
+
+`Level/Level1IamManager.cs` orchestrates the phases (Watch → Task → Complete);
+`Level/Level1IamSceneFactory.cs` builds the two-room layout on BuildKit.
+Build an editable copy via **CyVerse → Build Level 1 (I-AM) Scene** in an
+empty scene, tweak, save.
+
+**Swapping in a real video:** the Briefing Screen currently plays timed text
+"slides" (`Level1IamContent.BriefingSlides()`) so the blockout needs no video
+asset. `VideoStation` already supports real video: assign a `VideoClip` (or,
+better for WebGL, a **URL** to an `.mp4` — streaming keeps the build small
+and WebGL doesn't ship clip transcoding) on the component and it renders to
+the screen via `VideoPlayer` + RenderTexture with the same unlock/scrub rules.
+
+## The Hub
+
+`Assets/Scenes/Hub.unity` — built by `Level/HubSceneFactory.cs`, editable copy
+via **CyVerse → Build Hub Scene**. Doors are `Interaction/HubDoor.cs`: each
+shows its status on the sign (green READY / red LOCKED / gold COMPLETE / grey
+IN DEVELOPMENT) and loads its scene on `E`. Door → scene mapping lives in
+`HubSceneFactory.BuildAll()` — to add Level 3 later, point its door at the new
+scene name and add the scene in `CyverseSceneTools.AddScenesToBuildSettings`.
+
+## Level 2: Cyber Defense (blockout)
 
 A playable vertical-slice blockout of Room 2 from the concept tables — **SOC
 Analyst / Protection & Defense** — teaching SIEM, EDR, and Incident Response,
 gated by a **Threat Response Console** instead of the Security Scanner.
+(Scene file: `Level1.unity` — named before the Hub renumbering; in the Hub
+it is **Level 2** and unlocks after Level 1 I/AM.)
 
 **Open it:** `Assets/Scenes/Level1.unity` and press Play, or build an editable
 copy the same way as Level 0: `File → New Scene → Empty` → menu
@@ -96,6 +170,7 @@ next iteration once the content and flow are validated.
 | Look              | Mouse           |
 | Interact          | `E`             |
 | Advance dialogue  | `Space`         |
+| Scrub video       | `←` / `→` (near a Briefing Screen) |
 | Glossary          | `G`             |
 | Settings / Pause  | `Esc`           |
 
@@ -169,6 +244,17 @@ completion, matching the CyVerse Script.
 | `UI/ControlsOverlay.cs`                | First-time controls card (fades on first move)  |
 | `Resources/Shaders/GridFloor.shader`   | Glowing tech-grid floor (`Cyverse/GridFloor`)   |
 | `Resources/Shaders/Hologram.shader`    | Holographic panels (`Cyverse/Hologram`)         |
+| `Core/LevelProgress.cs`                | Persisted per-level completion + unlock order   |
+| `UI/PasswordLockController.cs`         | Entry scene: password terminal + memo lesson    |
+| `Level/HubSceneFactory.cs`             | Hub construction (doors, concierge, centerpiece)|
+| `Level/HubManager.cs` / `HubBootstrap.cs` | Hub flow / runtime entry point               |
+| `Interaction/HubDoor.cs`               | Level-select door: status sign + scene loading  |
+| `Interaction/LockedDoor.cs`            | Sliding door, unlocked by an event              |
+| `Interaction/VideoStation.cs`          | Briefing Screen: slides or real video, scrubbing|
+| `Level/Level1IamContent.cs`            | I/AM briefing slides, station lines, quiz       |
+| `Level/Level1IamSceneFactory.cs`       | Level 1 (I/AM) two-room construction            |
+| `Level/Level1IamManager.cs` / `Level1IamBootstrap.cs` | Watch→Task→Complete flow / entry |
+| `Editor/CyverseSceneTools.cs`          | Menus: Build Hub / Build L1 I-AM / Add Scenes To Build Settings |
 
 ## Gameplay loop (feature-complete Level 0)
 
@@ -271,11 +357,45 @@ pauses the game. Reduce Motion uses a global shader float `_CyMotion`.
    Presentation → WebGL Template → CyVerse`. The built game then ships inside
    a branded shell (SJSU Blue `#0055A2` header, Spartan Gold `#E5A823`
    loading bar and accents, fullscreen button, offline-safe system fonts).
-3. Add `Assets/Scenes/Level0.unity` to **Scenes In Build**.
-3. **Player Settings → Publishing Settings → Compression Format:** `Brotli`
+3. Run **CyVerse → Add Scenes To Build Settings** so all five scenes are in
+   the build, PasswordLock first (it's the entry scene).
+4. **Player Settings → Publishing Settings → Compression Format:** `Brotli`
    (smaller downloads; needs HTTPS hosting) or `Gzip`.
-4. Keep textures compressed and the build lean for low-bandwidth / remote users.
-5. `Build` and host the output folder on any static web server.
+5. Keep textures compressed and the build lean for low-bandwidth / remote users.
+6. `Build` and host the output folder on any static web server.
+
+## Web deployment (updating the live web version)
+
+The repo ships a GitHub Actions workflow —
+`.github/workflows/webgl-deploy.yml` — that builds WebGL in the cloud
+([game-ci](https://game.ci)) and publishes to **GitHub Pages**, so nobody
+needs a local WebGL module to update the site.
+
+**One-time setup:**
+
+1. **Unity license secrets** (game-ci needs to activate Unity headlessly).
+   Follow https://game.ci/docs/github/activation to obtain your personal
+   `.ulf` license file, then add three repository secrets under
+   *Settings → Secrets and variables → Actions*:
+   `UNITY_LICENSE` (the file's full contents), `UNITY_EMAIL`, `UNITY_PASSWORD`.
+2. **Enable Pages**: *Settings → Pages → Source:* deploy from the `gh-pages`
+   branch (created by the first successful run).
+3. In Unity, run **CyVerse → Add Scenes To Build Settings** and select the
+   **CyVerse** WebGL template, then commit `ProjectSettings/` — the cloud
+   build uses whatever is committed.
+
+**Updating the site after that:** push your changes to `main`, then open the
+**Actions** tab → *WebGL Build & Deploy* → **Run workflow**. A few minutes
+later the game is live at `https://<owner>.github.io/<repo>/`. (The workflow
+is manual-trigger by design — Unity cloud builds take ~15–30 min and you
+usually don't want one per commit; the first run is slowest, later runs reuse
+the cached `Library/`.)
+
+**Manual alternative** (no Actions setup): build locally per the section
+above and drag the output folder onto any static host — itch.io (create an
+HTML5 project, upload a zip of the build), Netlify Drop, or SJSU web space.
+For itch.io/Netlify set compression to `Gzip` unless the host serves the
+`Content-Encoding: br` header.
 
 ## Visual style / shaders
 

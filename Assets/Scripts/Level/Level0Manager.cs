@@ -143,6 +143,7 @@ namespace Cyverse.Level
             if (CurrentPhase == Phase.Complete) return;
             CurrentPhase = Phase.Complete;
 
+            LevelProgress.MarkCompleted(0); // Orientation, in the Hub's numbering
             GameState.LevelComplete = true;
             UpdateObjective();
             FirstPersonController.LockCursor(false);
@@ -157,7 +158,7 @@ namespace Cyverse.Level
                 ResultsScreen.Instance.Show(
                     ScoreSystem.Score, ScoreSystem.QuizCorrect, ScoreSystem.QuizTotal,
                     Time.time - startTime,
-                    nextMissionText: "Level 1 — Cyber Defense is ready. Load it from Build Settings.");
+                    nextMissionText: "Orientation logged. Return to the Hub to take on the levels.");
         }
     }
 }

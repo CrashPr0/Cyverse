@@ -134,7 +134,7 @@ namespace Cyverse.Level
                     HudUI.Instance.SetProgress(stations.Count, stations.Count, "✓");
                     break;
                 case Phase.Complete:
-                    HudUI.Instance.ShowObjective("LEVEL 1 COMPLETE");
+                    HudUI.Instance.ShowObjective("LEVEL 2 COMPLETE");
                     break;
             }
         }
@@ -144,6 +144,7 @@ namespace Cyverse.Level
             if (CurrentPhase == Phase.Complete) return;
             CurrentPhase = Phase.Complete;
 
+            LevelProgress.MarkCompleted(2); // Cyber Defense is Level 2 in the Hub
             GameState.LevelComplete = true;
             UpdateObjective();
             FirstPersonController.LockCursor(false);
@@ -158,10 +159,10 @@ namespace Cyverse.Level
                 ResultsScreen.Instance.Show(
                     ScoreSystem.Score, ScoreSystem.QuizCorrect, ScoreSystem.QuizTotal,
                     Time.time - startTime,
-                    headerText: "LEVEL 1 COMPLETE",
+                    headerText: "LEVEL 2 COMPLETE",
                     grantedLine: "Certification Confirmed — SOC Analyst",
-                    nextMissionText: "Level 2 — Digital Forensics  (in development)",
-                    replaySuffix: "Level 1");
+                    nextMissionText: "Level 3 — Digital Forensics  (in development)",
+                    replaySuffix: "Level 2");
         }
     }
 }
