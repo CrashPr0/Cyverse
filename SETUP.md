@@ -110,9 +110,22 @@ the screen via `VideoPlayer` + RenderTexture with the same unlock/scrub rules.
 `Assets/Scenes/Hub.unity` — built by `Level/HubSceneFactory.cs`, editable copy
 via **CyVerse → Build Hub Scene**. Doors are `Interaction/HubDoor.cs`: each
 shows its status on the sign (green READY / red LOCKED / gold COMPLETE / grey
-IN DEVELOPMENT) and loads its scene on `E`. Door → scene mapping lives in
-`HubSceneFactory.BuildAll()` — to add Level 3 later, point its door at the new
-scene name and add the scene in `CyverseSceneTools.AddScenesToBuildSettings`.
+IN DEVELOPMENT) and loads its scene on `E`.
+
+The hub is furnished as an **atrium**, not an office: a dais + ceiling halo
+under the rotating holo core, lounge seating, plants framing the door bays,
+SJSU banners on the north wall, and — new in the polish pass — **wayfinding**:
+each door projects a floor guide strip and a slowly rotating landing pad in
+its accent colour, plus an accent light over the doorway, so players can read
+"which way to Level 1" from anywhere in the room. A free-standing **mission
+board** faces the spawn point (built by `HubSceneFactory.BuildMissionBoard()`,
+kept live by `Level/MissionBoard.cs`): it greets the player by callsign,
+shows overall clearance, and lists every door with its current status.
+
+Door → scene mapping lives in one table (`HubSceneFactory.Doors()`) that
+drives the doors, the wayfinding, *and* the mission board — to add Level 3
+later, point its entry at the new scene name and add the scene in
+`CyverseSceneTools.AddScenesToBuildSettings`; everything else follows.
 
 ## Level 2: Cyber Defense (blockout)
 
@@ -249,6 +262,7 @@ completion, matching the CyVerse Script.
 | `Level/HubSceneFactory.cs`             | Hub construction (doors, concierge, centerpiece)|
 | `Level/HubManager.cs` / `HubBootstrap.cs` | Hub flow / runtime entry point               |
 | `Interaction/HubDoor.cs`               | Level-select door: status sign + scene loading  |
+| `Level/MissionBoard.cs`                | Hub status board: callsign, clearance, per-level state |
 | `Interaction/LockedDoor.cs`            | Sliding door, unlocked by an event              |
 | `Interaction/VideoStation.cs`          | Briefing Screen: slides or real video, scrubbing|
 | `Level/Level1IamContent.cs`            | I/AM briefing slides, station lines, quiz       |
