@@ -190,9 +190,20 @@ namespace Cyverse.Level
             BuildKit.Spawn(PrimitiveType.Cylinder, "Dais", root.transform,
                 new Vector3(0f, 0.028f, 6f), new Vector3(7f, 0.02f, 7f),
                 BuildKit.MakeStandard(new Color(0.05f, 0.06f, 0.09f), 0.78f, 0.5f), collider: false);
-            var halo = BuildKit.Spawn(PrimitiveType.Cylinder, "CeilingHalo", root.transform,
-                new Vector3(0f, 4.8f, 6f), new Vector3(8f, 0.015f, 8f),
-                BuildKit.MakeHologram(HubGold), collider: false);
+            // Segmented ceiling ring (a solid hologram cylinder here rendered
+            // as a giant glowing disc — very much the thing to avoid).
+            var halo = new GameObject("CeilingHalo");
+            halo.transform.SetParent(root.transform, false);
+            halo.transform.position = new Vector3(0f, 4.8f, 6f);
+            var haloMat = BuildKit.MakeEmissive(HubGold, 1.4f);
+            for (int i = 0; i < 24; i++)
+            {
+                float a = i * 15f;
+                var seg = BuildKit.Spawn(PrimitiveType.Cube, "HaloSeg_" + i, halo.transform,
+                    halo.transform.position + Quaternion.Euler(0f, a, 0f) * new Vector3(0f, 0f, 4f),
+                    new Vector3(0.6f, 0.05f, 0.16f), haloMat, collider: false);
+                seg.transform.rotation = Quaternion.Euler(0f, a, 0f);
+            }
             halo.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 6f, 0f);
 
             // Lounges sit in slightly-rotated groups: nothing in a real room is
@@ -230,6 +241,26 @@ namespace Cyverse.Level
                     new Vector3(x, 3.1f, 19.3f), new Vector3(1.4f, 2.4f, 0.08f),
                     BuildKit.MakeEmissive(c, 0.35f), collider: false);
             }
+
+            // Wall TVs with live tickers + charts (west wall pair, one by the
+            // spawn on the south wall) so the walls carry motion and lore.
+            string[] newsA =
+            {
+                "SOC STATUS: ALL CLEAR",
+                "MFA BLOCKS 99% OF ATTACKS",
+                "PHISHING DRILL THURSDAY",
+                "PATCH COMPLIANCE: 96%",
+            };
+            string[] newsB =
+            {
+                "LOCK YOUR WORKSTATION",
+                "REPORT SUSPICIOUS EMAILS",
+                "VERIFY, THEN TRUST",
+                "BACKUPS TESTED WEEKLY",
+            };
+            PropFactory.BuildWallTV(root.transform, new Vector3(-19.41f, 2.9f, 12f), -90f, BuildKit.AccentCyan, newsA);
+            PropFactory.BuildWallTV(root.transform, new Vector3(-19.41f, 2.9f, 4f), -90f, HubGold, newsB, 1);
+            PropFactory.BuildWallTV(root.transform, new Vector3(4f, 2.9f, -19.41f), 180f, BuildKit.AccentCyan, newsA, 2);
 
             // Ambient drones.
             PropFactory.BuildDrone(root.transform, new Vector3(-10f, 3.6f, 8f));

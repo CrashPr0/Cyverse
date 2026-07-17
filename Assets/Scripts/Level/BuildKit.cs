@@ -107,26 +107,73 @@ namespace Cyverse.Level
         }
 
         /// <summary>A rotating holo "core" centerpiece with a counter-rotating
-        /// base ring and a title sign — each level's focal landmark.</summary>
+        /// base ring and a mounted nameplate collar — each level's focal
+        /// landmark. The title used to be free-floating billboard text that
+        /// clipped through the glowing core; it's now a static, double-sided
+        /// plate wrapped around the column, which reads as built signage.</summary>
         public static void BuildCenterpiece(Vector3 pos, string title, Color color)
         {
             var core = Spawn(PrimitiveType.Cylinder, "HoloCore", null,
-                pos, new Vector3(1.6f, 2.2f, 1.6f), MakeHologram(color), collider: false);
+                pos, new Vector3(1.4f, 1.7f, 1.4f), MakeHologram(color), collider: false);
             core.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 18f, 0f);
 
             var ring = Spawn(PrimitiveType.Cylinder, "HoloCoreRing", null,
                 new Vector3(pos.x, 0.06f, pos.z), new Vector3(3.6f, 0.03f, 3.6f), MakeHologram(color), collider: false);
             ring.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, -12f, 0f);
 
-            MakeSign(null, pos + new Vector3(0, 1.95f, 0), title, new Color(0.75f, 0.92f, 1f), 0.10f);
+            BuildNameplate(pos + Vector3.up * 0.9f, title, color);
 
             var glow = new GameObject("HoloCoreLight");
             glow.transform.position = pos;
             var l = glow.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = color;
-            l.range = 12f;
-            l.intensity = 2.0f;
+            l.range = 11f;
+            l.intensity = 1.5f;
+        }
+
+        /// <summary>Double-sided mounted nameplate: dark plate, accent trim,
+        /// white text on the north and south faces. No Billboard, no bobbing —
+        /// mounted signage reads as designed where floating text reads as
+        /// placeholder.</summary>
+        public static GameObject BuildNameplate(Vector3 pos, string title, Color accent)
+        {
+            var root = new GameObject("Nameplate_" + title.Replace(' ', '_'));
+            root.transform.position = pos;
+
+            Spawn(PrimitiveType.Cube, "Plate", root.transform, pos,
+                new Vector3(2.9f, 0.62f, 1.5f),
+                MakeStandard(new Color(0.045f, 0.05f, 0.075f), 0.55f, 0.5f), collider: false);
+
+            var trim = MakeEmissive(accent, 1.8f);
+            Spawn(PrimitiveType.Cube, "Trim_S", root.transform, pos + new Vector3(0f, -0.27f, -0.76f),
+                new Vector3(2.9f, 0.05f, 0.02f), trim, false);
+            Spawn(PrimitiveType.Cube, "Trim_N", root.transform, pos + new Vector3(0f, -0.27f, 0.76f),
+                new Vector3(2.9f, 0.05f, 0.02f), trim, false);
+
+            NameplateFace(root.transform, pos + new Vector3(0f, 0.02f, -0.77f), 0f, title);
+            NameplateFace(root.transform, pos + new Vector3(0f, 0.02f, 0.77f), 180f, title);
+            return root;
+        }
+
+        private static void NameplateFace(Transform parent, Vector3 worldPos, float rotY, string title)
+        {
+            var go = new GameObject("PlateText");
+            go.transform.SetParent(parent, false);
+            go.transform.position = worldPos;
+            go.transform.rotation = Quaternion.Euler(0f, rotY, 0f); // readable from local -Z
+
+            var font = HudUI.LoadFont();
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = font;
+            tm.text = title;
+            tm.fontSize = 64;
+            tm.characterSize = 0.045f;
+            tm.fontStyle = FontStyle.Bold;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.color = new Color(0.96f, 0.98f, 1f);
+            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
         }
 
         // ---- Player & shared systems ------------------------------------------

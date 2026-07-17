@@ -12,9 +12,21 @@ PasswordLock  →  Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → …
  (entry scene)   (level select)           (unlock in order)
 ```
 
-- **PasswordLock** — the first thing a player sees: a login terminal. The
-  memo beside it *gives* them the password (`C1@scg2laC!`) and teaches why
-  it's strong (it's a passphrase in disguise). Typing it in is the lesson.
+- **PasswordLock** — the first thing a player sees: a login terminal. Two
+  modes on the `PasswordLockController` component:
+  - **Gate mode (default)** — a real beta-access gate: the code is never
+    shown; testers get it from the team, and repeated failures trigger a
+    30s cooldown. Set the actual code in the Inspector (`password` field).
+  - **`revealPassword` on** — the original educational mode: the memo *gives*
+    the password and teaches why it's strong (a passphrase in disguise);
+    typing it in is the lesson.
+
+  > **Security reality check:** the check runs entirely in the player's
+  > browser — the code ships inside the WebGL build and is visible in this
+  > repository's source. It will keep casual visitors out of a beta, and
+  > nothing more. Anything genuinely private must be protected by the host
+  > (itch.io restricted page, HTTP basic auth, a private link), not by this
+  > scene.
 - **Hub** — a level-select room. Four doors on the east wall (Level 1 I/AM,
   Level 2 Cyber Defense, Levels 3–4 in development) plus an optional
   **Orientation** door on the west wall that loads the original Level 0 demo.
@@ -266,6 +278,7 @@ completion, matching the CyVerse Script.
 | `Level/HubManager.cs` / `HubBootstrap.cs` | Hub flow / runtime entry point               |
 | `Interaction/HubDoor.cs`               | Level-select door: status sign + scene loading  |
 | `Level/MissionBoard.cs`                | Hub status board: callsign, clearance, per-level state |
+| `Level/AmbientScreen.cs`               | Wall TV driver: headline ticker + animated chart |
 | `Interaction/LockedDoor.cs`            | Sliding door, unlocked by an event              |
 | `Interaction/VideoStation.cs`          | Briefing Screen: slides or real video, scrubbing|
 | `Level/Level1IamContent.cs`            | I/AM briefing slides, station lines, quiz       |

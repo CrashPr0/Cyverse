@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Cyverse.UI;
 
 namespace Cyverse.Level
 {
@@ -311,6 +312,78 @@ namespace Cyverse.Level
             // Drones move — they must not be statically batched.
             foreach (var t in drone.GetComponentsInChildren<Transform>(true))
                 t.gameObject.isStatic = false;
+        }
+
+        /// <summary>Wall-mounted TV: dark bezel, dim screen, a station label,
+        /// a cycling headline ticker, and an animated bar chart (driven by
+        /// AmbientScreen). Content faces local -Z, matching doors/signs.</summary>
+        public static void BuildWallTV(Transform parent, Vector3 pos, float rotY,
+            Color accent, string[] messages, int firstMessage = 0)
+        {
+            var tv = Group(parent, "WallTV", pos, rotY);
+
+            Child(tv, PrimitiveType.Cube, "Bezel", new Vector3(0, 0, 0.04f), Vector3.zero,
+                new Vector3(3.3f, 1.9f, 0.09f), RackDark, collider: false);
+            var screen = Child(tv, PrimitiveType.Quad, "Screen", new Vector3(0, 0, -0.011f), Vector3.zero,
+                new Vector3(3.1f, 1.7f, 1f),
+                BuildKit.MakeEmissive(new Color(0.02f, 0.05f, 0.09f), 0.6f), collider: false);
+            screen.transform.localRotation = Quaternion.identity; // front faces local -Z
+
+            Child(tv, PrimitiveType.Cube, "PowerLed", new Vector3(1.5f, -0.85f, -0.05f), Vector3.zero,
+                new Vector3(0.05f, 0.02f, 0.01f), LedGreen, collider: false);
+
+            TvText(tv, new Vector3(-1.45f, 0.68f, -0.03f), "CYVERSE NETWORK — LIVE",
+                accent, 0.018f, TextAnchor.MiddleLeft, FontStyle.Bold);
+            Child(tv, PrimitiveType.Cube, "Divider", new Vector3(0, 0.52f, -0.02f), Vector3.zero,
+                new Vector3(2.9f, 0.015f, 0.01f), BuildKit.MakeEmissive(accent, 1.4f), collider: false);
+            var headline = TvText(tv, new Vector3(-1.45f, 0.26f, -0.03f), "",
+                new Color(0.94f, 0.97f, 1f), 0.026f, TextAnchor.MiddleLeft, FontStyle.Normal);
+
+            // Bar chart along the bottom; pivots sit on the baseline with the
+            // cube offset +0.5 above, so scaling Y grows the bar upward.
+            var barMat = BuildKit.MakeEmissive(accent, 1.6f);
+            var bars = new Transform[10];
+            for (int i = 0; i < bars.Length; i++)
+            {
+                var pivot = Group(tv, "BarPivot_" + i, new Vector3(-1.35f + i * 0.3f, -0.72f, -0.03f), 0f);
+                pivot.localScale = new Vector3(0.18f, 0.3f, 0.02f);
+                Child(pivot, PrimitiveType.Cube, "Bar", new Vector3(0, 0.5f, 0), Vector3.zero,
+                    Vector3.one, barMat, collider: false);
+                bars[i] = pivot;
+            }
+
+            var driver = tv.gameObject.AddComponent<AmbientScreen>();
+            driver.headline = headline;
+            driver.bars = bars;
+            driver.messages = messages;
+            driver.firstMessage = firstMessage;
+            driver.maxBarHeight = 0.5f;
+
+            // Screen content animates — nothing here may be statically batched.
+            foreach (var t in tv.GetComponentsInChildren<Transform>(true))
+                t.gameObject.isStatic = false;
+        }
+
+        private static TextMesh TvText(Transform parent, Vector3 localPos, string text,
+            Color color, float characterSize, TextAnchor anchor, FontStyle style)
+        {
+            var go = new GameObject("TvText");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localRotation = Quaternion.identity; // readable from local -Z
+
+            var font = HudUI.LoadFont();
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = font;
+            tm.text = text;
+            tm.fontSize = 64;
+            tm.characterSize = characterSize;
+            tm.fontStyle = style;
+            tm.anchor = anchor;
+            tm.alignment = anchor == TextAnchor.MiddleLeft ? TextAlignment.Left : TextAlignment.Center;
+            tm.color = color;
+            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            return tm;
         }
 
         // ---- Construction helpers --------------------------------------------

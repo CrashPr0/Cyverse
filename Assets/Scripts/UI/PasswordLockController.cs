@@ -6,19 +6,34 @@ using UnityEngine.UI;
 namespace Cyverse.UI
 {
     /// <summary>
-    /// The game's entry scene: a CyberVerse "secure terminal" that requires the
-    /// employee password from the CyVerse Script before loading the Hub. The
-    /// password is displayed on an in-world security memo — the point is the
-    /// authentication *ritual* (and the strong-password anatomy lesson printed
-    /// under it), not a memory test. Fully standalone: builds its own canvas,
-    /// no HudUI/GameSystems required. Keyboard line-editor input (matches the
-    /// game's keyboard-only UI), Tab toggles masking, Enter submits.
+    /// The game's entry scene: a CyberVerse "secure terminal" that requires a
+    /// password before loading the Hub. Two modes:
+    ///  - Gate mode (default): a real beta-access gate — the code is NOT shown;
+    ///    testers get it from the team. Repeated failures trigger a cooldown.
+    ///  - revealPassword: the original educational mode — the password is
+    ///    printed on a security memo with a strength lesson; the exercise is
+    ///    the authentication ritual, not a memory test.
+    /// SECURITY NOTE: this check runs entirely in the client. The string ships
+    /// inside the WebGL build (and in this repo's source), so treat it as a
+    /// speed bump that keeps casual visitors out of a beta — never as real
+    /// protection for anything sensitive. Real gating belongs on the host
+    /// (itch.io restricted page, HTTP basic auth, private link).
+    /// Fully standalone: builds its own canvas, no HudUI/GameSystems required.
+    /// Keyboard line-editor input, Tab toggles masking, Enter submits.
     /// </summary>
     public class PasswordLockController : MonoBehaviour
     {
         public string password = "C1@scg2laC!";
         public string nextScene = "Hub";
         public int maxLength = 24;
+
+        [Tooltip("Print the password on the memo (educational demo mode). " +
+                 "Leave off for real gate use, e.g. website beta tests.")]
+        public bool revealPassword = false;
+        public int lockoutAfterAttempts = 5;
+        public float lockoutSeconds = 30f;
+
+        private float lockedUntil;
 
         private Canvas canvas;
         private Text inputText;
@@ -40,6 +55,14 @@ namespace Cyverse.UI
         void Update()
         {
             if (unlocked) return;
+
+            if (Time.unscaledTime < lockedUntil)
+            {
+                int remain = Mathf.CeilToInt(lockedUntil - Time.unscaledTime);
+                feedbackText.text =
+                    $"<color=#FF8866><b>LOCKED</b></color>   Too many attempts — try again in {remain}s.";
+                return;
+            }
 
             if (Input.GetKeyDown(KeyCode.Tab))
             {
@@ -79,9 +102,16 @@ namespace Cyverse.UI
                 attempts++;
                 typed = "";
                 RefreshInput();
-                feedbackText.text = attempts >= 2
-                    ? "<color=#FF8866><b>ACCESS DENIED</b></color>   Check the security memo — type the password exactly, including symbols."
-                    : "<color=#FF8866><b>ACCESS DENIED</b></color>   Incorrect password.";
+                if (lockoutAfterAttempts > 0 && attempts % lockoutAfterAttempts == 0)
+                {
+                    lockedUntil = Time.unscaledTime + lockoutSeconds;
+                    feedbackText.text =
+                        $"<color=#FF8866><b>LOCKED</b></color>   Too many attempts — try again in {Mathf.CeilToInt(lockoutSeconds)}s.";
+                }
+                else if (revealPassword && attempts >= 2)
+                    feedbackText.text = "<color=#FF8866><b>ACCESS DENIED</b></color>   Check the security memo — type the password exactly, including symbols.";
+                else
+                    feedbackText.text = "<color=#FF8866><b>ACCESS DENIED</b></color>   Incorrect access code.";
                 StartCoroutine(Shake());
             }
         }
@@ -134,11 +164,10 @@ namespace Cyverse.UI
 
             MakeText(canvas.transform, "Title", "CYVERSE", 92, FontStyle.Bold,
                 new Color(0.35f, 0.85f, 1f), new Vector2(0, 320), 30);
-            MakeText(canvas.transform, "Subtitle", "SECURE TERMINAL — EMPLOYEE ACCESS", 26, FontStyle.Normal,
-                new Color(0.85f, 0.92f, 1f), new Vector2(0, 245), 40);
+            MakeText(canvas.transform, "Subtitle",
+                revealPassword ? "SECURE TERMINAL — EMPLOYEE ACCESS" : "SECURE TERMINAL — BETA ACCESS",
+                26, FontStyle.Normal, new Color(0.85f, 0.92f, 1f), new Vector2(0, 245), 40);
 
-            // The memo: the password is GIVEN, per the CyVerse Script — the
-            // exercise is authenticating with it, plus a strength lesson.
             var memoGo = NewRect("Memo", canvas.transform);
             memoGo.sizeDelta = new Vector2(860, 250);
             memoGo.anchoredPosition = new Vector2(0, 90);
@@ -148,11 +177,19 @@ namespace Cyverse.UI
             memoOutline.effectColor = new Color(0.90f, 0.66f, 0.14f, 0.9f);
             memoOutline.effectDistance = new Vector2(2f, 2f);
 
-            var memo = MakeText(memoGo, "MemoText",
-                "SECURITY MEMO — KEEP PRIVATE\n\n" +
-                $"Your temporary password:   <b><color=#E5A823>{password}</color></b>\n\n" +
-                "<size=20><color=#8FB8CC>Why it's strong: 11 characters mixing upper/lower case, numbers and symbols —\n" +
-                "built from a passphrase: \"CyberVerse Is A Super Cool Game 2 Learn About Cybersecurity!\"</color></size>",
+            // Educational mode: the password is GIVEN — the exercise is the
+            // authentication ritual plus the strength lesson. Gate mode: real
+            // beta access — the code is never printed anywhere in the UI.
+            string memoBody = revealPassword
+                ? "SECURITY MEMO — KEEP PRIVATE\n\n" +
+                  $"Your temporary password:   <b><color=#E5A823>{password}</color></b>\n\n" +
+                  "<size=20><color=#8FB8CC>Why it's strong: 11 characters mixing upper/lower case, numbers and symbols —\n" +
+                  "built from a passphrase: \"CyberVerse Is A Super Cool Game 2 Learn About Cybersecurity!\"</color></size>"
+                : "CLOSED BETA\n\n" +
+                  "Enter the access code you received from the CyVerse team.\n\n" +
+                  "<size=20><color=#8FB8CC>Codes are case-sensitive — type them exactly, including symbols.\n" +
+                  "Don't have a code? Contact the project team to join the beta.</color></size>";
+            var memo = MakeText(memoGo, "MemoText", memoBody,
                 24, FontStyle.Normal, Color.white, Vector2.zero, 0);
             Stretch(memo.rectTransform);
 
