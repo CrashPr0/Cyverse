@@ -18,6 +18,7 @@ namespace Cyverse.UI
         private Text bodyText;
         private bool shown;
         private bool canReload;
+        private bool canHub;
 
         void Awake()
         {
@@ -40,6 +41,7 @@ namespace Cyverse.UI
 
             var scene = SceneManager.GetActiveScene();
             canReload = scene.IsValid() && !string.IsNullOrEmpty(scene.name);
+            canHub = Application.CanStreamedLevelBeLoaded("Hub") && scene.name != "Hub";
 
             int m = Mathf.FloorToInt(seconds / 60f);
             int s = Mathf.FloorToInt(seconds % 60f);
@@ -84,10 +86,14 @@ namespace Cyverse.UI
                 sb.AppendLine();
                 sb.AppendLine($"<size=20><color=#5BC8FF>NEXT MISSION:</color> <color=#8FB8CC>{nextMissionText}</color></size>");
             }
-            if (canReload)
+            if (canReload || canHub)
             {
                 sb.AppendLine();
-                sb.AppendLine($"<size=20><color=#8FB8CC>[R]  Replay {replaySuffix}</color></size>");
+                string keys = "";
+                if (canReload) keys += $"[R]  Replay {replaySuffix}";
+                if (canReload && canHub) keys += "      ";
+                if (canHub) keys += "[H]  Return to Hub";
+                sb.AppendLine($"<size=20><color=#8FB8CC>{keys}</color></size>");
             }
             bodyText.text = sb.ToString();
 
@@ -97,9 +103,16 @@ namespace Cyverse.UI
 
         void Update()
         {
-            if (!shown || !canReload) return;
-            if (Input.GetKeyDown(KeyCode.R))
+            if (!shown) return;
+            if (canReload && Input.GetKeyDown(KeyCode.R))
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            else if (canHub && Input.GetKeyDown(KeyCode.H))
+            {
+                if (ScreenFader.Instance != null)
+                    ScreenFader.Instance.FadeToBlackThen(() => SceneManager.LoadScene("Hub"));
+                else
+                    SceneManager.LoadScene("Hub");
+            }
         }
 
         /// <summary>

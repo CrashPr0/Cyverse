@@ -43,15 +43,31 @@ namespace Cyverse.UI
             img.raycastTarget = false;
         }
 
+        private System.Action pending;
+
         public void FadeFromBlack() { SetAlpha(1f); target = 0f; }
         public void FadeToBlack() { target = 1f; }
+
+        /// <summary>Fade to black, then run the action (scene loads use this so
+        /// transitions don't hard-cut). Under Reduce Motion it fires next frame.</summary>
+        public void FadeToBlackThen(System.Action onDone) { target = 1f; pending = onDone; }
 
         void Update()
         {
             float a = img.color.a;
-            if (AccessibilitySettings.ReduceMotion) { SetAlpha(target); return; }
-            a = Mathf.MoveTowards(a, target, speed * Time.unscaledDeltaTime);
-            SetAlpha(a);
+            if (AccessibilitySettings.ReduceMotion) SetAlpha(target);
+            else
+            {
+                a = Mathf.MoveTowards(a, target, speed * Time.unscaledDeltaTime);
+                SetAlpha(a);
+            }
+
+            if (pending != null && target >= 1f && img.color.a >= 0.999f)
+            {
+                var p = pending;
+                pending = null;
+                p();
+            }
         }
 
         private void SetAlpha(float a)

@@ -21,7 +21,10 @@ PasswordLock  →  Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → …
   Doors unlock in order: finishing Level *N* unlocks Level *N+1*
   (`Core/LevelProgress.cs`, persisted in PlayerPrefs). A concierge NPC
   comments on your progress.
-- **Levels** — each level returns you to the Hub when complete.
+- **Levels** — every level connects back: each has a gold **Return to Hub**
+  door (self-added on the south wall in Level 0 / Cyber Defense, so even
+  hand-saved scenes gain it), results screens offer **[R] replay / [H] return
+  to Hub**, and all scene changes fade to black instead of hard-cutting.
 
 **Required once per machine:** run the menu **CyVerse → Add Scenes To Build
 Settings**. Scene loading (`SceneManager.LoadScene`) only works for scenes

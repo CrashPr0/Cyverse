@@ -26,6 +26,7 @@ namespace Cyverse.Interaction
         public int levelIndex;
 
         private bool manualUnlocked;
+        private bool loading;
         private Renderer panelRenderer;
         private TextMesh statusText;
 
@@ -78,10 +79,17 @@ namespace Cyverse.Interaction
                 return;
             }
 
+            if (loading) return;
+
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
             if (Application.CanStreamedLevelBeLoaded(sceneName))
             {
-                SceneManager.LoadScene(sceneName);
+                loading = true;
+                string target = sceneName; // capture: survives this object's death
+                if (ScreenFader.Instance != null)
+                    ScreenFader.Instance.FadeToBlackThen(() => SceneManager.LoadScene(target));
+                else
+                    SceneManager.LoadScene(target);
             }
             else if (HudUI.Instance != null)
             {

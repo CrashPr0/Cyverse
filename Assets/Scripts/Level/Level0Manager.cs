@@ -60,6 +60,16 @@ namespace Cyverse.Level
             if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
             if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
 
+            // Self-heal: every level connects back to the Hub. Scenes saved
+            // before HubDoor existed gain a return door on the south wall
+            // (x=12 sits between the wall columns, clear of lockers and crates).
+            if (FindObjectOfType<HubDoor>() == null)
+            {
+                var exit = HubDoor.Build(new Vector3(12f, 0f, -19.2f), 180f,
+                    "Return to Hub", "Hub", 0, new Color(0.90f, 0.66f, 0.14f), HubDoor.Mode.Manual);
+                exit.SetUnlocked(true); // leaving mid-level is always allowed
+            }
+
             stations.AddRange(FindObjectsOfType<StationSetup>());
             scanner = FindObjectOfType<FaceScanner>();
             if (scanner != null) scanner.Completed += CompleteLevel;

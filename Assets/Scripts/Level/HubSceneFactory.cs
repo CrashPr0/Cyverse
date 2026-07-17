@@ -49,7 +49,8 @@ namespace Cyverse.Level
         public static void BuildAll()
         {
             BuildKit.BuildLighting();
-            BuildKit.BuildFloor(HubGold, new Color(0.07f, 0.06f, 0.05f));
+            TuneAtmosphere();
+            BuildFloor();
             BuildKit.BuildWalls(BuildKit.WallColor);
             BuildKit.BuildCeilingPanels();
             BuildKit.BuildWallDetail(HubGold);
@@ -62,6 +63,52 @@ namespace Cyverse.Level
                 displayName: "Concierge", signText: "INFORMATION", linesProvider: ConciergeLines);
             BuildKit.BuildPlayer();
             BuildSystems();
+        }
+
+        /// <summary>What makes procedural rooms look fake is flat, even light
+        /// and uniform glow. The hub instead gets a warm key light against a
+        /// cooler, darker ambient (classic warm/cool contrast), so surfaces
+        /// shade differently depending on orientation.</summary>
+        private static void TuneAtmosphere()
+        {
+            RenderSettings.ambientLight = new Color(0.10f, 0.11f, 0.15f);
+            var sun = GameObject.Find("Directional Light");
+            if (sun != null)
+            {
+                var dl = sun.GetComponent<Light>();
+                if (dl != null)
+                {
+                    dl.color = new Color(1.00f, 0.91f, 0.78f); // warm key
+                    dl.intensity = 0.55f;
+                    sun.transform.rotation = Quaternion.Euler(48f, -28f, 0f);
+                }
+            }
+        }
+
+        /// <summary>The hub floor is tuned quieter than the levels': larger,
+        /// dimmer grid cells and a glossier surface, so it reads as polished
+        /// lobby stone with inlays rather than a glowing tron grid.</summary>
+        private static void BuildFloor()
+        {
+            var mat = BuildKit.MakeGridFloor(HubGold * 0.9f, new Color(0.055f, 0.052f, 0.048f));
+            // No-ops harmlessly if the custom shader fell back to Standard.
+            mat.SetFloat("_GridScale", 8f);
+            mat.SetFloat("_LineWidth", 0.018f);
+            mat.SetFloat("_MinorEmission", 0.12f);
+            mat.SetFloat("_Emission", 1.0f);
+            mat.SetFloat("_PulseStrength", 0.22f);
+            mat.SetFloat("_Smoothness", 0.93f);
+            var floor = BuildKit.Spawn(PrimitiveType.Plane, "Floor", null,
+                Vector3.zero, new Vector3(4f, 1f, 4f), mat, collider: true);
+            floor.isStatic = true;
+
+            // Baseboard skirting where walls meet the floor — small physical
+            // detail that procedural rooms always lack.
+            var baseMat = BuildKit.MakeStandard(new Color(0.05f, 0.055f, 0.075f), 0.6f, 0.5f);
+            BuildKit.Spawn(PrimitiveType.Cube, "Base_N", null, new Vector3(0, 0.175f, 19.4f), new Vector3(39.2f, 0.35f, 0.16f), baseMat, false).isStatic = true;
+            BuildKit.Spawn(PrimitiveType.Cube, "Base_S", null, new Vector3(0, 0.175f, -19.4f), new Vector3(39.2f, 0.35f, 0.16f), baseMat, false).isStatic = true;
+            BuildKit.Spawn(PrimitiveType.Cube, "Base_E", null, new Vector3(19.4f, 0.175f, 0), new Vector3(0.16f, 0.35f, 39.2f), baseMat, false).isStatic = true;
+            BuildKit.Spawn(PrimitiveType.Cube, "Base_W", null, new Vector3(-19.4f, 0.175f, 0), new Vector3(0.16f, 0.35f, 39.2f), baseMat, false).isStatic = true;
         }
 
         public static GameObject BuildSystems()
@@ -79,27 +126,52 @@ namespace Cyverse.Level
                 HubDoor.Build(d.pos, d.rotY, d.name, d.scene, d.level, d.accent);
 
                 // The door's local -Z points into the room (see HubDoor.Build);
-                // pads, guide strips, and accent light all extend that way.
-                Vector3 inward = Quaternion.Euler(0f, d.rotY, 0f) * Vector3.back;
+                // pads, guide dashes, and lighting all extend that way.
+                Quaternion facing = Quaternion.Euler(0f, d.rotY, 0f);
+                Vector3 inward = facing * Vector3.back;
 
                 var pad = BuildKit.Spawn(PrimitiveType.Cylinder, "LandingPad_" + d.level, wayfinding.transform,
                     d.pos + inward * 1.8f + Vector3.up * 0.025f, new Vector3(2.2f, 0.012f, 2.2f),
                     BuildKit.MakeHologram(d.accent), collider: false);
                 pad.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 8f, 0f);
 
-                var strip = BuildKit.Spawn(PrimitiveType.Cube, "GuideStrip_" + d.level, wayfinding.transform,
-                    d.pos + inward * 7.2f + Vector3.up * 0.015f, new Vector3(0.18f, 0.03f, 8f),
-                    BuildKit.MakeEmissive(d.accent, 1.4f), collider: false);
-                strip.transform.rotation = Quaternion.Euler(0f, d.rotY, 0f);
+                // Dashed guide path (airport-style wayfinding) — dashes read as
+                // designed signage where a solid 8m glow bar reads as a laser.
+                var dashMat = BuildKit.MakeEmissive(d.accent, 1.5f);
+                for (int k = 0; k < 5; k++)
+                {
+                    var dash = BuildKit.Spawn(PrimitiveType.Cube, $"GuideDash_{d.level}_{k}", wayfinding.transform,
+                        d.pos + inward * (3.4f + k * 1.75f) + Vector3.up * 0.015f,
+                        new Vector3(0.18f, 0.03f, 1.1f), dashMat, collider: false);
+                    dash.transform.rotation = facing;
+                }
 
+                // Recessed threshold + dark backing panel give the doorway
+                // physical depth instead of a glowing sticker on a flat wall.
+                var plateMat = BuildKit.MakeStandard(new Color(0.05f, 0.055f, 0.075f), 0.65f, 0.6f);
+                var plate = BuildKit.Spawn(PrimitiveType.Cube, "Threshold_" + d.level, wayfinding.transform,
+                    d.pos + inward * 0.45f + Vector3.up * 0.01f, new Vector3(3.2f, 0.02f, 0.9f), plateMat, collider: false);
+                plate.transform.rotation = facing;
+
+                // 0.14 tucks the quad just behind the baseboard face (0.32 from
+                // the wall centre-line) so the two never render coplanar.
+                var backing = BuildKit.Spawn(PrimitiveType.Quad, "DoorBacking_" + d.level, wayfinding.transform,
+                    d.pos - inward * 0.14f + Vector3.up * 2f, new Vector3(3.0f, 4.05f, 1f),
+                    BuildKit.MakeStandard(new Color(0.02f, 0.025f, 0.04f), 0.2f, 0.1f), collider: false);
+                backing.transform.rotation = facing;
+
+                // A downward spot pool at each door: pools of light with dark
+                // gaps between them model how real lobbies are actually lit.
                 var glow = new GameObject("DoorLight_" + d.level);
                 glow.transform.SetParent(wayfinding.transform, false);
-                glow.transform.position = d.pos + inward * 0.8f + Vector3.up * 3.6f;
+                glow.transform.position = d.pos + inward * 1.6f + Vector3.up * 4.4f;
+                glow.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
                 var l = glow.AddComponent<Light>();
-                l.type = LightType.Point;
-                l.color = d.accent;
-                l.range = 7f;
-                l.intensity = 1.6f;
+                l.type = LightType.Spot;
+                l.spotAngle = 62f;
+                l.color = Color.Lerp(d.accent, Color.white, 0.35f);
+                l.range = 9f;
+                l.intensity = 2.6f;
             }
         }
 
@@ -110,27 +182,33 @@ namespace Cyverse.Level
         {
             var root = new GameObject("Furnishings");
 
-            // Dais under the holo core, with a slow gold halo on the ceiling
-            // above it — the room's vertical anchor.
+            // Two-step dais under the holo core, with a slow gold halo on the
+            // ceiling above it — the room's vertical anchor.
+            BuildKit.Spawn(PrimitiveType.Cylinder, "DaisStep", root.transform,
+                new Vector3(0f, 0.012f, 6f), new Vector3(8.6f, 0.012f, 8.6f),
+                BuildKit.MakeStandard(new Color(0.08f, 0.085f, 0.11f), 0.6f, 0.35f), collider: false);
             BuildKit.Spawn(PrimitiveType.Cylinder, "Dais", root.transform,
-                new Vector3(0f, 0.02f, 6f), new Vector3(7f, 0.02f, 7f),
-                BuildKit.MakeStandard(new Color(0.05f, 0.06f, 0.09f), 0.75f, 0.45f), collider: false);
+                new Vector3(0f, 0.028f, 6f), new Vector3(7f, 0.02f, 7f),
+                BuildKit.MakeStandard(new Color(0.05f, 0.06f, 0.09f), 0.78f, 0.5f), collider: false);
             var halo = BuildKit.Spawn(PrimitiveType.Cylinder, "CeilingHalo", root.transform,
                 new Vector3(0f, 4.8f, 6f), new Vector3(8f, 0.015f, 8f),
                 BuildKit.MakeHologram(HubGold), collider: false);
             halo.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 6f, 0f);
 
-            // Lounge, north-west (clear of the west door at z=-12).
-            PropFactory.BuildRug(root.transform, new Vector3(-12f, 0f, 14f), new Vector3(4.8f, 0.02f, 3.6f));
-            PropFactory.BuildCouch(root.transform, new Vector3(-12f, 0f, 15.3f), 180f);
-            PropFactory.BuildCouch(root.transform, new Vector3(-14.4f, 0f, 13.4f), 90f);
-            PropFactory.BuildCoffeeTable(root.transform, new Vector3(-11.6f, 0f, 13.5f));
-            PropFactory.BuildPlant(root.transform, new Vector3(-9.5f, 0f, 16.5f));
+            // Lounges sit in slightly-rotated groups: nothing in a real room is
+            // perfectly axis-aligned, and the few degrees of tilt do more to
+            // break the "generated" look than any material could.
+            var loungeNw = Pivot(root.transform, "Lounge_NW", new Vector3(-12f, 0f, 14f), 7f);
+            PropFactory.BuildRug(loungeNw, Vector3.zero, new Vector3(4.8f, 0.02f, 3.6f));
+            PropFactory.BuildCouch(loungeNw, new Vector3(0f, 0f, 1.3f), 180f);
+            PropFactory.BuildCouch(loungeNw, new Vector3(-2.4f, 0f, -0.6f), 90f);
+            PropFactory.BuildCoffeeTable(loungeNw, new Vector3(0.4f, 0f, -0.5f));
+            PropFactory.BuildPlant(loungeNw, new Vector3(2.5f, 0f, 2.5f));
 
-            // Smaller seat near the spawn, south-east.
-            PropFactory.BuildRug(root.transform, new Vector3(10f, 0f, -14f), new Vector3(3.6f, 0.02f, 3.0f));
-            PropFactory.BuildCouch(root.transform, new Vector3(10f, 0f, -15.3f), 0f);
-            PropFactory.BuildPlant(root.transform, new Vector3(12.4f, 0f, -15.8f));
+            var seatSe = Pivot(root.transform, "Seat_SE", new Vector3(10f, 0f, -14f), -5f);
+            PropFactory.BuildRug(seatSe, Vector3.zero, new Vector3(3.6f, 0.02f, 3.0f));
+            PropFactory.BuildCouch(seatSe, new Vector3(0f, 0f, -1.3f), 0f);
+            PropFactory.BuildPlant(seatSe, new Vector3(2.4f, 0f, -1.8f));
 
             // Plants framing the door bays (between the pads, against the walls).
             PropFactory.BuildPlant(root.transform, new Vector3(18.3f, 0f, 8f));
@@ -139,14 +217,18 @@ namespace Cyverse.Level
             PropFactory.BuildPlant(root.transform, new Vector3(-18.3f, 0f, -8f));
             PropFactory.BuildPlant(root.transform, new Vector3(-18.3f, 0f, -16f));
 
-            // SJSU banners along the north wall so it isn't a bare slab.
+            // SJSU banners along the north wall so it isn't a bare slab. Framed
+            // and only faintly emissive — they should look LIT, not glowing.
+            var frameMat = BuildKit.MakeStandard(new Color(0.06f, 0.065f, 0.09f), 0.5f, 0.55f);
             for (int i = 0; i < 4; i++)
             {
                 float x = -12f + i * 8f;
                 Color c = i % 2 == 0 ? SjsuBlue : HubGold;
+                BuildKit.Spawn(PrimitiveType.Cube, "BannerFrame_" + i, root.transform,
+                    new Vector3(x, 3.1f, 19.38f), new Vector3(1.6f, 2.6f, 0.06f), frameMat, collider: false);
                 BuildKit.Spawn(PrimitiveType.Cube, "Banner_" + i, root.transform,
                     new Vector3(x, 3.1f, 19.3f), new Vector3(1.4f, 2.4f, 0.08f),
-                    BuildKit.MakeEmissive(c, 0.9f), collider: false);
+                    BuildKit.MakeEmissive(c, 0.35f), collider: false);
             }
 
             // Ambient drones.
@@ -214,6 +296,17 @@ namespace Cyverse.Level
             l.color = new Color(0.55f, 0.75f, 1f);
             l.range = 6f;
             l.intensity = 1.4f;
+        }
+
+        /// <summary>Rotated group parent, so a furniture cluster can be laid
+        /// out in easy local coordinates and tilted a few degrees as one.</summary>
+        private static Transform Pivot(Transform parent, string name, Vector3 pos, float rotY)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos;
+            go.transform.localRotation = Quaternion.Euler(0f, rotY, 0f);
+            return go.transform;
         }
 
         private static void Post(Transform parent, Vector3 localPos, Material mat)
