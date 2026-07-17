@@ -63,30 +63,54 @@ namespace Cyverse.Level
                 "TASK ROOM", "Complete the security briefing to unlock this door.", IamBlue);
         }
 
+        /// <summary>The gamified task room: four hands-on tasks (one per "A")
+        /// plus the Certification Exam. Every task except enrollment gates on
+        /// the badge — identification comes first, enforced by the game rules.
+        /// Positions dodge the shared furnishings: server racks x −6.5..−2.9
+        /// and 13.6/14.8 at z=18.5, plants (±8,8), wall columns every ±8.</summary>
         public static void BuildTaskRoom()
         {
-            BuildKit.CreateStation(StationSetup.Topic.IAM, "Inspect: Identification",
-                new Vector3(-8f, 0f, 11f), IamBlue, "IDENTIFICATION", "ID",
-                Level1IamContent.Identification, Level1IamContent.IdentificationQuiz, Notify);
-            BuildKit.CreateStation(StationSetup.Topic.IAM, "Inspect: Authentication",
-                new Vector3(-3f, 0f, 14.5f), IamBlue, "AUTHENTICATION", "AUTH",
-                Level1IamContent.Authentication, Level1IamContent.AuthenticationQuiz, Notify);
-            BuildKit.CreateStation(StationSetup.Topic.IAM, "Inspect: Authorization",
-                new Vector3(3f, 0f, 14.5f), IamBlue, "AUTHORIZATION", "AUTHZ",
-                Level1IamContent.Authorization, Level1IamContent.AuthorizationQuiz, Notify);
-            BuildKit.CreateStation(StationSetup.Topic.IAM, "Inspect: Accountability",
-                new Vector3(8f, 0f, 11f), IamBlue, "ACCOUNTABILITY", "ACCT",
-                Level1IamContent.Accountability, Level1IamContent.AccountabilityQuiz, Notify);
+            System.Func<bool> badgeGate = () => BadgeStation.EnrolledInScene;
+            const string gateMsg = "BADGE REQUIRED — enroll at the ID kiosk first.";
 
-            // Exit back to the Hub — manager unlocks it when the task is done.
+            // Task 1 — IDENTIFICATION: first thing seen through the divider door.
+            BadgeStation.Build(new Vector3(-4.5f, 0f, 6f), 0f, IamBlue);
+
+            // Task 2 — AUTHENTICATION: vault on the west wall; its token
+            // deliberately charges on the far (east) side of the room.
+            MfaGauntlet.Build(
+                vaultPos: new Vector3(-16.5f, 0f, 12f), vaultRotY: -90f,
+                terminalPos: new Vector3(-13f, 0f, 8f),
+                padPos: new Vector3(-13f, 0f, 15f),
+                tokenRackPos: new Vector3(8f, 0f, 5f),
+                slotPos: new Vector3(-15.2f, 0f, 9.2f),
+                accent: IamBlue,
+                passcode: Level1IamContent.DailyPasscode,
+                gate: badgeGate, gateMessage: gateMsg);
+
+            // Task 3 — AUTHORIZATION: intake table + role pedestals, east side.
+            SortingStation.Build(new Vector3(13f, 0f, 8f),
+                Level1IamContent.SortingCrates(),
+                new[]
+                {
+                    ("INTERN", new Vector3(10.5f, 0f, 14f)),
+                    ("HR MANAGER", new Vector3(13.5f, 0f, 15.5f)),
+                    ("SYSADMIN", new Vector3(16.5f, 0f, 14f)),
+                },
+                IamBlue, badgeGate, gateMsg);
+
+            // Task 4 — ACCOUNTABILITY: audit log board, north-west.
+            AuditStation.Build(new Vector3(-9.5f, 0f, 17.6f), 0f,
+                Level1IamContent.AuditRounds(), IamBlue, badgeGate, gateMsg);
+
+            // Boss check — activated by the manager once all tasks are done.
+            CertExamStation.Build(new Vector3(0f, 0f, 16f), 0f,
+                Level1IamContent.ExamQuestions(), IamBlue);
+
+            // Exit back to the Hub — manager unlocks it when the level is done.
             // x=4 clears the wall column at x=0 and the server racks further west.
             HubDoor.Build(new Vector3(4f, 0f, 19.2f), 0f, "Return to Hub",
                 "Hub", 0, new Color(0.90f, 0.66f, 0.14f), HubDoor.Mode.Manual);
-        }
-
-        private static void Notify()
-        {
-            if (Level1IamManager.Instance != null) Level1IamManager.Instance.NotifyStationReviewed();
         }
     }
 }

@@ -58,6 +58,76 @@ namespace Cyverse.Level
                 "Accountability means actions are traceable to a person. Activity is logged and audited — a digital trail that supports investigations and compliance."),
         };
 
+        // ---- Task data (the gamified task room) -------------------------------
+
+        /// <summary>The MFA vault's "something you know". Posted on the memo
+        /// beside the terminal — passphrase-styled, SJSU flavoured.</summary>
+        public const string DailyPasscode = "SPARTAN-GOLD-1857";
+
+        /// <summary>A data crate for the sorting task.</summary>
+        public class CrateDef
+        {
+            public readonly string id, label, role, why;
+            public CrateDef(string id, string label, string role, string why)
+            { this.id = id; this.label = label; this.role = role; this.why = why; }
+        }
+
+        public static CrateDef[] SortingCrates() => new[]
+        {
+            new CrateDef("faq", "PUBLIC FAQ", "INTERN",
+                "Public info — everyone may handle it, including interns."),
+            new CrateDef("payroll", "PAYROLL DATA", "HR MANAGER",
+                "Salary records are need-to-know: HR only."),
+            new CrateDef("rootkeys", "SERVER ROOT KEYS", "SYSADMIN",
+                "Admin credentials go only to admins."),
+            new CrateDef("medical", "MEDICAL FORMS", "HR MANAGER",
+                "Health records are confidential — HR handles them."),
+        };
+
+        /// <summary>One round of the audit log hunt: 6 entries, one anomalous.</summary>
+        public class LogRound
+        {
+            public readonly string[] lines;
+            public readonly int anomaly;
+            public readonly string hint, why;
+            public LogRound(string[] lines, int anomaly, string hint, string why)
+            { this.lines = lines; this.anomaly = anomaly; this.hint = hint; this.why = why; }
+        }
+
+        public static LogRound[] AuditRounds() => new[]
+        {
+            new LogRound(new[]
+            {
+                $"08:59  {PlayerIdentity.Callsign}  badge-in  ·  Lobby",
+                "09:04  k.ramos  view  ·  HR/records",
+                "09:17  sysadmin  patch  ·  server-03",
+                "03:12  guest-04  download  ·  PAYROLL/*",
+                "09:31  j.okafor  print  ·  Marketing/brief",
+                "09:45  k.ramos  badge-out  ·  Lobby",
+            }, 3,
+            "Look for an account acting far outside its role (and its hours).",
+            "A guest account bulk-downloading payroll at 3 AM — access beyond its role."),
+
+            new LogRound(new[]
+            {
+                "10:02  d.chen  login  ·  San José, US",
+                "10:06  d.chen  login  ·  Kyiv, UA",
+                "10:11  sysadmin  backup  ·  server-01",
+                "10:19  m.silva  view  ·  Sales/pipeline",
+                "10:24  intern-02  view  ·  Public/FAQ",
+                "10:30  d.chen  logout  ·  —",
+            }, 1,
+            "Check WHERE each login comes from — and how fast they'd have to travel.",
+            "The same account logged in from two countries four minutes apart — impossible travel."),
+        };
+
+        /// <summary>The Certification Exam bank (the four knowledge checks,
+        /// now asked together as the level's boss check).</summary>
+        public static Quiz.QuizQuestion[] ExamQuestions() => new[]
+        {
+            IdentificationQuiz(), AuthenticationQuiz(), AuthorizationQuiz(), AccountabilityQuiz(),
+        };
+
         // ---- Knowledge checks (one fixed question per station) ----------------
 
         public static QuizQuestion IdentificationQuiz() => new QuizQuestion(

@@ -102,11 +102,31 @@ level will follow (the "8-step" template):
    viewing** (`VideoStation.FirstCompleted` → `LockedDoor.Unlock()`).
 5. The video stays **repeatable and scrubbable** afterwards.
 6. The door slides open into the **working space**.
-7. The player completes the **task** there (for I/AM: review all four
-   stations — Identification, Authentication, Authorization, Accountability).
+7. The player completes the **tasks** there. I/AM is fully gamified — one
+   hands-on mechanic per "A", not multiple-choice cards:
+   - **Badge Enrollment** (Identification) — a kiosk issues your ID under
+     your callsign. Must be done first: every other station refuses you
+     until you have a badge, which *is* the lesson.
+   - **MFA Vault** (Authentication) — clear three factors physically: type
+     the daily passcode from the wall memo (something you KNOW), fetch the
+     security token from its charger across the room and slot it (something
+     you HAVE — `E` pick up, `Q` put down), and take the biometric pad scan
+     (something you ARE). Three lights fill; the vault slides open.
+   - **Data Triage** (Authorization) — carry four labelled data crates to
+     the role pedestals that should have access (INTERN / HR / SYSADMIN).
+     Wrong pedestal = denied with a least-privilege explanation.
+   - **Audit Hunt** (Accountability) — an in-world access-log board: `↑`/`↓`
+     move the highlight, `E` flags the anomalous entry; two rounds
+     (role abuse, impossible travel).
+   The four knowledge checks now form one **Certification Exam** terminal
+   that unlocks after all tasks — the boss check, with streaks/combos.
 8. Completion is **persisted** (`LevelProgress.MarkCompleted(1)`), the results
    screen shows, and the **exit door back to the Hub unlocks** — where the
    next level's door is now open.
+
+   The carry mechanic (`Interaction/Carryable.cs` + `DropZone.cs`) and the
+   typed-answer modal (`UI/TypingChallenge.cs`) are level-agnostic — reuse
+   them for future levels' tasks.
 
 `Level/Level1IamManager.cs` orchestrates the phases (Watch → Task → Complete);
 `Level/Level1IamSceneFactory.cs` builds the two-room layout on BuildKit.

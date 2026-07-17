@@ -384,6 +384,51 @@ namespace Cyverse.Level
             go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
         }
 
+        /// <summary>Spawn a primitive positioned in its parent's LOCAL space —
+        /// use this instead of Spawn when the parent is rotated.</summary>
+        public static GameObject SpawnLocal(PrimitiveType type, string name, Transform parent,
+            Vector3 localPos, Vector3 localEuler, Vector3 localScale, Material mat, bool collider)
+        {
+            var go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localRotation = Quaternion.Euler(localEuler);
+            go.transform.localScale = localScale;
+            if (mat != null) go.GetComponent<Renderer>().sharedMaterial = mat;
+            if (!collider) StripCollider(go);
+            return go;
+        }
+
+        /// <summary>Small plain TextMesh label (no halo/underline chrome —
+        /// see MakeSign for full signage). Local-space; identity rotation makes
+        /// it readable from the parent's -Z side.</summary>
+        public static TextMesh MakeLabel(Transform parent, Vector3 localPos, string text,
+            Color color, float characterSize, bool billboard = false,
+            TextAnchor anchor = TextAnchor.MiddleCenter, FontStyle style = FontStyle.Bold)
+        {
+            var go = new GameObject("Label_" + text.Replace(' ', '_'));
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localRotation = Quaternion.identity;
+
+            var font = HudUI.LoadFont();
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = font;
+            tm.text = text;
+            tm.fontSize = 64;
+            tm.characterSize = characterSize;
+            tm.fontStyle = style;
+            tm.anchor = anchor;
+            tm.alignment = anchor == TextAnchor.MiddleLeft ? TextAlignment.Left
+                        : anchor == TextAnchor.MiddleRight ? TextAlignment.Right
+                        : TextAlignment.Center;
+            tm.color = color;
+            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            if (billboard) go.AddComponent<Billboard>();
+            return tm;
+        }
+
         /// <summary>Remove a primitive's collider safely in both play and edit mode.</summary>
         public static void StripCollider(GameObject go)
         {
