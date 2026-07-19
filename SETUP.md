@@ -12,8 +12,12 @@ PasswordLock  →  Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → …
  (entry scene)   (level select)           (unlock in order)
 ```
 
-- **PasswordLock** — the first thing a player sees: a login terminal. Two
-  modes on the `PasswordLockController` component:
+- **PasswordLock** — the first thing a player sees, and fully **diegetic**:
+  a 3D security vestibule (fixed camera with idle sway) where the login
+  prompt renders on a physical terminal monitor, the memo is a plaque
+  beside it, and the gate to the Hub is a real door that slides open on
+  ACCESS GRANTED before the camera fades through. Two modes on the
+  `PasswordLockController` component:
   - **Gate mode (default)** — a real beta-access gate: the code is never
     shown; testers get it from the team, and repeated failures trigger a
     30s cooldown. Set the actual code in the Inspector (`password` field).
