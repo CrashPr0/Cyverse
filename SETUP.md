@@ -162,6 +162,36 @@ drives the doors, the wayfinding, *and* the mission board — to add Level 3
 later, point its entry at the new scene name and add the scene in
 `CyverseSceneTools.AddScenesToBuildSettings`; everything else follows.
 
+## Level 3: Digital Forensics — KC7 in engine
+
+`Assets/Scenes/Level3_Forensics.unity` ("Case: Spartan Gold") brings the
+[KC7](https://kc7cyber.com) experience into the game: instead of reading
+about forensics, the player **queries security logs** to work a real
+investigation. Same two-room template; the briefing teaches query syntax,
+and the task room is a SOC floor built around the **Investigation Desk** —
+a full-screen forensic terminal running a mini-KQL:
+
+```
+Email | where sender == "prizes@spartan-rewards.com" | count
+WebVisits | where url contains "spartan-rewards"
+DnsLookups | distinct domain
+```
+
+Operators: `where` (`==`, `!=`, `contains`), `project`, `distinct`, `take`,
+`count` — all case-insensitive, quoted strings supported. Terminal commands:
+`help`, `tables`, `fields <table>`, `case`, `hint` (halves that question's
+points), `answer <value>`, `clear`; ↑/↓ cycle command history; Esc steps
+away (progress persists).
+
+The 8-question case walks the classic phishing kill-chain pivot: campaign
+emails → the lure link → who clicked (WebVisits) → payload execution
+(ProcessEvents) → attacker IP (DnsLookups) → the attacker's *second* domain
+on the same IP. First-try answers without hints score full points and build
+streaks; the dataset (5 tables, authored noise included) lives in
+`Forensics/LogDatabase.cs`, the case in `Forensics/InvestigationCase.cs` —
+educators can add questions or a whole new case without touching engine code
+(`MiniKql.cs` is pure C# and reusable).
+
 ## Level 2: Cyber Defense (blockout)
 
 A playable vertical-slice blockout of Room 2 from the concept tables — **SOC
@@ -299,6 +329,12 @@ completion, matching the CyVerse Script.
 | `Interaction/HubDoor.cs`               | Level-select door: status sign + scene loading  |
 | `Level/MissionBoard.cs`                | Hub status board: callsign, clearance, per-level state |
 | `Level/AmbientScreen.cs`               | Wall TV driver: headline ticker + animated chart |
+| `Forensics/LogDatabase.cs`             | KC7 dataset: 5 log tables of the breach story    |
+| `Forensics/MiniKql.cs`                 | Mini-KQL engine: where/project/distinct/take/count |
+| `Forensics/InvestigationCase.cs`       | Case questions, answers, hints + briefing slides |
+| `Forensics/QueryTerminal.cs`           | Full-screen forensic terminal (modal, keyboard)  |
+| `Interaction/ForensicsConsole.cs`      | Investigation Desk prop; owns case + database    |
+| `Level/Level3Forensics*.cs`            | Level 3 factory / manager / bootstrap            |
 | `Interaction/LockedDoor.cs`            | Sliding door, unlocked by an event              |
 | `Interaction/VideoStation.cs`          | Briefing Screen: slides or real video, scrubbing|
 | `Level/Level1IamContent.cs`            | I/AM briefing slides, station lines, quiz       |

@@ -33,6 +33,15 @@ namespace Cyverse.EditorTools
             Debug.Log("CyVerse: Level 1 (I/AM) built. Tweak the objects, then File > Save.");
         }
 
+        [MenuItem("CyVerse/Build Level 3 (Forensics) Scene")]
+        public static void BuildLevel3Forensics()
+        {
+            if (!ConfirmSceneEmpty("Build Level 3 (Forensics)")) return;
+            Level3ForensicsSceneFactory.BuildAll();
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("CyVerse: Level 3 (Forensics) built. Tweak the objects, then File > Save.");
+        }
+
         private static bool ConfirmSceneEmpty(string title)
         {
             if (GameObject.Find("GameSystems") == null) return true;
@@ -54,6 +63,7 @@ namespace Cyverse.EditorTools
                 "Assets/Scenes/Level0.unity",
                 "Assets/Scenes/Level1_IAM.unity",
                 "Assets/Scenes/Level1.unity",
+                "Assets/Scenes/Level3_Forensics.unity",
             };
 
             var list = new List<EditorBuildSettingsScene>();
