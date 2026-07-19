@@ -60,6 +60,9 @@ namespace Cyverse.Interaction
             transform.SetParent(cam.transform, false);
             transform.localPosition = new Vector3(0.42f, -0.34f, 0.95f);
             transform.localRotation = Quaternion.Euler(8f, -14f, 0f);
+            // In-hand presentation: smaller, and no name tag in your face.
+            transform.localScale = Vector3.one * 0.6f;
+            SetLabelVisible(false);
 
             if (!hintShown && HudUI.Instance != null)
             {
@@ -97,8 +100,16 @@ namespace Cyverse.Interaction
                 transform.position = pos;
             }
             transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+            SetLabelVisible(true);
             foreach (var c in colliders) c.enabled = true;
             if (Carried == this) Carried = null;
+        }
+
+        private void SetLabelVisible(bool visible)
+        {
+            var tm = GetComponentInChildren<TextMesh>(true);
+            if (tm != null) tm.gameObject.SetActive(visible);
         }
 
         /// <summary>Delivered: remove from the world (drop zones call this).</summary>

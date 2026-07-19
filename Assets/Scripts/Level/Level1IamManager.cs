@@ -91,6 +91,11 @@ namespace Cyverse.Level
             taskDoor = FindObjectOfType<LockedDoor>();
             exitDoor = FindObjectOfType<HubDoor>();
 
+            // Leaving mid-level is always allowed — a locked exit is a trap,
+            // and completion is persisted separately. The completion burst at
+            // the door still marks the moment the level is actually done.
+            if (exitDoor != null) exitDoor.SetUnlocked(true);
+
             if (briefing != null) briefing.FirstCompleted += OnBriefingCompleted;
             else OnBriefingCompleted(); // no screen in scene — don't soft-lock
 
@@ -154,6 +159,19 @@ namespace Cyverse.Level
             int n = 0;
             foreach (var s in legacyStations) if (s.IsReviewed) n++;
             if (n >= legacyStations.Count) CompleteLevel();
+        }
+
+        // StationSetup's delegate hooks are runtime-only (Func/Action don't
+        // serialize), so a legacy scene saved from the editor has no way to
+        // call NotifyStationReviewed — poll instead, once a second.
+        private float legacyPollTimer;
+        void Update()
+        {
+            if (legacyStations.Count == 0 || CurrentPhase != Phase.Tasks) return;
+            legacyPollTimer += Time.deltaTime;
+            if (legacyPollTimer < 1f) return;
+            legacyPollTimer = 0f;
+            NotifyStationReviewed();
         }
 
         private void UpdateObjective()

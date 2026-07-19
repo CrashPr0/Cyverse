@@ -84,8 +84,12 @@ namespace Cyverse.Player
 
         private void HandleMove()
         {
-            float h = Input.GetAxisRaw("Horizontal");
-            float v = Input.GetAxisRaw("Vertical");
+            // WASD only — deliberately NOT the "Horizontal"/"Vertical" axes,
+            // which also map the arrow keys. Arrows belong to stations (video
+            // scrubbing, audit-log navigation); reading axes made every arrow
+            // press strafe the player away from the screen they were using.
+            float h = (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f);
+            float v = (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f);
 
             Vector3 move = transform.right * h + transform.forward * v;
             move = Vector3.ClampMagnitude(move, 1f) * moveSpeed;

@@ -245,10 +245,13 @@ namespace Cyverse.Interaction
             Child(root.transform, PrimitiveType.Cube, "Frame",
                 new Vector3(0f, 2.15f, 0f), new Vector3(4.3f, 2.5f, 0.18f), dark, true);
 
+            // Unity's Quad renders on its LOCAL -Z face, so identity rotation
+            // already faces the viewer standing on -Z. (It was flipped 180°
+            // before, which backface-culled the display surface — invisible
+            // screen, and a real video would never have shown.)
             var screen = Child(root.transform, PrimitiveType.Quad, "Screen",
                 new Vector3(0f, 2.15f, -0.11f), new Vector3(4.0f, 2.2f, 1f),
                 BuildKit.MakeStandard(new Color(0.02f, 0.03f, 0.05f), 0.2f, 0f), false);
-            screen.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); // face local -Z
 
             var font = HudUI.LoadFont();
             var title = MakeTm(root.transform, "TitleText", new Vector3(0f, 2.95f, -0.13f), 0.05f, FontStyle.Bold, accent, font);
