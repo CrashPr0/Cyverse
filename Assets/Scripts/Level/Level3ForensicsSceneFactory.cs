@@ -61,7 +61,12 @@ namespace Cyverse.Level
         public static void BuildTaskRoom()
         {
             // The investigation desk, front and centre.
-            ForensicsConsole.Build(new Vector3(0f, 0f, 10f), 0f, ForensicGreen);
+            var console = ForensicsConsole.Build(new Vector3(0f, 0f, 10f), 0f, ForensicGreen);
+
+            // Evidence pinboard fills in as questions are solved.
+            var board = EvidenceBoard.Build(new Vector3(-8f, 0f, 15f), 0f,
+                console.TotalQuestions, ForensicGreen);
+            board.Bind(console.Cases);
 
             // Case-flavoured newsroom on the walls.
             string[] caseNews =

@@ -15,20 +15,52 @@ namespace Cyverse.Interaction
     public class ForensicsConsole : MonoBehaviour, IInteractable
     {
         public LogDatabase Database { get; private set; }
-        public InvestigationCase Case { get; private set; }
+        public InvestigationCase[] Cases { get; private set; }
+
+        /// <summary>The first unsolved case (or the last one, once all done).</summary>
+        public InvestigationCase ActiveCase
+        {
+            get
+            {
+                if (Cases == null || Cases.Length == 0) return null;
+                foreach (var c in Cases) if (!c.IsComplete) return c;
+                return Cases[Cases.Length - 1];
+            }
+        }
+
+        public bool AllComplete
+        {
+            get
+            {
+                if (Cases == null) return false;
+                foreach (var c in Cases) if (!c.IsComplete) return false;
+                return true;
+            }
+        }
+
+        public int TotalQuestions
+        {
+            get { int n = 0; if (Cases != null) foreach (var c in Cases) n += c.questions.Length; return n; }
+        }
+
+        public int TotalAnswered
+        {
+            get { int n = 0; if (Cases != null) foreach (var c in Cases) n += c.AnsweredCount; return n; }
+        }
 
         void Awake()
         {
             // Plain C# objects don't serialize into saved scenes — rebuild
             // them on load so editor-saved copies of the level still work.
             if (Database == null) Database = LogDatabase.Build();
-            if (Case == null) Case = InvestigationCase.SpartanGold();
+            if (Cases == null)
+                Cases = new[] { InvestigationCase.SpartanGold(), InvestigationCase.MidnightExfil() };
         }
 
         public bool CanInteract => true;
-        public string Prompt => Case != null && Case.IsComplete
+        public string Prompt => AllComplete
             ? "Review the case logs"
-            : "Work the case — Forensic Terminal";
+            : $"Work {(ActiveCase != null ? ActiveCase.title : "the case")} — Forensic Terminal";
 
         public void Interact(GameObject interactor)
         {
@@ -39,7 +71,12 @@ namespace Cyverse.Interaction
                 return;
             }
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
-            QueryTerminal.Instance.Open(Database, Case);
+
+            var current = ActiveCase;
+            bool lastCase = current == null || current == Cases[Cases.Length - 1];
+            QueryTerminal.Instance.Open(Database, current, lastCase
+                ? null // default "results are waiting" close-out
+                : "<b>CASE CLOSED.</b> A new case file just hit your desk — Esc, then open the terminal again.");
         }
 
         // ---- Construction ----------------------------------------------------

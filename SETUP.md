@@ -177,20 +177,36 @@ WebVisits | where url contains "spartan-rewards"
 DnsLookups | distinct domain
 ```
 
-Operators: `where` (`==`, `!=`, `contains`), `project`, `distinct`, `take`,
-`count` — all case-insensitive, quoted strings supported. Terminal commands:
-`help`, `tables`, `fields <table>`, `case`, `hint` (halves that question's
-points), `answer <value>`, `clear`; ↑/↓ cycle command history; Esc steps
-away (progress persists).
+Operators: `where` (`==`, `!=`, `contains`), `project`, `distinct`,
+`summarize count by <col>` (group + count, biggest first), `sort by <col>
+[desc]` (numeric-aware), `take`, `count` — all case-insensitive, quoted
+strings supported. Terminal commands: `help`, `tables`, `fields <table>`,
+`case`, `hint` (halves that question's points), `answer <value>`, `clear`;
+**TAB autocompletes** table/column/operator names; ↑/↓ cycle command
+history; Esc steps away (progress persists). The sidebar shows live score
+and streak.
 
-The 8-question case walks the classic phishing kill-chain pivot: campaign
-emails → the lure link → who clicked (WebVisits) → payload execution
-(ProcessEvents) → attacker IP (DnsLookups) → the attacker's *second* domain
-on the same IP. First-try answers without hints score full points and build
-streaks; the dataset (5 tables, authored noise included) lives in
-`Forensics/LogDatabase.cs`, the case in `Forensics/InvestigationCase.cs` —
+**Two cases, both required to finish the level (14 questions total):**
+
+1. **Case: Spartan Gold** (8 questions) — the classic phishing kill-chain
+   pivot: campaign emails → the lure link → who clicked (WebVisits) →
+   payload execution (ProcessEvents) → attacker IP (DnsLookups) → the
+   attacker's *second* domain on the same IP.
+2. **Case 2: Midnight Exfil** (6 questions, unlocked when Case 1 closes) —
+   an insider threat that only shows up in *aggregates*: `summarize` finds
+   the account with anomalous logon volume, `sort` finds the after-hours
+   entry, and FileAccess ties the USB exfiltration to one employee. New
+   tables: LogonEvents, FileAccess.
+
+An **evidence pinboard** in the SOC fills in a card per solved question, so
+investigation progress is visible in the world, not just in the terminal.
+
+First-try answers without hints score full points and build streaks; the
+dataset (7 tables, authored noise included) lives in
+`Forensics/LogDatabase.cs`, the cases in `Forensics/InvestigationCase.cs` —
 educators can add questions or a whole new case without touching engine code
-(`MiniKql.cs` is pure C# and reusable).
+(`MiniKql.cs` is pure C# and reusable). All 14 answers are machine-verified
+against the dataset.
 
 ## Level 2: Cyber Defense (blockout)
 

@@ -21,11 +21,14 @@ namespace Cyverse.Forensics
     ///     | where column == "value"     (also != and contains)
     ///     | project col1, col2
     ///     | distinct column
+    ///     | summarize count by column   (group + count, sorted desc)
+    ///     | sort by column [desc]
     ///     | take N
     ///     | count
     ///
     /// Everything is case-insensitive; string values may be quoted (needed
-    /// when they contain spaces). Pure C# — no Unity types — so it's easy to
+    /// when they contain spaces). Sorting is numeric-aware when both values
+    /// parse as numbers. Pure C# — no Unity types — so it's easy to
     /// unit-test and reuse.
     /// </summary>
     public static class MiniKql
@@ -118,8 +121,47 @@ namespace Cyverse.Forensics
                         rows = projected;
                         break;
                     }
+                    case "summarize":
+                    {
+                        // summarize count by <col>
+                        if (tokens.Count != 4 ||
+                            !tokens[1].Equals("count", StringComparison.OrdinalIgnoreCase) ||
+                            !tokens[2].Equals("by", StringComparison.OrdinalIgnoreCase))
+                            return Err("summarize needs:  summarize count by <column>");
+                        int col = IndexOf(headers, tokens[3]);
+                        if (col < 0) return ErrColumn(tokens[3], headers);
+
+                        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                        var order = new List<string>();
+                        foreach (var r in rows)
+                        {
+                            if (!counts.ContainsKey(r[col])) { counts[r[col]] = 0; order.Add(r[col]); }
+                            counts[r[col]]++;
+                        }
+                        order.Sort((a, b) => counts[b].CompareTo(counts[a])); // most frequent first
+                        var grouped = new List<string[]>(order.Count);
+                        foreach (var key in order) grouped.Add(new[] { key, counts[key].ToString() });
+                        headers = new[] { headers[col], "count" };
+                        rows = grouped;
+                        break;
+                    }
+                    case "sort":
+                    {
+                        // sort by <col> [desc|asc]
+                        if ((tokens.Count != 3 && tokens.Count != 4) ||
+                            !tokens[1].Equals("by", StringComparison.OrdinalIgnoreCase))
+                            return Err("sort needs:  sort by <column> [desc]");
+                        int col = IndexOf(headers, tokens[2]);
+                        if (col < 0) return ErrColumn(tokens[2], headers);
+                        bool desc = tokens.Count == 4 && tokens[3].Equals("desc", StringComparison.OrdinalIgnoreCase);
+                        if (tokens.Count == 4 && !desc && !tokens[3].Equals("asc", StringComparison.OrdinalIgnoreCase))
+                            return Err($"sort direction must be asc or desc, not '{tokens[3]}'.");
+                        rows.Sort((a, b) => Compare(a[col], b[col]));
+                        if (desc) rows.Reverse();
+                        break;
+                    }
                     default:
-                        return Err($"Unknown operator '{tokens[0]}'. Operators: where, project, distinct, take, count.");
+                        return Err($"Unknown operator '{tokens[0]}'. Operators: where, project, distinct, summarize, sort, take, count.");
                 }
             }
 
@@ -146,6 +188,15 @@ namespace Cyverse.Forensics
             }
             if (current.Length > 0) tokens.Add(current.ToString());
             return tokens;
+        }
+
+        /// <summary>Numeric-aware ordering: numbers compare as numbers,
+        /// everything else as case-insensitive text.</summary>
+        private static int Compare(string a, string b)
+        {
+            if (double.TryParse(a, out double na) && double.TryParse(b, out double nb))
+                return na.CompareTo(nb);
+            return string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
         }
 
         private static int IndexOf(string[] headers, string col)

@@ -135,6 +135,47 @@ namespace Cyverse.Forensics
                     "DnsLookups | where resolved_ip == \"45.133.7.22\""),
             });
 
+        /// <summary>
+        /// "Case: Midnight Exfil" — the follow-up insider-threat case. Requires
+        /// the analytics operators (summarize / sort): the anomaly hides in
+        /// aggregates, not in any single row. New tables: LogonEvents, FileAccess.
+        /// </summary>
+        public static InvestigationCase MidnightExfil() => new InvestigationCase(
+            "CASE 2: MIDNIGHT EXFIL",
+            new[]
+            {
+                new CaseQuestion(
+                    "New case. The SIEM flagged unusual account activity on 07-15. Which employee has the MOST logon events? (summarize is your friend.)",
+                    new[] { "drew.patel", "drew patel", "drew.patel@cyverse.edu" },
+                    "Group the LogonEvents by employee and count each group — the biggest group is your answer.",
+                    "LogonEvents | summarize count by employee", 140),
+                new CaseQuestion(
+                    "Business hours end at 19:00. At what TIME did the suspicious after-hours logon happen?",
+                    new[] { "23:40", "07-15 23:40" },
+                    "Sort LogonEvents by timestamp and look at the end of the day — or filter where timestamp contains \"07-15 23\".",
+                    "LogonEvents | sort by timestamp desc", 140),
+                new CaseQuestion(
+                    "Right after that logon, files started moving. How many files were copied to USB?",
+                    new[] { "4" },
+                    "FileAccess logs every action — filter where action == \"copy_to_usb\" and count.",
+                    "FileAccess | where action == \"copy_to_usb\" | count", 140),
+                new CaseQuestion(
+                    "Confirm the insider: who performed ALL of those USB copies?",
+                    new[] { "drew.patel", "drew patel", "drew.patel@cyverse.edu" },
+                    "Same filter, but look at the employee column — distinct makes it unambiguous.",
+                    "FileAccess | where action == \"copy_to_usb\" | distinct employee", 140),
+                new CaseQuestion(
+                    "Which WORKSTATION did the insider use? (Pivot back through LogonEvents.)",
+                    new[] { "WS-DPATEL", "ws-dpatel" },
+                    "Filter LogonEvents by the employee you identified and read the workstation column.",
+                    "LogonEvents | where employee == \"drew.patel\"", 140),
+                new CaseQuestion(
+                    "For the HR report: what is the exact TIMESTAMP of the FIRST file copied to USB?",
+                    new[] { "07-15 23:52", "23:52" },
+                    "Filter the USB copies and sort by timestamp ascending — the first row is your answer.",
+                    "FileAccess | where action == \"copy_to_usb\" | sort by timestamp", 140),
+            });
+
         /// <summary>Video-room briefing: teaches just enough query syntax.</summary>
         public static VideoStation.Slide[] BriefingSlides() => new[]
         {
@@ -146,6 +187,8 @@ namespace Cyverse.Forensics
                 "Narrow with where:  Email | where sender == \"someone\"  — or use contains for partial matches. Chain steps with the | pipe, and end with | count to count rows.", 11f),
             new VideoStation.Slide("THE PIVOT",
                 "The analyst's superpower: take a fact from one table and chase it through another. An email gives you a link; the link gives you visitors; a visitor's machine gives you malware. Answer with: answer <your finding>.", 12f),
+            new VideoStation.Slide("AGGREGATES",
+                "Some anomalies hide in totals, not rows. summarize count by employee groups and counts; sort by timestamp desc orders. When one bar towers over the rest — that's your lead. You'll need both for the second case.", 11f),
         };
     }
 }

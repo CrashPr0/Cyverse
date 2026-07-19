@@ -140,6 +140,43 @@ namespace Cyverse.Forensics
             proc.Add("07-14 11:27", "WS-RCHEN",  "wireshark.exe", "explorer.exe");
             db.tables.Add(proc);
 
+            // ---- Case 2 tables (Midnight Exfil — insider threat, 07-15) ----
+
+            var logons = new LogTable("LogonEvents", "timestamp", "employee", "event", "workstation");
+            logons.Add("07-15 07:52", "amber.kelly",  "logon",  "WS-AKELLY");
+            logons.Add("07-15 07:58", "taylor.reed",  "logon",  "WS-TREED");
+            logons.Add("07-15 08:01", "drew.patel",   "logon",  "WS-DPATEL");
+            logons.Add("07-15 08:03", "riley.chen",   "logon",  "WS-RCHEN");
+            logons.Add("07-15 08:06", "sam.ortiz",    "logon",  "WS-SORTIZ");
+            logons.Add("07-15 08:09", "morgan.lee",   "logon",  "WS-MLEE");
+            logons.Add("07-15 08:14", "jordan.cruz",  "logon",  "WS-JCRUZ");
+            logons.Add("07-15 08:20", "casey.fox",    "logon",  "WS-CFOX");
+            logons.Add("07-15 08:26", "jamie.park",   "logon",  "WS-JPARK");
+            logons.Add("07-15 08:31", "quinn.baker",  "logon",  "WS-QBAKER");
+            logons.Add("07-15 08:40", "alex.kim",     "logon",  "WS-AKIM");
+            logons.Add("07-15 12:30", "drew.patel",   "logon",  "WS-DPATEL"); // back from lunch
+            logons.Add("07-15 17:35", "casey.fox",    "logoff", "WS-CFOX");
+            logons.Add("07-15 18:02", "amber.kelly",  "logoff", "WS-AKELLY");
+            logons.Add("07-15 18:44", "riley.chen",   "logoff", "WS-RCHEN");
+            logons.Add("07-15 18:51", "drew.patel",   "logoff", "WS-DPATEL");
+            logons.Add("07-15 23:40", "drew.patel",   "logon",  "WS-DPATEL"); // the after-hours return
+            db.tables.Add(logons);
+
+            var files = new LogTable("FileAccess", "timestamp", "employee", "action", "file");
+            files.Add("07-15 08:12", "taylor.reed",  "read",        "hr/onboarding_checklist.docx");
+            files.Add("07-15 08:35", "drew.patel",   "read",        "finance/q3_forecast.xlsx");
+            files.Add("07-15 09:04", "jordan.cruz",  "read",        "finance/q3_budget.xlsx");
+            files.Add("07-15 09:20", "riley.chen",   "read",        "soc/incident_4411_report.pdf");
+            files.Add("07-15 10:12", "morgan.lee",   "read",        "eng/auth_module_design.md");
+            files.Add("07-15 11:03", "amber.kelly",  "read",        "board/strategy_2027.pptx");
+            files.Add("07-15 13:41", "drew.patel",   "read",        "finance/expenses_july.xlsx");
+            files.Add("07-15 15:26", "taylor.reed",  "read",        "hr/benefits_matrix.xlsx");
+            files.Add("07-15 23:52", "drew.patel",   "copy_to_usb", "finance/payroll_2026.xlsx");
+            files.Add("07-15 23:57", "drew.patel",   "copy_to_usb", "finance/clients_2026.xlsx");
+            files.Add("07-16 00:03", "drew.patel",   "copy_to_usb", "board/salaries_board.pdf");
+            files.Add("07-16 00:09", "drew.patel",   "copy_to_usb", "board/mna_draft.docx");
+            db.tables.Add(files);
+
             var dns = new LogTable("DnsLookups", "domain", "resolved_ip");
             dns.Add("spartan-rewards.com",  "45.133.7.22");
             dns.Add("gold-updates.net",     "45.133.7.22"); // same attacker IP — the pivot

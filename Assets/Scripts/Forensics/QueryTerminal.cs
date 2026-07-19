@@ -24,6 +24,7 @@ namespace Cyverse.Forensics
 
         private LogDatabase db;
         private InvestigationCase activeCase;
+        private string caseClosedNote;
 
         private GameObject card;
         private Text outputText, sidebarText, inputText, titleText;
@@ -39,13 +40,14 @@ namespace Cyverse.Forensics
             Instance = this;
         }
 
-        public void Open(LogDatabase database, InvestigationCase investigation)
+        public void Open(LogDatabase database, InvestigationCase investigation, string closedNote = null)
         {
             if (open || GameState.AnyMenuOpen) return;
             if (card == null) Build();
 
             db = database;
             activeCase = investigation;
+            caseClosedNote = closedNote;
             typed = "";
             open = true;
             GameState.QuizActive = true;
@@ -65,6 +67,8 @@ namespace Cyverse.Forensics
             if (Time.frameCount == GameState.MenuTransitionFrame) return;
 
             if (Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
+
+            if (Input.GetKeyDown(KeyCode.Tab)) TabComplete();
 
             // Command history.
             if (Input.GetKeyDown(KeyCode.UpArrow) && history.Count > 0)
@@ -104,6 +108,54 @@ namespace Cyverse.Forensics
             card.SetActive(false);
             GameState.QuizActive = false;
             GameState.MenuTransitionFrame = Time.frameCount;
+        }
+
+        /// <summary>Tab-completes the last token of the input against table
+        /// names, column names, operators, and commands. Unique match →
+        /// completed; several matches → shows them without losing the input.</summary>
+        private void TabComplete()
+        {
+            int start = typed.Length;
+            while (start > 0 && !char.IsWhiteSpace(typed[start - 1]) && typed[start - 1] != '|') start--;
+            string partial = typed.Substring(start);
+            if (partial.Length == 0) return;
+
+            var candidates = new List<string>();
+            void Consider(string word)
+            {
+                if (word.StartsWith(partial, System.StringComparison.OrdinalIgnoreCase) &&
+                    !candidates.Contains(word)) candidates.Add(word);
+            }
+
+            foreach (var t in db.tables)
+            {
+                Consider(t.name);
+                foreach (var c in t.columns) Consider(c);
+            }
+            foreach (var w in new[] { "where", "project", "distinct", "summarize", "sort", "take",
+                                      "count", "by", "contains", "desc", "answer", "tables",
+                                      "fields", "hint", "help", "clear", "case" })
+                Consider(w);
+
+            if (candidates.Count == 1)
+            {
+                typed = typed.Substring(0, start) + candidates[0];
+            }
+            else if (candidates.Count > 1)
+            {
+                // Extend to the longest common prefix, then show the options.
+                string common = candidates[0];
+                foreach (var c in candidates)
+                {
+                    int n = 0;
+                    while (n < common.Length && n < c.Length &&
+                           char.ToLowerInvariant(common[n]) == char.ToLowerInvariant(c[n])) n++;
+                    common = common.Substring(0, n);
+                }
+                if (common.Length > partial.Length)
+                    typed = typed.Substring(0, start) + common;
+                PrintBlock($"<color=#8FB8CC>Tab:</color> {Escape(string.Join("   ", candidates))}");
+            }
         }
 
         // ---- Command handling ------------------------------------------------
@@ -192,7 +244,8 @@ namespace Cyverse.Forensics
 
                 if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
                 string next = activeCase.IsComplete
-                    ? "\n\n<color=#E5A823><b>CASE CLOSED.</b> Outstanding work, analyst. Esc to step away — your results are waiting.</color>"
+                    ? "\n\n<color=#E5A823>" + (caseClosedNote ??
+                        "<b>CASE CLOSED.</b> Outstanding work, analyst. Esc to step away — your results are waiting.") + "</color>"
                     : $"\n\n<color=#8FB8CC>Next question is up on the case file →</color>";
                 PrintBlock(echo + $"<color=#4CE087><b>CORRECT</b>  +{award} points</color>{next}");
 
@@ -235,7 +288,10 @@ namespace Cyverse.Forensics
             "  Email | where sender == \"x\" | count\n" +
             "  WebVisits | where url contains \"word\"\n" +
             "  Email | project sender, subject | take 5\n" +
-            "  DnsLookups | distinct domain\n\n" +
+            "  DnsLookups | distinct domain\n" +
+            "  LogonEvents | summarize count by employee\n" +
+            "  FileAccess | sort by timestamp desc\n" +
+            "  TAB autocompletes tables, columns and operators.\n\n" +
             "<b>COMMANDS</b>\n" +
             "  tables            list the log tables\n" +
             "  fields Email      a table's columns\n" +
@@ -283,7 +339,10 @@ namespace Cyverse.Forensics
             for (int i = 0; i < activeCase.questions.Length; i++)
                 sb.Append(activeCase.questions[i].Answered ? "<color=#4CE087>■</color>" : "□").Append(' ');
             sb.Append("</size></color>\n\n");
-            sb.Append("<size=17><color=#607585>help · tables · fields ‹t›\nhint · answer ‹x› · clear\nEsc steps away</color></size>");
+            sb.Append($"<color=#E5A823>SCORE: {ScoreSystem.Score}</color>");
+            if (ScoreSystem.Streak >= 2)
+                sb.Append($"   <color=#4CE087>streak x{ScoreSystem.Streak}</color>");
+            sb.Append("\n\n<size=17><color=#607585>help · tables · fields ‹t›\nhint · answer ‹x› · clear · TAB\nEsc steps away</color></size>");
             sidebarText.text = sb.ToString();
         }
 

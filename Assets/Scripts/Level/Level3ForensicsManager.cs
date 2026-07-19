@@ -61,12 +61,17 @@ namespace Cyverse.Level
 
             if (exitDoor != null) exitDoor.SetUnlocked(true); // never trap the player
 
-            if (console != null && console.Case != null)
+            if (console != null && console.Cases != null)
             {
-                console.Case.QuestionAnswered += UpdateObjective;
-                // Don't complete while the terminal modal is open (results
-                // would stack over it) — flag it and finish once it's closed.
-                console.Case.CaseCompleted += () => pendingComplete = true;
+                foreach (var c in console.Cases)
+                {
+                    c.QuestionAnswered += UpdateObjective;
+                    // Don't complete while the terminal modal is open (results
+                    // would stack over it) — flag when the LAST case closes and
+                    // finish once the screen is free. Case 1 closing instead
+                    // celebrates and points at the new case file.
+                    c.CaseCompleted += OnCaseCompleted;
+                }
             }
 
             if (briefing != null) briefing.FirstCompleted += OnBriefingCompleted;
@@ -77,6 +82,24 @@ namespace Cyverse.Level
         }
 
         private bool pendingComplete;
+
+        private void OnCaseCompleted()
+        {
+            if (console != null && console.AllComplete)
+            {
+                pendingComplete = true;
+            }
+            else
+            {
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("CASE CLOSED — a new case file hit your desk",
+                        new Color(0.90f, 0.66f, 0.14f));
+                if (console != null)
+                    BurstFX.Spawn(console.transform.position + Vector3.up * 2.2f,
+                        new Color(0.90f, 0.66f, 0.14f), 40);
+            }
+            UpdateObjective();
+        }
 
         void Update()
         {
@@ -103,8 +126,9 @@ namespace Cyverse.Level
         private void UpdateObjective()
         {
             if (HudUI.Instance == null) return;
-            int total = console != null && console.Case != null ? console.Case.questions.Length : 8;
-            int done = console != null && console.Case != null ? console.Case.AnsweredCount : 0;
+            int total = console != null ? console.TotalQuestions : 14;
+            int done = console != null ? console.TotalAnswered : 0;
+            string caseName = console != null && console.ActiveCase != null ? console.ActiveCase.title : "the case";
 
             switch (CurrentPhase)
             {
@@ -113,7 +137,7 @@ namespace Cyverse.Level
                     HudUI.Instance.SetProgress(0, total, "▶");
                     break;
                 case Phase.Investigate:
-                    HudUI.Instance.ShowObjective($"Objective: Solve the case at the Investigation Desk  ({done}/{total})");
+                    HudUI.Instance.ShowObjective($"Objective: Solve {caseName} at the Investigation Desk  ({done}/{total})");
                     HudUI.Instance.SetProgress(done, total);
                     break;
                 case Phase.Complete:
