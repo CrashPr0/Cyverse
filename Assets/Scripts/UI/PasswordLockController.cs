@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Interaction;
 using Cyverse.Level;
@@ -40,7 +41,7 @@ namespace Cyverse.UI
         private static readonly Color Gold = new Color(0.90f, 0.66f, 0.14f);
         private static readonly Color Cyan = new Color(0.35f, 0.85f, 1f);
 
-        private TextMesh inputText, feedbackText;
+        private Text inputText, feedbackText;
         private Transform monitor;
         private Transform camRig;
         private Vector3 camBasePos;
@@ -57,8 +58,11 @@ namespace Cyverse.UI
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = false; // typing-only scene, no pointer needed
+            AccessibilitySettings.ReduceMotion = PlayerPrefs.GetInt("cv_reducemotion", 0) == 1;
+            Shader.SetGlobalFloat("_CyMotion", AccessibilitySettings.ReduceMotion ? 0f : 1f);
             BuildWorld();
             RefreshInput();
+            SetFeedback("<color=#6F8296>SYSTEM READY  /  AWAITING CREDENTIALS</color>");
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
         }
 
@@ -79,6 +83,21 @@ namespace Cyverse.UI
                 RefreshInput();
             }
 
+            bool clipboardModifier = Input.GetKey(KeyCode.LeftControl) ||
+                                     Input.GetKey(KeyCode.RightControl) ||
+                                     Input.GetKey(KeyCode.LeftCommand) ||
+                                     Input.GetKey(KeyCode.RightCommand);
+            if (clipboardModifier && Input.GetKeyDown(KeyCode.V))
+            {
+                PasteFromClipboard();
+                return;
+            }
+            if (clipboardModifier && Input.GetKeyDown(KeyCode.C))
+            {
+                CopyToClipboard();
+                return;
+            }
+
             foreach (char c in Input.inputString)
             {
                 if (c == '\b')
@@ -96,6 +115,40 @@ namespace Cyverse.UI
                 }
             }
             RefreshInput();
+        }
+
+        private void PasteFromClipboard()
+        {
+            string clipboard = GUIUtility.systemCopyBuffer;
+            if (string.IsNullOrEmpty(clipboard))
+            {
+                SetFeedback("<color=#6F8296>CLIPBOARD IS EMPTY</color>");
+                return;
+            }
+
+            int before = typed.Length;
+            foreach (char c in clipboard)
+            {
+                if (!char.IsControl(c) && typed.Length < maxLength)
+                    typed += c;
+            }
+
+            RefreshInput();
+            SetFeedback(typed.Length > before
+                ? "<color=#5BC8FF>PASTED FROM CLIPBOARD</color>"
+                : "<color=#6F8296>NO VALID CHARACTERS TO PASTE</color>");
+        }
+
+        private void CopyToClipboard()
+        {
+            if (typed.Length == 0)
+            {
+                SetFeedback("<color=#6F8296>NOTHING TO COPY</color>");
+                return;
+            }
+
+            GUIUtility.systemCopyBuffer = typed;
+            SetFeedback("<color=#5BC8FF>ENTRY COPIED TO CLIPBOARD</color>");
         }
 
         void LateUpdate()
@@ -182,7 +235,7 @@ namespace Cyverse.UI
             if (inputText == null) return;
             string shown = masked ? new string('•', typed.Length) : typed;
             bool blink = !unlocked && Mathf.Sin(Time.unscaledTime * 6f) > 0f;
-            inputText.text = $"PASSCODE:  <color=#5BC8FF>{shown}{(blink ? "_" : " ")}</color>";
+            inputText.text = $"<color=#5BC8FF>{shown}{(blink ? "_" : " ")}</color>";
         }
 
         private void SetFeedback(string message)
@@ -247,20 +300,7 @@ namespace Cyverse.UI
                 new Vector3(0f, 0f, -0.045f), Vector3.zero, new Vector3(1.98f, 1.23f, 1f),
                 BuildKit.MakeEmissive(new Color(0.015f, 0.04f, 0.07f), 0.6f), collider: false);
 
-            BuildKit.MakeLabel(monitor, new Vector3(0f, 0.45f, -0.06f), "CYVERSE", Cyan, 0.05f);
-            BuildKit.MakeLabel(monitor, new Vector3(0f, 0.28f, -0.06f),
-                revealPassword ? "SECURE TERMINAL — EMPLOYEE ACCESS" : "SECURE TERMINAL — BETA ACCESS",
-                new Color(0.75f, 0.85f, 0.95f), 0.018f, billboard: false,
-                anchor: TextAnchor.MiddleCenter, style: FontStyle.Normal);
-
-            inputText = BuildKit.MakeLabel(monitor, new Vector3(-0.85f, 0.02f, -0.06f), "",
-                Color.white, 0.030f, billboard: false, anchor: TextAnchor.MiddleLeft);
-            feedbackText = BuildKit.MakeLabel(monitor, new Vector3(0f, -0.24f, -0.06f), "",
-                Color.white, 0.019f, billboard: false, anchor: TextAnchor.MiddleCenter, style: FontStyle.Normal);
-            BuildKit.MakeLabel(monitor, new Vector3(0f, -0.47f, -0.06f),
-                "TYPE the code  ·  ENTER submit  ·  TAB show/hide",
-                new Color(0.42f, 0.50f, 0.62f), 0.015f, billboard: false,
-                anchor: TextAnchor.MiddleCenter, style: FontStyle.Normal);
+            BuildTerminalCanvas();
 
             BuildMemoPlaque();
 
@@ -270,6 +310,7 @@ namespace Cyverse.UI
             camGo.transform.rotation = Quaternion.Euler(4f, 0f, 0f);
             var cam = camGo.AddComponent<Camera>();
             cam.backgroundColor = new Color(0.02f, 0.03f, 0.05f);
+            cam.allowMSAA = true;
             camGo.AddComponent<AudioListener>();
             camGo.tag = "MainCamera";
             camRig = camGo.transform;
@@ -292,10 +333,63 @@ namespace Cyverse.UI
             gameObject.AddComponent<AmbientHum>();
             gameObject.AddComponent<ScreenFader>();
 
-            BuildKit.MakeLabel(null, new Vector3(0f, 0.35f, -1.48f),
-                "San José State University  ·  CyberVerse Project",
-                new Color(0.40f, 0.48f, 0.60f), 0.012f, billboard: false,
-                anchor: TextAnchor.MiddleCenter, style: FontStyle.Normal);
+        }
+
+        private void BuildTerminalCanvas()
+        {
+            var canvas = MakeWorldCanvas("TerminalUI", monitor,
+                new Vector3(0f, 0f, -0.065f), new Vector2(1000f, 620f), 0.0019f);
+            Transform root = canvas.transform;
+
+            MakeUiText(root, "Brand", new Vector2(0f, 235f), new Vector2(900f, 105f),
+                "CYVERSE", 82, Cyan, TextAnchor.MiddleCenter, FontStyle.Bold);
+            MakeUiText(root, "TerminalMode", new Vector2(0f, 163f), new Vector2(880f, 52f),
+                revealPassword ? "SECURE TERMINAL  /  EMPLOYEE ACCESS" : "SECURE TERMINAL  /  BETA ACCESS",
+                28, new Color(0.72f, 0.84f, 0.96f), TextAnchor.MiddleCenter, FontStyle.Normal);
+            MakeUiImage(root, "HeaderRule", new Vector2(0f, 126f), new Vector2(780f, 3f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.75f));
+
+            MakeUiText(root, "PasscodeLabel", new Vector2(-350f, 48f), new Vector2(210f, 62f),
+                "PASSCODE", 26, new Color(0.70f, 0.78f, 0.88f), TextAnchor.MiddleLeft, FontStyle.Bold);
+            MakeUiImage(root, "InputField", new Vector2(70f, 48f), new Vector2(620f, 82f),
+                new Color(0.02f, 0.11f, 0.17f, 0.95f));
+            MakeUiImage(root, "InputAccent", new Vector2(70f, 6f), new Vector2(620f, 3f), Cyan);
+            inputText = MakeUiText(root, "Input", new Vector2(70f, 48f), new Vector2(580f, 70f),
+                "", 54, Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
+            inputText.resizeTextForBestFit = true;
+            inputText.resizeTextMinSize = 28;
+            inputText.resizeTextMaxSize = 54;
+
+            feedbackText = MakeUiText(root, "Feedback", new Vector2(0f, -63f), new Vector2(850f, 74f),
+                "", 27, Color.white, TextAnchor.MiddleCenter, FontStyle.Normal);
+            feedbackText.resizeTextForBestFit = true;
+            feedbackText.resizeTextMinSize = 17;
+            feedbackText.resizeTextMaxSize = 27;
+
+            MakeUiText(root, "Controls", new Vector2(0f, -168f), new Vector2(880f, 48f),
+                "ENTER  SUBMIT     TAB  SHOW / HIDE     CTRL/CMD+C/V  COPY / PASTE",
+                21, new Color(0.48f, 0.58f, 0.70f), TextAnchor.MiddleCenter, FontStyle.Normal);
+
+            AddCrtOverlay(root);
+        }
+
+        private static void AddCrtOverlay(Transform root)
+        {
+            Shader shader = Resources.Load<Shader>("Shaders/CRTOverlay");
+            if (shader == null) shader = Shader.Find("Cyverse/CRTOverlay");
+            if (shader == null)
+            {
+                Debug.LogWarning("CRT overlay shader was not found; terminal will render without it.");
+                return;
+            }
+
+            var overlay = MakeUiImage(root, "CRTOverlay", Vector2.zero,
+                new Vector2(970f, 590f), Color.white);
+            overlay.material = new Material(shader)
+            {
+                name = "Terminal CRT Overlay"
+            };
+            overlay.transform.SetAsLastSibling();
         }
 
         private void BuildMemoPlaque()
@@ -316,16 +410,97 @@ namespace Cyverse.UI
                 new Vector3(0f, 1.24f, -0.005f), Vector3.zero, new Vector3(1.7f, 0.04f, 0.02f),
                 BuildKit.MakeEmissive(Gold, 1.6f), collider: false);
 
-            string text = revealPassword
-                ? "SECURITY MEMO — KEEP PRIVATE\n\n" +
-                  $"Temporary password:\n<size=52><color=#E5A823>{password}</color></size>\n\n" +
-                  "<size=26>Why it's strong: 11 chars mixing\nupper/lower, digits and symbols —\nbuilt from a passphrase.</size>"
-                : "CLOSED BETA\n\n" +
-                  "Enter the access code you\nreceived from the CyVerse team.\n\n" +
-                  "<size=26>Codes are case-sensitive —\ntype exactly, incl. symbols.\nNo code? Contact the team.</size>";
-            BuildKit.MakeLabel(memo.transform, new Vector3(0f, 1.88f, -0.01f),
-                text, new Color(0.88f, 0.93f, 1f), 0.016f, billboard: false,
-                anchor: TextAnchor.MiddleCenter, style: FontStyle.Normal);
+            var canvas = MakeWorldCanvas("MemoUI", memo.transform,
+                new Vector3(0f, 1.88f, -0.012f), new Vector2(720f, 500f), 0.00215f);
+            Transform root = canvas.transform;
+
+            MakeUiText(root, "MemoHeader", new Vector2(0f, 182f), new Vector2(640f, 62f),
+                revealPassword ? "SECURITY MEMO" : "CLOSED BETA",
+                38, Gold, TextAnchor.MiddleCenter, FontStyle.Bold);
+            MakeUiImage(root, "MemoRule", new Vector2(0f, 140f), new Vector2(560f, 3f),
+                new Color(Gold.r, Gold.g, Gold.b, 0.75f));
+
+            string body = revealPassword
+                ? $"Temporary password:\n<color=#E5A823><b>{password}</b></color>"
+                : "Enter the access code you received\nfrom the CyVerse team.";
+            Text bodyText = MakeUiText(root, "MemoBody", new Vector2(0f, 48f), new Vector2(620f, 150f),
+                body, 30, new Color(0.90f, 0.95f, 1f), TextAnchor.MiddleCenter, FontStyle.Normal);
+            bodyText.resizeTextForBestFit = true;
+            bodyText.resizeTextMinSize = 22;
+            bodyText.resizeTextMaxSize = 30;
+
+            string note = revealPassword
+                ? "Use a long, memorable passphrase.\nMix upper/lowercase, digits, and symbols."
+                : "Codes are case-sensitive.\nType every symbol exactly.\n\nNo code? Contact the CyVerse team.";
+            MakeUiText(root, "MemoNote", new Vector2(0f, -118f), new Vector2(600f, 145f),
+                note, 20, new Color(0.66f, 0.74f, 0.84f), TextAnchor.MiddleCenter, FontStyle.Normal);
+        }
+
+        private static Canvas MakeWorldCanvas(string name, Transform parent,
+            Vector3 localPosition, Vector2 pixelSize, float worldScale)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            var rt = go.GetComponent<RectTransform>();
+            rt.SetParent(parent, false);
+            rt.localPosition = localPosition;
+            rt.localRotation = Quaternion.identity;
+            rt.localScale = Vector3.one * worldScale;
+            rt.sizeDelta = pixelSize;
+
+            var canvas = go.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 5;
+
+            var scaler = go.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+            scaler.scaleFactor = 1f;
+            scaler.dynamicPixelsPerUnit = 4f;
+            return canvas;
+        }
+
+        private static Text MakeUiText(Transform parent, string name, Vector2 position,
+            Vector2 size, string content, int fontSize, Color color,
+            TextAnchor alignment, FontStyle style)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var rt = go.GetComponent<RectTransform>();
+            rt.SetParent(parent, false);
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = position;
+            rt.sizeDelta = size;
+
+            var text = go.GetComponent<Text>();
+            text.font = HudUI.LoadFont();
+            text.fontSize = fontSize;
+            text.fontStyle = style;
+            text.alignment = alignment;
+            text.color = color;
+            text.supportRichText = true;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.lineSpacing = 1f;
+            text.raycastTarget = false;
+            text.text = content;
+            return text;
+        }
+
+        private static Image MakeUiImage(Transform parent, string name, Vector2 position,
+            Vector2 size, Color color)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            var rt = go.GetComponent<RectTransform>();
+            rt.SetParent(parent, false);
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = position;
+            rt.sizeDelta = size;
+
+            var image = go.GetComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            return image;
         }
     }
 }
