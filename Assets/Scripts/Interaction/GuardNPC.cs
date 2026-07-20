@@ -11,23 +11,23 @@ namespace Cyverse.Interaction
     /// <summary>
     /// A standing NPC guide, built from primitives (navy uniform, Spartan-gold
     /// belt and badge, cyan visor). Turns to face the player when they're near
-    /// and breathes subtly. What it says on interact is level-specific: pass a
-    /// <see cref="LinesProvider"/> to <see cref="Build"/> for a custom level's
-    /// dialogue; omitting it falls back to the original Level 0 (onboarding)
-    /// guard behavior, so existing call sites are unaffected.
+    /// and breathes subtly. A serialized dialogue profile keeps editor-built
+    /// NPCs wired after save/reload; callers can still provide a runtime override.
     /// </summary>
     public class GuardNPC : MonoBehaviour, IInteractable
     {
+        public enum DialogueProfile { Level0Guard, HubConcierge, CyberDefenseLead }
+
         public float faceRange = 8f;
         public float turnSpeed = 3f;
+        public DialogueProfile dialogueProfile = DialogueProfile.Level0Guard;
 
         private Transform head;
         private float headBaseY;
         private float seed;
 
-        /// <summary>Supplies phase-appropriate dialogue for this NPC. If null,
-        /// falls back to the original Level 0 onboarding-guard lines.</summary>
-        public Func<List<DialogueLine>> LinesProvider;
+        /// <summary>Optional runtime-only override. Unity does not serialize delegates.</summary>
+        [NonSerialized] public Func<List<DialogueLine>> LinesProvider;
 
         public string displayName = "Security Guard";
         public string Prompt => $"Talk to the {displayName}";
@@ -66,8 +66,31 @@ namespace Cyverse.Interaction
         public void Interact(GameObject interactor)
         {
             if (DialogueManager.Instance == null) return;
-            var lines = LinesProvider != null ? LinesProvider() : Level0OnboardingLines();
+            var lines = LinesProvider != null ? LinesProvider() : ProfileLines();
             DialogueManager.Instance.Play(lines);
+        }
+
+        private List<DialogueLine> ProfileLines()
+        {
+            DialogueProfile profile = dialogueProfile;
+
+            // Migration fallback for scenes saved before dialogueProfile was
+            // serialized. New factory-built scenes set the profile explicitly.
+            if (profile == DialogueProfile.Level0Guard)
+            {
+                if (displayName == "Concierge") profile = DialogueProfile.HubConcierge;
+                else if (displayName == "SOC Lead") profile = DialogueProfile.CyberDefenseLead;
+            }
+
+            switch (profile)
+            {
+                case DialogueProfile.HubConcierge:
+                    return HubSceneFactory.ConciergeLines();
+                case DialogueProfile.CyberDefenseLead:
+                    return Level1SceneFactory.SocLeadLines();
+                default:
+                    return Level0OnboardingLines();
+            }
         }
 
         private List<DialogueLine> Level0OnboardingLines()
@@ -103,12 +126,11 @@ namespace Cyverse.Interaction
 
         // ---- Construction ----------------------------------------------------
 
-        /// <summary>Build a guide NPC (edit- and play-mode safe). Pass
-        /// <paramref name="linesProvider"/> to give a level its own dialogue;
-        /// omit it (as Level 0 does) to keep the original onboarding-guard
-        /// behavior.</summary>
+        /// <summary>Build a guide NPC (edit- and play-mode safe). The dialogue
+        /// profile is serialized; the provider is a runtime-only override.</summary>
         public static GameObject Build(Vector3 position, float rotY,
             string displayName = "Security Guard", string signText = "SECURITY",
+            DialogueProfile dialogueProfile = DialogueProfile.Level0Guard,
             Func<List<DialogueLine>> linesProvider = null)
         {
             var root = new GameObject("GuardNPC");
@@ -144,6 +166,7 @@ namespace Cyverse.Interaction
 
             var guard = root.AddComponent<GuardNPC>();
             guard.displayName = displayName;
+            guard.dialogueProfile = dialogueProfile;
             guard.LinesProvider = linesProvider;
 
             BuildKit.MakeSign(root.transform, position + new Vector3(0f, 2.25f, 0f),

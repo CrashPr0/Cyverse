@@ -102,6 +102,8 @@ namespace Cyverse.Interaction
 
         private void RefreshVisuals()
         {
+            ResolveReferences();
+
             if (panelRenderer != null && panelRenderer.material.HasProperty("_Color"))
             {
                 Color c = InDevelopment ? new Color(0.35f, 0.40f, 0.48f)
@@ -115,6 +117,21 @@ namespace Cyverse.Interaction
                 statusText.text = InDevelopment ? "IN DEVELOPMENT"
                     : !Unlocked ? "LOCKED"
                     : Completed ? "COMPLETE — REPLAY" : "READY";
+            }
+        }
+
+        private void ResolveReferences()
+        {
+            if (panelRenderer == null)
+            {
+                var portal = transform.Find("Portal");
+                if (portal != null) panelRenderer = portal.GetComponent<Renderer>();
+            }
+
+            if (statusText == null)
+            {
+                var status = transform.Find("Status");
+                if (status != null) statusText = status.GetComponent<TextMesh>();
             }
         }
 

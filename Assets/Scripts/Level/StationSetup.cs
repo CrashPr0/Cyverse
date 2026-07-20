@@ -40,12 +40,13 @@ namespace Cyverse.Level
         /// <summary>True once dialogue AND the knowledge check are done.</summary>
         public bool IsReviewed { get; private set; }
 
-        // Level-specific hooks, wired by whichever scene factory builds this
-        // station. Leaving all three null preserves the original Level 0
-        // behavior exactly (IAM/CIA/NICE content, Level0Quiz, Level0Manager).
-        public Func<List<DialogueLine>> contentProvider;
-        public Func<QuizQuestion> quizProvider;
-        public Action onReviewed;
+        // Optional runtime overrides. Delegates are intentionally not the only
+        // source of level wiring because Unity cannot serialize them into an
+        // editor-built scene; the topic-based fallbacks below keep saved scenes
+        // functional after a domain reload and in player builds.
+        [NonSerialized] public Func<List<DialogueLine>> contentProvider;
+        [NonSerialized] public Func<QuizQuestion> quizProvider;
+        [NonSerialized] public Action onReviewed;
 
         void Start()
         {
@@ -57,7 +58,7 @@ namespace Cyverse.Level
 
         private void OnDialogueDone(InteractableStation station)
         {
-            var question = quizProvider != null ? quizProvider() : Level0Quiz.For(topic);
+            var question = quizProvider != null ? quizProvider() : QuizForTopic();
             if (QuizSystem.Instance != null)
                 QuizSystem.Instance.Ask(question, OnQuizAnswered);
             else
@@ -85,6 +86,8 @@ namespace Cyverse.Level
 
             if (onReviewed != null)
                 onReviewed();
+            else if (IsCyberDefenseTopic(topic) && Level1Manager.Instance != null)
+                Level1Manager.Instance.NotifyStationReviewed();
             else if (Level0Manager.Instance != null)
                 Level0Manager.Instance.NotifyStationReviewed();
         }
@@ -93,18 +96,31 @@ namespace Cyverse.Level
         {
             if (contentProvider != null) return contentProvider();
 
-            // Legacy fallback for Level 0 stations built without an explicit
-            // provider (the original SceneFactory/editor-built path).
             switch (topic)
             {
                 case Topic.IAM: return Level0Content.IAM();
                 case Topic.CIA: return Level0Content.CIA();
                 case Topic.NICE: return Level0Content.Nice();
+                case Topic.SIEM: return Level1Content.Siem();
+                case Topic.EDR: return Level1Content.Edr();
+                case Topic.INCIDENT: return Level1Content.Incident();
                 default:
                     Debug.LogWarning($"StationSetup: no contentProvider set for topic {topic} " +
-                                      "and it has no Level 0 fallback — showing no dialogue.");
+                                      "and it has no built-in fallback — showing no dialogue.");
                     return new List<DialogueLine>();
             }
+        }
+
+        private QuizQuestion QuizForTopic()
+        {
+            return IsCyberDefenseTopic(topic)
+                ? Level1Quiz.For(topic)
+                : Level0Quiz.For(topic);
+        }
+
+        private static bool IsCyberDefenseTopic(Topic value)
+        {
+            return value == Topic.SIEM || value == Topic.EDR || value == Topic.INCIDENT;
         }
     }
 }

@@ -235,15 +235,16 @@ signage, or the station geometry — they only supply their own room palette,
 station topics/content, centerpiece, and completion gate.
 
 To keep `StationSetup`, `QuizSystem`, and the glossary reusable across levels
-without duplicating them, three call sites were generalized with **optional**
-delegates that default to Level 0's original behavior (so Level 0 is
-unaffected if left unset):
+without duplicating them, the shared systems use serialized profiles/topics
+with optional runtime delegates for custom overrides:
 - `StationSetup.contentProvider` / `quizProvider` / `onReviewed` — a level's
-  `SceneFactory` wires these per station instead of `StationSetup` hardcoding
-  `Level0Content`/`Level0Quiz`/`Level0Manager`.
-- `GuardNPC.Build(pos, rot, displayName, signText, linesProvider)` — the NPC
-  shell (model, facing, breathing) is shared; each level supplies its own name
-  and phase-aware dialogue. Level 1 reuses it as the "SOC Lead."
+  `SceneFactory` may wire these at runtime. Saved scenes fall back to the
+  serialized `topic`, so Unity domain reloads and player builds retain the
+  correct Level 0 or Cyber Defense content, quiz, and manager callback.
+- `GuardNPC.Build(..., dialogueProfile, linesProvider)` — the NPC shell (model,
+  facing, breathing) is shared. The serializable profile retains the Concierge
+  or SOC Lead dialogue in editor-built scenes; a delegate can still override it
+  at runtime.
 - `ResultsScreen.Show(..., headerText, grantedLine, nextMissionText, replaySuffix)`
   — same results card, level-specific copy.
 
@@ -463,7 +464,7 @@ pauses the game. Reduce Motion uses a global shader float `_CyMotion`.
    Presentation → WebGL Template → CyVerse`. The built game then ships inside
    a branded shell (SJSU Blue `#0055A2` header, Spartan Gold `#E5A823`
    loading bar and accents, fullscreen button, offline-safe system fonts).
-3. Run **CyVerse → Add Scenes To Build Settings** so all five scenes are in
+3. Run **CyVerse → Add Scenes To Build Settings** so all six scenes are in
    the build, PasswordLock first (it's the entry scene).
 4. **Player Settings → Publishing Settings → Compression Format:** `Brotli`
    (smaller downloads; needs HTTPS hosting) or `Gzip`.

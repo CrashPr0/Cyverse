@@ -60,7 +60,8 @@ namespace Cyverse.Level
             BuildDoors();
             BuildMissionBoard();
             GuardNPC.Build(new Vector3(2.2f, 0f, -5.5f), 180f,
-                displayName: "Concierge", signText: "INFORMATION", linesProvider: ConciergeLines);
+                displayName: "Concierge", signText: "INFORMATION",
+                dialogueProfile: GuardNPC.DialogueProfile.HubConcierge);
             BuildKit.BuildPlayer();
             BuildSystems();
         }
@@ -372,7 +373,7 @@ namespace Cyverse.Level
             return tm;
         }
 
-        private static List<DialogueLine> ConciergeLines()
+        public static List<DialogueLine> ConciergeLines()
         {
             int done = LevelProgress.CompletedStoryLevels();
             var lines = new List<DialogueLine>();

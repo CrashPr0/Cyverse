@@ -127,7 +127,11 @@ namespace Cyverse.Interaction
 
             var console = root.AddComponent<ForensicsConsole>();
             console.Database = LogDatabase.Build();
-            console.Case = InvestigationCase.SpartanGold();
+            console.Cases = new[]
+            {
+                InvestigationCase.SpartanGold(),
+                InvestigationCase.MidnightExfil(),
+            };
             return console;
         }
     }

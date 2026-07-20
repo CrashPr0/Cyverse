@@ -25,6 +25,11 @@ namespace Cyverse.Interaction
         public string Prompt => "Door (locked)";
         public bool CanInteract => IsLocked; // once open, no prompt at all
 
+        void Awake()
+        {
+            ResolveReferences();
+        }
+
         public void Interact(GameObject interactor)
         {
             if (!IsLocked) return;
@@ -36,9 +41,17 @@ namespace Cyverse.Interaction
         public void Unlock()
         {
             if (!IsLocked) return;
+            ResolveReferences();
             IsLocked = false;
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
             if (panel != null) StartCoroutine(SlideOpen());
+        }
+
+        private void ResolveReferences()
+        {
+            if (panel == null) panel = transform.Find("Panel");
+            if (panelCollider == null && panel != null)
+                panelCollider = panel.GetComponent<Collider>();
         }
 
         private IEnumerator SlideOpen()

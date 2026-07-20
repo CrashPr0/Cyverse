@@ -59,10 +59,10 @@ namespace Cyverse.Level
         {
             return GuardNPC.Build(new Vector3(2.2f, 0f, -5.5f), 180f,
                 displayName: "SOC Lead", signText: "SOC LEAD",
-                linesProvider: SocLeadLines);
+                dialogueProfile: GuardNPC.DialogueProfile.CyberDefenseLead);
         }
 
-        private static List<DialogueLine> SocLeadLines()
+        public static List<DialogueLine> SocLeadLines()
         {
             var phase = Level1Manager.Instance != null
                 ? Level1Manager.Instance.CurrentPhase
