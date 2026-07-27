@@ -56,6 +56,48 @@ from the build, it silently falls back to the procedural scene.
 To add a visual pass for another level, name it `<BaseName>_VisualPass`, add
 it to the chain in `SceneCatalog.Variants`, and register it in Build Settings.
 
+### Art prefabs (preferred over baking art into a scene)
+
+Baking models into a saved scene means the art serves that one scene: new
+levels start ugly, and gameplay changes have to be hand-merged into a huge
+`.unity` file. Prefabs avoid both — the factory picks them up in **every**
+level, including ones not built yet.
+
+Drop a prefab at `Assets/Resources/Props/<Name>.prefab` and the matching
+builder uses it automatically. If it's absent the builder falls back to its
+primitive version, so props can be migrated **one at a time** and a missing
+prefab can never break a build.
+
+Names the factory looks for:
+
+| Prefab name | Replaces | Footprint (m, W×D×H) |
+| ----------- | -------- | -------------------- |
+| `Desk`        | desk + monitor + keyboard | 1.5 × 0.75 × 0.8 |
+| `Chair`       | office chair              | 0.5 × 0.5 × 1.1 |
+| `Couch`       | lounge couch              | 2.1 × 0.85 × 1.0 |
+| `CoffeeTable` | lounge table              | 1.15 × 0.62 × 0.45 |
+| `Rug`         | lounge rug                | (flat) |
+| `Plant`       | potted plant              | 0.6 × 0.6 × 1.3 |
+| `ServerRack`  | server cabinet            | 0.85 × 0.7 × 2.2 |
+| `LockerBank`  | 4-door lockers            | 2.0 × 0.5 × 1.9 |
+| `Crate`       | one stackable crate       | 0.62 cube |
+| `Reception`   | reception counter         | 2.8 × 1.5 × 1.1 |
+| `Drone`       | patrol drone              | ~1.0 × 1.0 × 0.3 |
+
+**Authoring rules:**
+- **Pivot at floor level**, centred on the footprint (the factory positions
+  props by their base, not their middle).
+- **+Z is the front** — the side a person faces, sits at, or reads.
+- Keep roughly to the footprint above; layouts are spaced to avoid collisions.
+- Put **colliders on anything solid**; the factory does not add them.
+- `Drone` is special: it gets animated at runtime. Name any spinning children
+  `Rotor*` and `Hoverer` will drive them.
+
+Not prefab-swappable yet (they own generated text/behaviour): wall TVs and
+the gameplay stations (badge kiosk, MFA vault, audit board, forensic desk).
+
+`PropLibrary.ClearCache()` forgets lookups if you add prefabs mid-session.
+
 **Required once per machine:** run the menu **CyVerse → Add Scenes To Build
 Settings**. Scene loading (`SceneManager.LoadScene`) only works for scenes
 registered in Build Settings; the menu registers the whole chain in the right

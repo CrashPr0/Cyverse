@@ -120,6 +120,7 @@ namespace Cyverse.Level
         /// <summary>Desk with monitor, keyboard, and mug. Screen faces local +Z (the sitter).</summary>
         public static void BuildDesk(Transform parent, Vector3 localPos, float rotY)
         {
+            if (PropLibrary.TrySpawn("Desk", parent, localPos, rotY) != null) return;
             var desk = Group(parent, "Desk", localPos, rotY);
 
             Child(desk, PrimitiveType.Cube, "Top", new Vector3(0, 0.73f, 0), Vector3.zero,
@@ -149,6 +150,7 @@ namespace Cyverse.Level
         /// <summary>Office chair. Sitter faces local +Z.</summary>
         public static void BuildChair(Transform parent, Vector3 localPos, float rotY)
         {
+            if (PropLibrary.TrySpawn("Chair", parent, localPos, rotY) != null) return;
             var chair = Group(parent, "Chair", localPos, rotY);
 
             Child(chair, PrimitiveType.Cube, "Seat", new Vector3(0, 0.46f, 0), Vector3.zero,
@@ -165,6 +167,7 @@ namespace Cyverse.Level
 
         public static void BuildCouch(Transform parent, Vector3 localPos, float rotY)
         {
+            if (PropLibrary.TrySpawn("Couch", parent, localPos, rotY) != null) return;
             var couch = Group(parent, "Couch", localPos, rotY);
 
             Child(couch, PrimitiveType.Cube, "Base", new Vector3(0, 0.26f, 0), Vector3.zero,
@@ -182,6 +185,7 @@ namespace Cyverse.Level
 
         public static void BuildCoffeeTable(Transform parent, Vector3 localPos)
         {
+            if (PropLibrary.TrySpawn("CoffeeTable", parent, localPos, 0f) != null) return;
             var table = Group(parent, "CoffeeTable", localPos, 0f);
 
             Child(table, PrimitiveType.Cube, "Top", new Vector3(0, 0.42f, 0), Vector3.zero,
@@ -196,12 +200,14 @@ namespace Cyverse.Level
 
         public static void BuildRug(Transform parent, Vector3 localPos, Vector3 size)
         {
+            if (PropLibrary.TrySpawn("Rug", parent, localPos, 0f) != null) return;
             var rug = Group(parent, "Rug", localPos, 0f);
             Child(rug, PrimitiveType.Cube, "RugTop", new Vector3(0, 0.011f, 0), Vector3.zero, size, Rug, collider: false);
         }
 
         public static void BuildPlant(Transform parent, Vector3 localPos)
         {
+            if (PropLibrary.TrySpawn("Plant", parent, localPos, Random.Range(0f, 360f)) != null) return;
             var plant = Group(parent, "Plant", localPos, Random.Range(0f, 360f));
 
             Child(plant, PrimitiveType.Cylinder, "Pot", new Vector3(0, 0.18f, 0), Vector3.zero,
@@ -218,6 +224,7 @@ namespace Cyverse.Level
 
         public static void BuildServerRack(Transform parent, Vector3 localPos, float rotY)
         {
+            if (PropLibrary.TrySpawn("ServerRack", parent, localPos, rotY) != null) return;
             var rack = Group(parent, "ServerRack", localPos, rotY);
 
             Child(rack, PrimitiveType.Cube, "Body", new Vector3(0, 1.1f, 0), Vector3.zero,
@@ -232,6 +239,7 @@ namespace Cyverse.Level
 
         public static void BuildLockerBank(Transform parent, Vector3 localPos, float rotY)
         {
+            if (PropLibrary.TrySpawn("LockerBank", parent, localPos, rotY) != null) return;
             var bank = Group(parent, "Lockers", localPos, rotY);
 
             Child(bank, PrimitiveType.Cube, "Body", new Vector3(0, 0.95f, 0), Vector3.zero,
@@ -255,6 +263,7 @@ namespace Cyverse.Level
 
         private static void Crate(Transform parent, Vector3 localPos, float rotY)
         {
+            if (PropLibrary.TrySpawn("Crate", parent, localPos, rotY) != null) return;
             var crate = Group(parent, "Crate", localPos, rotY);
             Child(crate, PrimitiveType.Cube, "Box", Vector3.zero, Vector3.zero,
                 new Vector3(0.62f, 0.62f, 0.62f), BodyDark, collider: true);
@@ -264,6 +273,7 @@ namespace Cyverse.Level
 
         public static void BuildReception(Transform parent, Vector3 localPos, float rotY)
         {
+            if (PropLibrary.TrySpawn("Reception", parent, localPos, rotY) != null) return;
             var desk = Group(parent, "Reception", localPos, rotY);
 
             Child(desk, PrimitiveType.Cube, "Front", new Vector3(0, 0.525f, 0), Vector3.zero,
@@ -286,6 +296,22 @@ namespace Cyverse.Level
 
         public static void BuildDrone(Transform parent, Vector3 worldPos)
         {
+            // Drones are animated, so the art prefab is instantiated and then
+            // re-wired rather than used as-is: Hoverer drives any child named
+            // "Rotor" and the whole thing must stay non-static.
+            var art = PropLibrary.TrySpawn("Drone", parent, worldPos, 0f, markStatic: false);
+            if (art != null)
+            {
+                var spin = new List<Transform>();
+                foreach (var t in art.GetComponentsInChildren<Transform>(true))
+                    if (t.name.StartsWith("Rotor")) spin.Add(t);
+                var h = art.GetComponent<Hoverer>() ?? art.AddComponent<Hoverer>();
+                h.rotors = spin.ToArray();
+                foreach (var t in art.GetComponentsInChildren<Transform>(true))
+                    t.gameObject.isStatic = false;
+                return;
+            }
+
             var drone = Group(parent, "Drone", worldPos, 0f);
 
             Child(drone, PrimitiveType.Sphere, "Body", Vector3.zero, Vector3.zero,
