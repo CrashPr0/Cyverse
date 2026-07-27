@@ -59,7 +59,10 @@ namespace Cyverse.Level
             taskDoor = FindObjectOfType<LockedDoor>();
             exitDoor = FindObjectOfType<HubDoor>();
 
-            if (exitDoor != null) exitDoor.SetUnlocked(true); // never trap the player
+            // Never trap the player: unlock every exit and make sure one
+            // exists in the briefing room they spawn in (divider at z=2).
+            HubDoor.EnsureReachableExit(2f, new Color(0.90f, 0.66f, 0.14f));
+            if (exitDoor != null) exitDoor.SetUnlocked(true);
 
             if (console != null && console.Cases != null)
             {

@@ -41,7 +41,8 @@ namespace Cyverse.UI
 
             var scene = SceneManager.GetActiveScene();
             canReload = scene.IsValid() && !string.IsNullOrEmpty(scene.name);
-            canHub = Application.CanStreamedLevelBeLoaded("Hub") && scene.name != "Hub";
+            string hub = Core.SceneCatalog.Preferred("Hub");
+            canHub = Application.CanStreamedLevelBeLoaded(hub) && scene.name != hub;
 
             int m = Mathf.FloorToInt(seconds / 60f);
             int s = Mathf.FloorToInt(seconds % 60f);
@@ -109,9 +110,9 @@ namespace Cyverse.UI
             else if (canHub && Input.GetKeyDown(KeyCode.H))
             {
                 if (ScreenFader.Instance != null)
-                    ScreenFader.Instance.FadeToBlackThen(() => SceneManager.LoadScene("Hub"));
+                    ScreenFader.Instance.FadeToBlackThen(() => SceneManager.LoadScene(Core.SceneCatalog.Preferred("Hub")));
                 else
-                    SceneManager.LoadScene("Hub");
+                    SceneManager.LoadScene(Core.SceneCatalog.Preferred("Hub"));
             }
         }
 

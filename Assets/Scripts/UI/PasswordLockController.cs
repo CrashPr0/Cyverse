@@ -200,9 +200,9 @@ namespace Cyverse.UI
             BurstFX.Spawn(new Vector3(0f, 2.6f, 2.8f), Gold, 40, 3f, 1.2f);
             yield return new WaitForSeconds(1.8f);
 
-            if (Application.CanStreamedLevelBeLoaded(nextScene))
+            string target = Cyverse.Core.SceneCatalog.Preferred(nextScene);
+            if (Application.CanStreamedLevelBeLoaded(target))
             {
-                string target = nextScene;
                 if (ScreenFader.Instance != null)
                     ScreenFader.Instance.FadeToBlackThen(() => SceneManager.LoadScene(target));
                 else

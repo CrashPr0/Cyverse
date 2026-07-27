@@ -58,9 +58,15 @@ namespace Cyverse.EditorTools
         {
             string[] wanted =
             {
+                // PasswordLock stays first — it is the build's entry scene.
+                // Visual-pass scenes are listed alongside their procedural
+                // counterparts; SceneCatalog prefers the visual pass at runtime
+                // whenever it is present here, so doors upgrade themselves.
                 "Assets/Scenes/PasswordLock.unity",
                 "Assets/Scenes/Hub.unity",
+                "Assets/Scenes/Level0 Visual Pass.unity",
                 "Assets/Scenes/Level0.unity",
+                "Assets/Scenes/Level1_IAM_VisualPass.unity",
                 "Assets/Scenes/Level1_IAM.unity",
                 "Assets/Scenes/Level1.unity",
                 "Assets/Scenes/Level3_Forensics.unity",

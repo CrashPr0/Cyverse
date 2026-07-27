@@ -42,6 +42,20 @@ PasswordLock  →  Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → …
   hand-saved scenes gain it), results screens offer **[R] replay / [H] return
   to Hub**, and all scene changes fade to black instead of hard-cutting.
 
+### Visual-pass scenes
+
+Several levels exist twice: a **procedural** scene (a lone bootstrap that
+generates the room at Play time) and an artist-authored **visual pass** with
+real models and hand-placed lighting — `Level0 Visual Pass`,
+`Level1_IAM_VisualPass`. `Core/SceneCatalog.cs` maps a base scene name to the
+best version present in Build Settings, and **`HubDoor` resolves through it at
+runtime**, so a door saved pointing at `Level1_IAM` automatically loads the
+visual pass without anyone re-editing the Hub. If a visual pass is missing
+from the build, it silently falls back to the procedural scene.
+
+To add a visual pass for another level, name it `<BaseName>_VisualPass`, add
+it to the chain in `SceneCatalog.Variants`, and register it in Build Settings.
+
 **Required once per machine:** run the menu **CyVerse → Add Scenes To Build
 Settings**. Scene loading (`SceneManager.LoadScene`) only works for scenes
 registered in Build Settings; the menu registers the whole chain in the right

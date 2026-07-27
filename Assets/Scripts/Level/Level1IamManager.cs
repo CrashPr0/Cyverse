@@ -96,15 +96,35 @@ namespace Cyverse.Level
             exitDoor = FindObjectOfType<HubDoor>();
 
             // Leaving mid-level is always allowed — a locked exit is a trap,
-            // and completion is persisted separately. The completion burst at
-            // the door still marks the moment the level is actually done.
-            if (exitDoor != null) exitDoor.SetUnlocked(true);
+            // and completion is persisted separately. The exit also has to be
+            // in the room the player SPAWNS in: the briefing room sits south
+            // of the divider, so a task-room-only door is unreachable until
+            // the briefing is done. (Divider is at z=2.)
+            HubDoor.EnsureReachableExit(2f, new Color(0.90f, 0.66f, 0.14f));
+            exitDoor = NearestExit();
 
             if (briefing != null) briefing.FirstCompleted += OnBriefingCompleted;
             else OnBriefingCompleted(); // no screen in scene — don't soft-lock
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
             UpdateObjective();
+        }
+
+        /// <summary>Closest return door to the player (levels have one per room).</summary>
+        private HubDoor NearestExit()
+        {
+            var cam = Camera.main;
+            Vector3 from = cam != null ? cam.transform.position : Vector3.zero;
+            HubDoor best = null;
+            float bestSqr = float.MaxValue;
+            foreach (var d in FindObjectsOfType<HubDoor>())
+            {
+                float sqr = (d.transform.position - from).sqrMagnitude;
+                if (sqr >= bestSqr) continue;
+                bestSqr = sqr;
+                best = d;
+            }
+            return best;
         }
 
         private int TotalTasks =>
@@ -244,7 +264,8 @@ namespace Cyverse.Level
                     break;
 
                 case Phase.Complete:
-                    if (exitDoor != null) { t = exitDoor.transform; action = "RETURN TO THE HUB"; }
+                    var nearest = NearestExit();
+                    if (nearest != null) { t = nearest.transform; action = "RETURN TO THE HUB"; }
                     break;
             }
 

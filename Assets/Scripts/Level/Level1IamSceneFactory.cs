@@ -61,6 +61,13 @@ namespace Cyverse.Level
 
             LockedDoor.Build(new Vector3(0f, 0f, 2f), 0f, 3f,
                 "TASK ROOM", "Complete the security briefing to unlock this door.", IamBlue);
+
+            // Return to the Hub from the room the player spawns in. The task
+            // room has its own exit; without this one, leaving early means
+            // being stuck behind the briefing-locked divider door.
+            var spawnExit = HubDoor.Build(new Vector3(4f, 0f, -19.2f), 180f, "Return to Hub",
+                "Hub", 0, new Color(0.90f, 0.66f, 0.14f), HubDoor.Mode.Manual);
+            spawnExit.SetUnlocked(true);
         }
 
         /// <summary>The gamified task room: four hands-on tasks (one per "A")

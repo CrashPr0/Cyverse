@@ -49,6 +49,11 @@ namespace Cyverse.Interaction
 
         void Start()
         {
+            // Upgrade to the artist-authored version of this level if the build
+            // has one. Doing it here (rather than at author time) means doors
+            // already saved inside hand-built scenes pick up visual passes
+            // without anyone re-editing them.
+            sceneName = SceneCatalog.Preferred(sceneName);
             RefreshVisuals();
         }
 
@@ -184,6 +189,34 @@ namespace Cyverse.Interaction
             door.statusText = tm;
 
             return door;
+        }
+
+        /// <summary>
+        /// Guarantees a way back to the Hub from the room the player STARTS in.
+        ///
+        /// The two-room levels spawn the player in the briefing room and put
+        /// the return door in the task room — which sits behind a door that
+        /// only unlocks after the briefing. That traps anyone who wants to
+        /// leave early. This adds a return door on the south wall (the wall
+        /// the player entered through) whenever every existing one is on the
+        /// far side of the divider, and unlocks all of them.
+        /// </summary>
+        public static void EnsureReachableExit(float dividerZ, Color accent)
+        {
+            var doors = Object.FindObjectsOfType<HubDoor>();
+            bool reachable = false;
+            foreach (var d in doors)
+            {
+                if (d.mode == Mode.Manual) d.SetUnlocked(true); // never trap the player
+                if (d.transform.position.z < dividerZ) reachable = true;
+            }
+            if (reachable) return;
+
+            // x=4 clears the wall columns (every 8m) and the south-wall lockers.
+            // rotY 180 turns the readable face back into the room.
+            var exit = Build(new Vector3(4f, 0f, -19.2f), 180f, "Return to Hub",
+                "Hub", 0, accent, Mode.Manual);
+            exit.SetUnlocked(true);
         }
 
         private static void Frame(Transform parent, Vector3 localPos, Vector3 scale, Material mat)
