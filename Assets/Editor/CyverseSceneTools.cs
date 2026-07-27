@@ -33,6 +33,15 @@ namespace Cyverse.EditorTools
             Debug.Log("CyVerse: Level 1 (I/AM) built. Tweak the objects, then File > Save.");
         }
 
+        [MenuItem("CyVerse/Build Level 2 (Cyber Defense) Scene")]
+        public static void BuildLevel2()
+        {
+            if (!ConfirmSceneEmpty("Build Level 2 (Cyber Defense)")) return;
+            Level2SceneFactory.BuildAll();
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("CyVerse: Level 2 (Cyber Defense) built. Tweak the objects, then File > Save.");
+        }
+
         [MenuItem("CyVerse/Build Level 3 (Forensics) Scene")]
         public static void BuildLevel3Forensics()
         {
@@ -68,6 +77,7 @@ namespace Cyverse.EditorTools
                 "Assets/Scenes/Level0.unity",
                 "Assets/Scenes/Level1_IAM_VisualPass.unity",
                 "Assets/Scenes/Level1_IAM.unity",
+                "Assets/Scenes/Level2_CyberDefense.unity",
                 "Assets/Scenes/Level1.unity",
                 "Assets/Scenes/Level3_Forensics.unity",
             };

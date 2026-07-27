@@ -172,7 +172,8 @@ namespace Cyverse.Level
                     headerText: "LEVEL 3 COMPLETE",
                     grantedLine: "Case Closed — Digital Forensics Certified",
                     nextMissionText: "Level 4 — Cyber Attack  (in development)",
-                    replaySuffix: "Level 3");
+                    replaySuffix: "Level 3",
+                    parScore: 1800);
         }
     }
 }

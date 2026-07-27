@@ -268,18 +268,51 @@ educators can add questions or a whole new case without touching engine code
 (`MiniKql.cs` is pure C# and reusable). All 14 answers are machine-verified
 against the dataset.
 
-## Level 2: Cyber Defense (blockout)
+## Level 2: Cyber Defense — gamified
 
-A playable vertical-slice blockout of Room 2 from the concept tables — **SOC
-Analyst / Protection & Defense** — teaching SIEM, EDR, and Incident Response,
-gated by a **Threat Response Console** instead of the Security Scanner.
-(Scene file: `Level1.unity` — named before the Hub renumbering; in the Hub
-it is **Level 2** and unlocks after Level 1 I/AM.)
+`Assets/Scenes/Level2_CyberDefense.unity` — **SOC Analyst / Protection &
+Defense**, on the two-room template, with one hands-on mechanic per concept
+instead of review stations:
 
-**Open it:** `Assets/Scenes/Level1.unity` and press Play, or build an editable
-copy the same way as Level 0: `File → New Scene → Empty` → menu
-**CyVerse → Build Level 1 Scene** → tweak → save. Upgrade menus:
-**CyVerse → Add Threat Response Console** / **Add SOC Lead NPC**.
+- **SIEM alert shift** (`Interaction/SiemConsole.cs`) — alerts arrive one at a
+  time on a countdown; triage each with **[1] ESCALATE** / **[2] DISMISS**.
+  Five of the nine are noise. The clock is the point: reading a static list
+  teaches nothing about a SOC, but judging under time pressure with noise
+  outnumbering real incidents *is* alert fatigue. Letting one expire is a miss.
+  The timer only runs while the player is at the desk, so stepping away to
+  think never punishes them.
+- **EDR containment** (`Interaction/EndpointStation.cs`) — five workstations
+  whose screens always show their running processes. Read them, press `E` to
+  isolate the compromised ones (a double-extension `invoice_2026.pdf.exe`, an
+  encoded `powershell.exe -enc`). Isolating a *healthy* machine is allowed but
+  warns about service disruption and costs the clean-sweep bonus — the real
+  trade-off analysts face.
+- **IR playbook** (`Interaction/PlaybookStation.cs`) — carry six response cards
+  onto a sequence board **in order** (Preparation → Detection → Containment →
+  Eradication → Recovery → Lessons Learned). Slots fill strictly left to right
+  and only accept the genuine next step, because doing Eradication before
+  Containment reinfects the network and Recovery before Eradication restores
+  the malware with the backup.
+- **Certification Exam** — unlocks after all three; four knowledge checks with
+  streaks/combos.
+
+Par score **1280** (`Level2Content.ParScore`). Content lives in
+`Level/Level2Content.cs` — alerts, endpoints, playbook steps and exam
+questions are all editable data.
+
+**Open it:** `Level2_CyberDefense.unity` and press Play, or build an editable
+copy via **CyVerse → Build Level 2 (Cyber Defense) Scene**.
+
+> The Hub's Level 2 door is still serialized as `Level1` (named before the
+> renumbering). `SceneCatalog` resolves it to `Level2_CyberDefense`, so the
+> door upgrades itself. The original `Level1.unity` remains as the fallback.
+
+### Grading
+
+Grades are relative to each level's **par score**, not a fixed number — an
+`S` needs 95% of par, `A` 82%, `B` 68%. Pars: Level 0 **550**, Level 1 (I/AM)
+**1100**, Level 2 **1280**, Level 3 (Forensics) **1800**. Pass `parScore:` to
+`ResultsScreen.Show()` when adding a level, or every run will grade as an S.
 
 **How it shares Level 0's foundation — the `BuildKit` refactor:** the parts of
 `SceneFactory` that had nothing to do with Level 0's story (materials,

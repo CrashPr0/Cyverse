@@ -171,7 +171,8 @@ namespace Cyverse.Level
                     headerText: "LEVEL 2 COMPLETE",
                     grantedLine: "Certification Confirmed — SOC Analyst",
                     nextMissionText: "Level 3 — Digital Forensics  (in development)",
-                    replaySuffix: "Level 2");
+                    replaySuffix: "Level 2",
+                    parScore: 550);
         }
     }
 }

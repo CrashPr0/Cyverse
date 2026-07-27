@@ -168,7 +168,8 @@ namespace Cyverse.Level
                 ResultsScreen.Instance.Show(
                     ScoreSystem.Score, ScoreSystem.QuizCorrect, ScoreSystem.QuizTotal,
                     Time.time - startTime,
-                    nextMissionText: "Orientation logged. Return to the Hub to take on the levels.");
+                    nextMissionText: "Orientation logged. Return to the Hub to take on the levels.",
+                    parScore: 550);
         }
     }
 }

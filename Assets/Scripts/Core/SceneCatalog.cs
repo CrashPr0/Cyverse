@@ -24,7 +24,9 @@ namespace Cyverse.Core
         {
             new[] { "Level0 Visual Pass", "Level0" },
             new[] { "Level1_IAM_VisualPass", "Level1_IAM" },
-            new[] { "Level1_VisualPass", "Level1" },
+            // The Hub's saved Level 2 door points at "Level1" (named before
+            // the renumbering); prefer the rebuilt, gamified scene.
+            new[] { "Level2_CyberDefense_VisualPass", "Level2_CyberDefense", "Level1" },
             new[] { "Level3_Forensics_VisualPass", "Level3_Forensics" },
             new[] { "Hub_VisualPass", "Hub" },
         };

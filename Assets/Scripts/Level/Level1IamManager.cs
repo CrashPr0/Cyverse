@@ -429,7 +429,8 @@ namespace Cyverse.Level
                     headerText: "LEVEL 1 COMPLETE",
                     grantedLine: "I/AM Training Certified",
                     nextMissionText: "Level 2 — Cyber Defense is now unlocked in the Hub.",
-                    replaySuffix: "Level 1");
+                    replaySuffix: "Level 1",
+                    parScore: 1100);
         }
     }
 }

@@ -35,7 +35,8 @@ namespace Cyverse.UI
             string headerText = "LEVEL 0 COMPLETE",
             string grantedLine = "Access Granted — Level: Employee",
             string nextMissionText = "Level 1 — Cyber Defense  (in development)",
-            string replaySuffix = "Level 0")
+            string replaySuffix = "Level 0",
+            int parScore = 550)
         {
             if (card == null) Build(headerText);
 
@@ -57,17 +58,22 @@ namespace Cyverse.UI
                 PlayerPrefs.Save();
             }
 
-            // Themed letter grade — score-driven, generous at the top end so a
-            // perfect run (550) earns the S.
-            string grade = score >= 520 ? "S" : score >= 450 ? "A" : score >= 350 ? "B" : "C";
+            // Grade on a FRACTION of the level's par score, not an absolute
+            // number. The thresholds used to be hardcoded to Level 0's 550,
+            // so richer levels (I/AM pars 1100, Forensics 1800) handed out an
+            // S for any run at all and the grade stopped meaning anything.
+            float par = Mathf.Max(1, parScore);
+            float pct = score / par;
+
+            string grade = pct >= 0.95f ? "S" : pct >= 0.82f ? "A" : pct >= 0.68f ? "B" : "C";
 
             // Rank title — a second, more human-readable layer of feedback.
-            string rank = score >= 500 ? "Senior Security Agent"
-                        : score >= 400 ? "Security Specialist"
-                        : score >= 300 ? "Security Analyst"
+            string rank = pct >= 0.90f ? "Senior Security Agent"
+                        : pct >= 0.72f ? "Security Specialist"
+                        : pct >= 0.55f ? "Security Analyst"
                         : "Security Recruit";
 
-            int percentile = PercentileFor(score);
+            int percentile = PercentileFor(score, par);
 
             var sb = new System.Text.StringBuilder();
             sb.AppendLine($"<color=#4CE087><b>{grantedLine}</b></color>");
@@ -75,7 +81,7 @@ namespace Cyverse.UI
             sb.AppendLine();
             sb.AppendLine($"Security Clearance Rating:  <color=#E5A823><b>{grade}</b></color>   Rank:  <color=#E5A823><b>{rank}</b></color>");
             sb.AppendLine();
-            sb.AppendLine($"Final Score:  <b><color=#5BC8FF>{score}</color></b>");
+            sb.AppendLine($"Final Score:  <b><color=#5BC8FF>{score}</color></b>  <size=20><color=#8FB8CC>/ {parScore} par</color></size>");
             sb.AppendLine($"Best Score:  {best}" + (newBest ? "  <color=#E5A823><b>NEW BEST!</b></color>" : ""));
             sb.AppendLine($"Best Streak:  {ScoreSystem.BestStreak} correct in a row");
             sb.AppendLine();
@@ -117,15 +123,17 @@ namespace Cyverse.UI
         }
 
         /// <summary>
-        /// Serverless "you scored better than X% of recruits": models a fixed
-        /// bell-curve distribution of scores (mean 300, std-dev 95, over the
-        /// 0–550 range) rather than calling out to a leaderboard. Clamped to
+        /// Serverless "you scored better than X% of recruits": models a
+        /// bell-curve of scores relative to the level's par rather than
+        /// calling out to a leaderboard. Clamped to
         /// 1–99 so the message always reads as encouragement, never as "worst
         /// of everyone."
         /// </summary>
-        private static int PercentileFor(int score)
+        private static int PercentileFor(int score, float par)
         {
-            const float mean = 300f, stdDev = 95f;
+            // Curve scales with the level: an average recruit lands near 55%
+            // of par, one standard deviation is ~17% of it.
+            float mean = par * 0.55f, stdDev = Mathf.Max(1f, par * 0.17f);
             float z = (score - mean) / stdDev;
             float cdf = NormalCdf(z);
             return Mathf.Clamp(Mathf.RoundToInt(cdf * 100f), 1, 99);
