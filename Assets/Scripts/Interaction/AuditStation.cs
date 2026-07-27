@@ -27,6 +27,10 @@ namespace Cyverse.Interaction
 
         private Level1IamContent.LogRound[] rounds;
         private int round, cursor;
+
+        /// <summary>Rounds solved / rounds total (for the HUD checklist).</summary>
+        public int Solved => round;
+        public int Rounds => rounds != null ? rounds.Length : 0;
         private bool active, transitioning;
 
         private TextMesh headerText, hintText;

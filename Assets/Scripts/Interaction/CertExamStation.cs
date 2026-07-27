@@ -103,6 +103,15 @@ namespace Cyverse.Interaction
 
             BuildKit.MakeSign(root.transform, pos + new Vector3(0f, 2.7f, 0f), "CERTIFICATION", accent, 0.032f);
 
+            var glow = new GameObject("ExamLight");
+            glow.transform.SetParent(root.transform, false);
+            glow.transform.localPosition = new Vector3(0f, 2.2f, -1.2f);
+            var l = glow.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = accent;
+            l.range = 7f;
+            l.intensity = 1.6f;
+
             return station;
         }
     }

@@ -272,6 +272,17 @@ namespace Cyverse.Interaction
             fill.transform.localPosition = new Vector3(2.0f, 0f, 0f);
             var fs = pivot.localScale; fs.x = 0f; pivot.localScale = fs;
 
+            // The screen is the room's light source — without this the video
+            // room is lit by ambient alone.
+            var glow = new GameObject("ScreenLight");
+            glow.transform.SetParent(root.transform, false);
+            glow.transform.localPosition = new Vector3(0f, 2.15f, -1.6f);
+            var sl = glow.AddComponent<Light>();
+            sl.type = LightType.Point;
+            sl.color = accent;
+            sl.range = 12f;
+            sl.intensity = 2.2f;
+
             BuildKit.MakeSign(root.transform, position + new Vector3(0f, 3.9f, 0f),
                 "SECURITY BRIEFING", accent, 0.035f);
             BuildKit.AddPanelLabel(root.transform, position + new Vector3(0f, 0.45f, -0.3f),

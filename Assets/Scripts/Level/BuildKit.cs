@@ -32,11 +32,16 @@ namespace Cyverse.Level
                 light.type = LightType.Directional;
                 light.color = new Color(0.70f, 0.80f, 1.00f);
                 light.intensity = 0.8f;
-                light.shadows = LightShadows.Soft;
+                // NO shadows: a 40x40 ceiling slab sits over every room, so a
+                // shadow-casting sun contributes exactly nothing indoors. Without
+                // shadows it acts as a soft directional fill instead.
+                light.shadows = LightShadows.None;
                 go.transform.rotation = Quaternion.Euler(55f, -35f, 0f);
             }
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.14f, 0.16f, 0.22f);
+            // Rooms are interiors lit by fixtures; ambient carries the base
+            // exposure so nothing is ever pitch black between light pools.
+            RenderSettings.ambientLight = new Color(0.26f, 0.28f, 0.34f);
         }
 
         public static void BuildFloor(Color lineColor, Color baseColor)
@@ -75,6 +80,42 @@ namespace Cyverse.Level
             {
                 Spawn(PrimitiveType.Cube, "CeilingPanel_" + z, null,
                     new Vector3(0, 4.92f, z), new Vector3(34f, 0.12f, 0.9f), mat, collider: false);
+            }
+
+            BuildCeilingFixtures();
+        }
+
+        /// <summary>Real lights under the emissive ceiling bars.
+        ///
+        /// This matters more than it looks: an emissive MATERIAL illuminates
+        /// nothing without baked or realtime GI, and procedurally-built scenes
+        /// have no lightmap — so the glowing panels were pure decoration and
+        /// rooms rendered near-black except right at a station's point light.
+        /// These fixtures are what actually lights every generated level.
+        /// Idempotent, so it's safe to call on an already-lit scene.</summary>
+        public static void BuildCeilingFixtures()
+        {
+            if (GameObject.Find("CeilingLights") != null) return;
+
+            var root = new GameObject("CeilingLights");
+            // 3x5 grid tracks the panel bars (z every 7m) across the 40x40 room.
+            for (int z = -14; z <= 14; z += 7)
+            {
+                for (int x = -12; x <= 12; x += 12)
+                {
+                    var go = new GameObject($"CeilingLight_{x}_{z}");
+                    go.transform.SetParent(root.transform, false);
+                    go.transform.position = new Vector3(x, 4.75f, z);
+                    var l = go.AddComponent<Light>();
+                    l.type = LightType.Point;
+                    l.color = new Color(0.86f, 0.91f, 1.00f);
+                    l.range = 15f;
+                    l.intensity = 1.15f;
+                    l.shadows = LightShadows.None; // 15 shadowed lights would tank WebGL
+                    // Fill lighting stays out of the per-pixel budget so station
+                    // lights and accents keep their punch.
+                    l.renderMode = LightRenderMode.ForceVertex;
+                }
             }
         }
 

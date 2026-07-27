@@ -23,6 +23,10 @@ namespace Cyverse.Interaction
         private int delivered;
         private int total;
 
+        /// <summary>Crates filed / crates total (for the HUD checklist).</summary>
+        public int Delivered => delivered;
+        public int Total => total;
+
         private void OnDelivered(DropZone zone, Carryable item, Level1IamContent.CrateDef def)
         {
             item.Consume();
@@ -83,6 +87,15 @@ namespace Cyverse.Interaction
                 new Vector3(0f, 0.92f, -0.56f), Vector3.zero, new Vector3(3.4f, 0.04f, 0.02f),
                 BuildKit.MakeEmissive(accent, 1.4f), collider: false);
             BuildKit.MakeSign(root.transform, tablePos + new Vector3(0f, 2.5f, 0f), "DATA TRIAGE", accent, 0.032f);
+
+            var glow = new GameObject("TriageLight");
+            glow.transform.SetParent(root.transform, false);
+            glow.transform.localPosition = new Vector3(0f, 2.2f, 0f);
+            var tl = glow.AddComponent<Light>();
+            tl.type = LightType.Point;
+            tl.color = accent;
+            tl.range = 9f;
+            tl.intensity = 1.7f;
 
             for (int i = 0; i < crates.Length; i++)
             {

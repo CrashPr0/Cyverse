@@ -111,6 +111,15 @@ namespace Cyverse.Interaction
             door.panel = panelGo.transform;
             door.panelCollider = panelGo.GetComponent<Collider>();
 
+            var glow = new GameObject("DoorLight");
+            glow.transform.SetParent(root.transform, false);
+            glow.transform.localPosition = new Vector3(0f, 3.4f, -1.4f);
+            var dl = glow.AddComponent<Light>();
+            dl.type = LightType.Point;
+            dl.color = accent;
+            dl.range = 9f;
+            dl.intensity = 1.8f;
+
             BuildKit.MakeSign(root.transform, position + new Vector3(0f, 4.9f, 0f), signText, accent, 0.035f);
             return door;
         }

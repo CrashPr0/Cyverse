@@ -41,6 +41,12 @@ namespace Cyverse.Interaction
             if (Carried == this) Carried = null;
         }
 
+        /// <summary>Drop the static carry reference. Statics survive scene
+        /// reloads (and Play-mode restarts with domain reload disabled), so
+        /// level managers clear it in Awake or a replay can start "holding"
+        /// an object that no longer exists.</summary>
+        public static void ClearCarried() => Carried = null;
+
         public void Interact(GameObject interactor)
         {
             if (Carried != null) return;

@@ -31,6 +31,15 @@ namespace Cyverse.Interaction
         public int completionPoints = 75;
 
         private readonly bool[] cleared = new bool[3];
+
+        /// <summary>How many of the three factors are verified (for the HUD).</summary>
+        public int ClearedCount
+        {
+            get { int n = 0; foreach (bool c in cleared) if (c) n++; return n; }
+        }
+
+        /// <summary>True once the token has been slotted (the "have" factor).</summary>
+        public bool TokenDelivered => cleared[1];
         private Renderer[] lights;
         private Material litMat;
         private Transform vaultPanel;
@@ -125,6 +134,15 @@ namespace Cyverse.Interaction
             }
 
             BuildKit.MakeSign(root.transform, vaultPos + new Vector3(0f, 4.3f, 0f), "MFA VAULT", accent, 0.032f);
+
+            var vaultGlow = new GameObject("VaultLight");
+            vaultGlow.transform.SetParent(root.transform, false);
+            vaultGlow.transform.localPosition = new Vector3(0f, 2.6f, -2f);
+            var vl = vaultGlow.AddComponent<Light>();
+            vl.type = LightType.Point;
+            vl.color = accent;
+            vl.range = 10f;
+            vl.intensity = 1.8f;
 
             // KNOW — passcode terminal, with the memo plaque beside it.
             var know = MfaFactor.Build(terminalPos, 0f, MfaFactor.Kind.Knowledge, gauntlet, accent);

@@ -33,10 +33,31 @@ namespace Cyverse.Level
         void Start()
         {
             ApplyAtmosphere();
+            EnsureRoomLighting();
             AttachLightGlows();
             BuildDust();
             BuildVignette();
             AnimateSigns();
+        }
+
+        /// <summary>Scenes saved before ceiling fixtures existed have a solid
+        /// ceiling slab, emissive panels that emit no actual light, and a
+        /// shadow-casting sun that the slab blocks completely — i.e. they
+        /// render nearly black. Install the fixtures and disable sun shadows
+        /// so hand-authored scenes get the fix without being rebuilt.</summary>
+        private void EnsureRoomLighting()
+        {
+            if (GameObject.Find("CeilingSlab") == null) return; // not a room shell
+            BuildKit.BuildCeilingFixtures();                    // idempotent
+
+            foreach (Light l in FindObjectsOfType<Light>())
+                if (l.type == LightType.Directional && l.shadows != LightShadows.None)
+                    l.shadows = LightShadows.None;
+
+            // Flat ambient below this reads as "unlit basement" indoors.
+            Color a = RenderSettings.ambientLight;
+            if (a.r + a.g + a.b < 0.7f)
+                RenderSettings.ambientLight = new Color(0.26f, 0.28f, 0.34f);
         }
 
         /// <summary>Give bob/pulse/glitch motion to any signage that predates
@@ -75,6 +96,9 @@ namespace Cyverse.Level
             foreach (Light l in FindObjectsOfType<Light>())
             {
                 if (l.type != LightType.Point) continue;
+                // Ceiling fill lights are vertex-mode; haloing them would hang
+                // 15 big glow blobs off the ceiling.
+                if (l.renderMode == LightRenderMode.ForceVertex) continue;
                 if (l.transform.Find("LightGlow") != null) continue; // idempotent
 
                 var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);

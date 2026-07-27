@@ -34,6 +34,7 @@ namespace Cyverse.Level
 
         private BadgeStation badge;
         private MfaGauntlet gauntlet;
+        private DropZone mfaSlot;
         private SortingStation sorting;
         private AuditStation audit;
         private CertExamStation exam;
@@ -51,6 +52,7 @@ namespace Cyverse.Level
 
             GameState.Reset();
             ScoreSystem.Reset();
+            Carryable.ClearCarried(); // static; survives a scene reload
             Time.timeScale = 1f;
             Shader.SetGlobalFloat("_CyMotion", 1f);
         }
@@ -72,6 +74,8 @@ namespace Cyverse.Level
 
             badge = FindObjectOfType<BadgeStation>();
             gauntlet = FindObjectOfType<MfaGauntlet>();
+            foreach (var zone in FindObjectsOfType<DropZone>())
+                if (zone.zoneName == "TOKEN SLOT") { mfaSlot = zone; break; }
             sorting = FindObjectOfType<SortingStation>();
             audit = FindObjectOfType<AuditStation>();
             exam = FindObjectOfType<CertExamStation>();
@@ -165,13 +169,186 @@ namespace Cyverse.Level
         // serialize), so a legacy scene saved from the editor has no way to
         // call NotifyStationReviewed — poll instead, once a second.
         private float legacyPollTimer;
+        private float guidanceTimer;
         void Update()
         {
+            // Guidance re-evaluates on a slow tick: the right target changes
+            // from things the manager can't observe (picking up the token,
+            // clearing one MFA factor), so events alone would leave it stale.
+            guidanceTimer += Time.deltaTime;
+            if (guidanceTimer >= 0.4f)
+            {
+                guidanceTimer = 0f;
+                UpdateGuidance();
+            }
+
             if (legacyStations.Count == 0 || CurrentPhase != Phase.Tasks) return;
             legacyPollTimer += Time.deltaTime;
             if (legacyPollTimer < 1f) return;
             legacyPollTimer = 0f;
             NotifyStationReviewed();
+        }
+
+        // ---- Player guidance --------------------------------------------------
+        // Three complementary answers so the player is never lost:
+        //   ObjectiveBeacon  → WHERE to go (light pillar + distance)
+        //   TaskListPanel    → WHAT the level is asking for overall
+        //   HUD objective    → the single next action, phrased as an instruction
+
+        private static readonly Color GuideGold = new Color(0.90f, 0.66f, 0.14f);
+
+        /// <summary>Holding the MFA token specifically (vs. a data crate).</summary>
+        private bool CarryingToken =>
+            Carryable.Carried != null && Carryable.Carried.id == "mfa_token";
+
+        /// <summary>Aim the beacon at whatever the player should approach next,
+        /// and refresh the checklist.</summary>
+        private void UpdateGuidance()
+        {
+            var beacon = ObjectiveBeacon.Ensure();
+            Transform t = null;
+            string action = "";
+
+            switch (CurrentPhase)
+            {
+                case Phase.Watch:
+                    if (briefing != null) { t = briefing.transform; action = "WATCH THE BRIEFING"; }
+                    break;
+
+                case Phase.Tasks:
+                    // Identification gates everything else, so it's always first.
+                    if (badge != null && !badge.IsEnrolled)
+                    {
+                        t = badge.transform; action = "ENROLL YOUR ID BADGE";
+                    }
+                    else if (CarryingToken && mfaSlot != null)
+                    {
+                        // Carrying the token: point at where it goes, not at the rack.
+                        t = mfaSlot.transform; action = "INSERT THE TOKEN";
+                    }
+                    else if (Carryable.Carried != null && sorting != null && !sorting.IsComplete)
+                    {
+                        // Carrying a data crate: point at the triage area, NOT at
+                        // the correct pedestal — choosing the role is the puzzle.
+                        t = sorting.transform; action = "CHOOSE THE RIGHT ROLE";
+                    }
+                    else
+                    {
+                        var next = NearestUnfinished(out action);
+                        t = next;
+                    }
+                    break;
+
+                case Phase.Exam:
+                    if (exam != null) { t = exam.transform; action = "TAKE THE CERTIFICATION EXAM"; }
+                    break;
+
+                case Phase.Complete:
+                    if (exitDoor != null) { t = exitDoor.transform; action = "RETURN TO THE HUB"; }
+                    break;
+            }
+
+            if (t != null) beacon.PointAt(t, action, GuideGold);
+            else beacon.Hide();
+
+            UpdateObjective();
+            UpdateTaskList();
+        }
+
+        /// <summary>Closest task the player hasn't finished — so the beacon
+        /// never sends them across the room past something they could do.</summary>
+        private Transform NearestUnfinished(out string action)
+        {
+            action = "";
+            var cam = Camera.main;
+            Vector3 from = cam != null ? cam.transform.position : Vector3.zero;
+
+            Transform best = null;
+            float bestSqr = float.MaxValue;
+
+            void Consider(Component c, string label)
+            {
+                if (c == null) return;
+                float d = (c.transform.position - from).sqrMagnitude;
+                if (d >= bestSqr) return;
+                bestSqr = d;
+                best = c.transform;
+                action = label;
+            }
+
+            if (gauntlet != null && !gauntlet.IsComplete) Consider(gauntlet, "CLEAR THE MFA VAULT");
+            if (sorting != null && !sorting.IsComplete) Consider(sorting, "FILE THE DATA CRATES");
+            if (audit != null && !audit.IsComplete) Consider(audit, "FIND THE AUDIT ANOMALY");
+            return best;
+        }
+
+        private void UpdateTaskList()
+        {
+            var list = TaskListPanel.Ensure(gameObject);
+            list.SetHeader("I/AM TRAINING");
+
+            var tasks = new List<TaskListPanel.Task>();
+            bool watched = CurrentPhase != Phase.Watch;
+            tasks.Add(new TaskListPanel.Task("Watch the briefing", watched, !watched));
+
+            if (badge != null)
+            {
+                bool cur = watched && !badge.IsEnrolled;
+                tasks.Add(new TaskListPanel.Task("Enroll your ID badge", badge.IsEnrolled, cur));
+            }
+            bool enrolled = badge == null || badge.IsEnrolled;
+
+            if (gauntlet != null)
+                tasks.Add(new TaskListPanel.Task(
+                    $"MFA Vault  ({gauntlet.ClearedCount}/3 factors)",
+                    gauntlet.IsComplete, watched && enrolled && !gauntlet.IsComplete));
+            if (sorting != null)
+                tasks.Add(new TaskListPanel.Task(
+                    $"Data Triage  ({sorting.Delivered}/{sorting.Total} filed)",
+                    sorting.IsComplete, watched && enrolled && !sorting.IsComplete));
+            if (audit != null)
+                tasks.Add(new TaskListPanel.Task(
+                    $"Audit Hunt  ({audit.Solved}/{audit.Rounds} flagged)",
+                    audit.IsComplete, watched && enrolled && !audit.IsComplete));
+            if (exam != null)
+                tasks.Add(new TaskListPanel.Task("Certification Exam",
+                    exam.IsComplete, CurrentPhase == Phase.Exam));
+
+            list.Show(tasks);
+        }
+
+        /// <summary>The single next action, written as an instruction with the
+        /// key to press — the HUD line should never make the player guess.</summary>
+        private string NextActionText()
+        {
+            if (badge != null && !badge.IsEnrolled)
+                return "Follow the marker to the ENROLLMENT kiosk — press E to create your ID badge";
+
+            if (CarryingToken)
+                return "Carry the token to the TOKEN SLOT by the vault — press E to insert it  (Q puts it down)";
+            if (Carryable.Carried != null)
+                return $"Carrying {Carryable.Carried.itemName} — press E on the role that should have access  (Q puts it down)";
+
+            if (gauntlet != null && !gauntlet.IsComplete)
+                return $"MFA Vault: verify all three factors  ({gauntlet.ClearedCount}/3) — passcode terminal, token, biometric pad";
+            if (sorting != null && !sorting.IsComplete)
+                return $"Data Triage: press E to pick up a crate, then E on the role that should have access  ({sorting.Delivered}/{sorting.Total})";
+            if (audit != null && !audit.IsComplete)
+                return $"Audit Hunt: press E to open the log, ↑/↓ to select, E to flag the anomaly  ({audit.Solved}/{audit.Rounds})";
+
+            return $"Complete the training tasks  ({TasksDone}/{TotalTasks})";
+        }
+
+        private string lastObjective;
+
+        /// <summary>Push to the HUD only when the wording actually changes —
+        /// ShowObjective animates, and guidance re-evaluates several times a
+        /// second.</summary>
+        private void SetObjective(string text)
+        {
+            if (text == lastObjective) return;
+            lastObjective = text;
+            HudUI.Instance.ShowObjective(text);
         }
 
         private void UpdateObjective()
@@ -180,7 +357,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Watch:
-                    HudUI.Instance.ShowObjective("Objective: Watch the security briefing  (E to play, ←/→ to scrub)");
+                    SetObjective("Objective: Watch the security briefing  (E to play, ←/→ to scrub)");
                     HudUI.Instance.SetProgress(0, Mathf.Max(1, TotalSteps), "▶");
                     break;
                 case Phase.Tasks:
@@ -188,26 +365,21 @@ namespace Cyverse.Level
                     {
                         int n = 0;
                         foreach (var s in legacyStations) if (s.IsReviewed) n++;
-                        HudUI.Instance.ShowObjective($"Objective: Review the I/AM stations  ({n}/{legacyStations.Count})");
+                        SetObjective($"Objective: Review the I/AM stations  ({n}/{legacyStations.Count})");
                         HudUI.Instance.SetProgress(n, legacyStations.Count);
-                    }
-                    else if (badge != null && !badge.IsEnrolled)
-                    {
-                        HudUI.Instance.ShowObjective("Objective: Enroll at the ID kiosk — everything starts with identity");
-                        HudUI.Instance.SetProgress(TasksDone, TotalSteps);
                     }
                     else
                     {
-                        HudUI.Instance.ShowObjective($"Objective: Complete the training tasks  ({TasksDone}/{TotalTasks})");
+                        SetObjective(NextActionText());
                         HudUI.Instance.SetProgress(TasksDone, TotalSteps);
                     }
                     break;
                 case Phase.Exam:
-                    HudUI.Instance.ShowObjective("Objective: Pass the Certification Exam");
+                    SetObjective("Objective: Pass the Certification Exam");
                     HudUI.Instance.SetProgress(TotalTasks, TotalSteps);
                     break;
                 case Phase.Complete:
-                    HudUI.Instance.ShowObjective("LEVEL 1 COMPLETE — exit to the Hub");
+                    SetObjective("LEVEL 1 COMPLETE — exit to the Hub");
                     HudUI.Instance.SetProgress(TotalSteps, Mathf.Max(1, TotalSteps), "✓");
                     break;
             }
