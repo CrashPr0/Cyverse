@@ -48,7 +48,14 @@ namespace Cyverse.Level
         private void EnsureRoomLighting()
         {
             if (GameObject.Find("CeilingSlab") == null) return; // not a room shell
-            BuildKit.BuildCeilingFixtures();                    // idempotent
+
+            // Only heal scenes that are actually unlit. Artist-lit scenes
+            // (the visual-pass Hub and Level 1) already place their own
+            // fixtures — dumping a 15-light grid on top would blow them out.
+            int placed = 0;
+            foreach (Light l in FindObjectsOfType<Light>())
+                if (l.type == LightType.Point || l.type == LightType.Spot) placed++;
+            if (placed < 6) BuildKit.BuildCeilingFixtures(); // idempotent
 
             foreach (Light l in FindObjectsOfType<Light>())
                 if (l.type == LightType.Directional && l.shadows != LightShadows.None)
