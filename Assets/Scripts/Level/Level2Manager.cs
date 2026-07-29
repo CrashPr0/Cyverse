@@ -191,23 +191,27 @@ namespace Cyverse.Level
 
         private Transform NearestUnfinished(out string action)
         {
-            action = "";
             var cam = Camera.main;
             Vector3 from = cam != null ? cam.transform.position : Vector3.zero;
             Transform best = null;
+            string bestLabel = "";
             float bestSqr = float.MaxValue;
 
+            // NOTE: this must write to a plain local, not to `action` — C#
+            // forbids a local function capturing a ref/out/in parameter.
             void Consider(Component c, string label)
             {
                 if (c == null) return;
                 float d = (c.transform.position - from).sqrMagnitude;
                 if (d >= bestSqr) return;
-                bestSqr = d; best = c.transform; action = label;
+                bestSqr = d; best = c.transform; bestLabel = label;
             }
 
             if (siem != null && !siem.IsComplete) Consider(siem, "WORK THE ALERT QUEUE");
             if (edr != null && !edr.IsComplete) Consider(edr, "CONTAIN THE ENDPOINTS");
             if (playbook != null && !playbook.IsComplete) Consider(playbook, "ORDER THE PLAYBOOK");
+
+            action = bestLabel;
             return best;
         }
 

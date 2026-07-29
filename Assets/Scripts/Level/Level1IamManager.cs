@@ -280,13 +280,15 @@ namespace Cyverse.Level
         /// never sends them across the room past something they could do.</summary>
         private Transform NearestUnfinished(out string action)
         {
-            action = "";
             var cam = Camera.main;
             Vector3 from = cam != null ? cam.transform.position : Vector3.zero;
 
             Transform best = null;
+            string bestLabel = "";
             float bestSqr = float.MaxValue;
 
+            // NOTE: this must write to a plain local, not to `action` — C#
+            // forbids a local function capturing a ref/out/in parameter.
             void Consider(Component c, string label)
             {
                 if (c == null) return;
@@ -294,12 +296,14 @@ namespace Cyverse.Level
                 if (d >= bestSqr) return;
                 bestSqr = d;
                 best = c.transform;
-                action = label;
+                bestLabel = label;
             }
 
             if (gauntlet != null && !gauntlet.IsComplete) Consider(gauntlet, "CLEAR THE MFA VAULT");
             if (sorting != null && !sorting.IsComplete) Consider(sorting, "FILE THE DATA CRATES");
             if (audit != null && !audit.IsComplete) Consider(audit, "FIND THE AUDIT ANOMALY");
+
+            action = bestLabel;
             return best;
         }
 
