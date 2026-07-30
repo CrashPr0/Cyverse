@@ -584,8 +584,46 @@ automatically on any push that touches `web/`. If the branch doesn't exist
 yet, run it once from the **Actions** tab. The site then lives at
 `https://<owner>.github.io/<repo>/`.
 
-**Publishing the game** (after the Unity licence secrets are added — see the
-header of `webgl-deploy.yml` and https://game.ci/docs/github/activation):
+### Getting the Unity CI secrets
+
+The cloud build needs to activate Unity headlessly, which takes three
+repository secrets. For a **Unity Personal** licence (the free one, and what
+a student account normally is):
+
+1. **Actions** tab → **"Unity — Request Activation File"** → *Run workflow*.
+   (That workflow exists only for this; delete it afterwards.)
+2. Open the finished run, download the artifact, and unzip it — you'll get
+   `Unity_v2022.x.alf`.
+3. Go to <https://license.unity3d.com/manual>, sign in, upload the `.alf`,
+   choose **Unity Personal** → it returns a `.ulf` file.
+4. **Settings → Secrets and variables → Actions → New repository secret**:
+
+   | Secret | Value |
+   | --- | --- |
+   | `UNITY_LICENSE` | the **entire contents** of the `.ulf` file (it's XML — open it in a text editor and paste everything) |
+   | `UNITY_EMAIL` | your Unity account email |
+   | `UNITY_PASSWORD` | your Unity account password |
+
+5. Delete `.github/workflows/unity-activation.yml` — it's single-use.
+
+Then run **WebGL Build & Deploy**.
+
+**If SJSU gives you a Unity Pro / Education seat instead**, activation is by
+serial rather than licence file: set `UNITY_SERIAL` (plus `UNITY_EMAIL` and
+`UNITY_PASSWORD`) and swap `UNITY_LICENSE` for `UNITY_SERIAL` in
+`webgl-deploy.yml`. Worth asking your department first — a Pro serial is
+less fiddly than the `.alf`/`.ulf` round trip.
+
+Notes:
+- The `.ulf` is a licence credential. Keep it in Actions secrets; never commit
+  it, and don't paste it into chat or an issue.
+- A Personal licence covers a limited number of activations. CI consumes one
+  seat, so if your local editor later asks you to reactivate, that's why —
+  signing in again fixes it.
+- The activation file is tied to the Unity version, so if the project moves
+  off `2022.3.40f1` you'll need to redo this.
+
+**Publishing the game** (after the Unity licence secrets are added):
 Actions tab → *WebGL Build & Deploy* → **Run workflow**. It lands at
 `/play/` in a few minutes. It's manual on purpose: Unity cloud builds take
 15–30 minutes and you rarely want one per commit.
