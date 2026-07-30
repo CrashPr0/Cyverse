@@ -18827,7 +18827,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mode: 0
-  sceneName: Level0
+  sceneName: Level0 Visual Pass
   displayName: Orientation (Demo)
   levelIndex: 0
 --- !u!4 &1249347461
@@ -26344,7 +26344,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mode: 0
-  sceneName: Level1_IAM
+  sceneName: Level1_IAM_VisualPass
   displayName: "Level 1 \u2014 I/AM"
   levelIndex: 1
 --- !u!4 &1785023807
