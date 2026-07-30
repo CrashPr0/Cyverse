@@ -623,10 +623,20 @@ Notes:
 - The activation file is tied to the Unity version, so if the project moves
   off `2022.3.40f1` you'll need to redo this.
 
-**Publishing the game** (after the Unity licence secrets are added):
-Actions tab → *WebGL Build & Deploy* → **Run workflow**. It lands at
-`/play/` in a few minutes. It's manual on purpose: Unity cloud builds take
-15–30 minutes and you rarely want one per commit.
+**Publishing the game.** Once the three secrets exist, builds are
+**automatic**: any push to `main` that touches `Assets/`, `Packages/` or
+`ProjectSettings/` builds WebGL and publishes it to `/play/`. Pushes that
+only change docs or `web/` are skipped, so a typo fix never costs a
+half-hour build. You can still trigger one by hand from the Actions tab
+(*WebGL Build & Deploy → Run workflow*).
+
+If several commits land quickly, the newer build cancels the older one
+rather than queueing.
+
+> **Before the first automated build, run CyVerse → Add Scenes To Build
+> Settings and commit `ProjectSettings/`.** The cloud build ships exactly the
+> scenes registered there — with a stale list it will happily publish a game
+> missing the Hub, the visual passes and Level 2, on every push.
 
 > Before the first game build, run **CyVerse → Add Scenes To Build Settings**
 > in Unity and commit `ProjectSettings/` — the cloud build ships exactly the

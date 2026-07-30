@@ -12,8 +12,12 @@
 #      CyVerse WebGL template (Player Settings → Resolution and Presentation),
 #      then commit ProjectSettings so the build uses them.
 #
-# USAGE: Actions tab → "WebGL Build & Deploy" → Run workflow. The game then
-# updates at https://<owner>.github.io/<repo>/play/ within a few minutes.
+# WHEN IT RUNS: automatically on every push to main that touches the Unity
+# project (Assets/, Packages/, ProjectSettings/), and on demand from the
+# Actions tab. Doc- and website-only pushes are deliberately excluded — a
+# Unity cloud build takes 15-30 minutes and shouldn't fire for a typo fix.
+#
+# The game updates at https://<owner>.github.io/<repo>/play/ when it finishes.
 #
 # The landing page is deployed separately by pages.yml and needs no secrets,
 # so the site is useful before Unity CI is configured — and stays up if a
@@ -21,15 +25,24 @@
 name: WebGL Build & Deploy
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'Assets/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - '.github/workflows/webgl-deploy.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 # Shares a lock with the site deploy so the two can't write gh-pages at once.
+# cancel-in-progress supersedes an in-flight build when new commits land, so a
+# burst of pushes doesn't queue several half-hour builds.
 concurrency:
   group: gh-pages-publish
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
