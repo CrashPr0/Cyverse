@@ -185,7 +185,7 @@ namespace Cyverse.Interaction
             tm.anchor = TextAnchor.MiddleCenter;
             tm.alignment = TextAlignment.Center;
             tm.color = new Color(1f, 1f, 1f, 0.9f);
-            statusGo.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            statusGo.GetComponent<MeshRenderer>().sharedMaterial = BuildKit.TextMaterial();
             door.statusText = tm;
 
             return door;

@@ -214,7 +214,7 @@ namespace Cyverse.Level
             tm.anchor = TextAnchor.MiddleCenter;
             tm.alignment = TextAlignment.Center;
             tm.color = new Color(0.96f, 0.98f, 1f);
-            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            go.GetComponent<MeshRenderer>().sharedMaterial = TextMaterial();
         }
 
         // ---- Player & shared systems ------------------------------------------
@@ -365,7 +365,7 @@ namespace Cyverse.Level
             tm.alignment = TextAlignment.Center;
             tm.color = color;
             // TextMesh renders with its font's material, which must be set explicitly.
-            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            go.GetComponent<MeshRenderer>().sharedMaterial = TextMaterial();
 
             go.AddComponent<Billboard>();
             go.AddComponent<SignFX>();
@@ -422,7 +422,7 @@ namespace Cyverse.Level
             tm.anchor = TextAnchor.MiddleCenter;
             tm.alignment = TextAlignment.Center;
             tm.color = new Color(1f, 1f, 1f, 0.92f);
-            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            go.GetComponent<MeshRenderer>().sharedMaterial = TextMaterial();
         }
 
         /// <summary>Spawn a primitive positioned in its parent's LOCAL space —
@@ -465,9 +465,67 @@ namespace Cyverse.Level
                         : anchor == TextAnchor.MiddleRight ? TextAlignment.Right
                         : TextAlignment.Center;
             tm.color = color;
-            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            go.GetComponent<MeshRenderer>().sharedMaterial = TextMaterial();
             if (billboard) go.AddComponent<Billboard>();
             return tm;
+        }
+
+        // ---- 3D text -------------------------------------------------------
+
+        private static Material textMat;
+        private static bool textRebuildHooked;
+
+        /// <summary>
+        /// The material every world-space TextMesh should use.
+        ///
+        /// NOT font.material: Unity's built-in "GUI/Text Shader" is declared
+        /// ZTest Always, so default 3D text renders through walls, floors and
+        /// props. This swaps in Cyverse/WorldText (same look, ZTest LEqual).
+        ///
+        /// Dynamic fonts rebuild their atlas — and can swap the texture object
+        /// entirely — when new glyphs are requested, so we re-point the
+        /// material at the current atlas whenever that happens; otherwise text
+        /// silently goes blank mid-session.
+        /// </summary>
+        public static Material TextMaterial()
+        {
+            var font = HudUI.LoadFont();
+            if (textMat == null)
+            {
+                Shader s = Shader.Find("Cyverse/WorldText");
+                if (s == null) return font.material; // shader missing: legacy look beats no text
+                textMat = new Material(s) { name = "CyverseWorldText" };
+            }
+            textMat.mainTexture = font.material.mainTexture;
+
+            if (!textRebuildHooked)
+            {
+                textRebuildHooked = true;
+                Font.textureRebuilt += f =>
+                {
+                    if (textMat != null && f == HudUI.LoadFont())
+                        textMat.mainTexture = f.material.mainTexture;
+                };
+            }
+            return textMat;
+        }
+
+        /// <summary>
+        /// Adds a tall trigger collider so a short prop can actually be aimed at.
+        ///
+        /// The interact ray leaves the camera at eye height (~1.7m) and travels
+        /// level. A 1m pedestal's collider sits entirely below that line, so
+        /// looking straight at a drop zone missed it completely and players
+        /// couldn't place anything. Triggers are hit by Physics.Raycast
+        /// (queriesHitTriggers is on by default) but don't block movement, so
+        /// this widens the aim target without turning the prop into a wall.
+        /// </summary>
+        public static void AddAimCollider(GameObject root, float height = 2.4f, float width = 1.1f)
+        {
+            var box = root.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.center = new Vector3(0f, height * 0.5f, 0f);
+            box.size = new Vector3(width, height, width);
         }
 
         /// <summary>Remove a primitive's collider safely in both play and edit mode.</summary>

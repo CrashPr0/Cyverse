@@ -156,6 +156,11 @@ namespace Cyverse.Interaction
             BuildKit.MakeLabel(root.transform, new Vector3(0f, token ? 0.55f : 0.85f, 0f),
                 itemName, accent, 0.022f, billboard: true);
 
+            // Aim helper, same reason as DropZone. It's captured by the
+            // collider list below, so it's disabled while carried and can't
+            // block the ray to whatever the player wants to place it on.
+            BuildKit.AddAimCollider(root, height: token ? 1.2f : 1.4f, width: 0.9f);
+
             var carry = root.AddComponent<Carryable>();
             carry.itemName = itemName;
             carry.id = id;

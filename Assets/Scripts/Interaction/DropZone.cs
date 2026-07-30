@@ -57,6 +57,11 @@ namespace Cyverse.Interaction
             BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.55f, 0f),
                 zoneName, accent, 0.026f, billboard: true);
 
+            // Without this the pedestal is unaimable: its collider tops out at
+            // 1m while the interact ray leaves the camera at ~1.7m and travels
+            // level, so looking straight at a drop zone hit nothing.
+            BuildKit.AddAimCollider(root, height: 2.4f, width: 1.2f);
+
             var zone = root.AddComponent<DropZone>();
             zone.zoneName = zoneName;
             return zone;

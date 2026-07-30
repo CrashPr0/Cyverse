@@ -327,7 +327,7 @@ namespace Cyverse.Interaction
             tm.anchor = TextAnchor.MiddleCenter;
             tm.alignment = TextAlignment.Center;
             tm.color = color;
-            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            go.GetComponent<MeshRenderer>().sharedMaterial = BuildKit.TextMaterial();
             return tm;
         }
     }

@@ -117,6 +117,10 @@ namespace Cyverse.Interaction
                 BuildKit.MakeLabel(root.transform, new Vector3(0f, 2.0f, 0f), "BIOMETRIC", accent, 0.026f, billboard: true);
             }
 
+            // The biometric pad is a disc on the floor; without an aim volume
+            // the player has to stare at their feet to trigger it.
+            BuildKit.AddAimCollider(root, height: kind == Kind.Biometric ? 2.0f : 2.2f, width: 1.3f);
+
             var factor = root.AddComponent<MfaFactor>();
             factor.kind = kind;
             factor.gauntlet = gauntlet;

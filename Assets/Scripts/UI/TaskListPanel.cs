@@ -57,7 +57,9 @@ namespace Cyverse.UI
             foreach (var t in tasks)
             {
                 if (t.done)
-                    sb.Append($"<color=#4CE087>  ✓  <s>{t.label}</s></color>\n");
+                    // Unity's legacy UI Text supports only <b> <i> <size> <color> —
+                    // <s> is TextMeshPro-only and renders as literal text.
+                    sb.Append($"<color=#4CE087>  ✓  {t.label}</color>\n");
                 else if (t.current)
                     sb.Append($"<color=#E5A823>  ▶  <b>{t.label}</b></color>\n");
                 else

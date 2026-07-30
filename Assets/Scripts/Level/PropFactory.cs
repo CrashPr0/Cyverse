@@ -408,7 +408,7 @@ namespace Cyverse.Level
             tm.anchor = anchor;
             tm.alignment = anchor == TextAnchor.MiddleLeft ? TextAlignment.Left : TextAlignment.Center;
             tm.color = color;
-            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            go.GetComponent<MeshRenderer>().sharedMaterial = BuildKit.TextMaterial();
             return tm;
         }
 
