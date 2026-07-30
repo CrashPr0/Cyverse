@@ -7,13 +7,17 @@
 #        UNITY_PASSWORD — Unity account password
 #      To get the .ulf for a personal license, follow game-ci's activation
 #      guide: https://game.ci/docs/github/activation
-#   2. Enable Pages: Settings → Pages → Source: "gh-pages" branch.
+#   2. Settings → Pages → Source: "Deploy from a branch" → `gh-pages` → `/ (root)`
 #   3. In Unity, run "CyVerse > Add Scenes To Build Settings" and select the
 #      CyVerse WebGL template (Player Settings → Resolution and Presentation),
 #      then commit ProjectSettings so the build uses them.
 #
 # USAGE: Actions tab → "WebGL Build & Deploy" → Run workflow. The game then
-# updates at https://<owner>.github.io/<repo>/ within a few minutes.
+# updates at https://<owner>.github.io/<repo>/play/ within a few minutes.
+#
+# The landing page is deployed separately by pages.yml and needs no secrets,
+# so the site is useful before Unity CI is configured — and stays up if a
+# build ever fails.
 name: WebGL Build & Deploy
 
 on:
@@ -21,6 +25,11 @@ on:
 
 permissions:
   contents: write
+
+# Shares a lock with the site deploy so the two can't write gh-pages at once.
+concurrency:
+  group: gh-pages-publish
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
@@ -48,11 +57,16 @@ jobs:
           targetPlatform: WebGL
           # unityVersion is read from ProjectSettings/ProjectVersion.txt by default.
 
-      - name: Deploy to GitHub Pages
+      - name: Publish game to /play/
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: build/WebGL/WebGL
-          # Unity WebGL builds are pre-compressed; .nojekyll keeps Pages from
-          # mangling files that start with underscores (Build/ contents).
+          # The landing page (pages.yml) owns the site root; the game lives at
+          # /play/. keep_files stops each deploy from erasing the other's files.
+          destination_dir: play
+          keep_files: true
+          # .nojekyll keeps Pages from dropping Unity's Build/ files, whose
+          # names start with underscores.
           enable_jekyll: false
+          commit_message: 'Publish WebGL build to /play/'

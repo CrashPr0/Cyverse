@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CyVerse — Cybersecurity Training Game | SJSU</title>
+<meta name="description" content="CyVerse is a browser-based, first-person cybersecurity training game built at San José State University.">
+<style>
+  :root{
+    --sjsu-blue:#0055A2; --sjsu-blue-dk:#003d75;
+    --gold:#E5A823; --cyan:#5BC8FF;
+    --bg:#ffffff; --surface:#f4f6f9; --line:#dde3ea;
+    --ink:#16202b; --muted:#5a6b7c;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0d1117; --surface:#161d26; --line:#26303c;
+           --ink:#e8eef5; --muted:#93a4b5; }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .bar{height:5px;background:linear-gradient(90deg,var(--sjsu-blue),var(--gold))}
+  header{
+    background:var(--sjsu-blue); color:#fff; padding:14px 24px;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  header .mark{font-weight:700; letter-spacing:.14em; font-size:13px}
+  header .sep{opacity:.5}
+  header .who{font-size:13px; opacity:.9}
+  main{max-width:1000px; margin:0 auto; padding:56px 24px 80px}
+  h1{
+    font-size:clamp(2.6rem,7vw,4.4rem); line-height:1.02; margin:0 0 .3em;
+    letter-spacing:-.02em; font-weight:800;
+  }
+  h1 .cy{color:var(--sjsu-blue)}
+  @media (prefers-color-scheme: dark){ h1 .cy{color:var(--cyan)} }
+  .tag{font-size:clamp(1.05rem,2.4vw,1.3rem); color:var(--muted); max-width:60ch; margin:0 0 2.2em}
+  .cta{display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:14px}
+  .btn{
+    display:inline-block; background:var(--sjsu-blue); color:#fff; text-decoration:none;
+    padding:15px 34px; border-radius:8px; font-weight:700; font-size:1.05rem;
+    border:2px solid var(--sjsu-blue); transition:transform .12s ease, background .12s ease;
+  }
+  .btn:hover{background:var(--sjsu-blue-dk); border-color:var(--sjsu-blue-dk); transform:translateY(-1px)}
+  .btn[aria-disabled="true"]{
+    background:transparent; color:var(--muted); border-color:var(--line);
+    pointer-events:none;
+  }
+  .note{font-size:.9rem; color:var(--muted)}
+  .note code{
+    background:var(--surface); border:1px solid var(--line);
+    padding:2px 7px; border-radius:5px; font-size:.85em;
+  }
+  section{margin-top:64px}
+  h2{font-size:.82rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin:0 0 22px; font-weight:700}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px}
+  .card{background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--accent,var(--sjsu-blue)); border-radius:10px; padding:20px}
+  .card h3{margin:0 0 6px; font-size:1.02rem}
+  .card p{margin:0; color:var(--muted); font-size:.93rem}
+  .lvl{font-size:.72rem; letter-spacing:.1em; color:var(--muted); font-weight:700; display:block; margin-bottom:8px}
+  ul.plain{margin:0; padding-left:1.2em; color:var(--muted)}
+  ul.plain li{margin:.35em 0}
+  footer{border-top:1px solid var(--line); margin-top:72px; padding:26px 24px; color:var(--muted); font-size:.88rem}
+  footer .inner{max-width:1000px; margin:0 auto}
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<header>
+  <span class="mark">SAN JOSÉ STATE UNIVERSITY</span>
+  <span class="sep">·</span>
+  <span class="who">CyVerse Project</span>
+</header>
+
+<main>
+  <h1><span class="cy">Cy</span>Verse</h1>
+  <p class="tag">
+    A browser-based, first-person cybersecurity training game. Walk a virtual
+    security operations floor and <strong>do</strong> the work — enroll credentials,
+    clear multi-factor authentication, triage a live alert queue, contain infected
+    endpoints, and query real logs to solve a breach.
+  </p>
+
+  <div class="cta">
+    <a class="btn" id="play" href="./play/">Play the beta</a>
+    <span class="note" id="status">Requires an access code from the project team.</span>
+  </div>
+  <p class="note">
+    Runs in the browser — no install. Desktop with a keyboard and mouse recommended.
+  </p>
+
+  <section>
+    <h2>What you'll learn</h2>
+    <div class="grid">
+      <div class="card" style="--accent:#3fa9f5">
+        <span class="lvl">LEVEL 1</span>
+        <h3>Identity &amp; Access</h3>
+        <p>Enroll an ID badge, then clear a vault using all three authentication
+           factors — something you know, have, and are.</p>
+      </div>
+      <div class="card" style="--accent:#f26a4f">
+        <span class="lvl">LEVEL 2</span>
+        <h3>Cyber Defense</h3>
+        <p>Work a timed SIEM alert queue, isolate compromised endpoints, and put
+           the incident response playbook in the right order.</p>
+      </div>
+      <div class="card" style="--accent:#4ce087">
+        <span class="lvl">LEVEL 3</span>
+        <h3>Digital Forensics</h3>
+        <p>Investigate a phishing breach by querying security logs, pivoting from
+           email to endpoint to attacker infrastructure.</p>
+      </div>
+      <div class="card" style="--accent:#E5A823">
+        <span class="lvl">LEVEL 4</span>
+        <h3>Cyber Attack</h3>
+        <p>In development — the offensive counterpart, seeing the same systems
+           from the attacker's side.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Accessibility</h2>
+    <ul class="plain">
+      <li>Captions on all narration, with adjustable text size</li>
+      <li><strong>Reduce Motion</strong> option that freezes animation and screen effects</li>
+      <li>Adjustable look sensitivity and field of view for motion comfort</li>
+      <li>Status shown by shape and label, never by colour alone</li>
+      <li>Separate master, voice and effects volume channels</li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  <div class="inner">
+    Built at San José State University. Source on
+    <a href="https://github.com/CrashPr0/Cyverse">GitHub</a>.
+  </div>
+</footer>
+
+<script>
+  // The game is published separately (a Unity WebGL build is large and slow to
+  // produce). Until it lands at /play/, don't hand visitors a dead link.
+  fetch('./play/index.html', { method: 'HEAD' })
+    .then(function (r) { if (!r.ok) throw 0; })
+    .catch(function () {
+      var b = document.getElementById('play');
+      var s = document.getElementById('status');
+      b.setAttribute('aria-disabled', 'true');
+      b.removeAttribute('href');
+      b.textContent = 'Build not published yet';
+      s.textContent = 'The playable build is coming shortly.';
+    });
+</script>
+</body>
+</html>

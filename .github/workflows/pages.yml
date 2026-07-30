@@ -1,0 +1,49 @@
+# CyVerse — publish the project site to GitHub Pages.
+#
+# This deploys the LANDING PAGE only, and needs no secrets, so Pages works
+# immediately — the Unity build is published separately into /play/ by
+# webgl-deploy.yml. Both write to the same `gh-pages` branch with
+# keep_files: true, so neither erases the other's files.
+#
+# ONE-TIME SETUP: Settings → Pages → Source: "Deploy from a branch",
+# branch `gh-pages`, folder `/ (root)`. The branch is created by the first
+# run of this workflow.
+#
+# Site lands at https://<owner>.github.io/<repo>/
+name: Deploy Site to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Never let the site deploy and the game deploy write the branch at once.
+concurrency:
+  group: gh-pages-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish landing page
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: web
+          # Preserve /play/ — the game build lives there and is published by a
+          # different workflow. Without this, every site edit would delete it.
+          keep_files: true
+          # .nojekyll is added automatically; Unity's Build/ files start with
+          # underscores and Jekyll would otherwise drop them.
+          enable_jekyll: false
+          commit_message: 'Publish site: ${{ github.event.head_commit.message }}'

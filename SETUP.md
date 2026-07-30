@@ -560,38 +560,46 @@ pauses the game. Reduce Motion uses a global shader float `_CyMotion`.
 5. Keep textures compressed and the build lean for low-bandwidth / remote users.
 6. `Build` and host the output folder on any static web server.
 
-## Web deployment (updating the live web version)
+## Web deployment (GitHub Pages)
 
-The repo ships a GitHub Actions workflow —
-`.github/workflows/webgl-deploy.yml` — that builds WebGL in the cloud
-([game-ci](https://game.ci)) and publishes to **GitHub Pages**, so nobody
-needs a local WebGL module to update the site.
+The site is published from the **`gh-pages`** branch by two workflows that
+write to different folders, so neither erases the other:
 
-**One-time setup:**
+| Workflow | Publishes | To | Needs secrets? |
+| --- | --- | --- | --- |
+| `pages.yml` | `web/` (landing page) | site root | **No** |
+| `webgl-deploy.yml` | the Unity WebGL build | `/play/` | Yes (Unity licence) |
 
-1. **Unity license secrets** (game-ci needs to activate Unity headlessly).
-   Follow https://game.ci/docs/github/activation to obtain your personal
-   `.ulf` license file, then add three repository secrets under
-   *Settings → Secrets and variables → Actions*:
-   `UNITY_LICENSE` (the file's full contents), `UNITY_EMAIL`, `UNITY_PASSWORD`.
-2. **Enable Pages**: *Settings → Pages → Source:* deploy from the `gh-pages`
-   branch (created by the first successful run).
-3. In Unity, run **CyVerse → Add Scenes To Build Settings** and select the
-   **CyVerse** WebGL template, then commit `ProjectSettings/` — the cloud
-   build uses whatever is committed.
+That split matters: the landing page goes live **without** Unity CI configured,
+and stays up if a game build ever fails. The landing page checks whether
+`/play/` exists and shows "Build not published yet" instead of a dead link.
 
-**Updating the site after that:** push your changes to `main`, then open the
-**Actions** tab → *WebGL Build & Deploy* → **Run workflow**. A few minutes
-later the game is live at `https://<owner>.github.io/<repo>/`. (The workflow
-is manual-trigger by design — Unity cloud builds take ~15–30 min and you
-usually don't want one per commit; the first run is slowest, later runs reuse
-the cached `Library/`.)
+**One-time setup (the only manual step):**
 
-**Manual alternative** (no Actions setup): build locally per the section
-above and drag the output folder onto any static host — itch.io (create an
-HTML5 project, upload a zip of the build), Netlify Drop, or SJSU web space.
-For itch.io/Netlify set compression to `Gzip` unless the host serves the
-`Content-Encoding: br` header.
+> **Settings → Pages → Source: "Deploy from a branch" → branch `gh-pages` →
+> folder `/ (root)`**
+
+The `gh-pages` branch is created by the first run of `pages.yml`, which fires
+automatically on any push that touches `web/`. If the branch doesn't exist
+yet, run it once from the **Actions** tab. The site then lives at
+`https://<owner>.github.io/<repo>/`.
+
+**Publishing the game** (after the Unity licence secrets are added — see the
+header of `webgl-deploy.yml` and https://game.ci/docs/github/activation):
+Actions tab → *WebGL Build & Deploy* → **Run workflow**. It lands at
+`/play/` in a few minutes. It's manual on purpose: Unity cloud builds take
+15–30 minutes and you rarely want one per commit.
+
+> Before the first game build, run **CyVerse → Add Scenes To Build Settings**
+> in Unity and commit `ProjectSettings/` — the cloud build ships exactly the
+> scenes registered there.
+
+Editing the landing page is just editing `web/index.html`; pushing to `main`
+redeploys it.
+
+**Manual alternative:** build WebGL locally and drag the output onto any
+static host — itch.io (HTML5 project, upload a zip), Netlify Drop, or SJSU web
+space. Use `Gzip` compression unless the host sends `Content-Encoding: br`.
 
 ## Visual style / shaders
 
