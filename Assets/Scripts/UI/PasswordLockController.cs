@@ -49,7 +49,9 @@ namespace Cyverse.UI
         private LockedDoor gate;
 
         private string typed = "";
-        private bool masked = true;
+        // Show entry by default: this is an instructional kiosk, and legacy
+        // WebGL fonts do not consistently render the Unicode bullet glyph.
+        private bool masked;
         private int attempts;
         private bool unlocked;
         private float lockedUntil;
@@ -233,7 +235,9 @@ namespace Cyverse.UI
         private void RefreshInput()
         {
             if (inputText == null) return;
-            string shown = masked ? new string('•', typed.Length) : typed;
+            // ASCII asterisks are available in Unity's built-in WebGL font;
+            // Unicode bullets can leave an apparently blank input field.
+            string shown = masked ? new string('*', typed.Length) : typed;
             bool blink = !unlocked && Mathf.Sin(Time.unscaledTime * 6f) > 0f;
             inputText.text = $"<color=#5BC8FF>{shown}{(blink ? "_" : " ")}</color>";
         }

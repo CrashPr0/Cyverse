@@ -18,6 +18,9 @@ EditorBuildSettings:
     path: Assets/Scenes/Level1_IAM_VisualPass.unity
     guid: 17f574479b2709640a1ce2a86db584d7
   - enabled: 1
+    path: Assets/Scenes/Level2_CyberDefense_VisualPass.unity
+    guid: a295f8ef1205ecf48a311cbeba106d5c
+  - enabled: 1
     path: Assets/Scenes/Level0.unity
     guid: a1f0c0de0000000000000000000000e1
   - enabled: 1
@@ -26,6 +29,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Level1_IAM.unity
     guid: a1f0c0de000000000000000000000113
+  - enabled: 1
+    path: Assets/Scenes/Level2_CyberDefense.unity
+    guid: a1f0c0de000000000000000000000136
   - enabled: 1
     path: Assets/Scenes/Level3_Forensics.unity
     guid: a1f0c0de000000000000000000000128

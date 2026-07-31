@@ -129,7 +129,7 @@ namespace Cyverse.Interaction
             if (timerFill != null) timerFill.localScale = new Vector3(0f, 1f, 1f);
             if (screenRenderer != null)
                 screenRenderer.sharedMaterial = BuildKit.MakeHologram(new Color(0.30f, 1f, 0.45f));
-            BurstFX.Spawn(transform.position + Vector3.up * 2.2f, new Color(0.30f, 1f, 0.45f), 30);
+            BurstFX.SpawnAbove(transform, new Color(0.30f, 1f, 0.45f), 30, minimumHeight: 2.2f);
             Completed?.Invoke();
         }
 

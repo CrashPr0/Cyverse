@@ -3,6 +3,7 @@ using UnityEngine;
 using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Level;
+using Cyverse.Player;
 using Cyverse.UI;
 
 namespace Cyverse.Interaction
@@ -63,9 +64,14 @@ namespace Cyverse.Interaction
 
             Carried = this;
             foreach (var c in colliders) c.enabled = false;
-            transform.SetParent(cam.transform, false);
-            transform.localPosition = new Vector3(0.42f, -0.34f, 0.95f);
-            transform.localRotation = Quaternion.Euler(8f, -14f, 0f);
+            var hands = FirstPersonHands.Instance;
+            transform.SetParent(hands != null ? hands.CarryAnchor : cam.transform, false);
+            transform.localPosition = hands != null
+                ? Vector3.zero
+                : new Vector3(0.42f, -0.34f, 0.95f);
+            transform.localRotation = hands != null
+                ? Quaternion.identity
+                : Quaternion.Euler(8f, -14f, 0f);
             // In-hand presentation: smaller, and no name tag in your face.
             transform.localScale = Vector3.one * 0.6f;
             SetLabelVisible(false);
@@ -92,24 +98,90 @@ namespace Cyverse.Interaction
         {
             var cam = Camera.main;
             transform.SetParent(null, true);
-            if (cam != null)
-            {
-                Vector3 fwd = cam.transform.forward;
-                fwd.y = 0f;
-                fwd = fwd.sqrMagnitude > 0.01f ? fwd.normalized : Vector3.forward;
-                Vector3 pos = cam.transform.position + fwd * 1.4f;
-
-                // Own colliders are still disabled here, so the ray can't hit us.
-                pos.y = Physics.Raycast(new Vector3(pos.x, pos.y, pos.z), Vector3.down, out RaycastHit hit, 6f)
-                    ? hit.point.y
-                    : 0f;
-                transform.position = pos;
-            }
             transform.rotation = Quaternion.identity;
             transform.localScale = Vector3.one;
+
+            if (cam != null && TryFindDropPosition(cam, out Vector3 dropPosition))
+            {
+                transform.position = dropPosition;
+            }
+            else if (cam != null)
+            {
+                // Never force an object into a wall just because the player is
+                // standing in a cramped corner. Keep it in hand until there is
+                // a valid resting place.
+                var hands = FirstPersonHands.Instance;
+                transform.SetParent(hands != null ? hands.CarryAnchor : cam.transform, false);
+                transform.localPosition = hands != null ? Vector3.zero : new Vector3(0.42f, -0.34f, 0.95f);
+                transform.localRotation = hands != null ? Quaternion.identity : Quaternion.Euler(8f, -14f, 0f);
+                transform.localScale = Vector3.one * 0.6f;
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("No clear surface here — move away from the obstacle.",
+                        new Color(1f, 0.70f, 0.35f));
+                return;
+            }
+
             SetLabelVisible(true);
             foreach (var c in colliders) c.enabled = true;
             if (Carried == this) Carried = null;
+        }
+
+        /// <summary>Finds a grounded, non-overlapping location in a small fan
+        /// in front of the player. The item colliders stay disabled while this
+        /// runs, so its own bounds never make an otherwise safe spot fail.</summary>
+        private bool TryFindDropPosition(Camera cam, out Vector3 dropPosition)
+        {
+            Vector3 forward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up);
+            forward = forward.sqrMagnitude > 0.01f ? forward.normalized : Vector3.forward;
+            Vector3 right = Vector3.Cross(Vector3.up, forward);
+            float[] lateralOffsets = { 0f, -0.55f, 0.55f, -1.0f, 1.0f };
+            float[] distances = { 1.4f, 1.8f, 1.05f };
+
+            foreach (float distance in distances)
+            foreach (float lateral in lateralOffsets)
+            {
+                Vector3 candidate = cam.transform.position + forward * distance + right * lateral;
+                Vector3 rayOrigin = candidate + Vector3.up * 0.75f;
+                if (!Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 7f,
+                                     ~0, QueryTriggerInteraction.Ignore))
+                    continue;
+
+                candidate.y = hit.point.y;
+                transform.position = candidate;
+                Bounds bounds = SolidBounds();
+                // Rest the true bottom of a token or crate on the surface.
+                candidate.y -= bounds.min.y - candidate.y;
+                transform.position = candidate;
+                bounds = SolidBounds();
+
+                // Shrink very slightly so a crate resting flush on the floor
+                // is not rejected due to floating-point contact noise.
+                if (!Physics.CheckBox(bounds.center, bounds.extents * 0.96f,
+                                      Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    dropPosition = candidate;
+                    return true;
+                }
+            }
+
+            dropPosition = default;
+            return false;
+        }
+
+        private Bounds SolidBounds()
+        {
+            bool hasBounds = false;
+            Bounds result = new Bounds(transform.position, Vector3.zero);
+            foreach (var renderer in GetComponentsInChildren<Renderer>(true))
+            {
+                // The name tag deliberately floats above the item and should
+                // not turn a low shelf into an invalid drop surface.
+                if (!renderer.enabled || renderer.GetComponent<TextMesh>() != null) continue;
+                if (!hasBounds) { result = renderer.bounds; hasBounds = true; }
+                else result.Encapsulate(renderer.bounds);
+            }
+            return hasBounds ? result : new Bounds(transform.position + Vector3.up * 0.25f,
+                Vector3.one * 0.5f);
         }
 
         private void SetLabelVisible(bool visible)

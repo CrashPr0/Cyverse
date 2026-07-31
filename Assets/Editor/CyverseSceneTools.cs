@@ -77,6 +77,7 @@ namespace Cyverse.EditorTools
                 "Assets/Scenes/Level0.unity",
                 "Assets/Scenes/Level1_IAM_VisualPass.unity",
                 "Assets/Scenes/Level1_IAM.unity",
+                "Assets/Scenes/Level2_CyberDefense_VisualPass.unity",
                 "Assets/Scenes/Level2_CyberDefense.unity",
                 "Assets/Scenes/Level1.unity",
                 "Assets/Scenes/Level3_Forensics.unity",

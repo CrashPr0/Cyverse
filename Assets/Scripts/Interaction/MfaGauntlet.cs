@@ -88,7 +88,7 @@ namespace Cyverse.Interaction
 
             ScoreSystem.Add(completionPoints);
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
-            BurstFX.Spawn(transform.position + Vector3.up * 2.2f, new Color(0.90f, 0.66f, 0.14f), 40);
+            BurstFX.SpawnAbove(transform, new Color(0.90f, 0.66f, 0.14f), 40, minimumHeight: 2.2f);
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast($"MULTI-FACTOR VERIFIED — VAULT OPEN  +{completionPoints}",
                     new Color(0.90f, 0.66f, 0.14f));
@@ -172,7 +172,7 @@ namespace Cyverse.Interaction
             slot.onAccepted = item =>
             {
                 item.Consume();
-                BurstFX.Spawn(slot.transform.position + Vector3.up * 1.2f, accent, 20);
+                BurstFX.SpawnAbove(slot.transform, accent, 20, minimumHeight: 1.2f);
                 gauntlet.FactorCleared(1);
             };
             slot.onRejected = item =>

@@ -39,7 +39,7 @@ namespace Cyverse.Interaction
 
             ScoreSystem.Add(pointsPerStep);
             if (Sfx.Instance != null) Sfx.Instance.PlayStreak(placed);
-            BurstFX.Spawn(zone.transform.position + Vector3.up * 1.3f, new Color(0.30f, 1f, 0.45f), 18);
+            BurstFX.SpawnAbove(zone.transform, new Color(0.30f, 1f, 0.45f), 18, minimumHeight: 1.3f);
 
             // Leave the step's name standing on the slot as a record.
             BuildKit.MakeLabel(zone.transform, new Vector3(0f, 1.25f, 0f),

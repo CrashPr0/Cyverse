@@ -353,7 +353,7 @@ namespace Cyverse.Level
         {
             var go = new GameObject("Sign_" + text.Replace(' ', '_'));
             if (parent != null) go.transform.SetParent(parent, false);
-            go.transform.position = worldPos;
+            go.transform.position = ResolveAboveOwner(parent, worldPos, 0.18f);
 
             var font = HudUI.LoadFont();
             var tm = go.AddComponent<TextMesh>();
@@ -409,7 +409,7 @@ namespace Cyverse.Level
         {
             var go = new GameObject("PanelLabel");
             go.transform.SetParent(parent, false);
-            go.transform.position = worldPos;
+            go.transform.position = ResolvePanelFront(parent, worldPos, 0.04f);
             go.transform.rotation = Quaternion.identity; // readable from the south approach
 
             var font = HudUI.LoadFont();
@@ -423,6 +423,45 @@ namespace Cyverse.Level
             tm.alignment = TextAlignment.Center;
             tm.color = new Color(1f, 1f, 1f, 0.92f);
             go.GetComponent<MeshRenderer>().sharedMaterial = TextMaterial();
+        }
+
+        // Keep generated signage outside of the visible object it describes.
+        // Visual-pass scenes often replace a simple primitive with a taller or
+        // deeper authored model, so a fixed local offset is no longer enough.
+        private static Vector3 ResolveAboveOwner(Transform owner, Vector3 requested, float clearance)
+        {
+            if (owner == null) return requested;
+            float top = owner.position.y;
+            foreach (var renderer in owner.GetComponentsInChildren<Renderer>(true))
+                if (renderer.enabled) top = Mathf.Max(top, renderer.bounds.max.y);
+            foreach (var collider in owner.GetComponentsInChildren<Collider>(true))
+                if (collider.enabled && !collider.isTrigger) top = Mathf.Max(top, collider.bounds.max.y);
+            requested.y = Mathf.Max(requested.y, top + clearance);
+            return requested;
+        }
+
+        private static Vector3 ResolvePanelFront(Transform owner, Vector3 requested, float clearance)
+        {
+            if (owner == null) return requested;
+            Vector3 direction = Vector3.ProjectOnPlane(requested - owner.position, Vector3.up);
+            if (direction.sqrMagnitude < 0.0001f) direction = -owner.forward;
+            direction.Normalize();
+
+            float furthest = 0f;
+            foreach (var renderer in owner.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!renderer.enabled) continue;
+                Bounds bounds = renderer.bounds;
+                if (requested.y < bounds.min.y - 0.08f || requested.y > bounds.max.y + 0.08f) continue;
+                Vector3 extent = bounds.extents;
+                float edge = Vector3.Dot(bounds.center - owner.position, direction)
+                    + Mathf.Abs(direction.x) * extent.x + Mathf.Abs(direction.z) * extent.z;
+                furthest = Mathf.Max(furthest, edge);
+            }
+            float requestedDistance = Vector3.Dot(requested - owner.position, direction);
+            return requestedDistance >= furthest + clearance
+                ? requested
+                : owner.position + direction * (furthest + clearance) + Vector3.up * (requested.y - owner.position.y);
         }
 
         /// <summary>Spawn a primitive positioned in its parent's LOCAL space —

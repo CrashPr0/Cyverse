@@ -77,7 +77,7 @@ namespace Cyverse.Interaction
 
             ScoreSystem.Add(points);
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
-            BurstFX.Spawn(transform.position + Vector3.up * 1.9f, new Color(0.30f, 1f, 0.45f), 30);
+            BurstFX.SpawnAbove(transform, new Color(0.30f, 1f, 0.45f), 30, minimumHeight: 1.9f);
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast($"ID BADGE ISSUED — {PlayerIdentity.Callsign}  +{points}",
                     new Color(0.90f, 0.66f, 0.14f));

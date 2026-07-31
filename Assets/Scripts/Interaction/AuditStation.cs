@@ -95,7 +95,7 @@ namespace Cyverse.Interaction
                 rowTexts[cursor].color = GoodColor;
                 ScoreSystem.Add(pointsPerRound);
                 if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
-                BurstFX.Spawn(transform.position + Vector3.up * 2f, GoodColor, 22);
+                BurstFX.SpawnAbove(transform, GoodColor, 22, minimumHeight: 2f);
                 if (HudUI.Instance != null)
                     HudUI.Instance.ShowToast($"ANOMALY FLAGGED  +{pointsPerRound}  ·  {r.why}", GoodColor);
 

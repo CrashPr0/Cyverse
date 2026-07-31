@@ -27,6 +27,7 @@ namespace Cyverse.Player
         public float interactDuration = 0.35f;
 
         private Transform handL, handR;
+        private Transform carryAnchor;
         private CharacterController body;
         private float bobTime;
         private float interactT = 1f; // >= 1 means the reach animation is done
@@ -44,7 +45,18 @@ namespace Cyverse.Player
 
             handR = BuildHand(left: false);
             handL = BuildHand(left: true);
+
+            // Carryables parent here rather than directly to the camera, so
+            // they inherit the right hand's bob, reach, and hide poses.
+            carryAnchor = new GameObject("CarryAnchor").transform;
+            carryAnchor.SetParent(handR, false);
+            carryAnchor.localPosition = new Vector3(0.075f, -0.045f, 0.145f);
+            carryAnchor.localRotation = Quaternion.Euler(10f, -16f, 0f);
         }
+
+        /// <summary>Stable local attachment point for an item held in the
+        /// right hand. Falls back to the camera while a scene is initializing.</summary>
+        public Transform CarryAnchor => carryAnchor != null ? carryAnchor : transform;
 
         void Start()
         {

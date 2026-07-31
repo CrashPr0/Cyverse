@@ -103,7 +103,7 @@ namespace Cyverse.Interaction
             completed = true;
             ScoreSystem.Add(certifyPoints);
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
-            BurstFX.Spawn(transform.position + Vector3.up * 2.3f, new Color(0.25f, 0.8f, 1f), 40);
+            BurstFX.SpawnAbove(transform, new Color(0.25f, 0.8f, 1f), 40, minimumHeight: 2.3f);
 
             if (DialogueManager.Instance != null)
                 DialogueManager.Instance.Play(Level1Content.Complete(), () => Completed?.Invoke());

@@ -120,8 +120,9 @@ namespace Cyverse.Level
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast("Briefing complete — the SOC floor is open",
                     new Color(0.30f, 1f, 0.45f));
-            BurstFX.Spawn(taskDoor != null ? taskDoor.transform.position + Vector3.up * 2.5f : Vector3.up * 2f,
-                new Color(0.30f, 1f, 0.45f), 30);
+            if (taskDoor != null) BurstFX.SpawnAbove(taskDoor.transform,
+                new Color(0.30f, 1f, 0.45f), 30, minimumHeight: 2.5f);
+            else BurstFX.Spawn(Vector3.up * 2f, new Color(0.30f, 1f, 0.45f), 30);
             UpdateObjective();
         }
 
@@ -299,10 +300,11 @@ namespace Cyverse.Level
             UpdateObjective();
             FirstPersonController.LockCursor(false);
 
-            Vector3 burstPos = exitDoor != null
-                ? exitDoor.transform.position + Vector3.up * 2.5f
-                : (Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 2f : Vector3.up * 2f);
-            BurstFX.Spawn(burstPos, GuideGold, 70, 3.4f, 1.3f);
+            if (exitDoor != null) BurstFX.SpawnAbove(exitDoor.transform,
+                GuideGold, 70, 3.4f, 1.3f, 2.5f);
+            else BurstFX.Spawn(Camera.main != null
+                ? Camera.main.transform.position + Camera.main.transform.forward * 2f : Vector3.up * 2f,
+                GuideGold, 70, 3.4f, 1.3f);
 
             if (ResultsScreen.Instance != null)
                 ResultsScreen.Instance.Show(

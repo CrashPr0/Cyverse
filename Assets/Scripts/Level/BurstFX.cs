@@ -11,6 +11,24 @@ namespace Cyverse.Level
     /// </summary>
     public static class BurstFX
     {
+        /// <summary>Spawns a burst just clear of the supplied object, rather
+        /// than assuming every kiosk, door, or visual-pass prop has the same
+        /// height.</summary>
+        public static void SpawnAbove(Transform target, Color color, int count = 30,
+            float speed = 2.6f, float life = 0.9f, float minimumHeight = 1.2f)
+        {
+            if (target == null) { Spawn(Vector3.up * minimumHeight, color, count, speed, life); return; }
+
+            float top = target.position.y;
+            foreach (var renderer in target.GetComponentsInChildren<Renderer>(true))
+                if (renderer.enabled) top = Mathf.Max(top, renderer.bounds.max.y);
+            foreach (var collider in target.GetComponentsInChildren<Collider>(true))
+                if (collider.enabled && !collider.isTrigger) top = Mathf.Max(top, collider.bounds.max.y);
+
+            Spawn(new Vector3(target.position.x, Mathf.Max(target.position.y + minimumHeight, top + 0.18f),
+                target.position.z), color, count, speed, life);
+        }
+
         public static void Spawn(Vector3 position, Color color, int count = 30,
             float speed = 2.6f, float life = 0.9f)
         {

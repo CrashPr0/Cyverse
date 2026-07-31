@@ -37,7 +37,7 @@ namespace Cyverse.Interaction
             if (screenRenderer != null)
                 screenRenderer.sharedMaterial = BuildKit.MakeHologram(new Color(0.30f, 1f, 0.45f));
             if (statusText != null) statusText.text = "EXAM READY\n[E]";
-            BurstFX.Spawn(transform.position + Vector3.up * 2f, new Color(0.30f, 1f, 0.45f), 26);
+            BurstFX.SpawnAbove(transform, new Color(0.30f, 1f, 0.45f), 26, minimumHeight: 2f);
         }
 
         public void Interact(GameObject interactor)

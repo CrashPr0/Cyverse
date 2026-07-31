@@ -74,7 +74,7 @@ namespace Cyverse.Level
             if (reviewedMark != null) reviewedMark.SetActive(true);
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
             if (stationLight != null) stationLight.intensity = completedLightIntensity;
-            BurstFX.Spawn(transform.position + Vector3.up * 2.1f, new Color(0.30f, 1f, 0.45f), 26);
+            BurstFX.SpawnAbove(transform, new Color(0.30f, 1f, 0.45f), 26, minimumHeight: 2.1f);
 
             int newTerms = GlossaryProgress.UnlockTopic(topic);
             if (newTerms > 0 && UI.HudUI.Instance != null)

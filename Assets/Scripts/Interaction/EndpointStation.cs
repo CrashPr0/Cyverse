@@ -42,7 +42,7 @@ namespace Cyverse.Interaction
                 if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
                 if (statusText != null) statusText.text = "● ISOLATED";
                 Tint(new Color(0.30f, 1f, 0.45f));
-                BurstFX.Spawn(transform.position + Vector3.up * 1.8f, new Color(0.30f, 1f, 0.45f), 20);
+                BurstFX.SpawnAbove(transform, new Color(0.30f, 1f, 0.45f), 20, minimumHeight: 1.8f);
                 if (HudUI.Instance != null)
                     HudUI.Instance.ShowToast($"{def.hostname} CONTAINED  +{points}  ·  {def.why}",
                         new Color(0.30f, 1f, 0.45f));

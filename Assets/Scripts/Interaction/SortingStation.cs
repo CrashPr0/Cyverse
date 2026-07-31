@@ -43,7 +43,7 @@ namespace Cyverse.Interaction
             delivered++;
             ScoreSystem.Add(pointsPerCrate);
             if (Audio.Sfx.Instance != null) Audio.Sfx.Instance.PlayConfirm();
-            BurstFX.Spawn(zone.transform.position + Vector3.up * 1.4f, new Color(0.30f, 1f, 0.45f), 22);
+            BurstFX.SpawnAbove(zone.transform, new Color(0.30f, 1f, 0.45f), 22, minimumHeight: 1.4f);
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast($"ACCESS GRANTED  +{pointsPerCrate}  ·  {def.why}",
                     new Color(0.30f, 1f, 0.45f));
