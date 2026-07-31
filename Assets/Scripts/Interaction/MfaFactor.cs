@@ -31,6 +31,18 @@ namespace Cyverse.Interaction
             ? "Passcode terminal — something you KNOW"
             : "Biometric pad — something you ARE";
 
+        void Awake()
+        {
+            if (kind == Kind.Knowledge)
+                BuildKit.AlignKioskScreen(transform, "ScreenBody", "Screen");
+        }
+
+        void OnValidate()
+        {
+            if (kind == Kind.Knowledge)
+                BuildKit.AlignKioskScreen(transform, "ScreenBody", "Screen");
+        }
+
         public void Interact(GameObject interactor)
         {
             if (cleared || busy) return;
@@ -98,9 +110,9 @@ namespace Cyverse.Interaction
                 BuildKit.SpawnLocal(PrimitiveType.Cube, "Stand", root.transform,
                     new Vector3(0f, 0.55f, 0f), Vector3.zero, new Vector3(0.5f, 1.1f, 0.4f), bodyMat, collider: true);
                 BuildKit.SpawnLocal(PrimitiveType.Cube, "ScreenBody", root.transform,
-                    new Vector3(0f, 1.3f, 0.02f), new Vector3(-20f, 0f, 0f), new Vector3(0.75f, 0.5f, 0.05f), bodyMat, collider: true);
+                    new Vector3(0f, 1.3f, 0.02f), new Vector3(35f, 0f, 0f), new Vector3(0.75f, 0.5f, 0.05f), bodyMat, collider: true);
                 BuildKit.SpawnLocal(PrimitiveType.Quad, "Screen", root.transform,
-                    new Vector3(0f, 1.3f, -0.017f), new Vector3(-20f, 0f, 0f), new Vector3(0.66f, 0.42f, 1f),
+                    new Vector3(0f, 1.280f, -0.009f), new Vector3(35f, 0f, 0f), new Vector3(0.66f, 0.42f, 1f),
                     BuildKit.MakeHologram(accent), collider: false);
                 BuildKit.MakeLabel(root.transform, new Vector3(0f, 2.0f, 0f), "PASSCODE", accent, 0.026f, billboard: true);
             }

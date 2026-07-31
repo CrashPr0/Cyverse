@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Video;
+using TMPro;
 using Cyverse.Audio;
 using Cyverse.Level;
 using Cyverse.UI;
@@ -53,15 +54,131 @@ namespace Cyverse.Interaction
 
         // Wired by Build().
         public Renderer screenRenderer;
-        public TextMesh titleText;
-        public TextMesh bodyText;
+        public TextMeshPro titleText;
+        public TextMeshPro bodyText;
         public Transform barFill;
+        private TextMeshPro controlsText;
 
         private VideoPlayer vp;
         private bool useVideo;
         private bool playing;
         private float time;    // slides mode clock
         private int lastSlide = -1;
+
+        void Awake()
+        {
+            ResolveVisualReferences();
+            UpgradeLegacyText();
+            NormalizeLayout();
+        }
+
+        void OnValidate()
+        {
+            ResolveVisualReferences();
+            NormalizeLayout();
+        }
+
+        private void ResolveVisualReferences()
+        {
+            if (screenRenderer == null)
+            {
+                Transform t = transform.Find("Screen");
+                if (t != null) screenRenderer = t.GetComponent<Renderer>();
+            }
+            if (titleText == null)
+            {
+                Transform t = transform.Find("TitleText");
+                if (t != null) titleText = t.GetComponent<TextMeshPro>();
+                if (titleText == null)
+                {
+                    t = transform.Find("TitleText_TMP");
+                    if (t != null) titleText = t.GetComponent<TextMeshPro>();
+                }
+            }
+            if (bodyText == null)
+            {
+                Transform t = transform.Find("BodyText");
+                if (t != null) bodyText = t.GetComponent<TextMeshPro>();
+                if (bodyText == null)
+                {
+                    t = transform.Find("BodyText_TMP");
+                    if (t != null) bodyText = t.GetComponent<TextMeshPro>();
+                }
+            }
+            if (controlsText == null)
+            {
+                Transform t = transform.Find("ControlsText");
+                if (t == null) t = transform.Find("ControlsText_TMP");
+                if (t != null) controlsText = t.GetComponent<TextMeshPro>();
+            }
+            if (barFill == null) barFill = transform.Find("BarFillPivot");
+        }
+
+        /// <summary>Visual-pass scenes serialize the former TextMesh objects.
+        /// Convert them once at runtime so old scenes gain TMP without being
+        /// rebuilt, while new scene factories create TMP directly.</summary>
+        private void UpgradeLegacyText()
+        {
+            if (titleText == null)
+                titleText = UpgradeText("TitleText", "TitleText_TMP", new Vector3(0f, 2.92f, -0.20f),
+                    new Vector2(3.75f, 0.58f), 38f, 20f, true, new Color(0.25f, 0.65f, 1f));
+            if (bodyText == null)
+                bodyText = UpgradeText("BodyText", "BodyText_TMP", new Vector3(0f, 2.08f, -0.20f),
+                    new Vector2(3.60f, 1.30f), 29f, 18f, false, new Color(0.92f, 0.96f, 1f));
+            if (controlsText == null)
+                controlsText = UpgradeText("PanelLabel", "ControlsText_TMP", new Vector3(0f, 0.28f, -0.30f),
+                    new Vector2(3.8f, 0.34f), 24f, 16f, false, new Color(0.95f, 0.98f, 1f),
+                    "E play/pause  ·  ←/→ scrub");
+        }
+
+        private TextMeshPro UpgradeText(string legacyName, string tmpName, Vector3 localPosition,
+            Vector2 worldBounds, float maxSize, float minSize, bool bold, Color fallbackColor,
+            string fallbackText = "")
+        {
+            Transform legacyTransform = transform.Find(legacyName);
+            TextMesh legacy = legacyTransform != null ? legacyTransform.GetComponent<TextMesh>() : null;
+            string content = legacy != null ? legacy.text : fallbackText;
+            Color color = legacy != null ? legacy.color : fallbackColor;
+
+            TextMeshPro tmp = MakeTmp(transform, tmpName, localPosition, worldBounds,
+                maxSize, minSize, bold, color, content);
+            if (legacyTransform != null) legacyTransform.gameObject.SetActive(false);
+            return tmp;
+        }
+
+        private void NormalizeLayout()
+        {
+            Transform track = transform.Find("BarTrack");
+            if (track != null)
+            {
+                // Forward of the frame and central stand, preventing the
+                // tracker from disappearing into either surface.
+                track.localPosition = new Vector3(0f, 1.05f, -0.24f);
+                track.localScale = new Vector3(4f, 0.055f, 0.025f);
+            }
+            if (barFill != null)
+            {
+                barFill.localPosition = new Vector3(-2f, 1.05f, -0.27f);
+                Transform fill = barFill.Find("BarFill");
+                if (fill != null)
+                {
+                    fill.localPosition = new Vector3(2f, 0f, 0f);
+                    fill.localRotation = Quaternion.identity;
+                    fill.localScale = new Vector3(4f, 0.04f, 0.025f);
+                }
+            }
+            Transform legacyControls = transform.Find("PanelLabel");
+            if (legacyControls != null)
+            {
+                legacyControls.localPosition = new Vector3(0f, 0.28f, -0.30f);
+                TextMesh tm = legacyControls.GetComponent<TextMesh>();
+                if (tm != null) tm.characterSize = 0.020f;
+            }
+            if (controlsText != null) controlsText.transform.localPosition = new Vector3(0f, 0.28f, -0.30f);
+            if (titleText != null) titleText.transform.localPosition = new Vector3(0f, 2.92f, -0.20f);
+            if (bodyText != null)
+                bodyText.transform.localPosition = new Vector3(0f, 2.08f, -0.20f);
+        }
 
         public string Prompt => playing ? "Pause Briefing"
             : AtEnd ? "Replay Briefing"
@@ -201,31 +318,7 @@ namespace Cyverse.Interaction
             lastSlide = idx;
 
             if (titleText != null) titleText.text = slides[idx].title;
-            if (bodyText != null) bodyText.text = Wrap(slides[idx].body, 44);
-        }
-
-        /// <summary>TextMesh has no word-wrap; insert line breaks manually.</summary>
-        private static string Wrap(string text, int maxLine)
-        {
-            if (string.IsNullOrEmpty(text)) return "";
-            var sb = new System.Text.StringBuilder();
-            int lineLen = 0;
-            foreach (string word in text.Split(' '))
-            {
-                if (lineLen > 0 && lineLen + word.Length + 1 > maxLine)
-                {
-                    sb.Append('\n');
-                    lineLen = 0;
-                }
-                else if (lineLen > 0)
-                {
-                    sb.Append(' ');
-                    lineLen++;
-                }
-                sb.Append(word);
-                lineLen += word.Length;
-            }
-            return sb.ToString();
+            if (bodyText != null) bodyText.text = slides[idx].body;
         }
 
         // ---- Construction ----------------------------------------------------
@@ -253,21 +346,22 @@ namespace Cyverse.Interaction
                 new Vector3(0f, 2.15f, -0.11f), new Vector3(4.0f, 2.2f, 1f),
                 BuildKit.MakeStandard(new Color(0.02f, 0.03f, 0.05f), 0.2f, 0f), false);
 
-            var font = HudUI.LoadFont();
-            var title = MakeTm(root.transform, "TitleText", new Vector3(0f, 2.95f, -0.13f), 0.05f, FontStyle.Bold, accent, font);
-            var body = MakeTm(root.transform, "BodyText", new Vector3(0f, 2.1f, -0.13f), 0.032f, FontStyle.Normal, new Color(0.92f, 0.96f, 1f), font);
+            var title = MakeTmp(root.transform, "TitleText", new Vector3(0f, 2.92f, -0.20f),
+                new Vector2(3.75f, 0.58f), 38f, 20f, true, accent, "");
+            var body = MakeTmp(root.transform, "BodyText", new Vector3(0f, 2.08f, -0.20f),
+                new Vector2(3.60f, 1.30f), 29f, 18f, false, new Color(0.92f, 0.96f, 1f), "");
 
             Child(root.transform, PrimitiveType.Cube, "BarTrack",
-                new Vector3(0f, 0.82f, -0.12f), new Vector3(4.0f, 0.08f, 0.03f),
+                new Vector3(0f, 1.05f, -0.24f), new Vector3(4.0f, 0.055f, 0.025f),
                 BuildKit.MakeStandard(new Color(0.15f, 0.17f, 0.22f), 0.3f, 0f), false);
 
             var fill = Child(root.transform, PrimitiveType.Cube, "BarFill",
-                new Vector3(-2.0f, 0.82f, -0.125f), new Vector3(4.0f, 0.06f, 0.03f),
+                new Vector3(-2.0f, 1.05f, -0.27f), new Vector3(4.0f, 0.04f, 0.025f),
                 BuildKit.MakeEmissive(accent, 2f), false);
             // Pivot the fill from the left edge so localScale.x = progress.
             var pivot = new GameObject("BarFillPivot").transform;
             pivot.SetParent(root.transform, false);
-            pivot.localPosition = new Vector3(-2.0f, 0.82f, -0.125f);
+            pivot.localPosition = new Vector3(-2.0f, 1.05f, -0.27f);
             fill.transform.SetParent(pivot, true);
             fill.transform.localPosition = new Vector3(2.0f, 0f, 0f);
             var fs = pivot.localScale; fs.x = 0f; pivot.localScale = fs;
@@ -285,15 +379,18 @@ namespace Cyverse.Interaction
 
             BuildKit.MakeSign(root.transform, position + new Vector3(0f, 3.9f, 0f),
                 "SECURITY BRIEFING", accent, 0.035f);
-            BuildKit.AddPanelLabel(root.transform, position + new Vector3(0f, 0.45f, -0.3f),
-                "E play/pause · ←/→ scrub");
+            var controls = MakeTmp(root.transform, "ControlsText", new Vector3(0f, 0.28f, -0.30f),
+                new Vector2(3.8f, 0.34f), 24f, 16f, false, new Color(0.95f, 0.98f, 1f),
+                "E play/pause  ·  ←/→ scrub");
 
             var station = root.AddComponent<VideoStation>();
             station.slides = slides;
             station.screenRenderer = screen.GetComponent<Renderer>();
             station.titleText = title;
             station.bodyText = body;
+            station.controlsText = controls;
             station.barFill = pivot;
+            station.NormalizeLayout();
             return station;
         }
 
@@ -310,25 +407,27 @@ namespace Cyverse.Interaction
             return go;
         }
 
-        private static TextMesh MakeTm(Transform parent, string name, Vector3 localPos,
-            float charSize, FontStyle style, Color color, Font font)
+        private static TextMeshPro MakeTmp(Transform parent, string name, Vector3 localPos,
+            Vector2 worldBounds, float maxSize, float minSize, bool bold, Color color, string text)
         {
-            var go = new GameObject(name);
+            var go = new GameObject(name, typeof(TextMeshPro));
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
-            // TextMesh is readable from the side its forward points AWAY from;
-            // the viewer stands on local -Z, so identity (+Z forward) is right.
             go.transform.localRotation = Quaternion.identity;
-            var tm = go.AddComponent<TextMesh>();
-            tm.font = font;
-            tm.fontSize = 64;
-            tm.characterSize = charSize;
-            tm.fontStyle = style;
-            tm.anchor = TextAnchor.MiddleCenter;
-            tm.alignment = TextAlignment.Center;
-            tm.color = color;
-            go.GetComponent<MeshRenderer>().sharedMaterial = BuildKit.TextMaterial();
-            return tm;
+            go.transform.localScale = Vector3.one * 0.1f;
+
+            var tmp = go.GetComponent<TextMeshPro>();
+            tmp.text = text;
+            tmp.color = color;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
+            tmp.enableWordWrapping = true;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMin = minSize;
+            tmp.fontSizeMax = maxSize;
+            tmp.overflowMode = TextOverflowModes.Truncate;
+            tmp.rectTransform.sizeDelta = worldBounds * 10f;
+            return tmp;
         }
     }
 }

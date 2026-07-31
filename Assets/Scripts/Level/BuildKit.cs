@@ -21,6 +21,40 @@ namespace Cyverse.Level
         public static readonly Color PanelWhite = new Color(0.90f, 0.95f, 1.00f);
         public static readonly Color WallColor = new Color(0.10f, 0.12f, 0.16f);
 
+        /// <summary>Align a kiosk display and its face along the same pitched
+        /// plane. Positive pitch tilts the face upward toward a standing
+        /// player; several older builders used a negative pitch, making the
+        /// screen lean away and read like a nearly vertical billboard.</summary>
+        public static Transform AlignKioskScreen(Transform root, string bodyName,
+            string screenName, float pitch = 35f)
+        {
+            if (root == null) return null;
+            Transform body = root.Find(bodyName);
+            if (body == null) return null;
+
+            Quaternion rotation = Quaternion.Euler(pitch, 0f, 0f);
+            body.localRotation = rotation;
+            Transform screen = root.Find(screenName);
+            if (screen != null)
+            {
+                screen.localRotation = rotation;
+                screen.localPosition = body.localPosition
+                    + rotation * new Vector3(0f, 0f, -(body.localScale.z * 0.5f + 0.012f));
+            }
+            return body;
+        }
+
+        /// <summary>Place text or controls flush on a screen aligned by
+        /// AlignKioskScreen. Offsets are in the screen's own X/Y plane.</summary>
+        public static void PlaceOnKioskScreen(Transform content, Transform body,
+            Vector2 offset, float front = 0.018f)
+        {
+            if (content == null || body == null) return;
+            content.localRotation = body.localRotation;
+            content.localPosition = body.localPosition + body.localRotation
+                * new Vector3(offset.x, offset.y, -(body.localScale.z * 0.5f + front));
+        }
+
         // ---- Room shell (shared 40x40 footprint across levels) --------------
 
         public static void BuildLighting()

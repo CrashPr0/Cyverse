@@ -1,5 +1,6 @@
 using UnityEngine;
 using Cyverse.Core;
+using Cyverse.Interaction;
 using Cyverse.Level;
 using Cyverse.Settings;
 
@@ -33,6 +34,7 @@ namespace Cyverse.Player
         private float interactT = 1f; // >= 1 means the reach animation is done
         private Vector3 hoverCur;
         private Vector3 hideCur;
+        private float carryFlip;
 
         void Awake()
         {
@@ -50,8 +52,11 @@ namespace Cyverse.Player
             // they inherit the right hand's bob, reach, and hide poses.
             carryAnchor = new GameObject("CarryAnchor").transform;
             carryAnchor.SetParent(handR, false);
-            carryAnchor.localPosition = new Vector3(0.075f, -0.045f, 0.145f);
-            carryAnchor.localRotation = Quaternion.Euler(10f, -16f, 0f);
+            // Palm side is local -Y (the glowing knuckles are +Y). During the
+            // carry pose the hand rolls over and this anchor counter-rolls,
+            // keeping the item upright while visibly resting in the palm.
+            carryAnchor.localPosition = new Vector3(0f, -0.055f, 0.025f);
+            carryAnchor.localRotation = Quaternion.identity;
         }
 
         /// <summary>Stable local attachment point for an item held in the
@@ -111,8 +116,11 @@ namespace Cyverse.Player
                 baseL + bobL + hideCur, k);
 
             float rollR = (reduce ? 0f : Mathf.Sin(bobTime * 0.5f) * 2f) - reach * 12f;
+            carryFlip = Mathf.Lerp(carryFlip, Carryable.Carried != null ? 180f : 0f, k * 1.8f);
             handR.localRotation = Quaternion.Slerp(handR.localRotation,
-                Quaternion.Euler(-6f - reach * 18f, -8f, rollR), k * 1.6f);
+                Quaternion.Euler(-6f - reach * 18f, -8f, rollR + carryFlip), k * 1.6f);
+            if (carryAnchor != null)
+                carryAnchor.localRotation = Quaternion.Euler(0f, 0f, -carryFlip);
             handL.localRotation = Quaternion.Slerp(handL.localRotation,
                 Quaternion.Euler(-6f, 8f, reduce ? 0f : -Mathf.Sin(bobTime * 0.5f) * 2f), k);
         }

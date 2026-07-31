@@ -29,6 +29,23 @@ namespace Cyverse.Interaction
         public bool CanInteract => !IsComplete;
         public string Prompt => active ? "Take the Certification Exam" : "Certification Exam  (locked)";
 
+        void Awake() => NormalizeScreen();
+        void OnValidate() => NormalizeScreen();
+
+        private void NormalizeScreen()
+        {
+            Transform body = BuildKit.AlignKioskScreen(transform, "ScreenBody", "Screen");
+            if (statusText == null)
+            {
+                foreach (TextMesh label in GetComponentsInChildren<TextMesh>(true))
+                    if (!string.IsNullOrEmpty(label.text) &&
+                        (label.text == "LOCKED" || label.text.Contains("EXAM READY") || label.text.Contains("CERTIFIED")))
+                    { statusText = label; break; }
+            }
+            BuildKit.PlaceOnKioskScreen(statusText != null ? statusText.transform : null,
+                body, Vector2.zero, 0.024f);
+        }
+
         /// <summary>Called by the level manager when all tasks are complete.</summary>
         public void Activate()
         {
@@ -89,9 +106,9 @@ namespace Cyverse.Interaction
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Console", root.transform,
                 new Vector3(0f, 0.55f, 0f), Vector3.zero, new Vector3(1.5f, 1.1f, 0.7f), bodyMat, collider: true);
             BuildKit.SpawnLocal(PrimitiveType.Cube, "ScreenBody", root.transform,
-                new Vector3(0f, 1.55f, 0.12f), new Vector3(-15f, 0f, 0f), new Vector3(1.3f, 0.85f, 0.06f), bodyMat, collider: true);
+                new Vector3(0f, 1.55f, 0.12f), new Vector3(35f, 0f, 0f), new Vector3(1.3f, 0.85f, 0.06f), bodyMat, collider: true);
             var screen = BuildKit.SpawnLocal(PrimitiveType.Quad, "Screen", root.transform,
-                new Vector3(0f, 1.55f, 0.08f), new Vector3(-15f, 0f, 0f), new Vector3(1.18f, 0.74f, 1f),
+                new Vector3(0f, 1.526f, 0.086f), new Vector3(35f, 0f, 0f), new Vector3(1.18f, 0.74f, 1f),
                 BuildKit.MakeHologram(new Color(0.35f, 0.40f, 0.48f)), collider: false);
 
             var station = root.AddComponent<CertExamStation>();
@@ -99,7 +116,7 @@ namespace Cyverse.Interaction
             station.screenRenderer = screen.GetComponent<Renderer>();
             station.statusText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.55f, 0.02f),
                 "LOCKED", new Color(0.95f, 0.98f, 1f), 0.026f);
-            station.statusText.transform.localRotation = Quaternion.Euler(-15f, 0f, 0f);
+            station.NormalizeScreen();
 
             BuildKit.MakeSign(root.transform, pos + new Vector3(0f, 2.7f, 0f), "CERTIFICATION", accent, 0.032f);
 

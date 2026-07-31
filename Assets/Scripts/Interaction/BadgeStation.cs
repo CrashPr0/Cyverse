@@ -38,6 +38,26 @@ namespace Cyverse.Interaction
         void Awake()
         {
             if (Instance == null) Instance = this;
+            NormalizeScreen();
+        }
+
+        void OnValidate() => NormalizeScreen();
+
+        private void NormalizeScreen()
+        {
+            Transform body = BuildKit.AlignKioskScreen(transform, "PanelBody", "PanelScreen");
+            if (scanBar == null)
+            {
+                Transform panel = transform.Find("PanelScreen");
+                if (panel != null) scanBar = panel.Find("ScanBar");
+            }
+            if (screenText == null)
+            {
+                Transform label = transform.Find("Label_ENROLL\n[E]");
+                if (label != null) screenText = label.GetComponent<TextMesh>();
+            }
+            BuildKit.PlaceOnKioskScreen(screenText != null ? screenText.transform : null,
+                body, Vector2.zero, 0.025f);
         }
 
         void OnDestroy()
@@ -102,11 +122,11 @@ namespace Cyverse.Interaction
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Pillar", root.transform,
                 new Vector3(0f, 0.65f, 0.1f), Vector3.zero, new Vector3(0.55f, 1.3f, 0.35f), bodyMat, collider: true);
 
-            // Angled capture panel; its face looks down local -Z at the player.
+            // Positive pitch exposes the screen surface to a standing player.
             BuildKit.SpawnLocal(PrimitiveType.Cube, "PanelBody", root.transform,
-                new Vector3(0f, 1.55f, 0f), new Vector3(-18f, 0f, 0f), new Vector3(0.9f, 1.0f, 0.06f), bodyMat, collider: true);
+                new Vector3(0f, 1.55f, 0f), new Vector3(35f, 0f, 0f), new Vector3(0.9f, 1.0f, 0.06f), bodyMat, collider: true);
             var panel = BuildKit.SpawnLocal(PrimitiveType.Quad, "PanelScreen", root.transform,
-                new Vector3(0f, 1.55f, -0.041f), new Vector3(-18f, 0f, 0f), new Vector3(0.8f, 0.88f, 1f),
+                new Vector3(0f, 1.526f, -0.034f), new Vector3(35f, 0f, 0f), new Vector3(0.8f, 0.88f, 1f),
                 BuildKit.MakeHologram(accent), collider: false);
 
             var bar = BuildKit.SpawnLocal(PrimitiveType.Cube, "ScanBar", panel.transform,
@@ -117,7 +137,7 @@ namespace Cyverse.Interaction
             station.scanBar = bar.transform;
             station.screenText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.55f, -0.12f),
                 "ENROLL\n[E]", new Color(0.95f, 0.98f, 1f), 0.028f);
-            station.screenText.transform.localRotation = Quaternion.Euler(-18f, 0f, 0f);
+            station.NormalizeScreen();
 
             BuildKit.MakeSign(root.transform, pos + new Vector3(0f, 2.6f, 0f), "ENROLLMENT", accent, 0.032f);
 

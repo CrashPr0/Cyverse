@@ -21,6 +21,7 @@ namespace Cyverse.Interaction
 
         private Transform panel;
         private Collider panelCollider;
+        public float doorwayWidth = 3f;
 
         public string Prompt => "Door (locked)";
         public bool CanInteract => IsLocked; // once open, no prompt at all
@@ -28,6 +29,40 @@ namespace Cyverse.Interaction
         void Awake()
         {
             ResolveReferences();
+            NormalizeGeometry();
+        }
+
+        void OnValidate()
+        {
+            ResolveReferences();
+            NormalizeGeometry();
+        }
+
+        /// <summary>Fits the complete assembly inside the divider opening.
+        /// The old posts/header extended 0.4 m into each wall and the panel
+        /// touched both the floor and lintel, producing visible z-fighting.</summary>
+        private void NormalizeGeometry()
+        {
+            float width = Mathf.Max(1.5f, doorwayWidth);
+            foreach (Transform child in transform)
+            {
+                if (child.name == "Post")
+                {
+                    float side = child.localPosition.x < 0f ? -1f : 1f;
+                    child.localPosition = new Vector3(side * (width * 0.5f - 0.15f), 1.95f, 0f);
+                    child.localScale = new Vector3(0.3f, 3.9f, 0.5f);
+                }
+                else if (child.name == "Header")
+                {
+                    child.localPosition = new Vector3(0f, 4.08f, 0f);
+                    child.localScale = new Vector3(width, 0.26f, 0.5f);
+                }
+            }
+            if (panel != null)
+            {
+                panel.localPosition = new Vector3(0f, 2f, 0f);
+                panel.localScale = new Vector3(width - 0.2f, 3.8f, 0.16f);
+            }
         }
 
         public void Interact(GameObject interactor)
@@ -95,21 +130,23 @@ namespace Cyverse.Interaction
             var header = GameObject.CreatePrimitive(PrimitiveType.Cube);
             header.name = "Header";
             header.transform.SetParent(root.transform, false);
-            header.transform.localPosition = new Vector3(0f, 4.2f, 0f);
-            header.transform.localScale = new Vector3(width + 1f, 0.4f, 0.6f);
+            header.transform.localPosition = new Vector3(0f, 4.08f, 0f);
+            header.transform.localScale = new Vector3(width, 0.26f, 0.5f);
             header.GetComponent<Renderer>().sharedMaterial = frameMat;
 
             var panelGo = GameObject.CreatePrimitive(PrimitiveType.Cube);
             panelGo.name = "Panel";
             panelGo.transform.SetParent(root.transform, false);
             panelGo.transform.localPosition = new Vector3(0f, 2f, 0f);
-            panelGo.transform.localScale = new Vector3(width, 4f, 0.25f);
+            panelGo.transform.localScale = new Vector3(width - 0.2f, 3.8f, 0.16f);
             panelGo.GetComponent<Renderer>().sharedMaterial = BuildKit.MakeHologram(accent);
 
             var door = root.AddComponent<LockedDoor>();
             door.lockedMessage = lockedMessage;
+            door.doorwayWidth = width;
             door.panel = panelGo.transform;
             door.panelCollider = panelGo.GetComponent<Collider>();
+            door.NormalizeGeometry();
 
             var glow = new GameObject("DoorLight");
             glow.transform.SetParent(root.transform, false);

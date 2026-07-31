@@ -16,10 +16,11 @@ namespace Cyverse.UI
         // Show the controls card every session by default (good for classroom /
         // kiosk play). Set true to only show it the first time on a machine.
         public bool onlyFirstTime = false;
-        public float minDisplaySeconds = 5f;  // stays at least this long
+        public float minDisplaySeconds = 3f;  // stays at least this long
         public float autoHideSeconds = 14f;
 
         private CanvasGroup group;
+        private Text dismissHint;
         private bool dismissing;
         private float elapsed;
         private Vector3 lastMouse;
@@ -59,9 +60,16 @@ namespace Cyverse.UI
             {
                 elapsed += Time.unscaledDeltaTime;
 
+                // Do not advertise a dismissal input while it is deliberately
+                // being ignored. Reveal the hint on the exact frame the card
+                // becomes dismissible.
+                bool canDismiss = elapsed >= minDisplaySeconds;
+                if (dismissHint != null && dismissHint.gameObject.activeSelf != canDismiss)
+                    dismissHint.gameObject.SetActive(canDismiss);
+
                 // Keep it up for a guaranteed minimum so it's actually readable;
                 // ignore (and re-baseline) input until then.
-                if (elapsed < minDisplaySeconds)
+                if (!canDismiss)
                 {
                     lastMouse = Input.mousePosition;
                     return;
@@ -114,11 +122,12 @@ namespace Cyverse.UI
             AddRow(card.transform, y, "G", "Glossary"); y -= 50f;
             AddRow(card.transform, y, "Esc", "Settings");
 
-            var footer = MakeText(card.transform, "Footer", "Press a movement key to begin", 20,
+            dismissHint = MakeText(card.transform, "Footer", "Press a movement key to begin", 20,
                 FontStyle.Normal, new Color(0.6f, 0.85f, 1f, 0.9f), TextAnchor.LowerCenter);
-            var frt = footer.rectTransform;
+            var frt = dismissHint.rectTransform;
             frt.anchorMin = new Vector2(0, 0); frt.anchorMax = new Vector2(1, 0); frt.pivot = new Vector2(0.5f, 0);
             frt.sizeDelta = new Vector2(0, 36); frt.anchoredPosition = new Vector2(0, 14);
+            dismissHint.gameObject.SetActive(minDisplaySeconds <= 0f);
 
             // If a modal (usually the title screen) is already up when we're
             // built, start hidden — Update re-shows the card once the screen
