@@ -70,6 +70,16 @@ namespace Cyverse.Level
                 exit.SetUnlocked(true); // leaving mid-level is always allowed
             }
 
+            // Self-heal: the Security+ Prep Terminal (Dr. Rocca's CompTIA
+            // practice bank, organized by NICE Workforce category). Optional
+            // study aid — it never touches the review/scanner flow, so this
+            // applies to every existing Level 0 scene, hand-saved or not,
+            // without anyone re-editing them. (0,0,16.5) sits clear of the
+            // centerpiece ring (z=13) and the north server-rack wall (z=18.5).
+            if (SecurityPlusTerminal.Instance == null) gameObject.AddComponent<SecurityPlusTerminal>();
+            if (FindObjectOfType<SecurityPlusKiosk>() == null)
+                SecurityPlusKiosk.Build(new Vector3(0f, 0f, 16.5f), 0f, new Color(0.62f, 0.45f, 0.95f));
+
             stations.AddRange(FindObjectsOfType<StationSetup>());
             scanner = FindObjectOfType<FaceScanner>();
             if (scanner != null) scanner.Completed += CompleteLevel;

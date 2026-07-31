@@ -1,0 +1,75 @@
+using UnityEngine;
+using Cyverse.Audio;
+using Cyverse.Level;
+using Cyverse.UI;
+
+namespace Cyverse.Interaction
+{
+    /// <summary>
+    /// The physical Security+ Prep Terminal prop. Purely a portal to
+    /// UI.SecurityPlusTerminal — an optional study kiosk, not part of the
+    /// level's review/scanner flow, so it never blocks completion.
+    /// </summary>
+    public class SecurityPlusKiosk : MonoBehaviour, IInteractable
+    {
+        public bool CanInteract => true;
+        public string Prompt => "Security+ Prep Terminal";
+
+        public void Interact(GameObject interactor)
+        {
+            if (SecurityPlusTerminal.Instance == null)
+            {
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("Terminal offline.", new Color(1f, 0.55f, 0.4f));
+                return;
+            }
+            if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+            SecurityPlusTerminal.Instance.Open();
+        }
+
+        // ---- Construction ----------------------------------------------------
+
+        public static SecurityPlusKiosk Build(Vector3 pos, float rotY, Color accent)
+        {
+            var root = new GameObject("SecurityPlusKiosk");
+            root.transform.position = pos;
+            root.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
+
+            var bodyMat = BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.16f), 0.55f, 0.4f);
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "Pillar", root.transform,
+                new Vector3(0f, 0.65f, 0f), Vector3.zero, new Vector3(0.55f, 1.3f, 0.4f), bodyMat, collider: true);
+
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "ScreenBody", root.transform,
+                new Vector3(0f, 1.55f, 0f), new Vector3(-15f, 0f, 0f), new Vector3(0.95f, 0.85f, 0.06f), bodyMat, collider: true);
+            BuildKit.SpawnLocal(PrimitiveType.Quad, "Screen", root.transform,
+                new Vector3(0f, 1.55f, -0.041f), new Vector3(-15f, 0f, 0f), new Vector3(0.85f, 0.74f, 1f),
+                BuildKit.MakeHologram(accent), collider: false);
+
+            BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.62f, -0.04f),
+                "SECURITY+\nPREP", new Color(0.95f, 0.92f, 1f), 0.026f)
+                .transform.localRotation = Quaternion.Euler(-15f, 0f, 0f);
+            BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.15f, -0.03f),
+                "NICE ROLE STUDY BANK", new Color(0.72f, 0.58f, 1f), 0.017f,
+                billboard: false, anchor: TextAnchor.MiddleCenter, style: FontStyle.Normal)
+                .transform.localRotation = Quaternion.Euler(-15f, 0f, 0f);
+
+            BuildKit.MakeSign(root.transform, pos + new Vector3(0f, 2.7f, 0f), "SECURITY+ PREP", accent, 0.032f);
+
+            // Aim helper: same reasoning as the other kiosks — the interact
+            // ray leaves the camera near eye height and travels level, so a
+            // squat pillar needs a taller trigger volume to be reliably aimable.
+            BuildKit.AddAimCollider(root, height: 2.2f, width: 1.1f);
+
+            var glow = new GameObject("KioskLight");
+            glow.transform.SetParent(root.transform, false);
+            glow.transform.localPosition = new Vector3(0f, 2.1f, -0.8f);
+            var l = glow.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = accent;
+            l.range = 6f;
+            l.intensity = 1.8f;
+
+            return root.AddComponent<SecurityPlusKiosk>();
+        }
+    }
+}

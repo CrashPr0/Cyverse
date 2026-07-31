@@ -34,6 +34,19 @@ namespace Cyverse.Level
             BuildKit.BuildPlayer();
             BuildSystems();
             BuildStations();
+            BuildSecurityPlusKiosk();
+        }
+
+        // ---- Security+ Prep Terminal --------------------------------------------
+        // Optional study aid (Dr. Rocca's CompTIA Security+ bank, organized by
+        // NICE Workforce category) — not part of the review/scanner completion
+        // flow. Placed clear of the centerpiece ring (z=13) and the north
+        // server-rack wall (z=18.5). Level0Manager self-heals this too, so
+        // pre-existing saved scenes gain it without a rebuild.
+        public static void BuildSecurityPlusKiosk()
+        {
+            SecurityPlusKiosk.Build(new Vector3(0f, 0f, 16.5f), 0f,
+                new Color(0.62f, 0.45f, 0.95f));
         }
 
         public static GameObject BuildSystems()

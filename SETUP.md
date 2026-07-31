@@ -403,6 +403,9 @@ completion, matching the CyVerse Script.
 | `Level/Level0Manager.cs`               | Intro, station tracking, completion             |
 | `Level/SceneFactory.cs`                | Level 0-specific construction (on top of BuildKit) |
 | `Level/Level0Bootstrap.cs`            | Runtime entry point (calls SceneFactory)        |
+| `Level/SecurityPlusContent.cs`         | CompTIA Security+ practice bank (5 NICE categories, 294 Qs) |
+| `UI/SecurityPlusTerminal.cs`           | Security+ Prep modal: role select + MCQ practice |
+| `Interaction/SecurityPlusKiosk.cs`     | The physical Security+ Prep Terminal prop        |
 | `Level/StationSetup.cs`                | Per-station topic/content + completion feedback  |
 | `Editor/Level0SceneBuilder.cs`         | Menu: CyVerse > Build Level 0 Scene             |
 | `Level/Level1Content.cs`               | Level 1 narration text (SIEM/EDR/Incident Response) |
@@ -480,6 +483,27 @@ you're already underway") rather than empty, so the visible gap to 100%
 always looks smaller. Questions are drawn from a per-topic pool in
 `Level0Quiz.cs` so replays vary; educators can edit copy there without
 touching gameplay code.
+
+### Security+ Prep Terminal (optional study kiosk)
+
+A fourth interactable near the centerpiece (0, 0, 16.5): the **Security+ Prep
+Terminal**, contributed by Dr. Rocca as five spreadsheets of CompTIA
+Security+ practice questions, one per **NICE Workforce Framework** category
+(Design & Development, Implementation & Operations, Investigation, Oversight
+& Governance, Protection & Defense — 294 questions total). Press `E`, pick a
+category with `1`-`5`, then answer definition-matching questions with `1`-`4`;
+`Esc` steps back a screen (category select, then closed). Questions are
+served from a shuffled, no-repeat bag per category, and each category tracks
+a **personal best accuracy %** (PlayerPrefs), shown next to it on the select
+screen.
+
+This is deliberately **separate from level scoring** — it never touches
+`ScoreSystem.Score` and has no bearing on completing Level 0. It's a study
+aid, not a gate. All content lives in `Level/SecurityPlusContent.cs`, which
+is generated from the source spreadsheets rather than hand-typed; add a
+category or more questions by re-running the extraction against updated
+`.xlsx` files (same struct shape: prompt, 4 options, correct index, concept)
+rather than editing the generated file directly.
 
 **Answer streaks:** consecutive correct answers build a combo multiplier —
 2 in a row is x1.5, 3+ is x2 — with an ascending confirm chime and a gold
