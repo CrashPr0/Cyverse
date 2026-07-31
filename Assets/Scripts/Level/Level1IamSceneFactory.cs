@@ -70,47 +70,6 @@ namespace Cyverse.Level
             spawnExit.SetUnlocked(true);
         }
 
-        private const string BadgeGateMessage = "BADGE REQUIRED — enroll at the ID kiosk first.";
-
-        /// <summary>
-        /// Re-apply every piece of task wiring that Build() sets at runtime but
-        /// Unity cannot save into a scene file: delegates (Func/Action), private
-        /// object references, and content arrays. The visual-pass scenes are
-        /// hand-saved copies of a procedurally built room, so they arrive with
-        /// all of that stripped — drop zones accepted nothing, the audit board
-        /// had no log data, and the exam had no questions.
-        ///
-        /// Called by <see cref="Level1IamManager"/> on Start, and harmless in
-        /// the procedural path: everything here only fills in what is missing.
-        /// </summary>
-        public static void RestoreRuntimeWiring()
-        {
-            System.Func<bool> badgeGate = () => BadgeStation.EnrolledInScene;
-
-            var gauntlet = Object.FindObjectOfType<MfaGauntlet>();
-            if (gauntlet != null)
-                gauntlet.Rebind(Level1IamContent.DailyPasscode, badgeGate, BadgeGateMessage);
-
-            var sorting = Object.FindObjectOfType<SortingStation>();
-            if (sorting != null) sorting.Rebind(Level1IamContent.SortingCrates());
-
-            var audit = Object.FindObjectOfType<AuditStation>();
-            if (audit != null)
-                audit.Rebind(Level1IamContent.AuditRounds(), badgeGate, BadgeGateMessage);
-
-            var exam = Object.FindObjectOfType<CertExamStation>();
-            if (exam != null) exam.Rebind(Level1IamContent.ExamQuestions());
-
-            // Identification-first is enforced by gating every pickup on the
-            // badge; the gate is a Func, so saved crates and tokens lost it.
-            foreach (var item in Object.FindObjectsOfType<Carryable>())
-            {
-                if (item.gate != null) continue;
-                item.gate = badgeGate;
-                item.gateMessage = BadgeGateMessage;
-            }
-        }
-
         /// <summary>The gamified task room: four hands-on tasks (one per "A")
         /// plus the Certification Exam. Every task except enrollment gates on
         /// the badge — identification comes first, enforced by the game rules.
@@ -119,7 +78,7 @@ namespace Cyverse.Level
         public static void BuildTaskRoom()
         {
             System.Func<bool> badgeGate = () => BadgeStation.EnrolledInScene;
-            const string gateMsg = BadgeGateMessage;
+            const string gateMsg = "BADGE REQUIRED — enroll at the ID kiosk first.";
 
             // Task 1 — IDENTIFICATION: first thing seen through the divider door.
             BadgeStation.Build(new Vector3(-4.5f, 0f, 6f), 0f, IamBlue);

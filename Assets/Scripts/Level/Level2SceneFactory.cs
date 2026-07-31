@@ -62,32 +62,6 @@ namespace Cyverse.Level
             spawnExit.SetUnlocked(true);
         }
 
-        /// <summary>
-        /// Re-apply the task wiring that Build() sets at runtime but Unity
-        /// cannot save into a scene file: delegates, private references, and
-        /// content arrays. The visual-pass scene is a hand-saved copy of a
-        /// procedurally built SOC floor, so it arrives with all of that
-        /// stripped — the SIEM had no alerts, the endpoints no definitions, and
-        /// the playbook slots accepted no cards.
-        ///
-        /// Called by <see cref="Level2Manager"/> on Start; harmless in the
-        /// procedural path, since everything here only fills in what's missing.
-        /// </summary>
-        public static void RestoreRuntimeWiring()
-        {
-            var siem = Object.FindObjectOfType<SiemConsole>();
-            if (siem != null) siem.Rebind(Level2Content.Alerts());
-
-            var fleet = Object.FindObjectOfType<EdrFleet>();
-            if (fleet != null) fleet.Rebind(Level2Content.Endpoints());
-
-            var playbook = Object.FindObjectOfType<PlaybookStation>();
-            if (playbook != null) playbook.Rebind();
-
-            var exam = Object.FindObjectOfType<CertExamStation>();
-            if (exam != null) exam.Rebind(Level2Content.ExamQuestions());
-        }
-
         /// <summary>Task room. Positions dodge the shared furnishings: server
         /// racks x −6.5..−2.9 and 13.6/14.8 at z=18.5, plants (±8,8), wall
         /// columns every ±8.</summary>

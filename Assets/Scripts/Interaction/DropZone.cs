@@ -20,24 +20,6 @@ namespace Cyverse.Interaction
         public Action<Carryable> onAccepted;
         public Action<Carryable> onRejected;
 
-        void Awake() => zoneName = ResolvedName;
-
-        /// <summary>The zone's role/slot name, recovered from the object name
-        /// ("DropZone_HR_MANAGER") if the field itself didn't survive being
-        /// saved into a scene. Owners match their hooks on this name, so it has
-        /// to be right before anyone's Start runs — hence Awake.</summary>
-        private string ResolvedName
-        {
-            get
-            {
-                if (!string.IsNullOrEmpty(zoneName) && zoneName != "SLOT") return zoneName;
-                const string prefix = "DropZone_";
-                return name.StartsWith(prefix)
-                    ? name.Substring(prefix.Length).Replace('_', ' ')
-                    : zoneName;
-            }
-        }
-
         public bool CanInteract => active && Carryable.Carried != null;
         public string Prompt => Carryable.Carried != null
             ? $"Place {Carryable.Carried.itemName} — {zoneName}"

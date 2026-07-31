@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using Cyverse.Audio;
 using Cyverse.Core;
@@ -37,51 +36,8 @@ namespace Cyverse.Interaction
         private Transform timerFill;
         private Renderer screenRenderer;
 
-        public bool CanInteract => !IsComplete && !running && alerts != null && alerts.Length > 0;
+        public bool CanInteract => !IsComplete && !running;
         public string Prompt => running ? "Triaging…" : "Start the alert shift";
-
-        /// <summary>
-        /// Restore the alert feed and screen references. They live in private
-        /// fields that Unity cannot serialize, so a scene SAVED with a SIEM desk
-        /// in it loaded with `alerts` null and starting a shift threw on the
-        /// first NextAlert(). The feed comes from the level's scene factory.
-        /// </summary>
-        public void Rebind(Level2Content.Alert[] feed)
-        {
-            if (alerts == null || alerts.Length == 0) alerts = feed;
-            if (screenRenderer == null)
-            {
-                var screen = transform.Find("Screen");
-                if (screen != null) screenRenderer = screen.GetComponent<Renderer>();
-            }
-            if (timerFill == null) timerFill = transform.Find("TimerPivot");
-            if (headerText == null || alertText == null || hintText == null) ResolveScreenText();
-        }
-
-        /// <summary>Recover the three stacked screen labels. Build() names them
-        /// now; older saved desks used MakeLabel's default naming (the hint's is
-        /// just "Label_"), so fall back to their vertical order — header at the
-        /// top, the alert body beneath it, the key hint at the bottom.</summary>
-        private void ResolveScreenText()
-        {
-            var stack = new List<TextMesh>();
-            foreach (Transform child in transform)
-            {
-                if (child.name.StartsWith("Sign_")) continue;
-                var tm = child.GetComponent<TextMesh>();
-                if (tm == null) continue;
-                if (child.name == "SiemHeader") headerText = tm;
-                else if (child.name == "SiemAlert") alertText = tm;
-                else if (child.name == "SiemHint") hintText = tm;
-                else stack.Add(tm);
-            }
-            if (stack.Count < 3) return;
-
-            stack.Sort((a, b) => b.transform.localPosition.y.CompareTo(a.transform.localPosition.y));
-            if (headerText == null) headerText = stack[0];
-            if (alertText == null) alertText = stack[1];
-            if (hintText == null) hintText = stack[2];
-        }
 
         public int Correct => correct;
         public int Total => alerts != null ? alerts.Length : 0;
@@ -217,18 +173,12 @@ namespace Cyverse.Interaction
             console.alerts = alerts;
             console.screenRenderer = screen.GetComponent<Renderer>();
 
-            // Named so Rebind can recover them from a scene that was saved with
-            // this desk already built (the fields are private and don't
-            // serialize; the empty hint has no text to identify it by).
             console.headerText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 3.25f, 0.1f),
                 "SIEM — ALERT QUEUE", accent, 0.024f);
-            console.headerText.gameObject.name = "SiemHeader";
             console.alertText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 2.55f, 0.1f),
                 "Press E to start the shift", new Color(0.95f, 0.98f, 1f), 0.030f);
-            console.alertText.gameObject.name = "SiemAlert";
             console.hintText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.85f, 0.1f),
                 "", new Color(0.60f, 0.72f, 0.85f), 0.020f);
-            console.hintText.gameObject.name = "SiemHint";
 
             // Countdown bar, left-pivoted so localScale.x is the time left.
             BuildKit.SpawnLocal(PrimitiveType.Cube, "TimerTrack", root.transform,

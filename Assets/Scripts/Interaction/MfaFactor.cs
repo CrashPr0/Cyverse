@@ -43,22 +43,6 @@ namespace Cyverse.Interaction
                 BuildKit.AlignKioskScreen(transform, "ScreenBody", "Screen");
         }
 
-        /// <summary>Restore what Build() sets at runtime. `gate` is a Func and
-        /// `scanLight` is private, so neither survives being saved into a scene;
-        /// the passcode is only present if the scene happened to be saved after
-        /// a procedural build. Anything already set is kept.</summary>
-        public void Rebind(MfaGauntlet owner, string dailyPasscode, Func<bool> gateFn, string gateMsg)
-        {
-            if (gauntlet == null) gauntlet = owner;
-            if (scanLight == null) scanLight = GetComponentInChildren<Light>(true);
-            if (kind == Kind.Knowledge && string.IsNullOrEmpty(passcode)) passcode = dailyPasscode;
-            if (gate == null && gateFn != null)
-            {
-                gate = gateFn;
-                if (!string.IsNullOrEmpty(gateMsg)) gateMessage = gateMsg;
-            }
-        }
-
         public void Interact(GameObject interactor)
         {
             if (cleared || busy) return;

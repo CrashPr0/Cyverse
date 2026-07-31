@@ -32,40 +32,6 @@ namespace Cyverse.Interaction
         public int Placed => placed;
         public int Total => steps != null ? steps.Length : 0;
 
-        /// <summary>
-        /// Attach the sequence slots' accept/place hooks and restore the step
-        /// list. Build() routes through this, but so must the level manager on
-        /// Start: the hooks are Func/Action and `steps` is a private array, so a
-        /// scene SAVED with the board already built loaded with everything null
-        /// — the slots accepted no cards and the checklist read 0/0.
-        /// Idempotent: slots that already carry hooks are left alone.
-        /// </summary>
-        public void Rebind()
-        {
-            if (steps == null || steps.Length == 0) steps = Level2Content.PlaybookSteps();
-            if (why == null || why.Length == 0) why = Level2Content.PlaybookWhy();
-
-            foreach (var zone in FindObjectsOfType<DropZone>())
-            {
-                if (zone.accepts != null) continue;
-                int slot = SlotIndex(zone.zoneName);
-                if (slot < 0 || slot >= steps.Length) continue;
-
-                var z = zone;
-                z.accepts = item => slot == placed && item.id == PlaybookId(steps[slot]);
-                z.onAccepted = item => OnAccepted(z, item, slot);
-                z.onRejected = item => OnRejected(z, item, slot);
-            }
-        }
-
-        /// <summary>"STEP 3" → 2. Anything else (a Level 1 role pedestal, the
-        /// MFA token slot) returns -1 and is skipped.</summary>
-        private static int SlotIndex(string zoneName)
-        {
-            if (string.IsNullOrEmpty(zoneName) || !zoneName.StartsWith("STEP ")) return -1;
-            return int.TryParse(zoneName.Substring(5), out int n) ? n - 1 : -1;
-        }
-
         private void OnAccepted(DropZone zone, Carryable card, int slot)
         {
             card.Consume();
@@ -127,8 +93,15 @@ namespace Cyverse.Interaction
 
             // Numbered slots, west to east.
             for (int i = 0; i < station.steps.Length; i++)
-                DropZone.Build(boardPos + new Vector3(-5f + i * 2f, 0f, 0f), $"STEP {i + 1}", accent);
-            station.Rebind();
+            {
+                int slot = i; // capture per iteration
+                Vector3 p = boardPos + new Vector3(-5f + i * 2f, 0f, 0f);
+                var zone = DropZone.Build(p, $"STEP {i + 1}", accent);
+                zone.accepts = item =>
+                    slot == station.placed && item.id == PlaybookId(station.steps[slot]);
+                zone.onAccepted = item => station.OnAccepted(zone, item, slot);
+                zone.onRejected = item => station.OnRejected(zone, item, slot);
+            }
 
             // Card rack — deliberately NOT in playbook order.
             int[] shuffled = { 2, 5, 0, 4, 1, 3 };

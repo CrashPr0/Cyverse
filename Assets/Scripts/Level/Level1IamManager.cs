@@ -72,11 +72,6 @@ namespace Cyverse.Level
             if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
             if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
 
-            // Scenes saved with the task room already in them (every visual-pass
-            // copy) lose all delegate and private-field wiring — Unity can't
-            // serialize either. Re-apply it before anything reads task state.
-            Level1IamSceneFactory.RestoreRuntimeWiring();
-
             badge = FindObjectOfType<BadgeStation>();
             gauntlet = FindObjectOfType<MfaGauntlet>();
             foreach (var zone in FindObjectsOfType<DropZone>())
