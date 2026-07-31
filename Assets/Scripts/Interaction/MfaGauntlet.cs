@@ -30,6 +30,10 @@ namespace Cyverse.Interaction
         public int factorPoints = 50;
         public int completionPoints = 75;
 
+        /// <summary>Level accent, serialized so Rebind can recolour the token
+        /// burst in scenes that were saved rather than built at runtime.</summary>
+        public Color accent = new Color(0.25f, 0.65f, 1f);
+
         private readonly bool[] cleared = new bool[3];
 
         /// <summary>How many of the three factors are verified (for the HUD).</summary>
@@ -121,6 +125,7 @@ namespace Cyverse.Interaction
                 BuildKit.MakeStandard(new Color(0.13f, 0.14f, 0.19f), 0.7f, 0.6f), collider: true);
 
             var gauntlet = root.AddComponent<MfaGauntlet>();
+            gauntlet.accent = accent;
             gauntlet.vaultPanel = panel.transform;
             gauntlet.litMat = BuildKit.MakeEmissive(new Color(0.30f, 1f, 0.45f), 2.4f);
             var offMat = BuildKit.MakeStandard(new Color(0.16f, 0.18f, 0.24f), 0.4f, 0.2f);
@@ -167,21 +172,59 @@ namespace Cyverse.Interaction
             token.gate = gate;
             token.gateMessage = gateMessage;
 
-            var slot = DropZone.Build(slotPos, "TOKEN SLOT", accent);
+            DropZone.Build(slotPos, "TOKEN SLOT", accent);
+            gauntlet.Rebind(passcode, gate, gateMessage);
+
+            return gauntlet;
+        }
+
+        /// <summary>
+        /// Restore everything Build() wires at runtime but Unity cannot save:
+        /// the token slot's Func/Action hooks, the panel and indicator-lamp
+        /// transforms (private fields, not serialized), and the factor stations'
+        /// passcode and gate. Without this the vault in a saved visual-pass
+        /// scene accepted no token, lit no lamps and never slid open.
+        /// Idempotent — anything already wired is left as-is.
+        /// </summary>
+        public void Rebind(string dailyPasscode, Func<bool> gate, string gateMessage)
+        {
+            if (vaultPanel == null)
+            {
+                var p = transform.Find("VaultPanel");
+                if (p != null) vaultPanel = p;
+            }
+            if (litMat == null) litMat = BuildKit.MakeEmissive(new Color(0.30f, 1f, 0.45f), 2.4f);
+            if (lights == null)
+            {
+                lights = new Renderer[3];
+                for (int i = 0; i < 3; i++)
+                {
+                    var lamp = transform.Find("FactorLight_" + i);
+                    if (lamp != null) lights[i] = lamp.GetComponent<Renderer>();
+                }
+            }
+
+            foreach (var zone in FindObjectsOfType<DropZone>())
+                if (zone.zoneName == "TOKEN SLOT" && zone.accepts == null) BindTokenSlot(zone);
+
+            foreach (var factor in FindObjectsOfType<MfaFactor>())
+                factor.Rebind(this, dailyPasscode, gate, gateMessage);
+        }
+
+        private void BindTokenSlot(DropZone slot)
+        {
             slot.accepts = item => item.id == "mfa_token";
             slot.onAccepted = item =>
             {
                 item.Consume();
                 BurstFX.SpawnAbove(slot.transform, accent, 20, minimumHeight: 1.2f);
-                gauntlet.FactorCleared(1);
+                FactorCleared(1);
             };
             slot.onRejected = item =>
             {
                 if (HudUI.Instance != null)
                     HudUI.Instance.ShowToast("This slot only takes the SECURITY TOKEN.", new Color(1f, 0.55f, 0.4f));
             };
-
-            return gauntlet;
         }
 
         private static void BuildMemo(Vector3 pos, string passcode, Color accent)

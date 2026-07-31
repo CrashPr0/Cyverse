@@ -46,6 +46,25 @@ namespace Cyverse.Interaction
                 body, Vector2.zero, 0.024f);
         }
 
+        /// <summary>
+        /// Restore the question bank and screen renderer. Both are private
+        /// fields set by Build(), so a scene SAVED with an exam terminal in it
+        /// loaded with no questions — AskNext() fell straight through to
+        /// Finish() and the level "completed" without asking anything. The bank
+        /// comes from the level's scene factory, since this station is shared
+        /// between levels and can't know which one to load on its own.
+        /// </summary>
+        public void Rebind(QuizQuestion[] bank)
+        {
+            if (questions == null || questions.Length == 0) questions = bank;
+            if (screenRenderer == null)
+            {
+                var screen = transform.Find("Screen");
+                if (screen != null) screenRenderer = screen.GetComponent<Renderer>();
+            }
+            if (statusText == null) NormalizeScreen();
+        }
+
         /// <summary>Called by the level manager when all tasks are complete.</summary>
         public void Activate()
         {

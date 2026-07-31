@@ -106,17 +106,44 @@ namespace Cyverse.Interaction
                 crate.gateMessage = gateMessage;
             }
 
-            var defs = crates; // captured by the zone closures below
-            foreach (var (role, pos) in pedestals)
-            {
-                var zone = DropZone.Build(pos, role, accent);
-                string zoneRole = role;
-                zone.accepts = item => Find(defs, item.id)?.role == zoneRole;
-                zone.onAccepted = item => station.OnDelivered(zone, item, Find(defs, item.id));
-                zone.onRejected = item => station.OnRejected(zone, item);
-            }
+            foreach (var (role, pos) in pedestals) DropZone.Build(pos, role, accent);
+            station.Rebind(crates);
 
             return station;
+        }
+
+        /// <summary>
+        /// Attach the role pedestals' accept/deliver hooks and restore the crate
+        /// count. Build() routes through this, but so must the level manager on
+        /// Start: <see cref="DropZone.accepts"/> and friends are Func/Action, and
+        /// Unity cannot serialize delegates. A scene SAVED with a SortingStation
+        /// already in it — every visual-pass copy — therefore loaded with all
+        /// three hooks null, so DropZone.Interact() silently did nothing and the
+        /// crate was never placed. `total` is likewise unserialized, which is why
+        /// the checklist read "Data Triage (0/0 filed)".
+        /// Idempotent: zones that already carry hooks are left alone.
+        /// </summary>
+        public void Rebind(Level1IamContent.CrateDef[] crates)
+        {
+            if (crates == null || crates.Length == 0) return;
+            if (total <= 0) total = crates.Length;
+
+            var defs = crates; // captured by the zone closures below
+            foreach (var zone in FindObjectsOfType<DropZone>())
+            {
+                if (zone.accepts != null || !IsRole(defs, zone.zoneName)) continue;
+                var z = zone;
+                string zoneRole = z.zoneName;
+                z.accepts = item => Find(defs, item.id)?.role == zoneRole;
+                z.onAccepted = item => OnDelivered(z, item, Find(defs, item.id));
+                z.onRejected = item => OnRejected(z, item);
+            }
+        }
+
+        private static bool IsRole(Level1IamContent.CrateDef[] defs, string role)
+        {
+            foreach (var d in defs) if (d.role == role) return true;
+            return false;
         }
 
         private static Level1IamContent.CrateDef Find(Level1IamContent.CrateDef[] defs, string id)

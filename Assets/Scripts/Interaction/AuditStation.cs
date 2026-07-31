@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Cyverse.Audio;
 using Cyverse.Core;
@@ -41,12 +42,68 @@ namespace Cyverse.Interaction
         private static readonly Color GoodColor = new Color(0.30f, 1f, 0.45f);
         private static readonly Color BadColor = new Color(1f, 0.45f, 0.35f);
 
-        public bool CanInteract => !IsComplete;
+        public bool CanInteract => !IsComplete && rounds != null && rounds.Length > 0;
         public string Prompt => active ? "Flag highlighted entry" : "Open the access audit log";
+
+        /// <summary>
+        /// Restore what Build() wires at runtime: the log data, the gate Func,
+        /// and the board's TextMeshes. All of those live in private or delegate
+        /// fields that Unity cannot serialize, so a saved visual-pass scene
+        /// loaded with `rounds` null — the board reported 0/0 rounds and
+        /// interacting with it threw on the first LoadRound().
+        /// </summary>
+        public void Rebind(Level1IamContent.LogRound[] logRounds, Func<bool> gateFn, string gateMsg)
+        {
+            if (rounds == null || rounds.Length == 0) rounds = logRounds;
+            if (gate == null && gateFn != null)
+            {
+                gate = gateFn;
+                if (!string.IsNullOrEmpty(gateMsg)) gateMessage = gateMsg;
+            }
+            if (highlight == null)
+            {
+                var hl = transform.Find("Highlight");
+                if (hl != null) highlight = hl;
+            }
+            if (headerText == null || hintText == null || rowTexts == null || rowTexts.Length == 0)
+                ResolveBoardText();
+        }
+
+        /// <summary>
+        /// Recover the board's labels from the scene. Build() now names them,
+        /// but boards baked before that used MakeLabel's default naming — and
+        /// every empty log row is literally "Label_" — so fall back to the
+        /// board's geometry instead: the rows are the left-anchored column at
+        /// x ≈ -1.75, with the centred header above them and the hint below.
+        /// </summary>
+        private void ResolveBoardText()
+        {
+            var rows = new List<TextMesh>();
+            var centred = new List<TextMesh>();
+
+            foreach (Transform child in transform)
+            {
+                if (child.name.StartsWith("Sign_")) continue;
+                var tm = child.GetComponent<TextMesh>();
+                if (tm == null) continue;
+                if (child.name == "LogHeader") headerText = tm;
+                else if (child.name == "LogHint") hintText = tm;
+                else if (child.name.StartsWith("LogRow_") || child.localPosition.x < -1f) rows.Add(tm);
+                else centred.Add(tm);
+            }
+
+            rows.Sort((a, b) => b.transform.localPosition.y.CompareTo(a.transform.localPosition.y));
+            if (rowTexts == null || rowTexts.Length == 0) rowTexts = rows.ToArray();
+
+            centred.Sort((a, b) => b.transform.localPosition.y.CompareTo(a.transform.localPosition.y));
+            if (headerText == null && centred.Count > 0) headerText = centred[0];
+            if (hintText == null && centred.Count > 1) hintText = centred[centred.Count - 1];
+        }
 
         public void Interact(GameObject interactor)
         {
             if (IsComplete || transitioning) return;
+            if (rounds == null || rounds.Length == 0 || rowTexts == null || rowTexts.Length == 0) return;
             if (gate != null && !gate())
             {
                 if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
@@ -103,9 +160,12 @@ namespace Cyverse.Interaction
                 if (round >= rounds.Length)
                 {
                     IsComplete = true;
-                    headerText.text = "AUDIT CLEAR ✓";
-                    headerText.color = new Color(0.90f, 0.66f, 0.14f);
-                    hintText.text = "All anomalies accounted for.";
+                    if (headerText != null)
+                    {
+                        headerText.text = "AUDIT CLEAR ✓";
+                        headerText.color = new Color(0.90f, 0.66f, 0.14f);
+                    }
+                    if (hintText != null) hintText.text = "All anomalies accounted for.";
                     if (highlight != null) highlight.gameObject.SetActive(false);
                     Completed?.Invoke();
                 }
@@ -141,7 +201,8 @@ namespace Cyverse.Interaction
         private void LoadRound()
         {
             var r = rounds[round];
-            headerText.text = $"ACCESS AUDIT — ROUND {round + 1}/{rounds.Length}";
+            if (headerText != null)
+                headerText.text = $"ACCESS AUDIT — ROUND {round + 1}/{rounds.Length}";
             for (int i = 0; i < rowTexts.Length; i++)
             {
                 rowTexts[i].text = i < r.lines.Length ? r.lines[i] : "";
@@ -184,11 +245,17 @@ namespace Cyverse.Interaction
             station.gate = gate;
             station.gateMessage = gateMessage;
 
+            // Named so Rebind can find them again in a scene that was SAVED
+            // with this station in it — the fields themselves are private and
+            // don't serialize. (MakeLabel's default name for an empty row is
+            // just "Label_", which is why the rows can't rely on it.)
             station.headerText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 2.78f, -0.04f),
                 "ACCESS AUDIT", accent, 0.026f);
+            station.headerText.gameObject.name = "LogHeader";
             station.hintText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 0.98f, -0.04f),
                 "↑ / ↓ select   ·   E flag the anomaly", new Color(0.55f, 0.65f, 0.78f), 0.018f,
                 billboard: false, anchor: TextAnchor.MiddleCenter, style: FontStyle.Normal);
+            station.hintText.gameObject.name = "LogHint";
 
             int rowCount = 6;
             station.rowTexts = new TextMesh[rowCount];
@@ -197,6 +264,7 @@ namespace Cyverse.Interaction
                 station.rowTexts[i] = BuildKit.MakeLabel(root.transform,
                     new Vector3(-1.75f, RowY(i), -0.04f), "", RowColor, 0.019f,
                     billboard: false, anchor: TextAnchor.MiddleLeft, style: FontStyle.Normal);
+                station.rowTexts[i].gameObject.name = "LogRow_" + i;
             }
 
             var hl = BuildKit.SpawnLocal(PrimitiveType.Quad, "Highlight", root.transform,

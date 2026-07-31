@@ -28,12 +28,46 @@ namespace Cyverse.Interaction
         private TextMesh statusText;
         private Renderer screenRenderer;
 
-        public bool CanInteract => !Isolated;
-        public string Prompt => $"Isolate {def.hostname} from the network";
+        public bool CanInteract => !Isolated && def != null;
+        public string Prompt => def != null
+            ? $"Isolate {def.hostname} from the network"
+            : "Workstation";
+
+        /// <summary>
+        /// Restore the machine's definition and screen renderer.
+        /// <see cref="Level2Content.EndpointDef"/> is a plain class, not a
+        /// [Serializable] struct, so `def` is null in any scene that was SAVED
+        /// with endpoints already built — which made the interact prompt throw
+        /// and left the fleet with nothing to contain. Matched by hostname,
+        /// which Build() bakes into the object name.
+        /// </summary>
+        public void Rebind(Level2Content.EndpointDef definition, EdrFleet owner)
+        {
+            if (def == null) def = definition;
+            if (fleet == null) fleet = owner;
+            if (screenRenderer == null)
+            {
+                var screen = transform.Find("Screen");
+                if (screen != null) screenRenderer = screen.GetComponent<Renderer>();
+            }
+            if (statusText == null)
+            {
+                foreach (Transform child in transform)
+                {
+                    var tm = child.GetComponent<TextMesh>();
+                    if (tm != null && !string.IsNullOrEmpty(tm.text) && tm.text.StartsWith("●"))
+                    { statusText = tm; break; }
+                }
+            }
+        }
+
+        /// <summary>The hostname Build() baked into this object's name.</summary>
+        public string HostnameFromName =>
+            name.StartsWith("Endpoint_") ? name.Substring("Endpoint_".Length) : name;
 
         public void Interact(GameObject interactor)
         {
-            if (Isolated) return;
+            if (Isolated || def == null) return;
             Isolated = true;
 
             if (def.compromised)
