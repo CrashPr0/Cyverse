@@ -39,6 +39,37 @@ namespace Cyverse.Level
             return sys;
         }
 
+        /// <summary>Reinstalls runtime-only task content and delegates after a
+        /// visual-pass scene is deserialized.</summary>
+        public static void WireTaskRoom()
+        {
+            var siem = Object.FindObjectOfType<SiemConsole>();
+            if (siem != null) siem.Configure(Level2Content.Alerts());
+
+            var fleet = Object.FindObjectOfType<EdrFleet>();
+            if (fleet != null)
+            {
+                var definitions = Level2Content.Endpoints();
+                foreach (var endpoint in Object.FindObjectsOfType<EndpointStation>())
+                {
+                    if (endpoint.def == null)
+                    {
+                        foreach (var definition in definitions)
+                            if (endpoint.name.EndsWith(definition.hostname))
+                            { endpoint.def = definition; break; }
+                    }
+                    endpoint.fleet = fleet;
+                    fleet.Register(endpoint);
+                }
+            }
+
+            var playbook = Object.FindObjectOfType<PlaybookStation>();
+            if (playbook != null) playbook.Configure();
+
+            var exam = Object.FindObjectOfType<CertExamStation>();
+            if (exam != null) exam.Configure(Level2Content.ExamQuestions());
+        }
+
         public static void BuildDivider()
         {
             var mat = BuildKit.MakeStandard(BuildKit.WallColor, 0.45f, 0.25f);

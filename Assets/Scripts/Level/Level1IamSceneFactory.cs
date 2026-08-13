@@ -75,10 +75,37 @@ namespace Cyverse.Level
         /// the badge — identification comes first, enforced by the game rules.
         /// Positions dodge the shared furnishings: server racks x −6.5..−2.9
         /// and 13.6/14.8 at z=18.5, plants (±8,8), wall columns every ±8.</summary>
+        private static System.Func<bool> BadgeGate => () => BadgeStation.EnrolledInScene;
+        private const string GateMsg = "BADGE REQUIRED — enroll at the ID kiosk first.";
+
+        /// <summary>Re-installs the task room's runtime-only wiring: content
+        /// tables, gates, and the drop-zone delegates. None of that serialises,
+        /// so the hand-saved visual-pass scene loads with stations that look
+        /// right but do nothing — this is what makes it playable. Idempotent;
+        /// BuildTaskRoom calls it too, so there is exactly one wiring path.</summary>
+        public static void WireTaskRoom()
+        {
+            var gauntlet = Object.FindObjectOfType<MfaGauntlet>();
+            if (gauntlet != null)
+                gauntlet.Configure(IamBlue, Level1IamContent.DailyPasscode, BadgeGate, GateMsg);
+
+            var sorting = Object.FindObjectOfType<SortingStation>();
+            if (sorting != null)
+                sorting.Configure(Level1IamContent.SortingCrates(), BadgeGate, GateMsg);
+
+            var audit = Object.FindObjectOfType<AuditStation>();
+            if (audit != null)
+                audit.Configure(Level1IamContent.AuditRounds(), IamBlue, BadgeGate, GateMsg);
+
+            var exam = Object.FindObjectOfType<CertExamStation>();
+            if (exam != null)
+                exam.Configure(Level1IamContent.ExamQuestions());
+        }
+
         public static void BuildTaskRoom()
         {
-            System.Func<bool> badgeGate = () => BadgeStation.EnrolledInScene;
-            const string gateMsg = "BADGE REQUIRED — enroll at the ID kiosk first.";
+            System.Func<bool> badgeGate = BadgeGate;
+            const string gateMsg = GateMsg;
 
             // Task 1 — IDENTIFICATION: first thing seen through the divider door.
             BadgeStation.Build(new Vector3(-4.5f, 0f, 6f), 0f, IamBlue);
@@ -100,9 +127,9 @@ namespace Cyverse.Level
                 Level1IamContent.SortingCrates(),
                 new[]
                 {
-                    ("INTERN", new Vector3(10.5f, 0f, 14f)),
-                    ("HR MANAGER", new Vector3(13.5f, 0f, 15.5f)),
-                    ("SYSADMIN", new Vector3(16.5f, 0f, 14f)),
+                    ("INTERN", new Vector3(10f, 0f, 11.5f)),
+                    ("HR MANAGER", new Vector3(13f, 0f, 12.8f)),
+                    ("SYSADMIN", new Vector3(16f, 0f, 11.5f)),
                 },
                 IamBlue, badgeGate, gateMsg);
 

@@ -43,6 +43,11 @@ namespace Cyverse.Interaction
         public int Total => alerts != null ? alerts.Length : 0;
         public int Handled => Mathf.Max(0, index);
 
+        public void Configure(Level2Content.Alert[] content)
+        {
+            alerts = content;
+        }
+
         public void Interact(GameObject interactor)
         {
             if (IsComplete || running) return;
@@ -132,6 +137,19 @@ namespace Cyverse.Interaction
             BurstFX.SpawnAbove(transform, new Color(0.30f, 1f, 0.45f), 30, minimumHeight: 2.2f);
             Completed?.Invoke();
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void CompleteForAutomation()
+        {
+            if (IsComplete || alerts == null) return;
+            if (!running) Interact(gameObject);
+            while (!IsComplete)
+            {
+                var alert = alerts[index];
+                Resolve(alert.escalate ? 1 : 0);
+            }
+        }
+#endif
 
         private static string Wrap(string text, int maxLine)
         {

@@ -32,6 +32,25 @@ namespace Cyverse.Interaction
         public int Placed => placed;
         public int Total => steps != null ? steps.Length : 0;
 
+        /// <summary>Restores the private step arrays and DropZone delegates
+        /// that Unity cannot serialize into a saved visual-pass scene.</summary>
+        public void Configure()
+        {
+            steps = Level2Content.PlaybookSteps();
+            why = Level2Content.PlaybookWhy();
+            foreach (var zone in FindObjectsOfType<DropZone>())
+            {
+                if (!zone.zoneName.StartsWith("STEP ")) continue;
+                if (!int.TryParse(zone.zoneName.Substring(5), out int number)) continue;
+                int slot = number - 1;
+                if (slot < 0 || slot >= steps.Length) continue;
+                var wiredZone = zone;
+                zone.accepts = item => slot == placed && item.id == PlaybookId(steps[slot]);
+                zone.onAccepted = item => OnAccepted(wiredZone, item, slot);
+                zone.onRejected = item => OnRejected(wiredZone, item, slot);
+            }
+        }
+
         private void OnAccepted(DropZone zone, Carryable card, int slot)
         {
             card.Consume();

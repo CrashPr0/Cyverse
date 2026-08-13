@@ -62,6 +62,8 @@ namespace Cyverse.Level
             if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
             if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
 
+            Level2SceneFactory.WireTaskRoom();
+
             siem = FindObjectOfType<SiemConsole>();
             edr = FindObjectOfType<EdrFleet>();
             playbook = FindObjectOfType<PlaybookStation>();

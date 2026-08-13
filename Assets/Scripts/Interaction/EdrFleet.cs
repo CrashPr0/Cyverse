@@ -18,7 +18,10 @@ namespace Cyverse.Interaction
 
         private readonly List<EndpointStation> endpoints = new List<EndpointStation>();
 
-        public void Register(EndpointStation e) => endpoints.Add(e);
+        public void Register(EndpointStation e)
+        {
+            if (e != null && !endpoints.Contains(e)) endpoints.Add(e);
+        }
 
         public int Contained
         {

@@ -79,6 +79,20 @@ namespace Cyverse.Interaction
                 : "<b>CASE CLOSED.</b> A new case file just hit your desk — Esc, then open the terminal again.");
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void CompleteForAutomation()
+        {
+            if (Cases == null) return;
+            foreach (var investigation in Cases)
+            foreach (var question in investigation.questions)
+            {
+                if (question.Answered) continue;
+                question.Answered = true;
+                investigation.NotifyAnswered();
+            }
+        }
+#endif
+
         // ---- Construction ----------------------------------------------------
 
         public static ForensicsConsole Build(Vector3 pos, float rotY, Color accent)

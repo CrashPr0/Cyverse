@@ -294,6 +294,19 @@ namespace Cyverse.Interaction
             FirstCompleted?.Invoke();
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>Deterministic hook for the automated end-to-end runner.
+        /// It follows the same completion path as reaching the end naturally,
+        /// without making CI wait for the full briefing.</summary>
+        public void CompleteForAutomation()
+        {
+            Seek(Duration);
+            SetPlaying(false);
+            OnReachedEnd();
+            RefreshScreen();
+        }
+#endif
+
         private void RefreshScreen()
         {
             if (barFill != null)

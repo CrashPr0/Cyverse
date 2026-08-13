@@ -20,12 +20,111 @@ namespace Cyverse.Interaction
 
         public int pointsPerCrate = 60;
 
+        private Level1IamContent.CrateDef[] defs;
         private int delivered;
         private int total;
 
         /// <summary>Crates filed / crates total (for the HUD checklist).</summary>
         public int Delivered => delivered;
         public int Total => total;
+
+        // ---- Wiring ----------------------------------------------------------
+
+        /// <summary>Installs the runtime-only state: the crate table, the
+        /// pickup gate, and the accept/reject delegates on the role pedestals.
+        /// Delegates never survive being saved into a scene file, so a
+        /// visual-pass scene loads with pedestals that silently swallow every
+        /// crate unless this runs. Called by Build and again by the level
+        /// factory on load; safe either way.</summary>
+        public void Configure(Level1IamContent.CrateDef[] crates, Func<bool> gate, string gateMessage)
+        {
+            defs = crates;
+            total = crates.Length;
+
+            NormalizeLayout();
+
+            foreach (var item in FindObjectsOfType<Carryable>())
+            {
+                if (Find(defs, item.id) == null) continue; // the MFA token, etc.
+                item.gate = gate;
+                item.gateMessage = gateMessage;
+            }
+
+            foreach (var pedestal in FindObjectsOfType<DropZone>())
+            {
+                if (!IsRole(defs, pedestal.zoneName)) continue; // not one of ours
+                var zone = pedestal;
+                zone.accepts = item => Find(defs, item.id)?.role == zone.zoneName;
+                zone.onAccepted = item => OnDelivered(zone, item, Find(defs, item.id));
+                zone.onRejected = item => OnRejected(zone, item);
+            }
+        }
+
+        /// <summary>Gives Data Triage its own readable work zone. The original
+        /// scene put four long, billboarded crate names in one narrow row and
+        /// all three role pedestals far behind it, compressing every label into
+        /// the same sightline. This 2x2 intake plus staggered role arc is
+        /// re-applied when a saved visual-pass scene loads.</summary>
+        private void NormalizeLayout()
+        {
+            Transform table = transform.Find("Table");
+            if (table != null) table.localScale = new Vector3(3.8f, 0.9f, 1.8f);
+            Transform trim = transform.Find("TableTrim");
+            if (trim != null)
+            {
+                trim.localPosition = new Vector3(0f, 0.92f, -0.91f);
+                trim.localScale = new Vector3(3.8f, 0.04f, 0.02f);
+            }
+
+            // Two rows keep long classifications from drawing through one
+            // another while leaving a clear pickup aisle around the table.
+            Vector3[] crateSlots =
+            {
+                new Vector3(-0.95f, 0.9f, -0.38f),
+                new Vector3( 0.95f, 0.9f, -0.38f),
+                new Vector3(-0.95f, 0.9f,  0.38f),
+                new Vector3( 0.95f, 0.9f,  0.38f),
+            };
+            int slot = 0;
+            foreach (var def in defs)
+            {
+                Carryable item = null;
+                foreach (var candidate in FindObjectsOfType<Carryable>())
+                    if (candidate.id == def.id) { item = candidate; break; }
+                if (item == null || slot >= crateSlots.Length) continue;
+                item.transform.position = transform.TransformPoint(crateSlots[slot++]);
+                TextMesh label = item.GetComponentInChildren<TextMesh>(true);
+                if (label != null)
+                {
+                    label.characterSize = 0.016f;
+                    label.transform.localPosition = new Vector3(0f, 0.76f, 0f);
+                }
+            }
+
+            // A shallow arc makes each destination independently readable from
+            // the intake table instead of stacking all labels behind it.
+            PlaceRole("INTERN", new Vector3(-3.0f, 0f, 3.5f));
+            PlaceRole("HR MANAGER", new Vector3(0f, 0f, 4.8f));
+            PlaceRole("SYSADMIN", new Vector3(3.0f, 0f, 3.5f));
+        }
+
+        private void PlaceRole(string role, Vector3 localPosition)
+        {
+            foreach (var zone in FindObjectsOfType<DropZone>())
+            {
+                if (zone.zoneName != role) continue;
+                zone.transform.position = transform.TransformPoint(localPosition);
+                TextMesh label = zone.GetComponentInChildren<TextMesh>(true);
+                if (label != null) label.characterSize = 0.021f;
+                return;
+            }
+        }
+
+        private static bool IsRole(Level1IamContent.CrateDef[] defs, string zoneName)
+        {
+            foreach (var d in defs) if (d.role == zoneName) return true;
+            return false;
+        }
 
         private void OnDelivered(DropZone zone, Carryable item, Level1IamContent.CrateDef def)
         {
@@ -77,14 +176,13 @@ namespace Cyverse.Interaction
             root.transform.position = tablePos;
 
             var station = root.AddComponent<SortingStation>();
-            station.total = crates.Length;
 
-            // Intake table with the crates lined up on top.
+            // Intake table; Configure arranges the crates in a readable 2x2.
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Table", root.transform,
-                new Vector3(0f, 0.45f, 0f), Vector3.zero, new Vector3(3.4f, 0.9f, 1.1f),
+                new Vector3(0f, 0.45f, 0f), Vector3.zero, new Vector3(3.8f, 0.9f, 1.8f),
                 BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.16f), 0.55f, 0.4f), collider: true);
             BuildKit.SpawnLocal(PrimitiveType.Cube, "TableTrim", root.transform,
-                new Vector3(0f, 0.92f, -0.56f), Vector3.zero, new Vector3(3.4f, 0.04f, 0.02f),
+                new Vector3(0f, 0.92f, -0.91f), Vector3.zero, new Vector3(3.8f, 0.04f, 0.02f),
                 BuildKit.MakeEmissive(accent, 1.4f), collider: false);
             BuildKit.MakeSign(root.transform, tablePos + new Vector3(0f, 2.5f, 0f), "DATA TRIAGE", accent, 0.032f);
 
@@ -99,23 +197,16 @@ namespace Cyverse.Interaction
 
             for (int i = 0; i < crates.Length; i++)
             {
-                float x = -1.2f + i * (2.4f / Mathf.Max(1, crates.Length - 1));
-                var crate = Carryable.Build(tablePos + new Vector3(x, 0.9f, 0f),
+                Carryable.Build(tablePos + Vector3.up * 0.9f,
                     crates[i].label, crates[i].id, accent);
-                crate.gate = gate;
-                crate.gateMessage = gateMessage;
             }
 
-            var defs = crates; // captured by the zone closures below
             foreach (var (role, pos) in pedestals)
-            {
-                var zone = DropZone.Build(pos, role, accent);
-                string zoneRole = role;
-                zone.accepts = item => Find(defs, item.id)?.role == zoneRole;
-                zone.onAccepted = item => station.OnDelivered(zone, item, Find(defs, item.id));
-                zone.onRejected = item => station.OnRejected(zone, item);
-            }
+                DropZone.Build(pos, role, accent);
 
+            // Crates and pedestals exist now, so the shared wiring path can
+            // find and hook them — the same one a saved scene goes through.
+            station.Configure(crates, gate, gateMessage);
             return station;
         }
 

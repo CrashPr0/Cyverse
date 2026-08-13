@@ -44,6 +44,61 @@ namespace Cyverse.Interaction
         private Material litMat;
         private Transform vaultPanel;
 
+        // ---- Wiring ----------------------------------------------------------
+
+        /// <summary>Installs the runtime-only state: the indicator/panel
+        /// references, the factor gates, and the TOKEN SLOT delegates. None of
+        /// that survives being saved into a scene file, so a visual-pass scene
+        /// loads with a slot that swallows the token without ever clearing the
+        /// "something you have" factor. Called by Build and again by the level
+        /// factory on load; safe either way.</summary>
+        public void Configure(Color accent, string passcode, Func<bool> gate, string gateMessage)
+        {
+            if (vaultPanel == null) vaultPanel = transform.Find("VaultPanel");
+            if (litMat == null) litMat = BuildKit.MakeEmissive(new Color(0.30f, 1f, 0.45f), 2.4f);
+            if (lights == null) lights = new Renderer[3];
+            for (int i = 0; i < 3; i++)
+            {
+                if (lights[i] != null) continue;
+                var lamp = transform.Find("FactorLight_" + i);
+                if (lamp != null) lights[i] = lamp.GetComponent<Renderer>();
+            }
+
+            foreach (var factor in FindObjectsOfType<MfaFactor>())
+            {
+                if (factor.gauntlet != this) continue;
+                factor.gate = gate;
+                factor.gateMessage = gateMessage;
+                if (factor.kind == MfaFactor.Kind.Knowledge) factor.passcode = passcode;
+            }
+
+            foreach (var item in FindObjectsOfType<Carryable>())
+            {
+                if (item.id != "mfa_token") continue;
+                item.gate = gate;
+                item.gateMessage = gateMessage;
+            }
+
+            foreach (var candidate in FindObjectsOfType<DropZone>())
+            {
+                if (candidate.zoneName != "TOKEN SLOT") continue;
+                var slot = candidate;
+                slot.accepts = item => item.id == "mfa_token";
+                slot.onAccepted = item =>
+                {
+                    item.Consume();
+                    BurstFX.SpawnAbove(slot.transform, accent, 20, minimumHeight: 1.2f);
+                    FactorCleared(1);
+                };
+                slot.onRejected = item =>
+                {
+                    if (HudUI.Instance != null)
+                        HudUI.Instance.ShowToast("This slot only takes the SECURITY TOKEN.",
+                            new Color(1f, 0.55f, 0.4f));
+                };
+            }
+        }
+
         public void FactorCleared(int index)
         {
             if (IsComplete || index < 0 || index > 2 || cleared[index]) return;
@@ -116,21 +171,17 @@ namespace Cyverse.Interaction
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Lintel", root.transform,
                 new Vector3(0f, 3.55f, 0f), Vector3.zero, new Vector3(2.95f, 0.35f, 0.5f), frameMat, collider: true);
 
-            var panel = BuildKit.SpawnLocal(PrimitiveType.Cube, "VaultPanel", root.transform,
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "VaultPanel", root.transform,
                 new Vector3(0f, 1.7f, 0.05f), Vector3.zero, new Vector3(2.25f, 3.3f, 0.18f),
                 BuildKit.MakeStandard(new Color(0.13f, 0.14f, 0.19f), 0.7f, 0.6f), collider: true);
 
             var gauntlet = root.AddComponent<MfaGauntlet>();
-            gauntlet.vaultPanel = panel.transform;
-            gauntlet.litMat = BuildKit.MakeEmissive(new Color(0.30f, 1f, 0.45f), 2.4f);
             var offMat = BuildKit.MakeStandard(new Color(0.16f, 0.18f, 0.24f), 0.4f, 0.2f);
-            gauntlet.lights = new Renderer[3];
             for (int i = 0; i < 3; i++)
             {
-                var lamp = BuildKit.SpawnLocal(PrimitiveType.Sphere, "FactorLight_" + i, root.transform,
+                BuildKit.SpawnLocal(PrimitiveType.Sphere, "FactorLight_" + i, root.transform,
                     new Vector3((i - 1) * 0.55f, 3.55f, -0.3f), Vector3.zero,
                     new Vector3(0.22f, 0.22f, 0.22f), offMat, collider: false);
-                gauntlet.lights[i] = lamp.GetComponent<Renderer>();
             }
 
             BuildKit.MakeSign(root.transform, vaultPos + new Vector3(0f, 4.3f, 0f), "MFA VAULT", accent, 0.032f);
@@ -145,16 +196,11 @@ namespace Cyverse.Interaction
             vl.intensity = 1.8f;
 
             // KNOW — passcode terminal, with the memo plaque beside it.
-            var know = MfaFactor.Build(terminalPos, 0f, MfaFactor.Kind.Knowledge, gauntlet, accent);
-            know.passcode = passcode;
-            know.gate = gate;
-            know.gateMessage = gateMessage;
+            MfaFactor.Build(terminalPos, 0f, MfaFactor.Kind.Knowledge, gauntlet, accent);
             BuildMemo(terminalPos + new Vector3(0f, 0f, 1.6f), passcode, accent);
 
             // ARE — biometric pad.
-            var are = MfaFactor.Build(padPos, 0f, MfaFactor.Kind.Biometric, gauntlet, accent);
-            are.gate = gate;
-            are.gateMessage = gateMessage;
+            MfaFactor.Build(padPos, 0f, MfaFactor.Kind.Biometric, gauntlet, accent);
 
             // HAVE — token on a rack across the room, slotted by the vault.
             var rack = new GameObject("TokenRack");
@@ -163,24 +209,12 @@ namespace Cyverse.Interaction
                 new Vector3(0f, 0.5f, 0f), Vector3.zero, new Vector3(0.8f, 1.0f, 0.8f),
                 BuildKit.MakeStandard(new Color(0.09f, 0.10f, 0.14f), 0.5f, 0.4f), collider: true);
             BuildKit.MakeLabel(rack.transform, new Vector3(0f, 1.9f, 0f), "TOKEN CHARGER", accent, 0.024f, billboard: true);
-            var token = Carryable.Build(tokenRackPos + Vector3.up * 1.0f, "SECURITY TOKEN", "mfa_token", accent, token: true);
-            token.gate = gate;
-            token.gateMessage = gateMessage;
+            Carryable.Build(tokenRackPos + Vector3.up * 1.0f, "SECURITY TOKEN", "mfa_token", accent, token: true);
+            DropZone.Build(slotPos, "TOKEN SLOT", accent);
 
-            var slot = DropZone.Build(slotPos, "TOKEN SLOT", accent);
-            slot.accepts = item => item.id == "mfa_token";
-            slot.onAccepted = item =>
-            {
-                item.Consume();
-                BurstFX.SpawnAbove(slot.transform, accent, 20, minimumHeight: 1.2f);
-                gauntlet.FactorCleared(1);
-            };
-            slot.onRejected = item =>
-            {
-                if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("This slot only takes the SECURITY TOKEN.", new Color(1f, 0.55f, 0.4f));
-            };
-
+            // Factors, token and slot exist now, so the shared wiring path can
+            // find and hook them — the same one a saved scene goes through.
+            gauntlet.Configure(accent, passcode, gate, gateMessage);
             return gauntlet;
         }
 

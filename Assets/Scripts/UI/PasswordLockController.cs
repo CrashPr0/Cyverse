@@ -63,6 +63,9 @@ namespace Cyverse.UI
             AccessibilitySettings.ReduceMotion = PlayerPrefs.GetInt("cv_reducemotion", 0) == 1;
             Shader.SetGlobalFloat("_CyMotion", AccessibilitySettings.ReduceMotion ? 0f : 1f);
             BuildWorld();
+            // In a browser the paste never arrives as a key press — the page
+            // gets the event instead and hands the text back here.
+            Clipboard.ListenForPaste(gameObject.name, nameof(OnClipboardText));
             RefreshInput();
             SetFeedback("<color=#6F8296>SYSTEM READY  /  AWAITING CREDENTIALS</color>");
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
@@ -102,6 +105,13 @@ namespace Cyverse.UI
 
             foreach (char c in Input.inputString)
             {
+                // Ctrl+V arrives as SYN on Windows and Linux rather than as a
+                // V key press, so the modifier check above can miss it.
+                if (c == '\u0016')
+                {
+                    PasteFromClipboard();
+                    return;
+                }
                 if (c == '\b')
                 {
                     if (typed.Length > 0) typed = typed.Substring(0, typed.Length - 1);
@@ -121,13 +131,29 @@ namespace Cyverse.UI
 
         private void PasteFromClipboard()
         {
-            string clipboard = GUIUtility.systemCopyBuffer;
-            if (string.IsNullOrEmpty(clipboard))
+            string clipboard = Clipboard.Read(gameObject.name, nameof(OnClipboardText));
+            // null means the platform can only answer asynchronously (WebGL);
+            // the text lands in OnClipboardText, so there is nothing to say yet.
+            if (clipboard == null) return;
+
+            if (clipboard.Length == 0)
             {
                 SetFeedback("<color=#6F8296>CLIPBOARD IS EMPTY</color>");
                 return;
             }
+            Append(clipboard);
+        }
 
+        /// <summary>Clipboard text arriving from the browser's paste event.
+        /// Called by name from Clipboard.jslib — keep the signature.</summary>
+        public void OnClipboardText(string clipboard)
+        {
+            if (unlocked || Time.unscaledTime < lockedUntil || string.IsNullOrEmpty(clipboard)) return;
+            Append(clipboard);
+        }
+
+        private void Append(string clipboard)
+        {
             int before = typed.Length;
             foreach (char c in clipboard)
             {
@@ -149,7 +175,7 @@ namespace Cyverse.UI
                 return;
             }
 
-            GUIUtility.systemCopyBuffer = typed;
+            Clipboard.Write(typed);
             SetFeedback("<color=#5BC8FF>ENTRY COPIED TO CLIPBOARD</color>");
         }
 
@@ -194,6 +220,18 @@ namespace Cyverse.UI
                 StartCoroutine(ShakeMonitor());
             }
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>Types the configured credential through the same submit
+        /// path used by the watchable campaign TAS.</summary>
+        public void SubmitForAutomation()
+        {
+            if (unlocked) return;
+            typed = password;
+            RefreshInput();
+            Submit();
+        }
+#endif
 
         private IEnumerator EnterTheHub()
         {

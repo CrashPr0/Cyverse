@@ -46,6 +46,20 @@ namespace Cyverse.Interaction
                 body, Vector2.zero, 0.024f);
         }
 
+        /// <summary>Installs the runtime-only state: the question bank and the
+        /// screen renderer, neither of which survives being saved into a scene
+        /// file. Called by Build and again by the level factory on load.</summary>
+        public void Configure(QuizQuestion[] bank)
+        {
+            questions = bank;
+            if (screenRenderer == null)
+            {
+                Transform screen = transform.Find("Screen");
+                if (screen != null) screenRenderer = screen.GetComponent<Renderer>();
+            }
+            NormalizeScreen();
+        }
+
         /// <summary>Called by the level manager when all tasks are complete.</summary>
         public void Activate()
         {
@@ -94,6 +108,17 @@ namespace Cyverse.Interaction
             Completed?.Invoke();
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>Completes the keyboard-driven exam for end-flow automation.
+        /// Question correctness is covered separately; this hook verifies that
+        /// the exam completion event advances and persists the level.</summary>
+        public void CompleteForAutomation()
+        {
+            Activate();
+            Finish();
+        }
+#endif
+
         // ---- Construction ----------------------------------------------------
 
         public static CertExamStation Build(Vector3 pos, float rotY, QuizQuestion[] questions, Color accent)
@@ -112,11 +137,10 @@ namespace Cyverse.Interaction
                 BuildKit.MakeHologram(new Color(0.35f, 0.40f, 0.48f)), collider: false);
 
             var station = root.AddComponent<CertExamStation>();
-            station.questions = questions;
             station.screenRenderer = screen.GetComponent<Renderer>();
             station.statusText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.55f, 0.02f),
                 "LOCKED", new Color(0.95f, 0.98f, 1f), 0.026f);
-            station.NormalizeScreen();
+            station.Configure(questions);
 
             BuildKit.MakeSign(root.transform, pos + new Vector3(0f, 2.7f, 0f), "CERTIFICATION", accent, 0.032f);
 

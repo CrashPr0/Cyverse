@@ -72,6 +72,13 @@ namespace Cyverse.Level
             if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
             if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
 
+            // A scene saved from the built level (the visual pass) keeps the
+            // geometry but loses every delegate and content array — those are
+            // runtime-only. Re-install them before anything is looked up, or
+            // the pedestals swallow crates and the audit board has no rounds.
+            Level1IamSceneFactory.WireTaskRoom();
+            Level1EndFlowDiagnostics.Install(gameObject);
+
             badge = FindObjectOfType<BadgeStation>();
             gauntlet = FindObjectOfType<MfaGauntlet>();
             foreach (var zone in FindObjectsOfType<DropZone>())
