@@ -53,9 +53,26 @@ namespace Cyverse.Interaction
         {
             scenarios = content;
             scenarioIndex = Mathf.Clamp(scenarioIndex, 0, Mathf.Max(0, ScenarioCount - 1));
+            EnsureInteractionCollider();
             ResolveWorldReferences();
             RefreshWorldDisplay();
             RefreshWorkstations();
+        }
+
+        /// <summary>
+        /// The saved visual-pass board lost the collider on its ScreenBody.
+        /// Its remaining desk collider ends below the player's eye-level ray,
+        /// making the board look usable while never producing an E prompt.
+        /// Keep a non-blocking target over the visible screen itself so both
+        /// saved and runtime-built variants are reliably interactable.
+        /// </summary>
+        private void EnsureInteractionCollider()
+        {
+            var target = GetComponent<BoxCollider>();
+            if (target == null) target = gameObject.AddComponent<BoxCollider>();
+            target.isTrigger = true;
+            target.center = new Vector3(0f, 2.5f, 0.15f);
+            target.size = new Vector3(4.8f, 2.8f, 0.8f);
         }
 
         public void Interact(GameObject interactor)

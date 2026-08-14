@@ -158,6 +158,24 @@ namespace Cyverse.Tests
             Type siemType = FindType("Cyverse.Interaction.SiemConsole");
             object siem = UnityEngine.Object.FindObjectOfType(siemType);
             Assert.That(siem, Is.Not.Null);
+
+            var siemComponent = (Component)siem;
+            var aimCollider = siemComponent.GetComponent<BoxCollider>();
+            Assert.That(aimCollider, Is.Not.Null,
+                "The Alert Board needs an eye-level target collider in the saved visual-pass scene.");
+            Assert.That(aimCollider.isTrigger, Is.True,
+                "The enlarged Alert Board target must not block player movement.");
+
+            Physics.SyncTransforms();
+            var eyeLevelRay = new Ray(
+                siemComponent.transform.TransformPoint(0f, 2.5f, -3f),
+                siemComponent.transform.forward);
+            Assert.That(Physics.Raycast(eyeLevelRay, out RaycastHit hit, 6f,
+                ~0, QueryTriggerInteraction.Collide), Is.True,
+                "An eye-level interaction ray should hit the Alert Board.");
+            Assert.That(hit.collider.GetComponentInParent(siemType), Is.SameAs(siem),
+                "The visible Alert Board must resolve to the SiemConsole interaction.");
+
             siemType.GetMethod("Interact").Invoke(siem, new object[] { null });
             yield return null;
 
