@@ -10,8 +10,8 @@ namespace Cyverse.Level
     /// <summary>
     /// Level 2 (Cyber Defense) flow:
     ///   Watch    — defense briefing; unlocks the SOC floor door
-    ///   Tasks    — SIEM alert shift, EDR endpoint containment, IR playbook
-    ///   Exam     — certification terminal unlocks once all three are done
+    ///   Tasks    — three SOC investigations plus the IR playbook
+    ///   Exam     — certification terminal unlocks once both are done
     ///   Complete — persisted (unlocks Level 3), results, exits open.
     /// Drives the same guidance stack as Level 1 (beacon + task checklist +
     /// an actionable objective line).
@@ -25,7 +25,6 @@ namespace Cyverse.Level
         public Phase CurrentPhase { get; private set; } = Phase.Watch;
 
         private SiemConsole siem;
-        private EdrFleet edr;
         private PlaybookStation playbook;
         private CertExamStation exam;
 
@@ -61,16 +60,15 @@ namespace Cyverse.Level
                 cam.gameObject.AddComponent<FirstPersonHands>();
             if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
             if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
+            EvidenceInventoryPanel.Ensure(gameObject).RefreshNow();
 
             Level2SceneFactory.WireTaskRoom();
 
             siem = FindObjectOfType<SiemConsole>();
-            edr = FindObjectOfType<EdrFleet>();
             playbook = FindObjectOfType<PlaybookStation>();
             exam = FindObjectOfType<CertExamStation>();
 
             if (siem != null) siem.Completed += OnTaskCompleted;
-            if (edr != null) edr.Completed += OnTaskCompleted;
             if (playbook != null) playbook.Completed += OnTaskCompleted;
             if (exam != null) exam.Completed += CompleteLevel;
 
@@ -104,11 +102,10 @@ namespace Cyverse.Level
         }
 
         private int TotalTasks =>
-            (siem != null ? 1 : 0) + (edr != null ? 1 : 0) + (playbook != null ? 1 : 0);
+            (siem != null ? 1 : 0) + (playbook != null ? 1 : 0);
 
         private int TasksDone =>
             (siem != null && siem.IsComplete ? 1 : 0) +
-            (edr != null && edr.IsComplete ? 1 : 0) +
             (playbook != null && playbook.IsComplete ? 1 : 0);
 
         private int TotalSteps => TotalTasks + (exam != null ? 1 : 0);
@@ -211,7 +208,6 @@ namespace Cyverse.Level
             }
 
             if (siem != null && !siem.IsComplete) Consider(siem, "WORK THE ALERT QUEUE");
-            if (edr != null && !edr.IsComplete) Consider(edr, "CONTAIN THE ENDPOINTS");
             if (playbook != null && !playbook.IsComplete) Consider(playbook, "ORDER THE PLAYBOOK");
 
             action = bestLabel;
@@ -229,12 +225,8 @@ namespace Cyverse.Level
 
             if (siem != null)
                 tasks.Add(new TaskListPanel.Task(
-                    $"SIEM alert shift  ({siem.Handled}/{siem.Total})",
+                    $"SOC investigations  ({siem.CompletedScenarios}/{siem.ScenarioCount})",
                     siem.IsComplete, watched && !siem.IsComplete));
-            if (edr != null)
-                tasks.Add(new TaskListPanel.Task(
-                    $"Contain endpoints  ({edr.Contained}/{edr.Threats})",
-                    edr.IsComplete, watched && !edr.IsComplete));
             if (playbook != null)
                 tasks.Add(new TaskListPanel.Task(
                     $"IR playbook  ({playbook.Placed}/{playbook.Total} steps)",
@@ -251,9 +243,7 @@ namespace Cyverse.Level
             if (Carryable.Carried != null)
                 return $"Carrying {Carryable.Carried.itemName} — place it on the next open playbook slot  (Q puts it down)";
             if (siem != null && !siem.IsComplete)
-                return $"SIEM: press E to start the shift, then [1] ESCALATE / [2] DISMISS  ({siem.Handled}/{siem.Total})";
-            if (edr != null && !edr.IsComplete)
-                return $"EDR: read each workstation's processes, press E to isolate the infected ones  ({edr.Contained}/{edr.Threats})";
+                return $"SOC: review the Alert Board, flag a row, then verify its workstation  ({siem.ScenarioIndex}/{siem.ScenarioCount})";
             if (playbook != null && !playbook.IsComplete)
                 return $"IR Playbook: carry the response cards onto the slots in order  ({playbook.Placed}/{playbook.Total})";
             return $"Complete the defense tasks  ({TasksDone}/{TotalTasks})";
@@ -295,6 +285,13 @@ namespace Cyverse.Level
         private void CompleteLevel()
         {
             if (CurrentPhase == Phase.Complete) return;
+            if (!SocProgress.HasAllDfKeys)
+            {
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("Digital Forensics handoff incomplete: " +
+                        SocProgress.MissingDfKeysText(), new Color(1f, 0.55f, 0.4f));
+                return;
+            }
             CurrentPhase = Phase.Complete;
 
             LevelProgress.MarkCompleted(2); // unlocks Level 3 in the Hub

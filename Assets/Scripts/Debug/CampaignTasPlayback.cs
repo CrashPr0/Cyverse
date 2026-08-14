@@ -22,6 +22,16 @@ namespace Cyverse.Testing
 
         private readonly bool[] hadKey = new bool[4];
         private readonly int[] savedProgress = new int[4];
+        private readonly string[] socKeys =
+        {
+            SocProgress.CompromisedComputerKey,
+            SocProgress.ChainOfCustodyKey,
+            SocProgress.PlaybookKey,
+        };
+        private readonly bool[] hadSocKey = new bool[3];
+        private readonly int[] savedSocProgress = new int[3];
+        private bool hadEvidence;
+        private string savedEvidence;
         private Canvas overlayCanvas;
         private TextMeshProUGUI keysText;
         private TextMeshProUGUI actionText;
@@ -36,6 +46,14 @@ namespace Cyverse.Testing
                 hadKey[i] = PlayerPrefs.HasKey(key);
                 savedProgress[i] = PlayerPrefs.GetInt(key, 0);
             }
+            for (int i = 0; i < socKeys.Length; i++)
+            {
+                hadSocKey[i] = PlayerPrefs.HasKey(socKeys[i]);
+                savedSocProgress[i] = PlayerPrefs.GetInt(socKeys[i], 0);
+            }
+            hadEvidence = PlayerPrefs.HasKey(SocProgress.EvidenceJsonKey);
+            savedEvidence = PlayerPrefs.GetString(SocProgress.EvidenceJsonKey, "");
+            SocProgress.ClearForAutomation();
             BuildOverlay();
 
             yield return WaitForScene("PasswordLock", 8f);
@@ -112,10 +130,9 @@ namespace Cyverse.Testing
             var manager = FindObjectOfType<Level2Manager>();
             var briefing = FindObjectOfType<VideoStation>();
             var siem = FindObjectOfType<SiemConsole>();
-            var fleet = FindObjectOfType<EdrFleet>();
             var playbook = FindObjectOfType<PlaybookStation>();
             var exam = FindObjectOfType<CertExamStation>();
-            if (manager == null || briefing == null || siem == null || fleet == null || playbook == null || exam == null)
+            if (manager == null || briefing == null || siem == null || playbook == null || exam == null)
             { Fail("Level 2 is missing a required station."); yield break; }
 
             yield return MovePlayerTo(briefing.transform, 3f, "W", "Walk to Cyber Defense briefing");
@@ -134,20 +151,14 @@ namespace Cyverse.Testing
                 new Vector3(0f, 1.4f, 8f), "W", "Walk through the SOC doorway");
             if (!lastMoveSucceeded) yield break;
 
-            yield return MovePlayerTo(siem.transform, 2.6f, "W", "Walk to SIEM alert queue");
+            yield return MovePlayerTo(siem.transform, 2.6f, "W", "Walk to the SOC Alert Board");
             if (!lastMoveSucceeded) yield break;
-            Show("E  1  2", "Start shift and triage every alert");
+            Show("E  ↑  ↓  1  2", "Flag rows and verify all three SOC scenarios");
             yield return new WaitForSecondsRealtime(1.2f);
             siem.CompleteForAutomation();
-
-            foreach (var endpoint in FindObjectsOfType<EndpointStation>())
-            {
-                if (endpoint.Isolated || endpoint.def == null || !endpoint.def.compromised) continue;
-                yield return MovePlayerTo(endpoint.transform, 1.8f, "W", "Inspect " + endpoint.def.hostname);
-                Show("E", "Isolate compromised endpoint");
-                yield return new WaitForSecondsRealtime(0.55f);
-                endpoint.Interact(gameObject);
-            }
+            if (!SocProgress.HasCompromisedComputer || !SocProgress.HasChainOfCustody ||
+                !SocProgress.TryGetEvidence(out var evidence) || evidence.computer != "WS-03")
+            { Fail("SOC investigation did not produce the structured WS-03 evidence handoff."); yield break; }
 
             while (!playbook.IsComplete)
             {
@@ -281,8 +292,12 @@ namespace Cyverse.Testing
                    Time.realtimeSinceStartup < deadline)
             {
                 Vector3 delta = destination - body.position; delta.y = 0f;
-                delta = Vector3.ClampMagnitude(delta, 7f * Time.unscaledDeltaTime);
-                if (cc != null && cc.enabled) cc.Move(delta + Vector3.down * 2f * Time.unscaledDeltaTime);
+                // Batch-mode Play Mode can report a zero frame delta even
+                // while realtime advances. Keep the TAS deterministic there
+                // so the same route can run locally and in CI.
+                float stepDelta = Mathf.Max(Time.unscaledDeltaTime, 1f / 60f);
+                delta = Vector3.ClampMagnitude(delta, 7f * stepDelta);
+                if (cc != null && cc.enabled) cc.Move(delta + Vector3.down * 2f * stepDelta);
                 else body.position += delta;
                 Vector3 look = lookAt - body.position; look.y = 0f;
                 if (look.sqrMagnitude > 0.01f) body.rotation = Quaternion.LookRotation(look);
@@ -345,6 +360,13 @@ namespace Cyverse.Testing
                 string key = "cv_done_" + i;
                 if (hadKey[i]) PlayerPrefs.SetInt(key, savedProgress[i]); else PlayerPrefs.DeleteKey(key);
             }
+            for (int i = 0; i < socKeys.Length; i++)
+            {
+                if (hadSocKey[i]) PlayerPrefs.SetInt(socKeys[i], savedSocProgress[i]);
+                else PlayerPrefs.DeleteKey(socKeys[i]);
+            }
+            if (hadEvidence) PlayerPrefs.SetString(SocProgress.EvidenceJsonKey, savedEvidence);
+            else PlayerPrefs.DeleteKey(SocProgress.EvidenceJsonKey);
             PlayerPrefs.Save();
         }
 

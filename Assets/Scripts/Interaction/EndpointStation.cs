@@ -7,9 +7,9 @@ using Cyverse.UI;
 namespace Cyverse.Interaction
 {
     /// <summary>
-    /// Task 2 — EDR. One workstation on the SOC floor. Its screen always shows
-    /// the running process list; pressing E isolates the machine from the
-    /// network.
+    /// One workstation on the SOC floor. In the current investigation loop its
+    /// two-line screen is compared with the row flagged on the Alert Board.
+    /// The legacy EDR isolation behavior remains as a fallback for older scenes.
     ///
     /// The judgement is the gameplay: the player walks the floor reading
     /// process lists and decides which machines are compromised. Isolating a
@@ -21,18 +21,76 @@ namespace Cyverse.Interaction
     {
         public Level2Content.EndpointDef def;
         public EdrFleet fleet;
+        public SiemConsole alertBoard;
         public int points = 70;
 
         public bool Isolated { get; private set; }
 
         private TextMesh statusText;
+        private TextMesh hostnameText;
+        private TextMesh activityText;
         private Renderer screenRenderer;
 
-        public bool CanInteract => !Isolated;
-        public string Prompt => $"Isolate {def.hostname} from the network";
+        public bool CanInteract => alertBoard != null ? !alertBoard.IsComplete : !Isolated;
+        public string Prompt => alertBoard != null
+            ? $"Investigate {def?.hostname ?? "workstation"}"
+            : $"Isolate {def?.hostname ?? "workstation"} from the network";
+
+        /// <summary>Turns a saved EDR desk into one of the SOC verification
+        /// workstations without requiring the visual-pass scene to be rebuilt.</summary>
+        public void ConfigureSoc(Level2Content.EndpointDef definition, SiemConsole board)
+        {
+            def = definition;
+            alertBoard = board;
+            fleet = null;
+            Isolated = false;
+            ResolveLabels();
+            name = "Endpoint_" + def.hostname;
+            if (hostnameText != null) hostnameText.text = def.hostname;
+            SetSocActivity(def.processes);
+            if (statusText != null) statusText.text = "READY — FLAG A ROW";
+            Tint(new Color(0.55f, 0.85f, 1f));
+        }
+
+        public void SetSocActivity(string[] lines)
+        {
+            ResolveLabels();
+            if (activityText != null && lines != null)
+                activityText.text = string.Join("\n", lines);
+        }
+
+        public void MarkCollectedAsEvidence()
+        {
+            Isolated = true;
+            if (statusText != null) statusText.text = "EVIDENCE COLLECTED";
+            if (activityText != null) activityText.text = "POWERED DOWN\nCHAIN OF CUSTODY ATTACHED";
+            Tint(new Color(0.90f, 0.66f, 0.14f));
+        }
+
+        private void ResolveLabels()
+        {
+            if (screenRenderer == null)
+            {
+                var screen = transform.Find("Screen");
+                if (screen != null) screenRenderer = screen.GetComponent<Renderer>();
+            }
+            foreach (var label in GetComponentsInChildren<TextMesh>(true))
+            {
+                if (hostnameText == null && label.text.StartsWith("WS-")) hostnameText = label;
+                else if (statusText == null &&
+                         (label.text.Contains("ONLINE") || label.text.Contains("ISOLATED") ||
+                          label.text.Contains("OFFLINE") || label.text.Contains("READY"))) statusText = label;
+                else if (activityText == null && label.text.Contains(".exe")) activityText = label;
+            }
+        }
 
         public void Interact(GameObject interactor)
         {
+            if (alertBoard != null)
+            {
+                alertBoard.Investigate(def.hostname);
+                return;
+            }
             if (Isolated) return;
             Isolated = true;
 
@@ -96,21 +154,20 @@ namespace Cyverse.Interaction
             station.fleet = fleet;
             station.screenRenderer = screen.GetComponent<Renderer>();
 
-            BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.60f, 0.04f),
+            station.hostnameText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.60f, 0.04f),
                 def.hostname, accent, 0.026f);
 
             // The process list IS the puzzle — always visible, no interaction
             // needed to read it.
             var sb = new System.Text.StringBuilder();
             foreach (var p in def.processes) sb.AppendLine(p);
-            BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.30f, 0.04f),
+            station.activityText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.30f, 0.04f),
                 sb.ToString().TrimEnd(), new Color(0.90f, 0.95f, 1f), 0.017f,
                 billboard: false, anchor: TextAnchor.MiddleCenter, style: FontStyle.Normal);
 
             station.statusText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.06f, 0.04f),
                 "● ONLINE", new Color(0.55f, 0.70f, 0.85f), 0.016f,
                 billboard: false, anchor: TextAnchor.MiddleCenter, style: FontStyle.Normal);
-
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Keyboard", root.transform,
                 new Vector3(0f, 0.76f, -0.22f), Vector3.zero, new Vector3(0.55f, 0.03f, 0.18f),
                 BuildKit.MakeStandard(new Color(0.07f, 0.08f, 0.11f), 0.4f, 0.2f), collider: false);

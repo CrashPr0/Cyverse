@@ -5,8 +5,8 @@ namespace Cyverse.Level
 {
     /// <summary>
     /// Level 2 — Cyber Defense (SOC Analyst / Protection &amp; Defense) content:
-    /// the briefing, the SIEM alert queue, the EDR endpoint fleet, the incident
-    /// response playbook, and the certification exam. Data only — educators can
+    /// the briefing, the SOC investigation scenarios, the incident-response
+    /// playbook, and the certification exam. Data only — educators can
     /// edit copy here without touching gameplay code.
     /// </summary>
     public static class Level2Content
@@ -26,6 +26,123 @@ namespace Cyverse.Level
         };
 
         // ---- Task 1: SIEM alert queue ----------------------------------------
+
+        public enum SocVerdict { MatchBenignPositive, NoMatchPossibleTruePositive }
+
+        [System.Serializable]
+        public class SocEventRow
+        {
+            public string time, computer, user, activity;
+            public SocEventRow(string time, string computer, string user, string activity)
+            { this.time = time; this.computer = computer; this.user = user; this.activity = activity; }
+        }
+
+        [System.Serializable]
+        public class SocWorkstationView
+        {
+            public string computer;
+            public string[] lines;
+            public SocWorkstationView(string computer, string line1, string line2)
+            { this.computer = computer; lines = new[] { line1, line2 }; }
+        }
+
+        [System.Serializable]
+        public class SocScenario
+        {
+            public string title, description, resolution;
+            public SocEventRow[] rows;
+            public SocWorkstationView[] workstations;
+            public int triggerRowIndex;
+            public SocVerdict correctVerdict;
+
+            public SocScenario(string title, string description, SocEventRow[] rows,
+                int triggerRowIndex, SocWorkstationView[] workstations,
+                SocVerdict correctVerdict, string resolution)
+            {
+                this.title = title;
+                this.description = description;
+                this.rows = rows;
+                this.triggerRowIndex = triggerRowIndex;
+                this.workstations = workstations;
+                this.correctVerdict = correctVerdict;
+                this.resolution = resolution;
+            }
+
+            public SocWorkstationView Workstation(string computer)
+            {
+                foreach (var view in workstations)
+                    if (view.computer == computer) return view;
+                return null;
+            }
+        }
+
+        /// <summary>The SOC room's reusable three-case investigation sequence.
+        /// Every case has four distinct computers and exactly one trigger row.</summary>
+        public static SocScenario[] SocScenarios() => new[]
+        {
+            new SocScenario(
+                "Unusual Script Execution Detected",
+                "A script bypassed normal safety settings on WS-02. Verify whether an employee ran this on purpose.",
+                new[]
+                {
+                    new SocEventRow("09:02", "WS-01", "j.smith",  "outlook.exe — reading email"),
+                    new SocEventRow("09:04", "WS-02", "m.garcia", "powershell.exe running printer_fix.ps1 with safety checks bypassed"),
+                    new SocEventRow("09:05", "WS-03", "d.chen",   "chrome.exe — browsing intranet"),
+                    new SocEventRow("09:07", "WS-04", "a.patel",  "excel.exe — editing Q3_budget.xlsx"),
+                },
+                1,
+                new[]
+                {
+                    new SocWorkstationView("WS-01", "Outlook — Inbox", "Mail sync complete"),
+                    new SocWorkstationView("WS-02", "PowerShell — printer_fix.ps1 — Repairing print spooler... 78%", "IT Helpdesk #4412 — Run printer_fix.ps1 to resolve your issue"),
+                    new SocWorkstationView("WS-03", "Chrome — Company Intranet", "No alerts on this workstation"),
+                    new SocWorkstationView("WS-04", "Excel — Q3_budget.xlsx", "AutoSave complete"),
+                },
+                SocVerdict.MatchBenignPositive,
+                "BENIGN POSITIVE — the employee is visibly running the helpdesk-approved printer repair."),
+
+            new SocScenario(
+                "Mass File Copy Detected",
+                "A large number of files were copied off WS-04 after hours. Verify whether this was authorized.",
+                new[]
+                {
+                    new SocEventRow("18:21", "WS-01", "j.smith",  "teams.exe — in a call"),
+                    new SocEventRow("18:25", "WS-03", "d.chen",   "spotify.exe — playing audio"),
+                    new SocEventRow("18:30", "WS-04", "a.patel",  "backup_util.exe copying 2,300 files to FILESERVER backups"),
+                    new SocEventRow("18:32", "WS-02", "m.garcia", "outlook.exe — sending email"),
+                },
+                2,
+                new[]
+                {
+                    new SocWorkstationView("WS-01", "Teams — active call", "Microphone connected"),
+                    new SocWorkstationView("WS-02", "Outlook — composing message", "Connected to mail server"),
+                    new SocWorkstationView("WS-03", "Spotify — playing audio", "No file activity"),
+                    new SocWorkstationView("WS-04", "Backup Utility — 2,300 files → FILESERVER backups (62%)", "Calendar — Friday 6:30 PM weekly backup runs automatically"),
+                },
+                SocVerdict.MatchBenignPositive,
+                "BENIGN POSITIVE — the visible activity and calendar confirm the scheduled backup."),
+
+            new SocScenario(
+                "Suspicious Account Discovery Commands",
+                "Commands used to secretly map user accounts ran on WS-03 overnight. Verify whether the employee ran them.",
+                new[]
+                {
+                    new SocEventRow("02:09", "WS-01", "j.smith",  "outlook.exe — background mail sync"),
+                    new SocEventRow("02:11", "WS-02", "m.garcia", "onedrive.exe — background file sync"),
+                    new SocEventRow("02:13", "WS-03", "d.chen",   "cmd.exe running net user /domain — listing employee accounts"),
+                    new SocEventRow("02:15", "WS-04", "a.patel",  "teams.exe — background sync"),
+                },
+                2,
+                new[]
+                {
+                    new SocWorkstationView("WS-01", "Outlook background mail sync", "Screen unlocked — user active"),
+                    new SocWorkstationView("WS-02", "OneDrive background file sync", "Screen unlocked — user active"),
+                    new SocWorkstationView("WS-03", "Screen locked — d.chen last active 17:42 yesterday", "No user programs running — machine idle since 17:45"),
+                    new SocWorkstationView("WS-04", "Teams background sync", "No command prompt activity"),
+                },
+                SocVerdict.NoMatchPossibleTruePositive,
+                "POSSIBLE TRUE POSITIVE — WS-03 was locked and idle; the account-discovery command is unexplained."),
+        };
 
         /// <summary>One alert in the SIEM queue.</summary>
         public class Alert
@@ -74,16 +191,14 @@ namespace Cyverse.Level
 
         public static EndpointDef[] Endpoints() => new[]
         {
-            new EndpointDef("WS-11", new[] { "chrome.exe", "outlook.exe", "teams.exe" }, false,
-                "Everyday office software — nothing to isolate."),
-            new EndpointDef("WS-12", new[] { "chrome.exe", "invoice_2026.pdf.exe", "cmd.exe" }, true,
-                "invoice_2026.pdf.exe is a DOUBLE EXTENSION — an executable dressed as a PDF."),
-            new EndpointDef("WS-13", new[] { "code.exe", "git.exe", "chrome.exe" }, false,
-                "A developer's normal toolchain."),
-            new EndpointDef("WS-14", new[] { "explorer.exe", "powershell.exe -enc SQBFAFgA", "rundll32.exe" }, true,
-                "Encoded PowerShell (-enc) is used to hide the command being run."),
-            new EndpointDef("WS-15", new[] { "excel.exe", "outlook.exe" }, false,
-                "Finance user doing finance things."),
+            new EndpointDef("WS-01", new[] { "Outlook — Inbox", "Mail sync complete" }, false,
+                "SOC verification workstation"),
+            new EndpointDef("WS-02", new[] { "PowerShell — printer_fix.ps1", "IT Helpdesk ticket #4412" }, false,
+                "SOC verification workstation"),
+            new EndpointDef("WS-03", new[] { "Screen locked", "Machine idle" }, true,
+                "Possible compromised computer"),
+            new EndpointDef("WS-04", new[] { "Backup Utility", "Weekly backup scheduled" }, false,
+                "SOC verification workstation"),
         };
 
         // ---- Task 3: Incident Response playbook -------------------------------

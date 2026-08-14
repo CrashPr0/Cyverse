@@ -23,11 +23,14 @@ namespace Cyverse.Core
         /// <summary>The glossary panel is open.</summary>
         public static bool GlossaryOpen;
 
+        /// <summary>The SOC alert-board or workstation comparison is open.</summary>
+        public static bool SocInvestigationOpen;
+
         /// <summary>Level 0 has been finished.</summary>
         public static bool LevelComplete;
 
         /// <summary>True whenever normal first-person control should be suspended.</summary>
-        public static bool Busy => DialogueActive || MenuOpen || QuizActive || TitleActive || GlossaryOpen || LevelComplete;
+        public static bool Busy => DialogueActive || MenuOpen || QuizActive || TitleActive || GlossaryOpen || SocInvestigationOpen || LevelComplete;
 
         /// <summary>
         /// A full-screen menu/modal currently owns the screen (title, settings,
@@ -37,7 +40,7 @@ namespace Cyverse.Core
         /// must hide while it's true. Dialogue captions are gameplay, not a
         /// menu, so DialogueActive is deliberately not included.
         /// </summary>
-        public static bool AnyMenuOpen => TitleActive || MenuOpen || GlossaryOpen || QuizActive || LevelComplete;
+        public static bool AnyMenuOpen => TitleActive || MenuOpen || GlossaryOpen || QuizActive || SocInvestigationOpen || LevelComplete;
 
         /// <summary>
         /// Frame on which a menu last opened or closed. Menus that share a key
@@ -58,6 +61,7 @@ namespace Cyverse.Core
             QuizActive = false;
             TitleActive = false;
             GlossaryOpen = false;
+            SocInvestigationOpen = false;
             LevelComplete = false;
             MenuTransitionFrame = -1;
         }

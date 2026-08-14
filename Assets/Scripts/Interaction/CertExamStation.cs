@@ -78,7 +78,7 @@ namespace Cyverse.Interaction
             {
                 if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
                 if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("Complete all four training tasks first.", new Color(1f, 0.55f, 0.4f));
+                    HudUI.Instance.ShowToast("Complete the SOC investigation and IR playbook first.", new Color(1f, 0.55f, 0.4f));
                 return;
             }
 

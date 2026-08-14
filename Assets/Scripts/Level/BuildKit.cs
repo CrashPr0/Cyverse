@@ -291,6 +291,7 @@ namespace Cyverse.Level
             sys.AddComponent<Quiz.QuizSystem>();
             sys.AddComponent<ResultsScreen>();
             sys.AddComponent<GlossaryPanel>();
+            sys.AddComponent<EvidenceInventoryPanel>();
             sys.AddComponent<MainMenu>();
             sys.AddComponent<Audio.AmbientHum>();
             sys.AddComponent<Settings.AccessibilitySettings>();

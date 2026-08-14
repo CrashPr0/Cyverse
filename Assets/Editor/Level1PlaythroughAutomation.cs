@@ -71,6 +71,14 @@ namespace Cyverse.Editor
             Begin(true, false, false);
         }
 
+        /// <summary>CI/terminal entry point for the complete watchable route.
+        /// Unity must be launched without -quit so the asynchronous Play Mode
+        /// run can finish; FinishInEditor exits with the campaign result.</summary>
+        public static void RunCampaignFromCommandLine()
+        {
+            Begin(true, true, true);
+        }
+
         private static void Begin(bool ci, bool watch, bool campaignRun)
         {
             string previous = EditorSceneManager.GetActiveScene().path;

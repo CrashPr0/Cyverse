@@ -71,6 +71,7 @@ namespace Cyverse.Interaction
             if (placed >= steps.Length && !IsComplete)
             {
                 IsComplete = true;
+                SocProgress.MarkPlaybookSolved();
                 if (HudUI.Instance != null)
                     HudUI.Instance.ShowToast("PLAYBOOK COMPLETE — response sequence locked in",
                         new Color(0.90f, 0.66f, 0.14f));

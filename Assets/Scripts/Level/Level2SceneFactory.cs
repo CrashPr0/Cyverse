@@ -7,7 +7,7 @@ namespace Cyverse.Level
     /// Level 2 — Cyber Defense, rebuilt on the two-room template with hands-on
     /// tasks instead of review stations:
     ///   south = BRIEFING ROOM (spawn, scrubbable briefing, locked divider)
-    ///   north = SOC FLOOR: the SIEM alert desk, the EDR endpoint row, the
+    ///   north = SOC FLOOR: the Alert Board, WS-01..WS-04 verification desks,
     ///           incident-response playbook board, and the certification exam.
     /// Palette is SOC alert-red so it reads apart from I/AM's blue.
     /// </summary>
@@ -44,24 +44,23 @@ namespace Cyverse.Level
         public static void WireTaskRoom()
         {
             var siem = Object.FindObjectOfType<SiemConsole>();
-            if (siem != null) siem.Configure(Level2Content.Alerts());
+            if (siem != null) siem.Configure(Level2Content.SocScenarios());
+
+            // Visual-pass scenes may still contain the original five EDR
+            // desks. Reuse the first four as WS-01..WS-04 and hide the spare.
+            var endpoints = Object.FindObjectsOfType<EndpointStation>();
+            System.Array.Sort(endpoints, (a, b) =>
+                a.transform.position.z.CompareTo(b.transform.position.z));
+            var definitions = Level2Content.Endpoints();
+            for (int i = 0; i < endpoints.Length; i++)
+            {
+                if (i < definitions.Length) endpoints[i].ConfigureSoc(definitions[i], siem);
+                else endpoints[i].gameObject.SetActive(false);
+            }
+            if (siem != null) siem.Configure(Level2Content.SocScenarios());
 
             var fleet = Object.FindObjectOfType<EdrFleet>();
-            if (fleet != null)
-            {
-                var definitions = Level2Content.Endpoints();
-                foreach (var endpoint in Object.FindObjectsOfType<EndpointStation>())
-                {
-                    if (endpoint.def == null)
-                    {
-                        foreach (var definition in definitions)
-                            if (endpoint.name.EndsWith(definition.hostname))
-                            { endpoint.def = definition; break; }
-                    }
-                    endpoint.fleet = fleet;
-                    fleet.Register(endpoint);
-                }
-            }
+            if (fleet != null) fleet.enabled = false;
 
             var playbook = Object.FindObjectOfType<PlaybookStation>();
             if (playbook != null) playbook.Configure();
@@ -99,20 +98,19 @@ namespace Cyverse.Level
         public static void BuildSocFloor()
         {
             // Task 1 — SIEM: the alert desk faces you as you come through.
-            SiemConsole.Build(new Vector3(-13f, 0f, 7f), 60f, Level2Content.Alerts(), SocRed);
+            var siem = SiemConsole.Build(new Vector3(-13f, 0f, 7f), 60f, Level2Content.SocScenarios(), SocRed);
 
             // Task 2 — EDR: a row of workstations along the east side.
-            var fleetGo = new GameObject("EdrFleet");
+            var fleetGo = new GameObject("SocWorkstations");
             fleetGo.transform.position = new Vector3(14f, 0f, 10f);
-            var fleet = fleetGo.AddComponent<EdrFleet>();
             var defs = Level2Content.Endpoints();
             for (int i = 0; i < defs.Length; i++)
             {
                 var e = EndpointStation.Build(
-                    new Vector3(14f, 0f, 4f + i * 2.6f), -90f, defs[i], fleet, SocRed);
-                fleet.Register(e);
+                    new Vector3(14f, 0f, 4f + i * 2.9f), -90f, defs[i], null, SocRed);
+                e.ConfigureSoc(defs[i], siem);
             }
-            BuildKit.MakeSign(fleetGo.transform, new Vector3(14f, 3.2f, 10f), "ENDPOINTS", SocRed, 0.032f);
+            BuildKit.MakeSign(fleetGo.transform, new Vector3(14f, 3.2f, 10f), "SOC WORKSTATIONS", SocRed, 0.032f);
 
             // Task 3 — INCIDENT RESPONSE: sequence board on the north wall,
             // card rack a few metres south of it.

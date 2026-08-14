@@ -21,7 +21,15 @@ namespace Cyverse.Core
             PlayerPrefs.Save();
         }
 
-        public static bool IsUnlocked(int level) => level <= 1 || IsCompleted(level - 1);
+        public static bool IsUnlocked(int level)
+        {
+            if (level <= 1) return true;
+            if (!IsCompleted(level - 1)) return false;
+            // Digital Forensics is a custody handoff, not merely the next
+            // scene: all three SOC key items must exist in WebGL persistence.
+            if (level == 3) return Cyverse.Level.SocProgress.HasAllDfKeys;
+            return true;
+        }
 
         /// <summary>Completed count among the story levels 1..4 (Orientation excluded).</summary>
         public static int CompletedStoryLevels()

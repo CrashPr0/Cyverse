@@ -79,7 +79,9 @@ namespace Cyverse.Interaction
                     HudUI.Instance.ShowToast(
                         mode == Mode.Manual
                             ? "Complete this level's task first."
-                            : $"Complete the previous level to unlock {displayName}.",
+                            : levelIndex == 3 && LevelProgress.IsCompleted(2) && !SocProgress.HasAllDfKeys
+                                ? "Digital Forensics requires: " + SocProgress.MissingDfKeysText() + "."
+                                : $"Complete the previous level to unlock {displayName}.",
                         new Color(1f, 0.55f, 0.4f));
                 return;
             }

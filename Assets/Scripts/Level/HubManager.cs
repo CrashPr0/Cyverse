@@ -37,6 +37,7 @@ namespace Cyverse.Level
                 cam.gameObject.AddComponent<FirstPersonHands>();
             if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
             if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
+            EvidenceInventoryPanel.Ensure(gameObject).RefreshNow();
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
 

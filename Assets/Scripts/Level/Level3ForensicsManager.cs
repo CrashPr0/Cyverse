@@ -53,6 +53,12 @@ namespace Cyverse.Level
                 cam.gameObject.AddComponent<FirstPersonHands>();
             if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
             if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
+            EvidenceInventoryPanel.Ensure(gameObject).RefreshNow();
+
+            if (!SocProgress.TryGetEvidence(out var receivedEvidence))
+                Debug.LogError("[DF HANDOFF] Level 3 loaded without structured SOC evidence.");
+            else
+                Debug.Log($"[DF HANDOFF] Received {receivedEvidence.inventoryItem} from {receivedEvidence.computer}.");
 
             console = FindObjectOfType<ForensicsConsole>();
             briefing = FindObjectOfType<VideoStation>();
@@ -81,6 +87,9 @@ namespace Cyverse.Level
             else OnBriefingCompleted();
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
+            if (receivedEvidence != null && HudUI.Instance != null)
+                HudUI.Instance.ShowToast("SOC EVIDENCE RECEIVED — " + receivedEvidence.computer +
+                    " disk image and chain of custody loaded.", new Color(0.30f, 1f, 0.55f));
             UpdateObjective();
         }
 
