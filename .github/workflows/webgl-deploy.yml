@@ -36,6 +36,7 @@ on:
 
 permissions:
   contents: write
+  checks: write
 
 # Shares a lock with the site deploy so the two can't write gh-pages at once.
 # cancel-in-progress supersedes an in-flight build when new commits land, so a
