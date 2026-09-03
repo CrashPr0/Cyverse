@@ -61,7 +61,7 @@ namespace Cyverse.UI
                     // <s> is TextMeshPro-only and renders as literal text.
                     sb.Append($"<color=#4CE087>  ✓  {t.label}</color>\n");
                 else if (t.current)
-                    sb.Append($"<color=#E5A823>  ▶  <b>{t.label}</b></color>\n");
+                    sb.Append($"<color=#E5A823><size=23>  ▶</size>  <b>{t.label}</b></color>\n");
                 else
                     sb.Append($"<color=#7E93A6>  □  {t.label}</color>\n");
             }

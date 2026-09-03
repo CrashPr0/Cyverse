@@ -27,52 +27,81 @@ Shader "Cyverse/WorldText"
             "PreviewType"="Plane"
         }
 
-        Lighting Off
-        Cull Off
-        ZWrite Off
-        ZTest LEqual            // <- the fix
-        Blend SrcAlpha OneMinusSrcAlpha
+        CGINCLUDE
+        #include "UnityCG.cginc"
+
+        struct appdata_t
+        {
+            float4 vertex   : POSITION;
+            fixed4 color    : COLOR;
+            float2 texcoord : TEXCOORD0;
+        };
+
+        struct v2f
+        {
+            float4 vertex   : SV_POSITION;
+            fixed4 color    : COLOR;
+            float2 texcoord : TEXCOORD0;
+        };
+
+        sampler2D _MainTex;
+        float4 _MainTex_ST;
+        fixed4 _Color;
+
+        v2f vert(appdata_t v)
+        {
+            v2f o;
+            o.vertex = UnityObjectToClipPos(v.vertex);
+            o.color = v.color * _Color;
+            o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
+            return o;
+        }
+
+        fixed GlyphAlpha(v2f i)
+        {
+            return tex2D(_MainTex, i.texcoord).a * i.color.a;
+        }
+        ENDCG
+
+        // An alpha-clipped depth prepass lets a nearer label occlude a farther
+        // one. The prior ZWrite-Off-only shader fixed text-vs-wall ordering but
+        // could not resolve text-vs-text intersections.
+        Pass
+        {
+            Lighting Off
+            Cull Off
+            ZWrite On
+            ZTest LEqual
+            ColorMask 0
+
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment fragDepth
+
+            fixed4 fragDepth(v2f i) : SV_Target
+            {
+                clip(GlyphAlpha(i) - 0.12);
+                return 0;
+            }
+            ENDCG
+        }
 
         Pass
         {
+            Lighting Off
+            Cull Off
+            ZWrite Off
+            ZTest LEqual
+            Blend SrcAlpha OneMinusSrcAlpha
+
             CGPROGRAM
             #pragma vertex vert
-            #pragma fragment frag
-            #include "UnityCG.cginc"
+            #pragma fragment fragColor
 
-            struct appdata_t
+            fixed4 fragColor(v2f i) : SV_Target
             {
-                float4 vertex   : POSITION;
-                fixed4 color    : COLOR;
-                float2 texcoord : TEXCOORD0;
-            };
-
-            struct v2f
-            {
-                float4 vertex   : SV_POSITION;
-                fixed4 color    : COLOR;
-                float2 texcoord : TEXCOORD0;
-            };
-
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
-            fixed4 _Color;
-
-            v2f vert (appdata_t v)
-            {
-                v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                o.color = v.color * _Color;
-                o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
-                return o;
-            }
-
-            fixed4 frag (v2f i) : SV_Target
-            {
-                // Font atlases carry the glyph in alpha; colour comes from the
-                // TextMesh's vertex colour.
                 fixed4 col = i.color;
-                col.a *= tex2D(_MainTex, i.texcoord).a;
+                col.a = GlyphAlpha(i);
                 return col;
             }
             ENDCG

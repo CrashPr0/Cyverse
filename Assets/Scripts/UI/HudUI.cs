@@ -27,7 +27,12 @@ namespace Cyverse.UI
         // Captions / objective
         private GameObject captionPanel;
         private Text captionText;
+        private GameObject objectivePanel;
+        private Image objectiveBackground;
+        private Outline objectiveOutline;
+        private Text objectiveKicker;
         private Text objectiveText;
+        private string objectiveRawText = string.Empty;
 
         // Crosshair
         private RectTransform crosshairRect;
@@ -45,6 +50,11 @@ namespace Cyverse.UI
         private Text scoreText;
         private float scorePop = 1f;
         private float objectivePop = 1f;
+        private float objectiveHighlight;
+
+        private static readonly Color ObjectiveBackground = new Color(0.018f, 0.035f, 0.06f, 0.90f);
+        private static readonly Color ObjectiveHighlight = new Color(0.16f, 0.11f, 0.025f, 0.96f);
+        private static readonly Color GuideGold = new Color(0.90f, 0.66f, 0.14f, 1f);
 
         // Progress ring (top-left): endowed-progress onboarding tracker.
         private Image ringFill;
@@ -158,7 +168,18 @@ namespace Cyverse.UI
             if (objectiveText != null)
             {
                 objectivePop = Mathf.Lerp(objectivePop, 1f, k);
-                objectiveText.rectTransform.localScale = Vector3.one * objectivePop;
+                if (objectivePanel != null)
+                    objectivePanel.transform.localScale = Vector3.one * objectivePop;
+
+                objectiveHighlight = Mathf.MoveTowards(
+                    objectiveHighlight, 0f, Time.unscaledDeltaTime / 1.8f);
+                if (objectiveBackground != null)
+                    objectiveBackground.color = Color.Lerp(
+                        ObjectiveBackground, ObjectiveHighlight, objectiveHighlight);
+                if (objectiveOutline != null)
+                    objectiveOutline.effectColor = Color.Lerp(
+                        new Color(Accent.r, Accent.g, Accent.b, 0.75f),
+                        GuideGold, objectiveHighlight);
             }
 
             if (ringFill != null)
@@ -248,9 +269,22 @@ namespace Cyverse.UI
         public void ShowObjective(string text)
         {
             PinObjectiveToTop();
-            bool changed = objectiveText.text != text && !string.IsNullOrEmpty(objectiveText.text);
-            objectiveText.text = text;
-            if (changed && !AccessibilitySettings.ReduceMotion) objectivePop = 1.3f;
+            bool changed = objectiveRawText != text && !string.IsNullOrEmpty(objectiveRawText);
+            objectiveRawText = text ?? string.Empty;
+
+            string display = objectiveRawText.StartsWith("Objective: ")
+                ? objectiveRawText.Substring("Objective: ".Length)
+                : objectiveRawText;
+            bool complete = display.Contains("COMPLETE");
+            objectiveKicker.text = complete ? "✓  MISSION UPDATE" : "▶  NEXT TASK";
+            objectiveKicker.color = complete ? new Color(0.30f, 1f, 0.55f) : GuideGold;
+            objectiveText.text = display;
+
+            if (changed)
+            {
+                objectiveHighlight = 1f;
+                if (!AccessibilitySettings.ReduceMotion) objectivePop = 1.07f;
+            }
         }
 
         /// <summary>Updates the top-left progress ring. Starts pre-filled
@@ -320,7 +354,39 @@ namespace Cyverse.UI
 
         private void BuildObjective()
         {
-            objectiveText = CreateText("Objective", Canvas.transform, BaseObjectiveSize, TextAnchor.UpperCenter);
+            objectivePanel = new GameObject("NextTaskPanel", typeof(RectTransform), typeof(Image));
+            objectivePanel.transform.SetParent(Canvas.transform, false);
+            objectiveBackground = objectivePanel.GetComponent<Image>();
+            objectiveBackground.color = ObjectiveBackground;
+            objectiveBackground.raycastTarget = false;
+            objectiveOutline = objectivePanel.AddComponent<Outline>();
+            objectiveOutline.effectColor = new Color(Accent.r, Accent.g, Accent.b, 0.75f);
+            objectiveOutline.effectDistance = new Vector2(2f, -2f);
+
+            var cue = new GameObject("NextTaskCue", typeof(RectTransform), typeof(Image));
+            cue.transform.SetParent(objectivePanel.transform, false);
+            var cueRt = cue.GetComponent<RectTransform>();
+            cueRt.anchorMin = new Vector2(0f, 0f);
+            cueRt.anchorMax = new Vector2(0f, 1f);
+            cueRt.pivot = new Vector2(0f, 0.5f);
+            cueRt.anchoredPosition = Vector2.zero;
+            cueRt.sizeDelta = new Vector2(7f, 0f);
+            cue.GetComponent<Image>().color = GuideGold;
+            cue.GetComponent<Image>().raycastTarget = false;
+
+            objectiveKicker = CreateText("NextTaskLabel", objectivePanel.transform, 15, TextAnchor.UpperLeft);
+            objectiveKicker.fontStyle = FontStyle.Bold;
+            objectiveKicker.color = GuideGold;
+            objectiveKicker.text = "▶  NEXT TASK";
+            var kickerRt = objectiveKicker.rectTransform;
+            kickerRt.anchorMin = new Vector2(0f, 1f);
+            kickerRt.anchorMax = new Vector2(1f, 1f);
+            kickerRt.pivot = new Vector2(0f, 1f);
+            kickerRt.anchoredPosition = new Vector2(25f, -10f);
+            kickerRt.sizeDelta = new Vector2(-50f, 22f);
+
+            objectiveText = CreateText("Objective", objectivePanel.transform, BaseObjectiveSize, TextAnchor.UpperLeft);
+            objectiveText.fontStyle = FontStyle.Bold;
             AddOutline(objectiveText);
             PinObjectiveToTop();
             objectiveText.text = string.Empty;
@@ -331,12 +397,21 @@ namespace Cyverse.UI
         /// middle of the view (e.g. a reset RectTransform in a built scene).</summary>
         private void PinObjectiveToTop()
         {
+            if (objectivePanel == null || objectiveText == null) return;
+
+            var panelRt = objectivePanel.GetComponent<RectTransform>();
+            panelRt.anchorMin = new Vector2(0.5f, 1f);
+            panelRt.anchorMax = new Vector2(0.5f, 1f);
+            panelRt.pivot = new Vector2(0.5f, 1f);
+            panelRt.anchoredPosition = new Vector2(0f, -18f);
+            panelRt.sizeDelta = new Vector2(1080f, 84f);
+
             var rt = objectiveText.rectTransform;
-            rt.anchorMin = new Vector2(0.5f, 1f);
-            rt.anchorMax = new Vector2(0.5f, 1f);
-            rt.pivot = new Vector2(0.5f, 1f);
-            rt.anchoredPosition = new Vector2(0, -24);
-            rt.sizeDelta = new Vector2(1200, 60);
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(1f, 0f);
+            rt.pivot = new Vector2(0f, 0f);
+            rt.anchoredPosition = new Vector2(25f, 10f);
+            rt.sizeDelta = new Vector2(-50f, 45f);
         }
 
         private void BuildScore()

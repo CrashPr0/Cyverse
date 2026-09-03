@@ -5,7 +5,7 @@ using Cyverse.Level;
 namespace Cyverse.Interaction
 {
     /// <summary>
-    /// A pinboard in the SOC that fills up as the investigation progresses:
+    /// A pinboard in the Forensics Lab that fills up as the investigation progresses:
     /// one card per case question, greyed "?" until that question is solved,
     /// then lit in the accent colour showing the finding. Pure display (not
     /// interactable) — it exists so terminal progress is visible in the world

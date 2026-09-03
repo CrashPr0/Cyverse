@@ -241,11 +241,17 @@ namespace Cyverse.Level
         private string NextActionText()
         {
             if (Carryable.Carried != null)
-                return $"Carrying {Carryable.Carried.itemName} — place it on the next open playbook slot  (Q puts it down)";
+            {
+                if (playbook != null && !playbook.IsComplete)
+                    return playbook.IsExpectedCard(Carryable.Carried)
+                        ? $"Carry {Carryable.Carried.itemName} to STEP {playbook.NextSlot}  (Q puts it down)"
+                        : $"Next is {playbook.NextStep}, not {Carryable.Carried.itemName} — press Q to put it down";
+                return $"Carrying {Carryable.Carried.itemName}  (Q puts it down)";
+            }
             if (siem != null && !siem.IsComplete)
                 return $"SOC: review the Alert Board, flag a row, then verify its workstation  ({siem.ScenarioIndex}/{siem.ScenarioCount})";
             if (playbook != null && !playbook.IsComplete)
-                return $"IR Playbook: carry the response cards onto the slots in order  ({playbook.Placed}/{playbook.Total})";
+                return $"IR Playbook: pick up {playbook.NextStep} from the rack, then place it on STEP {playbook.NextSlot}  ({playbook.Placed}/{playbook.Total})";
             return $"Complete the defense tasks  ({TasksDone}/{TotalTasks})";
         }
 

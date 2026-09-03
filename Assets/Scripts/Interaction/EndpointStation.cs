@@ -31,6 +31,9 @@ namespace Cyverse.Interaction
         private TextMesh activityText;
         private Renderer screenRenderer;
 
+        private static readonly Vector3 SocScreenScale = new Vector3(1.55f, 0.86f, 1f);
+        private static readonly Vector3 SocMonitorBodyScale = new Vector3(1.66f, 0.96f, 0.06f);
+
         public bool CanInteract => alertBoard != null ? !alertBoard.IsComplete : !Isolated;
         public string Prompt => alertBoard != null
             ? $"Investigate {def?.hostname ?? "workstation"}"
@@ -44,12 +47,27 @@ namespace Cyverse.Interaction
             alertBoard = board;
             fleet = null;
             Isolated = false;
+            EnlargeSocMonitor();
             ResolveLabels();
             name = "Endpoint_" + def.hostname;
             if (hostnameText != null) hostnameText.text = def.hostname;
             SetSocActivity(def.processes);
             if (statusText != null) statusText.text = "READY — FLAG A ROW";
+            FitMonitorText();
             Tint(new Color(0.55f, 0.85f, 1f));
+        }
+
+        private void EnlargeSocMonitor()
+        {
+            Transform screen = transform.Find("Screen");
+            if (screen != null)
+            {
+                screen.localScale = SocScreenScale;
+                screenRenderer = screen.GetComponent<Renderer>();
+            }
+
+            Transform monitorBody = transform.Find("MonBody");
+            if (monitorBody != null) monitorBody.localScale = SocMonitorBodyScale;
         }
 
         public void SetSocActivity(string[] lines)
@@ -57,6 +75,7 @@ namespace Cyverse.Interaction
             ResolveLabels();
             if (activityText != null && lines != null)
                 activityText.text = string.Join("\n", lines);
+            FitMonitorText();
         }
 
         public void MarkCollectedAsEvidence()
@@ -74,14 +93,74 @@ namespace Cyverse.Interaction
                 var screen = transform.Find("Screen");
                 if (screen != null) screenRenderer = screen.GetComponent<Renderer>();
             }
-            foreach (var label in GetComponentsInChildren<TextMesh>(true))
+            hostnameText = null;
+            statusText = null;
+            activityText = null;
+            TextMesh[] labels = GetComponentsInChildren<TextMesh>(true);
+            foreach (var label in labels)
             {
-                if (hostnameText == null && label.text.StartsWith("WS-")) hostnameText = label;
+                string identity = (label.gameObject.name + " " + label.text).ToUpperInvariant();
+                if (hostnameText == null &&
+                    (label.text.StartsWith("WS-") || label.gameObject.name.StartsWith("Label_WS-")))
+                    hostnameText = label;
                 else if (statusText == null &&
-                         (label.text.Contains("ONLINE") || label.text.Contains("ISOLATED") ||
-                          label.text.Contains("OFFLINE") || label.text.Contains("READY"))) statusText = label;
-                else if (activityText == null && label.text.Contains(".exe")) activityText = label;
+                         (identity.Contains("ONLINE") || identity.Contains("ISOLATED") ||
+                          identity.Contains("OFFLINE") || identity.Contains("READY")))
+                    statusText = label;
             }
+
+            // The saved visual-pass labels contain .ps1, spreadsheets and
+            // plain status phrases as well as .exe. Identify the remaining
+            // middle monitor label structurally instead of guessing by file
+            // extension or its old content.
+            float bestDistance = float.MaxValue;
+            foreach (var label in labels)
+            {
+                if (label == hostnameText || label == statusText) continue;
+                float distance = Mathf.Abs(label.transform.localPosition.y - 1.30f);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                activityText = label;
+            }
+        }
+
+        /// <summary>Mount the three readouts on the physical monitor and
+        /// shrink only as much as necessary to keep every glyph inside it.</summary>
+        private void FitMonitorText()
+        {
+            if (screenRenderer == null) return;
+            FitMonitorLabel(hostnameText, 1.62f, 0.026f, 0.88f);
+            FitMonitorLabel(activityText, 1.33f, 0.019f, 0.90f);
+            FitMonitorLabel(statusText, 1.05f, 0.016f, 0.88f);
+        }
+
+        private void FitMonitorLabel(TextMesh label, float localY, float maximumSize, float widthRatio)
+        {
+            if (label == null) return;
+            label.transform.localPosition = new Vector3(0f, localY, 0.04f);
+            label.transform.localRotation = Quaternion.identity;
+            // Start from the intended readable size on every content change.
+            // Otherwise one long scenario permanently leaves later, shorter
+            // messages at the previously shrunken size.
+            label.characterSize = maximumSize;
+
+            Billboard billboard = label.GetComponent<Billboard>();
+            if (billboard != null) billboard.enabled = false;
+            SignFX motion = label.GetComponent<SignFX>();
+            if (motion != null) motion.enabled = false;
+
+            Renderer renderer = label.GetComponent<Renderer>();
+            if (renderer == null) return;
+            float width = ProjectedSize(renderer.bounds, transform.right);
+            float allowedWidth = Mathf.Abs(screenRenderer.transform.lossyScale.x) * widthRatio;
+            if (width > allowedWidth && width > 0.001f)
+                label.characterSize *= allowedWidth / width;
+        }
+
+        private static float ProjectedSize(Bounds bounds, Vector3 axis)
+        {
+            axis = new Vector3(Mathf.Abs(axis.x), Mathf.Abs(axis.y), Mathf.Abs(axis.z));
+            return 2f * Vector3.Dot(bounds.extents, axis);
         }
 
         public void Interact(GameObject interactor)
@@ -144,9 +223,9 @@ namespace Cyverse.Interaction
             BuildKit.SpawnLocal(PrimitiveType.Cube, "MonStand", root.transform,
                 new Vector3(0f, 0.85f, 0.1f), Vector3.zero, new Vector3(0.08f, 0.22f, 0.08f), bodyMat, collider: false);
             BuildKit.SpawnLocal(PrimitiveType.Cube, "MonBody", root.transform,
-                new Vector3(0f, 1.32f, 0.1f), Vector3.zero, new Vector3(1.25f, 0.78f, 0.06f), bodyMat, collider: true);
+                new Vector3(0f, 1.32f, 0.1f), Vector3.zero, SocMonitorBodyScale, bodyMat, collider: true);
             var screen = BuildKit.SpawnLocal(PrimitiveType.Quad, "Screen", root.transform,
-                new Vector3(0f, 1.32f, 0.06f), Vector3.zero, new Vector3(1.15f, 0.68f, 1f),
+                new Vector3(0f, 1.32f, 0.06f), Vector3.zero, SocScreenScale,
                 BuildKit.MakeHologram(accent), collider: false);
 
             var station = root.AddComponent<EndpointStation>();

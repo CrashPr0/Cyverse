@@ -25,7 +25,6 @@ namespace Cyverse.Interaction
         public Func<bool> gate;
         public string gateMessage = "You can't take this yet.";
 
-        private Collider[] colliders;
         private static bool hintShown;
 
         public bool CanInteract => Carried == null;
@@ -33,7 +32,6 @@ namespace Cyverse.Interaction
 
         void Awake()
         {
-            colliders = GetComponentsInChildren<Collider>(true);
             hintShown = false; // static survives disabled domain reload
         }
 
@@ -63,7 +61,7 @@ namespace Cyverse.Interaction
             if (cam == null) return;
 
             Carried = this;
-            foreach (var c in colliders) c.enabled = false;
+            SetCollidersEnabled(false);
             var hands = FirstPersonHands.Instance;
             transform.SetParent(hands != null ? hands.CarryAnchor : cam.transform, false);
             transform.localPosition = hands != null
@@ -122,8 +120,18 @@ namespace Cyverse.Interaction
             }
 
             SetLabelVisible(true);
-            foreach (var c in colliders) c.enabled = true;
+            SetCollidersEnabled(true);
             if (Carried == this) Carried = null;
+        }
+
+        /// <summary>Resolve colliders when they are needed. Runtime builders
+        /// remove decorative primitive colliders with deferred Destroy calls;
+        /// caching in Awake retained those dead references and caused editor-
+        /// only MissingReferenceExceptions on later pickup.</summary>
+        private void SetCollidersEnabled(bool enabled)
+        {
+            foreach (Collider collider in GetComponentsInChildren<Collider>(true))
+                if (collider != null) collider.enabled = enabled;
         }
 
         /// <summary>Finds a grounded, non-overlapping location in a small fan

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cyverse.Level;
 
 namespace Cyverse.Forensics
 {
@@ -54,6 +55,23 @@ namespace Cyverse.Forensics
         public static LogDatabase Build()
         {
             var db = new LogDatabase();
+
+            // Mount the structured SOC handoff as the first queryable forensic
+            // artifact. Direct scene launches receive a clearly-labelled
+            // training fixture; normal campaign play uses the real WS-03
+            // record preserved by the Cyber Defense room.
+            SocProgress.TryGetEvidence(out var evidence);
+            var manifest = new LogTable("EvidenceManifest", "computer", "user", "alert",
+                "activity", "verification", "collected_at", "custody_status");
+            manifest.Add(
+                evidence != null ? evidence.computer : "WS-03",
+                evidence != null ? evidence.user : "d.chen",
+                evidence != null ? evidence.alertTitle : "TRAINING FIXTURE — Suspicious Account Discovery Commands",
+                evidence != null ? evidence.activity : "cmd.exe running net user /domain",
+                evidence != null ? evidence.verificationResult : "machine locked/idle — activity unexplained",
+                evidence != null ? evidence.collectedAtUtc : "training dataset",
+                evidence != null ? "VERIFIED — INTACT" : "TRAINING FIXTURE");
+            db.tables.Add(manifest);
 
             var employees = new LogTable("Employees", "name", "email", "ip_addr", "hostname", "role");
             employees.Add("amber.kelly",  "amber.kelly@cyverse.edu",  "10.10.1.11", "WS-AKELLY", "CEO");

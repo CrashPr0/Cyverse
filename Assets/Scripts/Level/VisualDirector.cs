@@ -67,13 +67,12 @@ namespace Cyverse.Level
                 RenderSettings.ambientLight = new Color(0.26f, 0.28f, 0.34f);
         }
 
-        /// <summary>Give bob/pulse/glitch motion to any signage that predates
-        /// SignFX (scenes saved before it existed).</summary>
+        /// <summary>Normalize legacy world text and register floating signs.
+        /// The layout manager, rather than a blanket TextMesh scan, decides
+        /// which objects are actual signs. Panel readouts must remain fixed.</summary>
         private void AnimateSigns()
         {
-            foreach (TextMesh tm in FindObjectsOfType<TextMesh>())
-                if (tm.GetComponent<SignFX>() == null)
-                    tm.gameObject.AddComponent<SignFX>();
+            WorldTextLayoutManager.Ensure(gameObject).RefreshNow();
         }
 
         private void ApplyAtmosphere()

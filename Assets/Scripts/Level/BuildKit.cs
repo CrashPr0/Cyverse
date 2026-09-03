@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 using Cyverse.Audio;
 using Cyverse.Interaction;
 using Cyverse.Player;
@@ -386,29 +387,34 @@ namespace Cyverse.Level
         public static GameObject MakeSign(Transform parent, Vector3 worldPos, string text, Color color,
             float characterSize = 0.045f)
         {
-            var go = new GameObject("Sign_" + text.Replace(' ', '_'));
+            var go = new GameObject("Sign_" + text.Replace(' ', '_'), typeof(TextMeshPro));
             if (parent != null) go.transform.SetParent(parent, false);
             go.transform.position = ResolveAboveOwner(parent, worldPos, 0.18f);
 
-            var font = HudUI.LoadFont();
-            var tm = go.AddComponent<TextMesh>();
-            tm.font = font;
-            tm.text = text;
-            tm.fontSize = 64;
-            tm.characterSize = characterSize;
-            tm.anchor = TextAnchor.MiddleCenter;
-            tm.alignment = TextAlignment.Center;
-            tm.color = color;
-            // TextMesh renders with its font's material, which must be set explicitly.
-            go.GetComponent<MeshRenderer>().sharedMaterial = TextMaterial();
+            var tmp = go.GetComponent<TextMeshPro>();
+            tmp.text = text;
+            tmp.color = color;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.enableWordWrapping = false;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMin = 18f;
+            tmp.fontSizeMax = 44f;
+            tmp.overflowMode = TextOverflowModes.Overflow;
+
+            // Preserve the existing world scale while gaining TMP's stable
+            // glyph metrics and auto-sizing. Width scales with content so a
+            // long room name does not wrap back through itself.
+            float h = characterSize * 64f * 0.1f;
+            float w = Mathf.Max(0.8f, text.Length * h * 0.62f);
+            tmp.rectTransform.sizeDelta = new Vector2(Mathf.Max(8f, text.Length * 1.15f), 2.2f);
+            tmp.rectTransform.localScale = Vector3.one * Mathf.Max(0.075f, h / 4.4f);
 
             go.AddComponent<Billboard>();
             go.AddComponent<SignFX>();
 
             // Holo chrome: a glowing underline and a soft glow halo behind the
             // glyphs, so signs read as projected holograms rather than bare text.
-            float h = characterSize * tm.fontSize * 0.1f;            // approx glyph height
-            float w = Mathf.Max(0.5f, text.Length * h * 0.62f);       // approx text width
 
             var underline = GameObject.CreatePrimitive(PrimitiveType.Cube);
             underline.name = "Underline";

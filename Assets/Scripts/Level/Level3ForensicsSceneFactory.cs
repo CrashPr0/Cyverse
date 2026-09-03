@@ -6,7 +6,7 @@ namespace Cyverse.Level
 {
     /// <summary>
     /// Level 3 — Digital Forensics ("Case: Spartan Gold"), the in-engine KC7:
-    /// the standard two-room template, but the task room is a SOC floor built
+    /// the standard two-room template, but the task room is a forensic lab built
     /// around ONE deep interactable — the forensic query terminal — plus
     /// ambient dressing (wall TVs, evidence pinboard sign, server racks come
     /// from the shared furnishings). Palette: analyst green.
@@ -37,6 +37,7 @@ namespace Cyverse.Level
             var sys = BuildKit.BuildCommonSystems();
             sys.AddComponent<QueryTerminal>();
             sys.AddComponent<Level3ForensicsManager>();
+            sys.AddComponent<Level3ForensicsPolish>();
             return sys;
         }
 
@@ -55,7 +56,7 @@ namespace Cyverse.Level
                 InvestigationCase.BriefingSlides(), ForensicGreen);
 
             LockedDoor.Build(new Vector3(0f, 0f, 2f), 0f, 3f,
-                "SOC FLOOR", "Watch the analyst briefing to unlock this door.", ForensicGreen);
+                "FORENSICS LAB", "Watch the analyst briefing to unlock this door.", ForensicGreen);
 
             // Return to the Hub from the room the player spawns in. The task
             // room has its own exit; without this one, leaving early means

@@ -10,7 +10,7 @@ namespace Cyverse.Level
     /// <summary>
     /// Level 3 (Digital Forensics) flow:
     ///   Watch       — analyst briefing (query syntax 101); unlocks the door
-    ///   Investigate — solve the 8-question case at the forensic terminal
+    ///   Investigate — solve two linked cases (14 findings) at the terminal
     ///   Complete    — level persisted, results, exit celebrated.
     /// Same discovery/self-heal pattern as the other level managers.
     /// </summary>
@@ -129,7 +129,7 @@ namespace Cyverse.Level
 
             if (taskDoor != null) taskDoor.Unlock();
             if (HudUI.Instance != null)
-                HudUI.Instance.ShowToast("Briefing complete — the SOC floor is open", new Color(0.30f, 1f, 0.45f));
+                HudUI.Instance.ShowToast("Briefing complete — the Forensics Lab is open", new Color(0.30f, 1f, 0.45f));
             if (taskDoor != null) BurstFX.SpawnAbove(taskDoor.transform,
                 new Color(0.30f, 1f, 0.45f), 30, minimumHeight: 2.5f);
             else BurstFX.Spawn(Vector3.up * 2f, new Color(0.30f, 1f, 0.45f), 30);

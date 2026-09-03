@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 using Cyverse.Settings;
 
 namespace Cyverse.Level
@@ -9,7 +10,6 @@ namespace Cyverse.Level
     /// spike + tiny horizontal jitter). Per-sign random phase so the room
     /// doesn't move in lockstep. Fully static under Reduce Motion.
     /// </summary>
-    [RequireComponent(typeof(TextMesh))]
     public class SignFX : MonoBehaviour
     {
         public float bobAmplitude = 0.05f;
@@ -18,6 +18,7 @@ namespace Cyverse.Level
         public float pulseSpeed = 2.1f;
 
         private TextMesh tm;
+        private TMP_Text tmp;
         private Vector3 basePos;
         private Color baseColor;
         private float seed;
@@ -27,8 +28,14 @@ namespace Cyverse.Level
         void Start()
         {
             tm = GetComponent<TextMesh>();
+            tmp = GetComponent<TMP_Text>();
+            if (tm == null && tmp == null)
+            {
+                enabled = false;
+                return;
+            }
             basePos = transform.localPosition;
-            baseColor = tm.color;
+            baseColor = TextColor;
             seed = Random.Range(0f, 10f);
             ScheduleGlitch();
         }
@@ -38,7 +45,7 @@ namespace Cyverse.Level
             if (AccessibilitySettings.ReduceMotion)
             {
                 transform.localPosition = basePos;
-                tm.color = baseColor;
+                TextColor = baseColor;
                 return;
             }
 
@@ -62,12 +69,22 @@ namespace Cyverse.Level
             }
 
             transform.localPosition = p;
-            tm.color = c;
+            TextColor = c;
         }
 
         private void ScheduleGlitch()
         {
             nextGlitch = Time.time + Random.Range(4f, 9f);
+        }
+
+        private Color TextColor
+        {
+            get => tm != null ? tm.color : tmp.color;
+            set
+            {
+                if (tm != null) tm.color = value;
+                else if (tmp != null) tmp.color = value;
+            }
         }
     }
 }

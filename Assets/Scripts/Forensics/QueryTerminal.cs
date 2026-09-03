@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Core;
+using Cyverse.Level;
 using Cyverse.UI;
 
 namespace Cyverse.Forensics
@@ -27,7 +29,7 @@ namespace Cyverse.Forensics
         private string caseClosedNote;
 
         private GameObject card;
-        private Text outputText, sidebarText, inputText, titleText;
+        private TMP_Text outputText, sidebarText, inputText, titleText;
         private string typed = "";
         private bool open;
 
@@ -53,10 +55,12 @@ namespace Cyverse.Forensics
             GameState.QuizActive = true;
             GameState.MenuTransitionFrame = Time.frameCount;
 
-            titleText.text = $"CYVERSE FORENSIC TERMINAL — {activeCase.title}";
-            PrintBlock(activeCase.IsComplete
+            string evidenceHeader = EvidenceHeader();
+            titleText.text = $"CYVERSE FORENSIC TERMINAL  //  {activeCase.title}";
+            PrintBlock((activeCase.IsComplete
                 ? "<color=#E5A823>Case closed. Review the logs freely, or Esc to step away.</color>"
-                : "Type  <color=#5BC8FF>help</color>  for commands, or start with the example under your current question.");
+                : "Type  <color=#5BC8FF>help</color>  for commands, or start with the example under your current question.") +
+                evidenceHeader);
             RefreshSidebar();
             card.SetActive(true);
         }
@@ -324,6 +328,18 @@ namespace Cyverse.Forensics
         private void RefreshSidebar()
         {
             var sb = new System.Text.StringBuilder();
+            if (SocProgress.TryGetEvidence(out var evidence))
+            {
+                sb.Append("<color=#4CE087><b>SOC HANDOFF  ✓ VERIFIED</b></color>\n")
+                  .Append($"<size=17>{Escape(evidence.computer)}  ·  {Escape(evidence.user)}\n")
+                  .Append($"{Escape(evidence.alertTitle)}\n")
+                  .Append("DISK IMAGE + CUSTODY RECORD</size>\n\n");
+            }
+            else
+            {
+                sb.Append("<color=#FF8866><b>SOC HANDOFF  MISSING</b></color>\n\n");
+            }
+
             sb.Append($"<b>CASE FILE</b>   {activeCase.AnsweredCount}/{activeCase.questions.Length} solved\n\n");
             var q = activeCase.Current;
             if (q != null)
@@ -344,6 +360,15 @@ namespace Cyverse.Forensics
                 sb.Append($"   <color=#4CE087>streak x{ScoreSystem.Streak}</color>");
             sb.Append("\n\n<size=17><color=#607585>help · tables · fields ‹t›\nhint · answer ‹x› · clear · TAB\nEsc steps away</color></size>");
             sidebarText.text = sb.ToString();
+        }
+
+        private static string EvidenceHeader()
+        {
+            if (!SocProgress.TryGetEvidence(out var evidence))
+                return "\n\n<color=#FF8866>SOC evidence package unavailable. Query training data remains accessible.</color>";
+
+            return "\n\n<color=#4CE087><b>EVIDENCE MOUNTED:</b></color> " +
+                $"{Escape(evidence.computer)} disk image  ·  SHA-256 verified  ·  chain of custody intact";
         }
 
         private void RefreshInput()
@@ -367,59 +392,62 @@ namespace Cyverse.Forensics
             card = new GameObject("ForensicTerminal", typeof(RectTransform), typeof(Image));
             card.transform.SetParent(canvas, false);
             var rt = card.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            // Stretch inside safe margins so the terminal remains usable in a
+            // non-maximized WebGL canvas instead of assuming 1560x860 pixels.
+            rt.anchorMin = new Vector2(0.035f, 0.055f);
+            rt.anchorMax = new Vector2(0.965f, 0.945f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(1560, 860);
+            rt.sizeDelta = Vector2.zero;
             HudUI.StylePanel(card, new Color(0.008f, 0.025f, 0.04f, 0.98f), new Color(0.30f, 1f, 0.45f));
 
-            titleText = MakeText(card.transform, "Title", 26, TextAnchor.MiddleLeft);
-            titleText.fontStyle = FontStyle.Bold;
+            titleText = MakeText(card.transform, "Title", 26, TextAlignmentOptions.MidlineLeft);
+            titleText.fontStyle = FontStyles.Bold;
             titleText.color = new Color(0.30f, 1f, 0.45f);
             var trt = titleText.rectTransform;
             trt.anchorMin = new Vector2(0, 1); trt.anchorMax = new Vector2(1, 1); trt.pivot = new Vector2(0.5f, 1);
-            trt.sizeDelta = new Vector2(-70, 46); trt.anchoredPosition = new Vector2(0, -16);
+            trt.sizeDelta = new Vector2(-60, 48); trt.anchoredPosition = new Vector2(0, -12);
 
-            outputText = MakeText(card.transform, "Output", 21, TextAnchor.UpperLeft);
+            outputText = MakeText(card.transform, "Output", 21, TextAlignmentOptions.TopLeft);
             var ort = outputText.rectTransform;
-            ort.anchorMin = new Vector2(0, 0); ort.anchorMax = new Vector2(1, 1);
-            ort.offsetMin = new Vector2(36, 96); ort.offsetMax = new Vector2(-480, -70);
+            ort.anchorMin = new Vector2(0f, 0f); ort.anchorMax = new Vector2(0.70f, 1f);
+            ort.offsetMin = new Vector2(30, 84); ort.offsetMax = new Vector2(-18, -66);
 
-            sidebarText = MakeText(card.transform, "Sidebar", 21, TextAnchor.UpperLeft);
+            sidebarText = MakeText(card.transform, "Sidebar", 20, TextAlignmentOptions.TopLeft);
             var srt = sidebarText.rectTransform;
-            srt.anchorMin = new Vector2(1, 0); srt.anchorMax = new Vector2(1, 1); srt.pivot = new Vector2(1, 0.5f);
-            srt.offsetMin = new Vector2(-456, 96); srt.offsetMax = new Vector2(-30, -70);
+            srt.anchorMin = new Vector2(0.70f, 0); srt.anchorMax = new Vector2(1f, 1f);
+            srt.offsetMin = new Vector2(18, 84); srt.offsetMax = new Vector2(-24, -66);
 
             // Sidebar divider.
             var div = new GameObject("Divider", typeof(RectTransform), typeof(Image));
             div.transform.SetParent(card.transform, false);
             var drt = div.GetComponent<RectTransform>();
-            drt.anchorMin = new Vector2(1, 0); drt.anchorMax = new Vector2(1, 1); drt.pivot = new Vector2(1, 0.5f);
-            drt.sizeDelta = new Vector2(2, -140); drt.anchoredPosition = new Vector2(-470, 0);
+            drt.anchorMin = new Vector2(0.70f, 0); drt.anchorMax = new Vector2(0.70f, 1); drt.pivot = new Vector2(0.5f, 0.5f);
+            drt.sizeDelta = new Vector2(2, -138); drt.anchoredPosition = Vector2.zero;
             div.GetComponent<Image>().color = new Color(0.30f, 1f, 0.45f, 0.35f);
 
-            inputText = MakeText(card.transform, "Input", 24, TextAnchor.MiddleLeft);
-            inputText.fontStyle = FontStyle.Bold;
+            inputText = MakeText(card.transform, "Input", 24, TextAlignmentOptions.MidlineLeft);
+            inputText.fontStyle = FontStyles.Bold;
             var irt = inputText.rectTransform;
             irt.anchorMin = new Vector2(0, 0); irt.anchorMax = new Vector2(1, 0); irt.pivot = new Vector2(0.5f, 0);
-            irt.sizeDelta = new Vector2(-70, 52); irt.anchoredPosition = new Vector2(0, 18);
+            irt.sizeDelta = new Vector2(-60, 52); irt.anchoredPosition = new Vector2(0, 16);
 
             card.SetActive(false);
         }
 
-        private static Text MakeText(Transform parent, string name, int size, TextAnchor anchor)
+        private static TMP_Text MakeText(Transform parent, string name, int size, TextAlignmentOptions alignment)
         {
-            var go = new GameObject(name, typeof(RectTransform));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
-            var t = go.AddComponent<Text>();
-            t.font = HudUI.UIFont;
+            var t = go.GetComponent<TextMeshProUGUI>();
+            t.font = TMP_Settings.defaultFontAsset;
             t.fontSize = size;
-            t.alignment = anchor;
+            t.alignment = alignment;
             t.color = new Color(0.85f, 0.95f, 1f);
-            t.supportRichText = true;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Truncate;
+            t.richText = true;
+            t.enableWordWrapping = true;
+            t.overflowMode = TextOverflowModes.Truncate;
+            t.raycastTarget = false;
             return t;
         }
     }

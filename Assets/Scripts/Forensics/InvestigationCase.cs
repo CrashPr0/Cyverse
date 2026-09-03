@@ -94,10 +94,10 @@ namespace Cyverse.Forensics
             new[]
             {
                 new CaseQuestion(
-                    "Warm-up. How many employees does CyVerse have on file?",
-                    new[] { "12" },
-                    "Count the rows of the Employees table.",
-                    "Employees | count"),
+                    "Validate the SOC handoff before analysis. Which COMPUTER'S disk image is mounted in EvidenceManifest?",
+                    new[] { "WS-03", "ws03" },
+                    "The EvidenceManifest table is the chain-of-custody bridge from the SOC room.",
+                    "EvidenceManifest | project computer"),
                 new CaseQuestion(
                     "Users reported a suspicious sender: prizes@spartan-rewards.com. How many emails did that sender deliver?",
                     new[] { "6" },
@@ -182,7 +182,7 @@ namespace Cyverse.Forensics
             new VideoStation.Slide("DIGITAL FORENSICS",
                 "A phishing campaign hit CyVerse this morning. Your job: work the logs, follow the trail, and find the attacker's infrastructure. Analysts don't scroll — they QUERY.", 10f),
             new VideoStation.Slide("TABLES",
-                "Evidence lives in five tables: Employees, Email, WebVisits, ProcessEvents, DnsLookups. Type a table's name to see its rows; type 'fields Email' to see its columns.", 10f),
+                "Start by validating EvidenceManifest — the disk image and custody record received from the SOC. Then correlate Employees, Email, WebVisits, ProcessEvents, DnsLookups, LogonEvents, and FileAccess.", 11f),
             new VideoStation.Slide("FILTERING",
                 "Narrow with where:  Email | where sender == \"someone\"  — or use contains for partial matches. Chain steps with the | pipe, and end with | count to count rows.", 11f),
             new VideoStation.Slide("THE PIVOT",

@@ -11,6 +11,8 @@ namespace Cyverse.Editor
     public static class WebGLBuildAutomation
     {
         private const string OutputEnvironmentVariable = "CYVERSE_WEBGL_BUILD_PATH";
+        private const string StartSceneEnvironmentVariable = "CYVERSE_WEBGL_START_SCENE";
+        private const string DevelopmentEnvironmentVariable = "CYVERSE_WEBGL_DEVELOPMENT";
 
         [MenuItem("CyVerse/Build/Build WebGL")]
         public static void BuildFromMenu()
@@ -37,6 +39,18 @@ namespace Cyverse.Editor
             if (scenes.Length == 0)
                 throw new InvalidOperationException("No enabled scenes are configured in Build Settings.");
 
+            string requestedStart = Environment.GetEnvironmentVariable(StartSceneEnvironmentVariable);
+            if (!string.IsNullOrWhiteSpace(requestedStart))
+            {
+                string match = scenes.FirstOrDefault(scene =>
+                    string.Equals(scene, requestedStart, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(Path.GetFileNameWithoutExtension(scene), requestedStart,
+                        StringComparison.OrdinalIgnoreCase));
+                if (string.IsNullOrEmpty(match))
+                    throw new InvalidOperationException($"Requested WebGL start scene was not enabled: {requestedStart}");
+                scenes = new[] { match }.Concat(scenes.Where(scene => scene != match)).ToArray();
+            }
+
             string configuredPath = Environment.GetEnvironmentVariable(OutputEnvironmentVariable);
             string outputPath = string.IsNullOrWhiteSpace(configuredPath)
                 ? Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Build", "WebGL", "WebGL")
@@ -45,12 +59,13 @@ namespace Cyverse.Editor
             Directory.CreateDirectory(outputPath);
             Debug.Log($"[WEBGL BUILD] Building {scenes.Length} scenes to {outputPath}");
 
+            bool development = Environment.GetEnvironmentVariable(DevelopmentEnvironmentVariable) == "1";
             BuildReport report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = scenes,
                 locationPathName = outputPath,
                 target = BuildTarget.WebGL,
-                options = BuildOptions.None
+                options = development ? BuildOptions.Development : BuildOptions.None
             });
 
             BuildSummary summary = report.summary;

@@ -54,7 +54,15 @@ namespace Cyverse.Level
             var definitions = Level2Content.Endpoints();
             for (int i = 0; i < endpoints.Length; i++)
             {
-                if (i < definitions.Length) endpoints[i].ConfigureSoc(definitions[i], siem);
+                if (i < definitions.Length)
+                {
+                    // Keep verification near the Alert Board without putting
+                    // a desk barricade across the center of the SOC floor.
+                    endpoints[i].transform.SetPositionAndRotation(
+                        new Vector3(-17f, 0f, 4.5f + i * 3f),
+                        Quaternion.Euler(0f, -90f, 0f));
+                    endpoints[i].ConfigureSoc(definitions[i], siem);
+                }
                 else endpoints[i].gameObject.SetActive(false);
             }
             if (siem != null) siem.Configure(Level2Content.SocScenarios());
@@ -63,10 +71,20 @@ namespace Cyverse.Level
             if (fleet != null) fleet.enabled = false;
 
             var playbook = Object.FindObjectOfType<PlaybookStation>();
-            if (playbook != null) playbook.Configure();
+            if (playbook != null)
+            {
+                // Keep the entrance sightline open: mount the complete puzzle
+                // on the east/right wall and face its readable side west.
+                playbook.Place(new Vector3(17f, 0f, 12f), 90f);
+                playbook.Configure();
+            }
 
             var exam = Object.FindObjectOfType<CertExamStation>();
             if (exam != null) exam.Configure(Level2Content.ExamQuestions());
+
+            GameObject systems = GameObject.Find("GameSystems");
+            if (systems == null) systems = new GameObject("Level2RuntimePolish");
+            Level2SocPolish.Ensure(systems);
         }
 
         public static void BuildDivider()
@@ -100,29 +118,32 @@ namespace Cyverse.Level
             // Task 1 — SIEM: the alert desk faces you as you come through.
             var siem = SiemConsole.Build(new Vector3(-13f, 0f, 7f), 60f, Level2Content.SocScenarios(), SocRed);
 
-            // Task 2 — EDR: a row of workstations along the east side.
+            // Task 2 — verification workstations along the west wall beside
+            // the Alert Board. The center remains a clear route to the rest
+            // of the SOC floor.
             var fleetGo = new GameObject("SocWorkstations");
-            fleetGo.transform.position = new Vector3(14f, 0f, 10f);
+            fleetGo.transform.position = new Vector3(-17f, 0f, 9f);
             var defs = Level2Content.Endpoints();
             for (int i = 0; i < defs.Length; i++)
             {
                 var e = EndpointStation.Build(
-                    new Vector3(14f, 0f, 4f + i * 2.9f), -90f, defs[i], null, SocRed);
+                    new Vector3(-17f, 0f, 4.5f + i * 3f), -90f, defs[i], null, SocRed);
                 e.ConfigureSoc(defs[i], siem);
             }
-            BuildKit.MakeSign(fleetGo.transform, new Vector3(14f, 3.2f, 10f), "SOC WORKSTATIONS", SocRed, 0.032f);
+            BuildKit.MakeSign(fleetGo.transform, new Vector3(-17f, 3.2f, 9f), "SOC WORKSTATIONS", SocRed, 0.032f);
 
-            // Task 3 — INCIDENT RESPONSE: sequence board on the north wall,
-            // card rack a few metres south of it.
+            // Task 3 — INCIDENT RESPONSE: sequence board on the east/right
+            // wall. Its readable side faces west into the SOC, leaving the
+            // entrance's direct sightline open.
             PlaybookStation.Build(
-                // z=16 keeps the backboard (board z + 0.6) clear of the
-                // server-rack wall at z=18.5.
-                boardPos: new Vector3(-1f, 0f, 16f),
-                rackPos: new Vector3(-1f, 0f, 12f),
-                accent: SocRed, gate: null, gateMessage: null);
+                boardPos: new Vector3(17f, 0f, 12f),
+                rackPos: new Vector3(12f, 0f, 12f),
+                accent: SocRed, gate: null, gateMessage: null,
+                yawDegrees: 90f);
 
             // Boss check — the manager activates it once all tasks are done.
-            // x=8 clears the rightmost playbook slot (x=4) and the wall column.
+            // The certification station remains on the north wall, separated
+            // from the playbook rack's west edge.
             CertExamStation.Build(new Vector3(8f, 0f, 16f), 0f,
                 Level2Content.ExamQuestions(), SocRed);
 
