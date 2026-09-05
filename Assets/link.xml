@@ -1,0 +1,11 @@
+<linker>
+  <!-- Runtime-built rooms use GameObject.CreatePrimitive. IL2CPP cannot see
+       those collider dependencies through the native call, so explicitly
+       retain them for WebGL builds. -->
+  <assembly fullname="UnityEngine.PhysicsModule">
+    <type fullname="UnityEngine.BoxCollider" preserve="all" />
+    <type fullname="UnityEngine.CapsuleCollider" preserve="all" />
+    <type fullname="UnityEngine.MeshCollider" preserve="all" />
+    <type fullname="UnityEngine.SphereCollider" preserve="all" />
+  </assembly>
+</linker>

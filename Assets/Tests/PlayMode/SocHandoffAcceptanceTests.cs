@@ -6,6 +6,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace Cyverse.Tests
 {
@@ -186,6 +187,57 @@ namespace Cyverse.Tests
 
             siemType.GetMethod("ClosePanel", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(siem, null);
+        }
+
+        [UnityTest]
+        public IEnumerator ForensicsIntake_RequiresAndCompletesClickableCustodyForm()
+        {
+            Type evidenceType = FindType("Cyverse.Level.SocEvidenceRecord");
+            Type progressType = FindType("Cyverse.Level.SocProgress");
+            object evidence = Activator.CreateInstance(evidenceType);
+            Set(evidence, "alertTitle", "Suspicious Account Discovery Commands");
+            Set(evidence, "computer", "WS-03");
+            Set(evidence, "user", "d.chen");
+            Set(evidence, "activity", "net user /domain");
+            Set(evidence, "verificationResult", "machine locked/idle — activity unexplained");
+            Set(evidence, "collectedAtUtc", "2026-08-14 17:00 UTC");
+            Set(evidence, "analystName", "SOC Analyst");
+            Set(evidence, "inventoryItem", "Evidence: WS-03 disk image + chain-of-custody record");
+            progressType.GetMethod("StoreEvidence").Invoke(null, new[] { evidence });
+
+            SceneManager.LoadScene("Level3_Forensics", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Type stationType = FindType("Cyverse.Interaction.ChainOfCustodyStation");
+            Type formType = FindType("Cyverse.Forensics.ChainOfCustodyForm");
+            Type consoleType = FindType("Cyverse.Interaction.ForensicsConsole");
+            object station = UnityEngine.Object.FindObjectOfType(stationType);
+            object form = UnityEngine.Object.FindObjectOfType(formType);
+            object console = UnityEngine.Object.FindObjectOfType(consoleType);
+            Assert.That(station, Is.Not.Null);
+            Assert.That(form, Is.Not.Null);
+            Assert.That(console, Is.Not.Null);
+
+            // Opening intake constructs four mouse-clickable blanks.
+            stationType.GetMethod("Interact").Invoke(station, new object[] { null });
+            yield return null;
+            int blanks = 0;
+            foreach (Button button in UnityEngine.Object.FindObjectsOfType<Button>(true))
+                if (button.name.StartsWith("Blank_")) blanks++;
+            Assert.That(blanks, Is.EqualTo(4));
+            Assert.That(GameObject.Find("ChainOfCustodyForm"), Is.Not.Null);
+
+            formType.GetMethod("CompleteForAutomation").Invoke(form, null);
+            yield return null;
+            Assert.That((bool)formType.GetProperty("IsComplete").GetValue(form), Is.True);
+
+            consoleType.GetMethod("Interact").Invoke(console, new object[] { null });
+            yield return null;
+            Type gameState = FindType("Cyverse.Core.GameState");
+            Assert.That((bool)gameState.GetField("QuizActive").GetValue(null), Is.True,
+                "Completing custody should unlock the forensic query terminal.");
         }
 
         private static void Set(object instance, string field, string value) =>

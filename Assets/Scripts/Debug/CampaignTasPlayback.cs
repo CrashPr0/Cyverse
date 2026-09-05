@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Cyverse.Core;
+using Cyverse.Forensics;
 using Cyverse.Interaction;
 using Cyverse.Level;
 using Cyverse.Player;
@@ -217,8 +218,10 @@ namespace Cyverse.Testing
             var manager = FindObjectOfType<Level3ForensicsManager>();
             var briefing = FindObjectOfType<VideoStation>();
             var console = FindObjectOfType<ForensicsConsole>();
-            if (manager == null || briefing == null || console == null)
-            { Fail("Level 3 is missing its briefing or investigation desk."); yield break; }
+            var custody = FindObjectOfType<ChainOfCustodyStation>();
+            var custodyForm = FindObjectOfType<ChainOfCustodyForm>();
+            if (manager == null || briefing == null || console == null || custody == null || custodyForm == null)
+            { Fail("Level 3 is missing its briefing, custody intake, or investigation desk."); yield break; }
 
             yield return MovePlayerTo(briefing.transform, 3f, "W", "Walk to analyst briefing");
             Show("E  → (HOLD)", "Play and scrub analyst briefing");
@@ -239,6 +242,12 @@ namespace Cyverse.Testing
             yield return MovePlayerToPoint(new Vector3(0f, playerY, 4.5f),
                 new Vector3(0f, 1.4f, 8f), "W", "Walk through the SOC doorway");
             if (!lastMoveSucceeded) yield break;
+            yield return MovePlayerTo(custody.transform, 2.2f, "A  W", "Walk to Evidence Intake");
+            if (!lastMoveSucceeded) yield break;
+            Show("E  CLICK ×4", "Complete chain-of-custody form");
+            yield return new WaitForSecondsRealtime(0.8f);
+            custodyForm.CompleteForAutomation();
+            yield return new WaitForSecondsRealtime(0.5f);
             yield return MovePlayerTo(console.transform, 2.2f, "W", "Walk to Investigation Desk");
             if (!lastMoveSucceeded) yield break;
             Show("E", "Open forensic query terminal");

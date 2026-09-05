@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Cyverse.Core;
 using Cyverse.Forensics;
@@ -26,6 +27,8 @@ namespace Cyverse.Level
         private VideoStation briefing;
         private LockedDoor taskDoor;
         private HubDoor exitDoor;
+        private ChainOfCustodyForm custodyForm;
+        private ChainOfCustodyStation custodyStation;
         private float startTime;
 
         void Awake()
@@ -45,8 +48,12 @@ namespace Cyverse.Level
 
             if (Quiz.QuizSystem.Instance == null) gameObject.AddComponent<Quiz.QuizSystem>();
             if (QueryTerminal.Instance == null) gameObject.AddComponent<QueryTerminal>();
+            custodyForm = ChainOfCustodyForm.Ensure(gameObject);
+            custodyStation = ChainOfCustodyStation.Ensure();
             if (ResultsScreen.Instance == null) gameObject.AddComponent<ResultsScreen>();
             if (VisualDirector.Instance == null) gameObject.AddComponent<VisualDirector>();
+            if (FindObjectOfType<Level3ForensicsPolish>() == null)
+                gameObject.AddComponent<Level3ForensicsPolish>();
 
             var cam = Camera.main;
             if (cam != null && cam.GetComponent<FirstPersonHands>() == null)
@@ -85,6 +92,8 @@ namespace Cyverse.Level
 
             if (briefing != null) briefing.FirstCompleted += OnBriefingCompleted;
             else OnBriefingCompleted();
+            custodyForm.Changed += UpdateObjective;
+            custodyForm.Completed += OnCustodyCompleted;
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
             if (receivedEvidence != null && HudUI.Instance != null)
@@ -93,11 +102,30 @@ namespace Cyverse.Level
             UpdateObjective();
         }
 
+        private void OnDestroy()
+        {
+            if (custodyForm == null) return;
+            custodyForm.Changed -= UpdateObjective;
+            custodyForm.Completed -= OnCustodyCompleted;
+        }
+
+        private void OnCustodyCompleted()
+        {
+            if (HudUI.Instance != null)
+                HudUI.Instance.ShowToast("Custody accepted — forensic analysis is unlocked",
+                    new Color(0.30f, 1f, 0.55f));
+            if (custodyStation != null)
+                BurstFX.SpawnAbove(custodyStation.transform, new Color(0.30f, 1f, 0.55f),
+                    28, minimumHeight: 2.0f);
+            UpdateObjective();
+        }
+
         private bool pendingComplete;
 
         private void OnCaseCompleted()
         {
-            if (console != null && console.AllComplete)
+            if (console != null && console.AllComplete &&
+                (custodyForm == null || custodyForm.IsComplete))
             {
                 pendingComplete = true;
             }
@@ -142,27 +170,59 @@ namespace Cyverse.Level
             int total = console != null ? console.TotalQuestions : 14;
             int done = console != null ? console.TotalAnswered : 0;
             string caseName = console != null && console.ActiveCase != null ? console.ActiveCase.title : "the case";
+            bool custodyComplete = custodyForm == null || custodyForm.IsComplete;
+            int workflowTotal = total + 1;
+            int workflowDone = done + (custodyComplete ? 1 : 0);
 
             switch (CurrentPhase)
             {
                 case Phase.Watch:
                     HudUI.Instance.ShowObjective("Objective: Watch the analyst briefing  (E to play, ←/→ to scrub)");
-                    HudUI.Instance.SetProgress(0, total, "▶");
+                    HudUI.Instance.SetProgress(0, workflowTotal, "▶");
                     break;
                 case Phase.Investigate:
-                    HudUI.Instance.ShowObjective($"Objective: Solve {caseName} at the Investigation Desk  ({done}/{total})");
-                    HudUI.Instance.SetProgress(done, total);
+                    if (!custodyComplete)
+                        HudUI.Instance.ShowObjective(
+                            $"Objective: Complete the chain-of-custody form at EVIDENCE INTAKE  ({custodyForm.SelectedCount}/{custodyForm.FieldCount} blanks)");
+                    else
+                        HudUI.Instance.ShowObjective($"Objective: Solve {caseName} at the Investigation Desk  ({done}/{total})");
+                    HudUI.Instance.SetProgress(workflowDone, workflowTotal);
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 3 COMPLETE — exit to the Hub");
-                    HudUI.Instance.SetProgress(total, total, "✓");
+                    HudUI.Instance.SetProgress(workflowTotal, workflowTotal, "✓");
                     break;
             }
+            UpdateTaskList(done, total, custodyComplete);
+        }
+
+        private void UpdateTaskList(int answered, int total, bool custodyComplete)
+        {
+            TaskListPanel list = TaskListPanel.Ensure(gameObject);
+            list.SetHeader("DIGITAL FORENSICS");
+            bool watched = CurrentPhase != Phase.Watch;
+            list.Show(new List<TaskListPanel.Task>
+            {
+                new TaskListPanel.Task("Watch analyst briefing", watched, !watched),
+                new TaskListPanel.Task("Chain of custody  (4 fields)", custodyComplete,
+                    watched && !custodyComplete),
+                new TaskListPanel.Task($"Investigate cases  ({answered}/{total})",
+                    answered >= total, watched && custodyComplete && answered < total),
+                new TaskListPanel.Task("Return to Hub", CurrentPhase == Phase.Complete,
+                    CurrentPhase == Phase.Complete),
+            });
         }
 
         private void CompleteLevel()
         {
             if (CurrentPhase == Phase.Complete) return;
+            if (custodyForm != null && !custodyForm.IsComplete)
+            {
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("Complete the chain-of-custody record before closing the case.",
+                        new Color(1f, 0.55f, 0.4f));
+                return;
+            }
             CurrentPhase = Phase.Complete;
 
             LevelProgress.MarkCompleted(3); // unlocks Level 4 in the Hub

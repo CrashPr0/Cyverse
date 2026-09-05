@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine;
 using Cyverse.Interaction;
+using Cyverse.Forensics;
 using Cyverse.Level;
 using Cyverse.Player;
 using Cyverse.UI;
@@ -10,7 +11,7 @@ namespace Cyverse.Testing
 {
     /// <summary>
     /// Development-build-only camera placement for repeatable visual QA.
-    /// Enable with ?textLayoutPreview=1&amp;view=alert|soc|workstations|playbook|briefing.
+    /// Enable with ?textLayoutPreview=1&amp;view=alert|soc|workstations|playbook|briefing|custody.
     /// It never ships in a non-development WebGL build.
     /// </summary>
     public sealed class WorldTextScreenshotTour : MonoBehaviour
@@ -39,7 +40,8 @@ namespace Cyverse.Testing
             HideFirstPersonGeometry(camera.transform);
 
             string url = Application.absoluteURL;
-            if (url.Contains("view=playbook")) PositionPlaybook(camera);
+            if (url.Contains("view=custody")) PositionCustody(camera);
+            else if (url.Contains("view=playbook")) PositionPlaybook(camera);
             else if (url.Contains("view=workstations")) PositionWorkstations(camera);
             else if (url.Contains("view=soc")) PositionSocOverview(camera);
             else if (url.Contains("view=briefing")) PositionBriefing(camera);
@@ -87,6 +89,18 @@ namespace Cyverse.Testing
             Vector3 target = briefing.transform.TransformPoint(0f, 2.0f, 0f);
             Vector3 position = target - briefing.transform.forward * 6.5f;
             Place(camera, position, target);
+        }
+
+        private static void PositionCustody(Camera camera)
+        {
+            ChainOfCustodyStation station = FindObjectOfType<ChainOfCustodyStation>();
+            if (station != null)
+            {
+                Vector3 target = station.transform.position + Vector3.up * 1.25f;
+                Place(camera, target + new Vector3(0f, 1.1f, -4.8f), target);
+            }
+            if (ChainOfCustodyForm.Instance != null)
+                ChainOfCustodyForm.Instance.Open();
         }
 
         private static void Place(Camera camera, Vector3 position, Vector3 target)

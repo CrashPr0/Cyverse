@@ -57,13 +57,24 @@ namespace Cyverse.Interaction
                 Cases = new[] { InvestigationCase.SpartanGold(), InvestigationCase.MidnightExfil() };
         }
 
+        private bool CustodyReady => ChainOfCustodyForm.Instance == null || ChainOfCustodyForm.Instance.IsComplete;
+
         public bool CanInteract => true;
-        public string Prompt => AllComplete
-            ? "Review the case logs"
-            : $"Work {(ActiveCase != null ? ActiveCase.title : "the case")} — Forensic Terminal";
+        public string Prompt => !CustodyReady
+            ? "Complete the chain-of-custody form first"
+            : AllComplete
+                ? "Review the case logs"
+                : $"Work {(ActiveCase != null ? ActiveCase.title : "the case")} — Forensic Terminal";
 
         public void Interact(GameObject interactor)
         {
+            if (!CustodyReady)
+            {
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("Analysis is locked until Evidence Intake accepts the custody record.",
+                        new Color(0.90f, 0.66f, 0.14f));
+                return;
+            }
             if (QueryTerminal.Instance == null)
             {
                 if (HudUI.Instance != null)

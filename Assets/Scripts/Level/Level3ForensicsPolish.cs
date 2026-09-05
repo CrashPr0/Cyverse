@@ -23,7 +23,9 @@ namespace Cyverse.Level
         private Material greenMaterial;
         private Material goldMaterial;
         private TMP_Text reportStatus;
+        private TMP_Text intakeStatus;
         private ForensicsConsole console;
+        private ChainOfCustodyForm custodyForm;
 
         private void Start()
         {
@@ -35,11 +37,18 @@ namespace Cyverse.Level
 
         private void OnDestroy()
         {
-            if (console == null || console.Cases == null) return;
-            foreach (InvestigationCase investigation in console.Cases)
+            if (console != null && console.Cases != null)
             {
-                investigation.QuestionAnswered -= RefreshReport;
-                investigation.CaseCompleted -= RefreshReport;
+                foreach (InvestigationCase investigation in console.Cases)
+                {
+                    investigation.QuestionAnswered -= RefreshReport;
+                    investigation.CaseCompleted -= RefreshReport;
+                }
+            }
+            if (custodyForm != null)
+            {
+                custodyForm.Changed -= RefreshIntake;
+                custodyForm.Completed -= RefreshIntake;
             }
         }
 
@@ -115,17 +124,11 @@ namespace Cyverse.Level
         {
             SpawnCube("DF_AcquisitionPad", root, new Vector3(-11.5f, 0.026f, 8f),
                 new Vector3(5.2f, 0.035f, 4.6f), FloorMaterial());
-            SpawnCube("DF_IntakePlinth", root, new Vector3(-11.5f, 0.48f, 8.15f),
-                new Vector3(2.6f, 0.92f, 1.65f), FurnitureMaterial());
-            SpawnCube("DF_EvidenceCase", root, new Vector3(-11.5f, 1.04f, 8.1f),
-                new Vector3(1.75f, 0.20f, 1.0f), PanelMaterial());
-            SpawnCube("DF_EvidenceSeal", root, new Vector3(-11.5f, 1.16f, 7.58f),
-                new Vector3(1.20f, 0.045f, 0.035f), GoldMaterial());
 
             string evidenceText = SocProgress.TryGetEvidence(out var evidence)
-                ? $"01  ACQUISITION\n{evidence.computer} DISK IMAGE  ·  CUSTODY VERIFIED"
+                ? $"{evidence.computer} DISK IMAGE\nCUSTODY FORM REQUIRED"
                 : "01  ACQUISITION\nTRAINING IMAGE  ·  NO CAMPAIGN HANDOFF";
-            CreateWorldText(root, "DF_IntakeStatus", new Vector3(-11.5f, 1.55f, 7.28f),
+            intakeStatus = CreateWorldText(root, "DF_IntakeStatus", new Vector3(-11.5f, 1.55f, 7.28f),
                 evidenceText, new Color(0.78f, 0.92f, 1f), 0.046f, 10f, 27f);
         }
 
@@ -187,6 +190,7 @@ namespace Cyverse.Level
         private void BindProgress()
         {
             console = FindObjectOfType<ForensicsConsole>();
+            custodyForm = ChainOfCustodyForm.Instance;
             if (console != null && console.Cases != null)
             {
                 foreach (InvestigationCase investigation in console.Cases)
@@ -195,7 +199,24 @@ namespace Cyverse.Level
                     investigation.CaseCompleted += RefreshReport;
                 }
             }
+            if (custodyForm != null)
+            {
+                custodyForm.Changed += RefreshIntake;
+                custodyForm.Completed += RefreshIntake;
+            }
+            RefreshIntake();
             RefreshReport();
+        }
+
+        private void RefreshIntake()
+        {
+            if (intakeStatus == null) return;
+            string source = SocProgress.TryGetEvidence(out var evidence) ? evidence.computer : "TRAINING IMAGE";
+            bool complete = custodyForm != null && custodyForm.IsComplete;
+            intakeStatus.text = complete
+                ? $"{source} DISK IMAGE\nCUSTODY ACCEPTED  [OK]"
+                : $"{source} DISK IMAGE\nCUSTODY FORM  {custodyForm?.SelectedCount ?? 0} / {custodyForm?.FieldCount ?? 4}";
+            intakeStatus.color = complete ? new Color(0.35f, 1f, 0.55f) : new Color(0.78f, 0.92f, 1f);
         }
 
         private void RefreshReport()
