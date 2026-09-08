@@ -29,7 +29,11 @@ namespace Cyverse.Interaction
         public bool CanInteract => !IsComplete;
         public string Prompt => active ? "Take the Certification Exam" : "Certification Exam  (locked)";
 
-        void Awake() => NormalizeScreen();
+        void Awake()
+        {
+            NormalizeScreen();
+            BuildKit.EnsureAimCollider(gameObject, height: 3.0f, width: 2.6f);
+        }
         void OnValidate() => NormalizeScreen();
 
         private void NormalizeScreen()

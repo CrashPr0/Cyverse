@@ -10,7 +10,7 @@ namespace Cyverse.UI
     /// <summary>
     /// Title screen shown before the level begins: game title, subtitle, and a
     /// pulsing "Press ENTER" prompt over a full-screen backdrop. Movement and
-    /// interaction are held (GameState.TitleActive) until dismissed, then the
+    /// interaction are held by a title modal until dismissed, then the
     /// provided callback starts the intro. Esc still opens Settings on top.
     /// </summary>
     public class MainMenu : MonoBehaviour
@@ -27,6 +27,7 @@ namespace Cyverse.UI
 
         private string callsignBuffer;
         private bool callsignTouched;
+        private ModalSession.Lease modal;
 
         void Awake()
         {
@@ -37,8 +38,16 @@ namespace Cyverse.UI
 
         public void Show(Action begin)
         {
-            onBegin = begin;
             if (panel == null) Build();
+            if (panel == null)
+            {
+                // A HUD-less diagnostic scene cannot display the title. It
+                // should continue its flow instead of retaining a dead modal.
+                begin?.Invoke();
+                return;
+            }
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.Title, out modal)) return;
+            onBegin = begin;
 
             // Pre-fill from the last session (or the script's default), but
             // typing anything replaces it entirely rather than editing in place.
@@ -51,7 +60,6 @@ namespace Cyverse.UI
             panel.transform.SetAsLastSibling(); // above the rest of the HUD
             panel.SetActive(true);
             Active = true;
-            GameState.TitleActive = true;
         }
 
         void Update()
@@ -114,12 +122,21 @@ namespace Cyverse.UI
                 : chosen;
 
             Active = false;
-            GameState.TitleActive = false;
+            modal?.Close();
+            modal = null;
             panel.SetActive(false);
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
             var cb = onBegin;
             onBegin = null;
             cb?.Invoke();
+        }
+
+        private void OnDestroy()
+        {
+            modal?.Close();
+            modal = null;
+            Active = false;
+            if (Instance == this) Instance = null;
         }
 
         private void Build()

@@ -26,9 +26,16 @@ namespace Cyverse.Level
         private TMP_Text intakeStatus;
         private ForensicsConsole console;
         private ChainOfCustodyForm custodyForm;
+        private bool applied;
 
-        private void Start()
+        private void Start() => Apply();
+
+        /// <summary>Realizes the complete lab presentation synchronously so
+        /// gameplay can bind to the intake and report stations immediately.</summary>
+        public void Apply()
         {
+            if (applied) return;
+            applied = true;
             ApplyAtmosphere();
             ToneFixtures();
             BuildLab();
@@ -55,7 +62,9 @@ namespace Cyverse.Level
         private void ApplyAtmosphere()
         {
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.25f, 0.31f, 0.285f);
+            // Preserve the green lab mood without letting the furniture collapse
+            // into black silhouettes in a smaller WebGL canvas.
+            RenderSettings.ambientLight = new Color(0.30f, 0.36f, 0.33f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Exponential;
             RenderSettings.fogColor = new Color(0.018f, 0.052f, 0.035f);
@@ -105,7 +114,7 @@ namespace Cyverse.Level
         {
             CreateWorldText(root, "DF_WorkflowHeader", new Vector3(0f, 4.05f, 19.18f),
                 "ACQUIRE   ›   ANALYZE   ›   CORRELATE   ›   REPORT",
-                new Color(0.72f, 1f, 0.82f), 0.064f, 20f, 34f);
+                new Color(0.72f, 1f, 0.82f), 0.055f, 120f, 34f);
             SpawnCube("DF_HeaderRail", root, new Vector3(0f, 3.62f, 19.28f),
                 new Vector3(17f, 0.045f, 0.055f), GreenMaterial());
         }
@@ -129,7 +138,7 @@ namespace Cyverse.Level
                 ? $"{evidence.computer} DISK IMAGE\nCUSTODY FORM REQUIRED"
                 : "01  ACQUISITION\nTRAINING IMAGE  ·  NO CAMPAIGN HANDOFF";
             intakeStatus = CreateWorldText(root, "DF_IntakeStatus", new Vector3(-11.5f, 1.55f, 7.28f),
-                evidenceText, new Color(0.78f, 0.92f, 1f), 0.046f, 10f, 27f);
+                evidenceText, new Color(0.78f, 0.92f, 1f), 0.040f, 48f, 27f);
         }
 
         private void BuildEvidenceZone(Transform root)
@@ -139,23 +148,32 @@ namespace Cyverse.Level
             SpawnCube("DF_EvidenceRail", root, new Vector3(-8f, 0.052f, 12.92f),
                 new Vector3(5.6f, 0.022f, 0.045f), GoldMaterial());
             CreateWorldText(root, "DF_CorrelationLabel", new Vector3(-8f, 3.55f, 14.82f),
-                "03  CORRELATE FINDINGS", new Color(0.92f, 0.72f, 0.30f), 0.048f, 10f, 28f);
+                "03  CORRELATE FINDINGS", new Color(0.92f, 0.72f, 0.30f), 0.045f, 52f, 28f);
         }
 
         private void BuildReportingZone(Transform root)
         {
             SpawnCube("DF_ReportingPad", root, new Vector3(9.2f, 0.026f, 10.5f),
                 new Vector3(5.4f, 0.035f, 5.0f), FloorMaterial());
-            SpawnCube("DF_ReportDesk", root, new Vector3(9.2f, 0.50f, 11f),
-                new Vector3(3.0f, 1.0f, 1.25f), FurnitureMaterial());
+            // Create this primitive with its collider intact. SpawnCube strips
+            // colliders with deferred Destroy during play mode, so immediately
+            // reusing that component as an aim trigger would lose it at the end
+            // of the frame.
+            GameObject reportDesk = BuildKit.Spawn(PrimitiveType.Cube, "DF_ReportDesk", root,
+                new Vector3(9.2f, 0.50f, 11f), new Vector3(3.0f, 1.0f, 1.25f),
+                FurnitureMaterial(), collider: true);
+            BuildKit.EnsureAimCollider(reportDesk, 2.6f, 3.2f);
+            reportDesk.AddComponent<ForensicsReportStation>();
             SpawnCube("DF_ReportMonitor", root, new Vector3(9.2f, 1.52f, 11.15f),
                 new Vector3(2.7f, 1.25f, 0.08f), PanelMaterial());
             SpawnCube("DF_ReportScreen", root, new Vector3(9.2f, 1.52f, 11.09f),
                 new Vector3(2.45f, 1.04f, 0.025f), BuildKit.MakeEmissive(new Color(0.04f, 0.18f, 0.11f), 0.72f));
-            CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.34f, 11.02f),
-                "04  FORENSIC REPORT", new Color(0.72f, 1f, 0.82f), 0.045f, 9f, 28f);
+            SpawnCube("DF_ReportHeaderPanel", root, new Vector3(9.2f, 2.38f, 11.10f),
+                new Vector3(3.35f, 0.50f, 0.04f), PanelMaterial());
+            CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.38f, 11.02f),
+                "04  FORENSIC REPORT", new Color(0.72f, 1f, 0.82f), 0.045f, 52f, 28f);
             reportStatus = CreateWorldText(root, "DF_ReportStatus", new Vector3(9.2f, 1.53f, 11.00f),
-                "CASEWORK  0 / 14\nREPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.037f, 8f, 25f);
+                "CASEWORK  0 / 14\nREPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.040f, 55f, 25f);
         }
 
         private void BuildWorkflowPath(Transform root)
@@ -185,6 +203,49 @@ namespace Cyverse.Level
             SetMaterial(found.transform.Find("Desk"), FurnitureMaterial());
             foreach (Renderer renderer in found.GetComponentsInChildren<Renderer>(true))
                 if (renderer.name.StartsWith("MonBody_")) renderer.sharedMaterial = PanelMaterial();
+
+            // The generated floating title sat directly on the room's neon
+            // wall rail. Mount it to a quiet panel above the console so the
+            // next actionable station reads as a single visual unit.
+            ConfigureStationHeading(found.transform, "02  ANALYZE EVIDENCE",
+                new Vector3(0f, 3.10f, 9.58f));
+
+            ChainOfCustodyStation intake = FindObjectOfType<ChainOfCustodyStation>();
+            if (intake != null)
+                ConfigureStationHeading(intake.transform, "01  EVIDENCE INTAKE",
+                    new Vector3(-11.5f, 2.30f, 7.18f));
+        }
+
+        private void ConfigureStationHeading(Transform station, string content, Vector3 position)
+        {
+            TextMeshPro heading = null;
+            foreach (TextMeshPro candidate in station.GetComponentsInChildren<TextMeshPro>(true))
+            {
+                if (!candidate.gameObject.name.StartsWith("Sign_")) continue;
+                heading = candidate;
+                break;
+            }
+            if (heading == null) return;
+
+            heading.text = content;
+            heading.color = new Color(0.72f, 1f, 0.82f);
+            heading.enableAutoSizing = true;
+            heading.fontSizeMin = 18f;
+            heading.fontSizeMax = 38f;
+            heading.overflowMode = TextOverflowModes.Ellipsis;
+            heading.rectTransform.sizeDelta = new Vector2(48f, 3.8f);
+            heading.transform.SetPositionAndRotation(position, Quaternion.identity);
+            heading.transform.localScale = Vector3.one * 0.042f;
+
+            Billboard billboard = heading.GetComponent<Billboard>();
+            if (billboard != null) billboard.enabled = false;
+            WorldTextLayoutIntent.Configure(heading.gameObject,
+                WorldTextLayoutIntent.Mode.Mounted, 200);
+            SignFX signFx = heading.GetComponent<SignFX>();
+            if (signFx != null) signFx.enabled = false;
+
+            SpawnCube("DF_HeadingPanel_" + station.name, station.parent,
+                position + Vector3.forward * 0.08f, new Vector3(4.8f, 0.62f, 0.06f), PanelMaterial());
         }
 
         private void BindProgress()
@@ -224,11 +285,15 @@ namespace Cyverse.Level
             if (reportStatus == null) return;
             int done = console != null ? console.TotalAnswered : 0;
             int total = console != null ? console.TotalQuestions : 14;
-            bool complete = console != null && console.AllComplete;
-            reportStatus.text = complete
-                ? $"CASEWORK  {total} / {total}\nREPORT READY FOR RELEASE"
+            bool ready = console != null && console.AllComplete;
+            bool submitted = Level3ForensicsManager.Instance != null &&
+                Level3ForensicsManager.Instance.ReportSubmitted;
+            reportStatus.text = submitted
+                ? $"CASEWORK  {total} / {total}\nREPORT SUBMITTED  [OK]"
+                : ready
+                    ? $"CASEWORK  {total} / {total}\nREPORT READY — PRESS E"
                 : $"CASEWORK  {done} / {total}\nREPORT LOCKED — ANALYSIS IN PROGRESS";
-            reportStatus.color = complete ? new Color(0.35f, 1f, 0.55f) : new Color(0.82f, 0.92f, 1f);
+            reportStatus.color = ready ? new Color(0.35f, 1f, 0.55f) : new Color(0.82f, 0.92f, 1f);
         }
 
         private static void AddFillLight(Transform root, string name, Vector3 position,
@@ -266,6 +331,8 @@ namespace Cyverse.Level
             GameObject go = new GameObject(name, typeof(TextMeshPro));
             go.transform.SetParent(root, false);
             go.transform.position = position;
+            // These panels are all approached from the south (-Z); identity is
+            // the readable side for a world TextMeshPro object in this project.
             go.transform.rotation = Quaternion.identity;
             go.transform.localScale = Vector3.one * scale;
             TextMeshPro text = go.GetComponent<TextMeshPro>();
@@ -275,9 +342,13 @@ namespace Cyverse.Level
             text.alignment = TextAlignmentOptions.Center;
             text.fontStyle = FontStyles.Bold;
             text.enableWordWrapping = false;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 14f;
+            text.fontSizeMax = fontSize;
             text.overflowMode = TextOverflowModes.Ellipsis;
             text.fontSize = fontSize;
-            text.rectTransform.sizeDelta = new Vector2(width, 2.4f);
+            text.rectTransform.sizeDelta = new Vector2(width, 4.8f);
+            WorldTextLayoutIntent.Configure(go, WorldTextLayoutIntent.Mode.Mounted);
             return text;
         }
 
@@ -291,14 +362,14 @@ namespace Cyverse.Level
         private Material PanelMaterial()
         {
             if (panelMaterial == null)
-                panelMaterial = BuildKit.MakeStandard(new Color(0.055f, 0.075f, 0.075f), 0.62f, 0.54f);
+                panelMaterial = BuildKit.MakeStandard(new Color(0.075f, 0.105f, 0.095f), 0.62f, 0.54f);
             return panelMaterial;
         }
 
         private Material FurnitureMaterial()
         {
             if (furnitureMaterial == null)
-                furnitureMaterial = BuildKit.MakeStandard(new Color(0.075f, 0.11f, 0.105f), 0.66f, 0.48f);
+                furnitureMaterial = BuildKit.MakeStandard(new Color(0.095f, 0.135f, 0.125f), 0.66f, 0.48f);
             return furnitureMaterial;
         }
 

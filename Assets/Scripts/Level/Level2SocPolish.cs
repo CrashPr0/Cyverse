@@ -169,6 +169,7 @@ namespace Cyverse.Level
             text.enableWordWrapping = false;
             text.fontSize = 34f;
             text.rectTransform.sizeDelta = new Vector2(8f, 1.4f);
+            WorldTextLayoutIntent.Configure(header, WorldTextLayoutIntent.Mode.Mounted, 200);
         }
 
         private static void AddFillLight(Transform root, string name, Vector3 position,

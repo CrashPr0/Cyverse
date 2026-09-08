@@ -1,13 +1,16 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using Cyverse.Core;
 using Cyverse.Level;
 
 namespace Cyverse.UI
 {
-    /// <summary>Small persistent HUD inventory card for the SOC evidence item.
-    /// It reconstructs itself in every scene from SocProgress's JSON record.</summary>
+    /// <summary>HUD inventory card for the SOC-to-forensics evidence handoff.
+    /// It is intentionally scoped to Levels 2 and 3: seeing a forensic disk
+    /// image in the hub or the red-team simulation is both distracting and
+    /// narratively misleading.</summary>
     public sealed class EvidenceInventoryPanel : MonoBehaviour
     {
         public static EvidenceInventoryPanel Instance { get; private set; }
@@ -24,6 +27,7 @@ namespace Cyverse.UI
 
         public static EvidenceInventoryPanel Ensure(GameObject host)
         {
+            if (!IsEvidenceLevel()) return null;
             if (Instance != null) return Instance;
             var found = FindObjectOfType<EvidenceInventoryPanel>();
             return found != null ? found : host.AddComponent<EvidenceInventoryPanel>();
@@ -31,6 +35,12 @@ namespace Cyverse.UI
 
         public void RefreshNow()
         {
+            if (!IsEvidenceLevel())
+            {
+                if (panel != null) panel.SetActive(false);
+                return;
+            }
+
             string json = PlayerPrefs.GetString(SocProgress.EvidenceJsonKey, "");
             lastJson = json;
             if (string.IsNullOrEmpty(json) || !SocProgress.TryGetEvidence(out var evidence))
@@ -48,10 +58,28 @@ namespace Cyverse.UI
 
         void LateUpdate()
         {
+            if (!IsEvidenceLevel())
+            {
+                if (panel != null) panel.SetActive(false);
+                return;
+            }
+
             string json = PlayerPrefs.GetString(SocProgress.EvidenceJsonKey, "");
             if (json != lastJson) RefreshNow();
             if (panel != null && !string.IsNullOrEmpty(json))
                 panel.SetActive(!GameState.AnyMenuOpen);
+        }
+
+        void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        private static bool IsEvidenceLevel()
+        {
+            string sceneName = SceneManager.GetActiveScene().name;
+            return sceneName.IndexOf("Level2", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   sceneName.IndexOf("Level3", System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private void Build()

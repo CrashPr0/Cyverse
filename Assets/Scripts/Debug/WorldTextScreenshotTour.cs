@@ -11,7 +11,7 @@ namespace Cyverse.Testing
 {
     /// <summary>
     /// Development-build-only camera placement for repeatable visual QA.
-    /// Enable with ?textLayoutPreview=1&amp;view=alert|soc|workstations|playbook|briefing|custody.
+    /// Enable with ?textLayoutPreview=1&amp;view=alert|soc|workstations|workstations_north|playbook|briefing|custody|forensics|report.
     /// It never ships in a non-development WebGL build.
     /// </summary>
     public sealed class WorldTextScreenshotTour : MonoBehaviour
@@ -41,7 +41,10 @@ namespace Cyverse.Testing
 
             string url = Application.absoluteURL;
             if (url.Contains("view=custody")) PositionCustody(camera);
+            else if (url.Contains("view=report")) PositionForensicsReport(camera);
+            else if (url.Contains("view=forensics")) PositionForensicsOverview(camera);
             else if (url.Contains("view=playbook")) PositionPlaybook(camera);
+            else if (url.Contains("view=workstations_north")) PositionWorkstationsNorth(camera);
             else if (url.Contains("view=workstations")) PositionWorkstations(camera);
             else if (url.Contains("view=soc")) PositionSocOverview(camera);
             else if (url.Contains("view=briefing")) PositionBriefing(camera);
@@ -70,7 +73,15 @@ namespace Cyverse.Testing
 
         private static void PositionWorkstations(Camera camera)
         {
-            Place(camera, new Vector3(-9.5f, 2.7f, 3.3f), new Vector3(-17f, 1.35f, 9f));
+            // The SIEM desk sits between the aisle camera and the workstation
+            // wall. Two opposing review angles cover the complete row without
+            // pretending a single occluded shot can show all four screens.
+            Place(camera, new Vector3(-9.5f, 2.7f, 3.3f), new Vector3(-17f, 1.35f, 8f));
+        }
+
+        private static void PositionWorkstationsNorth(Camera camera)
+        {
+            Place(camera, new Vector3(-9.5f, 2.7f, 14.7f), new Vector3(-17f, 1.35f, 10f));
         }
 
         private static void PositionPlaybook(Camera camera)
@@ -79,7 +90,10 @@ namespace Cyverse.Testing
             if (playbook == null) return;
             Vector3 target = playbook.transform.TransformPoint(new Vector3(0f, 1.75f, 0f));
             Vector3 readableSide = playbook.transform.TransformDirection(Vector3.back);
-            Place(camera, target + readableSide * 9.4f + Vector3.up * 1.25f, target);
+            // The six slots span the full board width. Keep the whole puzzle
+            // in frame at the repeatable QA angle, including the two edge
+            // labels, instead of producing a misleading clipped screenshot.
+            Place(camera, target + readableSide * 13.2f + Vector3.up * 1.25f, target);
         }
 
         private static void PositionBriefing(Camera camera)
@@ -101,6 +115,27 @@ namespace Cyverse.Testing
             }
             if (ChainOfCustodyForm.Instance != null)
                 ChainOfCustodyForm.Instance.Open();
+        }
+
+        private static void PositionForensicsOverview(Camera camera)
+        {
+            ForensicsConsole console = FindObjectOfType<ForensicsConsole>();
+            if (console == null) return;
+            Vector3 target = console.transform.position + Vector3.up * 1.25f;
+            // The monitor faces the same -forward side as the other stations;
+            // approach from the playable aisle so the console screens, not
+            // their backs, are what the deterministic QA frame evaluates.
+            Place(camera, target - console.transform.forward * 6.8f + Vector3.up * 1.1f, target);
+        }
+
+        private static void PositionForensicsReport(Camera camera)
+        {
+            GameObject report = GameObject.Find("DF_ReportMonitor");
+            if (report == null) { PositionForensicsOverview(camera); return; }
+            Vector3 target = report.transform.position + Vector3.up * 0.08f;
+            // This is a monitor-readability check, so keep foreground plants
+            // and the desk edge from consuming most of the deterministic frame.
+            Place(camera, target + new Vector3(0f, 0.30f, -3.7f), target);
         }
 
         private static void Place(Camera camera, Vector3 position, Vector3 target)

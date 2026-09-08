@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Core;
@@ -53,6 +52,7 @@ namespace Cyverse.Forensics
         private TMP_Text feedback;
         private Button submitButton;
         private bool open;
+        private ModalSession.Lease modal;
 
         private static readonly Color Green = new Color(0.30f, 1f, 0.55f);
         private static readonly Color Gold = new Color(0.90f, 0.66f, 0.14f);
@@ -66,6 +66,7 @@ namespace Cyverse.Forensics
 
         private void OnDestroy()
         {
+            modal?.Close();
             if (Instance == this) Instance = null;
         }
 
@@ -79,14 +80,13 @@ namespace Cyverse.Forensics
 
         public void Open()
         {
-            if (open || GameState.AnyMenuOpen) return;
+            if (open) return;
             if (card == null) Build();
             if (card == null) return;
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.Quiz,
+                out modal, releaseCursor: true)) return;
 
             open = true;
-            GameState.QuizActive = true;
-            GameState.MenuTransitionFrame = Time.frameCount;
-            FirstPersonController.LockCursor(false);
             card.SetActive(true);
             Refresh();
         }
@@ -102,15 +102,14 @@ namespace Cyverse.Forensics
             CloseDropdown();
             open = false;
             if (card != null) card.SetActive(false);
-            GameState.QuizActive = false;
-            GameState.MenuTransitionFrame = Time.frameCount;
-            FirstPersonController.LockCursor(true);
+            modal?.Close();
+            modal = null;
         }
 
         private void Build()
         {
             if (HudUI.Instance == null) return;
-            EnsureEventSystem();
+            ModalSession.EnsureEventSystem();
             ConfigureFields();
 
             card = new GameObject("ChainOfCustodyForm", typeof(RectTransform), typeof(Image));
@@ -325,13 +324,6 @@ namespace Cyverse.Forensics
             if (open) Close();
         }
 #endif
-
-        private static void EnsureEventSystem()
-        {
-            if (EventSystem.current != null) return;
-            GameObject events = new GameObject("UIEventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-            DontDestroyOnLoad(events);
-        }
 
         private static Button MakeButton(string name, Transform parent, string label, Color background, Color foreground)
         {

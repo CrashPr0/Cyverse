@@ -119,6 +119,7 @@ namespace Cyverse.Interaction
                 label.text = text;
                 label.color = color;
                 label.characterSize = size;
+                FitLabelToWidth(label, zone.transform.right, SlotSpacing * 0.82f, size);
                 return;
             }
 
@@ -188,9 +189,10 @@ namespace Cyverse.Interaction
                 card.transform.rotation = rack.transform.rotation;
                 foreach (TextMesh label in card.GetComponentsInChildren<TextMesh>(true))
                 {
-                    label.characterSize = 0.018f;
                     label.transform.localPosition = new Vector3(
                         0f, 0.68f, label.transform.localPosition.z);
+                    FitLabelToWidth(label, rack.transform.right,
+                        CardSpacing * 0.78f, 0.018f);
                 }
                 card.gate = gate;
                 card.gateMessage = gateMessage;
@@ -218,6 +220,22 @@ namespace Cyverse.Interaction
             Transform backboard = transform.Find("Backboard");
             if (backboard != null)
                 backboard.localScale = new Vector3(14f, backboard.localScale.y, backboard.localScale.z);
+
+            Transform title = transform.Find("Sign_IR_PLAYBOOK");
+            if (title != null)
+            {
+                // This is a board heading, not distant wayfinding. Pinning it
+                // to the board stops overlap deconfliction from dimming the
+                // task name against its own instruction and guide rows.
+                Billboard titleBillboard = title.GetComponent<Billboard>();
+                if (titleBillboard != null) titleBillboard.enabled = false;
+                WorldTextLayoutIntent.Configure(title.gameObject,
+                    WorldTextLayoutIntent.Mode.Mounted, 200);
+                SignFX titleMotion = title.GetComponent<SignFX>();
+                if (titleMotion != null) titleMotion.enabled = false;
+                title.localPosition = new Vector3(0f, 3.1f, 0f);
+                title.localRotation = Quaternion.identity;
+            }
 
             TextMesh instruction = null;
             foreach (TextMesh label in GetComponentsInChildren<TextMesh>(true))
@@ -294,13 +312,32 @@ namespace Cyverse.Interaction
                     card.transform.localScale = Vector3.one;
                     foreach (TextMesh label in card.GetComponentsInChildren<TextMesh>(true))
                     {
-                        label.characterSize = 0.018f;
                         label.transform.localPosition = new Vector3(
                             0f, 0.68f, label.transform.localPosition.z);
+                        FitLabelToWidth(label, rack.transform.right,
+                            CardSpacing * 0.78f, 0.018f);
                     }
                     break;
                 }
             }
+        }
+
+        /// <summary>Keep long response-step names inside their assigned card
+        /// or slot width. Resetting to the preferred size first means a short
+        /// label does not inherit a previous long label's shrink factor.</summary>
+        private static void FitLabelToWidth(TextMesh label, Vector3 widthAxis,
+            float allowedWidth, float preferredSize)
+        {
+            if (label == null) return;
+            label.characterSize = preferredSize;
+            Renderer renderer = label.GetComponent<Renderer>();
+            if (renderer == null) return;
+
+            widthAxis = new Vector3(Mathf.Abs(widthAxis.x), Mathf.Abs(widthAxis.y),
+                Mathf.Abs(widthAxis.z));
+            float width = 2f * Vector3.Dot(renderer.bounds.extents, widthAxis);
+            if (width > allowedWidth && width > 0.001f)
+                label.characterSize *= allowedWidth / width;
         }
 
         private static int StepNumber(DropZone zone) =>

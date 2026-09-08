@@ -43,48 +43,8 @@ namespace Cyverse.Level
         /// visual-pass scene is deserialized.</summary>
         public static void WireTaskRoom()
         {
-            var siem = Object.FindObjectOfType<SiemConsole>();
-            if (siem != null) siem.Configure(Level2Content.SocScenarios());
-
-            // Visual-pass scenes may still contain the original five EDR
-            // desks. Reuse the first four as WS-01..WS-04 and hide the spare.
-            var endpoints = Object.FindObjectsOfType<EndpointStation>();
-            System.Array.Sort(endpoints, (a, b) =>
-                a.transform.position.z.CompareTo(b.transform.position.z));
-            var definitions = Level2Content.Endpoints();
-            for (int i = 0; i < endpoints.Length; i++)
-            {
-                if (i < definitions.Length)
-                {
-                    // Keep verification near the Alert Board without putting
-                    // a desk barricade across the center of the SOC floor.
-                    endpoints[i].transform.SetPositionAndRotation(
-                        new Vector3(-17f, 0f, 4.5f + i * 3f),
-                        Quaternion.Euler(0f, -90f, 0f));
-                    endpoints[i].ConfigureSoc(definitions[i], siem);
-                }
-                else endpoints[i].gameObject.SetActive(false);
-            }
-            if (siem != null) siem.Configure(Level2Content.SocScenarios());
-
-            var fleet = Object.FindObjectOfType<EdrFleet>();
-            if (fleet != null) fleet.enabled = false;
-
-            var playbook = Object.FindObjectOfType<PlaybookStation>();
-            if (playbook != null)
-            {
-                // Keep the entrance sightline open: mount the complete puzzle
-                // on the east/right wall and face its readable side west.
-                playbook.Place(new Vector3(17f, 0f, 12f), 90f);
-                playbook.Configure();
-            }
-
-            var exam = Object.FindObjectOfType<CertExamStation>();
-            if (exam != null) exam.Configure(Level2Content.ExamQuestions());
-
             GameObject systems = GameObject.Find("GameSystems");
-            if (systems == null) systems = new GameObject("Level2RuntimePolish");
-            Level2SocPolish.Ensure(systems);
+            Level2SceneRealization.Realize(systems);
         }
 
         public static void BuildDivider()

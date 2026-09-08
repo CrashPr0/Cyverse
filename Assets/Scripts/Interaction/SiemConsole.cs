@@ -32,6 +32,7 @@ namespace Cyverse.Interaction
         private TextMeshProUGUI headerText, bodyText, feedbackText, controlsText;
         private int openedFrame;
         private SocEvidenceRecord pendingEvidence;
+        private ModalSession.Lease modal;
 
         private TextMesh worldHeader, worldBody, worldHint;
         private Renderer screenRenderer;
@@ -45,13 +46,14 @@ namespace Cyverse.Interaction
                 ? scenarios[scenarioIndex] : null;
 
         public bool CanInteract => !IsComplete && mode == PanelMode.Closed;
-        public string Prompt => flaggedRow >= 0 && ActiveScenario != null
+        public string Prompt => flaggedRow >= 0 && ActiveScenario != null &&
+            ActiveScenario.rows != null && flaggedRow < ActiveScenario.rows.Length
             ? $"Review Alert Board  (flagged {ActiveScenario.rows[flaggedRow].computer})"
             : "Review the active SOC alert";
 
         public void Configure(Level2Content.SocScenario[] content)
         {
-            scenarios = content;
+            scenarios = content ?? new Level2Content.SocScenario[0];
             scenarioIndex = Mathf.Clamp(scenarioIndex, 0, Mathf.Max(0, ScenarioCount - 1));
             EnsureInteractionCollider();
             ResolveWorldReferences();
@@ -85,9 +87,15 @@ namespace Cyverse.Interaction
         public void Investigate(string computer)
         {
             if (IsComplete || ActiveScenario == null) return;
-            if (flaggedRow < 0)
+            if (ActiveScenario.rows == null || flaggedRow < 0)
             {
                 Toast("Flag a row on the Alert Board first.", false);
+                return;
+            }
+            if (flaggedRow >= ActiveScenario.rows.Length)
+            {
+                flaggedRow = -1;
+                Toast("The alert board was refreshed. Flag a row again.", false);
                 return;
             }
 
@@ -157,10 +165,10 @@ namespace Cyverse.Interaction
         private void OpenAlertBoard(string hint = "")
         {
             EnsurePanel();
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.SocInvestigation,
+                out modal, releaseCursor: true)) return;
             mode = PanelMode.AlertBoard;
             openedFrame = Time.frameCount;
-            GameState.SocInvestigationOpen = true;
-            FirstPersonController.LockCursor(false);
             panel.SetActive(true);
             RenderAlertBoard(hint);
         }
@@ -194,20 +202,23 @@ namespace Cyverse.Interaction
         private void OpenVerification()
         {
             EnsurePanel();
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.SocInvestigation,
+                out modal, releaseCursor: true)) return;
             mode = PanelMode.Verification;
             openedFrame = Time.frameCount;
-            GameState.SocInvestigationOpen = true;
-            FirstPersonController.LockCursor(false);
             panel.SetActive(true);
 
             var row = ActiveScenario.rows[flaggedRow];
             var view = ActiveScenario.Workstation(row.computer);
+            string[] lines = view != null && view.lines != null && view.lines.Length >= 2
+                ? view.lines
+                : new[] { "No live workstation details available", "Recheck the flagged computer" };
             headerText.text = "WORKSTATION VERIFICATION  ·  " + row.computer;
             bodyText.text =
                 "<color=#5BD9FF><b>FLAGGED ALERT ROW</b></color>\n" +
                 $"TIME       {row.time}\nCOMPUTER   {row.computer}\nUSER       {row.user}\nACTIVITY   {row.activity}\n\n" +
                 "<color=#5BD9FF><b>LIVE WORKSTATION ACTIVITY</b></color>\n" +
-                $"> {view.lines[0]}\n> {view.lines[1]}";
+                $"> {lines[0]}\n> {lines[1]}";
             feedbackText.text = "Does the flagged activity match what is visibly running here?";
             controlsText.text = "[1] MATCH — BENIGN POSITIVE     ·     [2] NO MATCH — POSSIBLE TRUE POSITIVE     ·     ESC CLOSE";
         }
@@ -282,6 +293,12 @@ namespace Cyverse.Interaction
 
         private void ConfirmAndCollect()
         {
+            if (pendingEvidence == null)
+            {
+                ClosePanel();
+                Toast("Evidence record unavailable — review the alert again.", false);
+                return;
+            }
             SocProgress.StoreEvidence(pendingEvidence);
             IsComplete = true;
             ClosePanel();
@@ -301,9 +318,14 @@ namespace Cyverse.Interaction
         private void ClosePanel()
         {
             mode = PanelMode.Closed;
-            GameState.SocInvestigationOpen = false;
             if (panel != null) panel.SetActive(false);
-            FirstPersonController.LockCursor(true);
+            modal?.Close();
+            modal = null;
+        }
+
+        private void OnDestroy()
+        {
+            modal?.Close();
         }
 
         private void EnsurePanel()

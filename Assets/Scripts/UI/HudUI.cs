@@ -269,16 +269,22 @@ namespace Cyverse.UI
         public void ShowObjective(string text)
         {
             PinObjectiveToTop();
-            bool changed = objectiveRawText != text && !string.IsNullOrEmpty(objectiveRawText);
+            bool hadObjective = !string.IsNullOrEmpty(objectiveRawText);
+            bool changed = objectiveRawText != text && hadObjective;
             objectiveRawText = text ?? string.Empty;
 
             string display = objectiveRawText.StartsWith("Objective: ")
                 ? objectiveRawText.Substring("Objective: ".Length)
                 : objectiveRawText;
             bool complete = display.Contains("COMPLETE");
-            objectiveKicker.text = complete ? "✓  MISSION UPDATE" : "▶  NEXT TASK";
+            // Keep HUD markers in the ASCII subset so WebGL does not replace
+            // arrows/checks with tofu squares when no fallback font exists.
+            objectiveKicker.text = complete ? "[OK]  MISSION UPDATE" : ">  NEXT TASK";
             objectiveKicker.color = complete ? new Color(0.30f, 1f, 0.55f) : GuideGold;
             objectiveText.text = display;
+
+            if (changed || !hadObjective)
+                PlaytestMetrics.RecordObjective(display);
 
             if (changed)
             {
@@ -377,7 +383,7 @@ namespace Cyverse.UI
             objectiveKicker = CreateText("NextTaskLabel", objectivePanel.transform, 15, TextAnchor.UpperLeft);
             objectiveKicker.fontStyle = FontStyle.Bold;
             objectiveKicker.color = GuideGold;
-            objectiveKicker.text = "▶  NEXT TASK";
+            objectiveKicker.text = ">  NEXT TASK";
             var kickerRt = objectiveKicker.rectTransform;
             kickerRt.anchorMin = new Vector2(0f, 1f);
             kickerRt.anchorMax = new Vector2(1f, 1f);
@@ -543,10 +549,12 @@ namespace Cyverse.UI
             var container = new GameObject("InteractPrompt", typeof(RectTransform), typeof(CanvasGroup));
             container.transform.SetParent(Canvas.transform, false);
             interactRect = container.GetComponent<RectTransform>();
-            interactRect.anchorMin = new Vector2(0.5f, 0.5f);
-            interactRect.anchorMax = new Vector2(0.5f, 0.5f);
-            interactRect.pivot = new Vector2(0.5f, 0.5f);
-            interactRect.anchoredPosition = new Vector2(0, -120);
+            // A bottom-relative lane stays clear of world-space monitor copy
+            // even when the WebGL canvas is short or not maximized.
+            interactRect.anchorMin = new Vector2(0.5f, 0f);
+            interactRect.anchorMax = new Vector2(0.5f, 0f);
+            interactRect.pivot = new Vector2(0.5f, 0f);
+            interactRect.anchoredPosition = new Vector2(0, 28f);
             interactRect.sizeDelta = new Vector2(420, 72);
 
             interactGroup = container.GetComponent<CanvasGroup>();

@@ -233,8 +233,11 @@ namespace Cyverse.Interaction
                     BuildKit.MakeEmissive(accent, 1.6f), collider: false);
             }
 
-            BuildKit.MakeLabel(root.transform, new Vector3(0f, token ? 0.55f : 0.85f, 0f),
+            TextMesh label = BuildKit.MakeLabel(root.transform,
+                new Vector3(0f, token ? 0.55f : 0.85f, 0f),
                 itemName, accent, 0.022f, billboard: true);
+            WorldTextLayoutIntent.Configure(label.gameObject,
+                WorldTextLayoutIntent.Mode.InteractionCritical, 400);
 
             // Aim helper, same reason as DropZone. It's captured by the
             // collider list below, so it's disabled while carried and can't

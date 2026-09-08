@@ -1,5 +1,6 @@
 using System;
 using Cyverse.Interaction;
+using Cyverse.Level;
 
 namespace Cyverse.Forensics
 {
@@ -89,13 +90,19 @@ namespace Cyverse.Forensics
 
         // ---- Level 3 content --------------------------------------------------
 
-        public static InvestigationCase SpartanGold() => new InvestigationCase(
-            "CASE: SPARTAN GOLD",
-            new[]
-            {
+        public static InvestigationCase SpartanGold()
+        {
+            var roster = ScenarioRoster.Current;
+            string evidenceComputer = SocProgress.TryGetEvidence(out var evidence)
+                ? evidence.computer
+                : "WS-03";
+            return new InvestigationCase(
+                "CASE: SPARTAN GOLD",
+                new[]
+                {
                 new CaseQuestion(
                     "Validate the SOC handoff before analysis. Which COMPUTER'S disk image is mounted in EvidenceManifest?",
-                    new[] { "WS-03", "ws03" },
+                    new[] { evidenceComputer, evidenceComputer.Replace("-", "") },
                     "The EvidenceManifest table is the chain-of-custody bridge from the SOC room.",
                     "EvidenceManifest | project computer"),
                 new CaseQuestion(
@@ -119,8 +126,8 @@ namespace Cyverse.Forensics
                     "Look at processes whose parent_process is chrome.exe — browsers download things; they shouldn't launch strange executables.",
                     "ProcessEvents | where parent_process == \"chrome.exe\""),
                 new CaseQuestion(
-                    "Which EMPLOYEE's machine ran gold_claim.exe? Give their name.",
-                    new[] { "devon.james", "devon james", "devon.james@cyverse.edu" },
+                    $"Which EMPLOYEE's machine ran gold_claim.exe? Give their name.",
+                    new[] { roster.payloadEmployee, roster.payloadEmployee.Replace('.', ' '), roster.payloadEmail },
                     "Find the hostname in ProcessEvents, then look that hostname up in Employees.",
                     "ProcessEvents | where process_name == \"gold_claim.exe\""),
                 new CaseQuestion(
@@ -133,20 +140,24 @@ namespace Cyverse.Forensics
                     new[] { "gold-updates.net" },
                     "Filter DnsLookups by the resolved_ip you just found and see what else is there.",
                     "DnsLookups | where resolved_ip == \"45.133.7.22\""),
-            });
+                });
+        }
 
         /// <summary>
         /// "Case: Midnight Exfil" — the follow-up insider-threat case. Requires
         /// the analytics operators (summarize / sort): the anomaly hides in
         /// aggregates, not in any single row. New tables: LogonEvents, FileAccess.
         /// </summary>
-        public static InvestigationCase MidnightExfil() => new InvestigationCase(
-            "CASE 2: MIDNIGHT EXFIL",
-            new[]
-            {
+        public static InvestigationCase MidnightExfil()
+        {
+            var roster = ScenarioRoster.Current;
+            return new InvestigationCase(
+                "CASE 2: MIDNIGHT EXFIL",
+                new[]
+                {
                 new CaseQuestion(
                     "New case. The SIEM flagged unusual account activity on 07-15. Which employee has the MOST logon events? (summarize is your friend.)",
-                    new[] { "drew.patel", "drew patel", "drew.patel@cyverse.edu" },
+                    new[] { roster.insiderEmployee, roster.insiderEmployee.Replace('.', ' '), roster.insiderEmail },
                     "Group the LogonEvents by employee and count each group — the biggest group is your answer.",
                     "LogonEvents | summarize count by employee", 140),
                 new CaseQuestion(
@@ -161,20 +172,21 @@ namespace Cyverse.Forensics
                     "FileAccess | where action == \"copy_to_usb\" | count", 140),
                 new CaseQuestion(
                     "Confirm the insider: who performed ALL of those USB copies?",
-                    new[] { "drew.patel", "drew patel", "drew.patel@cyverse.edu" },
+                    new[] { roster.insiderEmployee, roster.insiderEmployee.Replace('.', ' '), roster.insiderEmail },
                     "Same filter, but look at the employee column — distinct makes it unambiguous.",
                     "FileAccess | where action == \"copy_to_usb\" | distinct employee", 140),
                 new CaseQuestion(
                     "Which WORKSTATION did the insider use? (Pivot back through LogonEvents.)",
-                    new[] { "WS-DPATEL", "ws-dpatel" },
+                    new[] { roster.insiderHostname, roster.insiderHostname.ToLowerInvariant() },
                     "Filter LogonEvents by the employee you identified and read the workstation column.",
-                    "LogonEvents | where employee == \"drew.patel\"", 140),
+                    $"LogonEvents | where employee == \"{roster.insiderEmployee}\"", 140),
                 new CaseQuestion(
                     "For the HR report: what is the exact TIMESTAMP of the FIRST file copied to USB?",
                     new[] { "07-15 23:52", "23:52" },
                     "Filter the USB copies and sort by timestamp ascending — the first row is your answer.",
                     "FileAccess | where action == \"copy_to_usb\" | sort by timestamp", 140),
-            });
+                });
+        }
 
         /// <summary>Video-room briefing: teaches just enough query syntax.</summary>
         public static VideoStation.Slide[] BriefingSlides() => new[]

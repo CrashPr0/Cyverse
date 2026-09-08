@@ -124,6 +124,9 @@ namespace Cyverse.Level
 
             var gate = root.AddComponent<Level1Gate>();
             gate.gateLight = l;
+            // Keep the generated console aimable immediately; Level1Gate also
+            // repairs saved visual-pass scenes in Start().
+            BuildKit.AddAimCollider(root, height: 3.4f, width: 1.8f);
             return root;
         }
 

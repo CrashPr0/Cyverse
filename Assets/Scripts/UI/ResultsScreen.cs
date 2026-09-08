@@ -104,6 +104,8 @@ namespace Cyverse.UI
             }
             bodyText.text = sb.ToString();
 
+            PlaytestMetrics.RecordResult(headerText, score, quizCorrect, quizTotal, seconds);
+
             card.SetActive(true);
             shown = true;
         }

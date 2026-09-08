@@ -35,4 +35,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Level3_Forensics.unity
     guid: a1f0c0de000000000000000000000128
+  - enabled: 1
+    path: Assets/Scenes/Level4_CyberAttack.unity
+    guid: a4e8c2f6b1d94730a9e5c7f2b6d10384
   m_configObjects: {}

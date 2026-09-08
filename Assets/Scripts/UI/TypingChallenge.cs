@@ -10,8 +10,8 @@ namespace Cyverse.UI
     /// <summary>
     /// A modal typed-answer card ("enter the passcode"), styled like the quiz
     /// card and following the one-menu-at-a-time standard: it owns the screen
-    /// via GameState.QuizActive, refuses to open over another menu, and stamps
-    /// MenuTransitionFrame on open/close so its Esc can't leak into settings.
+    /// via ModalSession, refuses to open over another menu, and suppresses the
+    /// transition frame so its Esc cannot leak into settings.
     /// Case-insensitive comparison; Enter submits, Esc steps away (failure).
     /// </summary>
     public class TypingChallenge : MonoBehaviour
@@ -25,6 +25,7 @@ namespace Cyverse.UI
         private string answer, typed = "";
         private Action<bool> onDone;
         private bool open, closing;
+        private ModalSession.Lease modal;
 
         void Awake()
         {
@@ -36,16 +37,19 @@ namespace Cyverse.UI
         /// if the player steps away (Esc) — wrong entries just retry.</summary>
         public void Show(string header, string body, string expectedAnswer, Action<bool> done)
         {
-            if (open || GameState.AnyMenuOpen) { done?.Invoke(false); return; }
+            if (open) { done?.Invoke(false); return; }
             if (card == null) Build();
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.Quiz, out modal))
+            {
+                done?.Invoke(false);
+                return;
+            }
 
             answer = expectedAnswer;
             onDone = done;
             typed = "";
             open = true;
             closing = false;
-            GameState.QuizActive = true;
-            GameState.MenuTransitionFrame = Time.frameCount;
 
             headerText.text = header;
             bodyText.text = body;
@@ -109,11 +113,16 @@ namespace Cyverse.UI
             open = false;
             closing = false;
             card.SetActive(false);
-            GameState.QuizActive = false;
-            GameState.MenuTransitionFrame = Time.frameCount;
+            modal?.Close();
+            modal = null;
             var cb = onDone;
             onDone = null;
             cb?.Invoke(success);
+        }
+
+        private void OnDestroy()
+        {
+            modal?.Close();
         }
 
         private void RefreshInput()

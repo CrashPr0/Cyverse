@@ -1,6 +1,8 @@
 {
   "name": "Cyverse.PlayModeTests",
-  "references": [],
+  "references": [
+    "Unity.TextMeshPro"
+  ],
   "optionalUnityReferences": [
     "TestAssemblies"
   ],

@@ -41,6 +41,7 @@ namespace Cyverse.UI
         private bool awaitingInput;
 
         private int sessionAttempted, sessionCorrect;
+        private ModalSession.Lease modal;
 
         void Awake()
         {
@@ -50,12 +51,11 @@ namespace Cyverse.UI
 
         public void Open()
         {
-            if (open || GameState.AnyMenuOpen) return;
+            if (open) return;
             if (card == null) Build();
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.Quiz, out modal)) return;
 
             open = true;
-            GameState.QuizActive = true;
-            GameState.MenuTransitionFrame = Time.frameCount;
             sessionAttempted = 0;
             sessionCorrect = 0;
             ShowRoles();
@@ -66,8 +66,8 @@ namespace Cyverse.UI
         {
             open = false;
             card.SetActive(false);
-            GameState.QuizActive = false;
-            GameState.MenuTransitionFrame = Time.frameCount;
+            modal?.Close();
+            modal = null;
         }
 
         void Update()
@@ -79,7 +79,7 @@ namespace Cyverse.UI
             {
                 if (screen == Screen.Question)
                 {
-                    GameState.MenuTransitionFrame = Time.frameCount;
+                    modal?.MarkTransition();
                     ShowRoles();
                 }
                 else Close();
@@ -88,6 +88,11 @@ namespace Cyverse.UI
 
             if (screen == Screen.Roles) HandleRolesInput();
             else if (screen == Screen.Question && awaitingInput) HandleQuestionInput();
+        }
+
+        private void OnDestroy()
+        {
+            modal?.Close();
         }
 
         // ---- Role select -------------------------------------------------------

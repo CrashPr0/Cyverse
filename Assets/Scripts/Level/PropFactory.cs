@@ -409,6 +409,7 @@ namespace Cyverse.Level
             tm.alignment = anchor == TextAnchor.MiddleLeft ? TextAlignment.Left : TextAlignment.Center;
             tm.color = color;
             go.GetComponent<MeshRenderer>().sharedMaterial = BuildKit.TextMaterial();
+            WorldTextLayoutIntent.Configure(go, WorldTextLayoutIntent.Mode.Mounted);
             return tm;
         }
 

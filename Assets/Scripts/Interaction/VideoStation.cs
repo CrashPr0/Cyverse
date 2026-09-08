@@ -62,6 +62,7 @@ namespace Cyverse.Interaction
         private VideoPlayer vp;
         private bool useVideo;
         private bool playing;
+        private bool controlsRevealed;
         private float time;    // slides mode clock
         private int lastSlide = -1;
 
@@ -70,6 +71,10 @@ namespace Cyverse.Interaction
             ResolveVisualReferences();
             UpgradeLegacyText();
             NormalizeLayout();
+            // Visual-pass briefing screens have a collider-free Quad. Keep a
+            // broad, non-blocking target on the station root so the player
+            // can aim at the screen instead of its thin frame.
+            BuildKit.EnsureAimCollider(gameObject, height: 3.4f, width: 4.6f);
         }
 
         void OnValidate()
@@ -153,12 +158,12 @@ namespace Cyverse.Interaction
             {
                 // Forward of the frame and central stand, preventing the
                 // tracker from disappearing into either surface.
-                track.localPosition = new Vector3(0f, 1.05f, -0.24f);
+                track.localPosition = new Vector3(0f, 0.86f, -0.24f);
                 track.localScale = new Vector3(4f, 0.055f, 0.025f);
             }
             if (barFill != null)
             {
-                barFill.localPosition = new Vector3(-2f, 1.05f, -0.27f);
+                barFill.localPosition = new Vector3(-2f, 0.86f, -0.27f);
                 Transform fill = barFill.Find("BarFill");
                 if (fill != null)
                 {
@@ -170,14 +175,38 @@ namespace Cyverse.Interaction
             Transform legacyControls = transform.Find("PanelLabel");
             if (legacyControls != null)
             {
-                legacyControls.localPosition = new Vector3(0f, 0.28f, -0.30f);
+                legacyControls.localPosition = new Vector3(0f, 0.55f, -0.30f);
                 TextMesh tm = legacyControls.GetComponent<TextMesh>();
                 if (tm != null) tm.characterSize = 0.020f;
             }
-            if (controlsText != null) controlsText.transform.localPosition = new Vector3(0f, 0.28f, -0.30f);
-            if (titleText != null) titleText.transform.localPosition = new Vector3(0f, 2.92f, -0.20f);
+            if (controlsText != null)
+            {
+                controlsText.transform.localPosition = new Vector3(0f, 0.55f, -0.30f);
+                ConfigureTextBand(controlsText, new Vector2(3.8f, 0.34f), 23f, 16f);
+            }
+            if (titleText != null)
+            {
+                titleText.transform.localPosition = new Vector3(0f, 2.90f, -0.20f);
+                ConfigureTextBand(titleText, new Vector2(3.78f, 0.66f), 34f, 18f);
+            }
             if (bodyText != null)
-                bodyText.transform.localPosition = new Vector3(0f, 2.08f, -0.20f);
+            {
+                bodyText.transform.localPosition = new Vector3(0f, 1.82f, -0.20f);
+                ConfigureTextBand(bodyText, new Vector2(3.68f, 1.34f), 26f, 16f);
+            }
+        }
+
+        private static void ConfigureTextBand(TextMeshPro text, Vector2 worldBounds,
+            float maximumSize, float minimumSize)
+        {
+            if (text == null) return;
+            text.enableWordWrapping = true;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = minimumSize;
+            text.fontSizeMax = maximumSize;
+            text.overflowMode = TextOverflowModes.Truncate;
+            text.extraPadding = true;
+            text.rectTransform.sizeDelta = worldBounds * 10f;
         }
 
         public string Prompt => playing ? "Pause Briefing"
@@ -232,6 +261,7 @@ namespace Cyverse.Interaction
         public void Interact(GameObject interactor)
         {
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+            controlsRevealed = true;
 
             if (playing) { SetPlaying(false); return; }
             if (AtEnd) Seek(0f);
@@ -309,6 +339,16 @@ namespace Cyverse.Interaction
 
         private void RefreshScreen()
         {
+            if (controlsText != null)
+            {
+                // The HUD already tells a first-time player how to start. Keep
+                // the detailed playback controls hidden until playback has
+                // actually been used, avoiding two prompts in the same lane.
+                bool showControls = controlsRevealed || playing || HasCompletedOnce;
+                if (controlsText.gameObject.activeSelf != showControls)
+                    controlsText.gameObject.SetActive(showControls);
+            }
+
             if (barFill != null)
             {
                 var s = barFill.localScale;
@@ -359,22 +399,22 @@ namespace Cyverse.Interaction
                 new Vector3(0f, 2.15f, -0.11f), new Vector3(4.0f, 2.2f, 1f),
                 BuildKit.MakeStandard(new Color(0.02f, 0.03f, 0.05f), 0.2f, 0f), false);
 
-            var title = MakeTmp(root.transform, "TitleText", new Vector3(0f, 2.92f, -0.20f),
-                new Vector2(3.75f, 0.58f), 38f, 20f, true, accent, "");
-            var body = MakeTmp(root.transform, "BodyText", new Vector3(0f, 2.08f, -0.20f),
-                new Vector2(3.60f, 1.30f), 29f, 18f, false, new Color(0.92f, 0.96f, 1f), "");
+            var title = MakeTmp(root.transform, "TitleText", new Vector3(0f, 2.90f, -0.20f),
+                new Vector2(3.78f, 0.66f), 34f, 18f, true, accent, "");
+            var body = MakeTmp(root.transform, "BodyText", new Vector3(0f, 1.82f, -0.20f),
+                new Vector2(3.68f, 1.34f), 26f, 16f, false, new Color(0.92f, 0.96f, 1f), "");
 
             Child(root.transform, PrimitiveType.Cube, "BarTrack",
-                new Vector3(0f, 1.05f, -0.24f), new Vector3(4.0f, 0.055f, 0.025f),
+                new Vector3(0f, 0.86f, -0.24f), new Vector3(4.0f, 0.055f, 0.025f),
                 BuildKit.MakeStandard(new Color(0.15f, 0.17f, 0.22f), 0.3f, 0f), false);
 
             var fill = Child(root.transform, PrimitiveType.Cube, "BarFill",
-                new Vector3(-2.0f, 1.05f, -0.27f), new Vector3(4.0f, 0.04f, 0.025f),
+                new Vector3(-2.0f, 0.86f, -0.27f), new Vector3(4.0f, 0.04f, 0.025f),
                 BuildKit.MakeEmissive(accent, 2f), false);
             // Pivot the fill from the left edge so localScale.x = progress.
             var pivot = new GameObject("BarFillPivot").transform;
             pivot.SetParent(root.transform, false);
-            pivot.localPosition = new Vector3(-2.0f, 1.05f, -0.27f);
+            pivot.localPosition = new Vector3(-2.0f, 0.86f, -0.27f);
             fill.transform.SetParent(pivot, true);
             fill.transform.localPosition = new Vector3(2.0f, 0f, 0f);
             var fs = pivot.localScale; fs.x = 0f; pivot.localScale = fs;
@@ -392,7 +432,7 @@ namespace Cyverse.Interaction
 
             BuildKit.MakeSign(root.transform, position + new Vector3(0f, 3.9f, 0f),
                 "SECURITY BRIEFING", accent, 0.035f);
-            var controls = MakeTmp(root.transform, "ControlsText", new Vector3(0f, 0.28f, -0.30f),
+            var controls = MakeTmp(root.transform, "ControlsText", new Vector3(0f, 0.55f, -0.30f),
                 new Vector2(3.8f, 0.34f), 24f, 16f, false, new Color(0.95f, 0.98f, 1f),
                 "E play/pause  ·  ←/→ scrub");
 
@@ -440,6 +480,7 @@ namespace Cyverse.Interaction
             tmp.fontSizeMax = maxSize;
             tmp.overflowMode = TextOverflowModes.Truncate;
             tmp.rectTransform.sizeDelta = worldBounds * 10f;
+            WorldTextLayoutIntent.Configure(go, WorldTextLayoutIntent.Mode.Mounted);
             return tmp;
         }
     }

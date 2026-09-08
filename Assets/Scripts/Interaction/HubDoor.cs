@@ -188,6 +188,7 @@ namespace Cyverse.Interaction
             tm.alignment = TextAlignment.Center;
             tm.color = new Color(1f, 1f, 1f, 0.9f);
             statusGo.GetComponent<MeshRenderer>().sharedMaterial = BuildKit.TextMaterial();
+            WorldTextLayoutIntent.Configure(statusGo, WorldTextLayoutIntent.Mode.Mounted);
             door.statusText = tm;
 
             return door;

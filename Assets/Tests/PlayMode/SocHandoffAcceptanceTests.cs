@@ -15,6 +15,7 @@ namespace Cyverse.Tests
         private readonly string[] intKeys =
         {
             "cv_done_2",
+            "cv_done_3",
             "cv_soc_compromised_computer",
             "cv_soc_chain_of_custody",
             "cv_soc_playbook_solved",
@@ -238,6 +239,109 @@ namespace Cyverse.Tests
             Type gameState = FindType("Cyverse.Core.GameState");
             Assert.That((bool)gameState.GetField("QuizActive").GetValue(null), Is.True,
                 "Completing custody should unlock the forensic query terminal.");
+
+            Type terminalType = FindType("Cyverse.Forensics.QueryTerminal");
+            object terminal = UnityEngine.Object.FindObjectOfType(terminalType);
+            terminalType.GetMethod("Close", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(terminal, null);
+        }
+
+        [UnityTest]
+        public IEnumerator ForensicsEndFlow_RequiresExplicitReportSubmission()
+        {
+            StoreTestEvidence();
+            SceneManager.LoadScene("Level3_Forensics", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Type managerType = FindType("Cyverse.Level.Level3ForensicsManager");
+            Type briefingType = FindType("Cyverse.Interaction.VideoStation");
+            Type formType = FindType("Cyverse.Forensics.ChainOfCustodyForm");
+            Type consoleType = FindType("Cyverse.Interaction.ForensicsConsole");
+            Type reportType = FindType("Cyverse.Interaction.ForensicsReportStation");
+            Type gameState = FindType("Cyverse.Core.GameState");
+
+            object manager = UnityEngine.Object.FindObjectOfType(managerType);
+            object briefing = UnityEngine.Object.FindObjectOfType(briefingType);
+            object form = UnityEngine.Object.FindObjectOfType(formType);
+            object console = UnityEngine.Object.FindObjectOfType(consoleType);
+            object report = UnityEngine.Object.FindObjectOfType(reportType);
+            Assert.That(manager, Is.Not.Null);
+            Assert.That(briefing, Is.Not.Null);
+            Assert.That(form, Is.Not.Null);
+            Assert.That(console, Is.Not.Null);
+            Assert.That(report, Is.Not.Null, "The visible report desk must be mechanically usable.");
+
+            Component reportComponent = (Component)report;
+            BoxCollider aim = reportComponent.GetComponent<BoxCollider>();
+            Assert.That(aim, Is.Not.Null);
+            Assert.That(aim.isTrigger, Is.True, "The report aim target must not block player movement.");
+
+            briefingType.GetMethod("CompleteForAutomation").Invoke(briefing, null);
+            formType.GetMethod("CompleteForAutomation").Invoke(form, null);
+            consoleType.GetMethod("CompleteForAutomation").Invoke(console, null);
+            yield return null;
+
+            Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(),
+                Is.EqualTo("Report"));
+            Assert.That((bool)managerType.GetProperty("ReportReady").GetValue(manager), Is.True);
+            Assert.That((bool)managerType.GetProperty("ReportSubmitted").GetValue(manager), Is.False);
+            Assert.That((bool)gameState.GetField("LevelComplete").GetValue(null), Is.False,
+                "Closing the terminal cases must not bypass the report step.");
+            Assert.That(PlayerPrefs.GetInt("cv_done_3", 0), Is.EqualTo(0));
+
+            reportType.GetMethod("Interact").Invoke(report, new object[] { null });
+            yield return null;
+            yield return null;
+
+            Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(),
+                Is.EqualTo("Complete"));
+            Assert.That((bool)managerType.GetProperty("ReportSubmitted").GetValue(manager), Is.True);
+            Assert.That((bool)gameState.GetField("LevelComplete").GetValue(null), Is.True);
+            Assert.That(PlayerPrefs.GetInt("cv_done_3", 0), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ForensicsDatasets_KeepEveryRotatingAnswerSolvable()
+        {
+            Type databaseType = FindType("Cyverse.Forensics.LogDatabase");
+            Type caseType = FindType("Cyverse.Forensics.InvestigationCase");
+            Type queryType = FindType("Cyverse.Forensics.MiniKql");
+            object database = databaseType.GetMethod("Build").Invoke(null, null);
+            object[] cases =
+            {
+                caseType.GetMethod("SpartanGold").Invoke(null, null),
+                caseType.GetMethod("MidnightExfil").Invoke(null, null),
+            };
+
+            foreach (object investigation in cases)
+            {
+                Array questions = (Array)caseType.GetField("questions").GetValue(investigation);
+                foreach (object question in questions)
+                {
+                    string example = (string)question.GetType().GetField("exampleQuery").GetValue(question);
+                    object result = queryType.GetMethod("Run").Invoke(null, new[] { database, example });
+                    string error = (string)result.GetType().GetField("error").GetValue(result);
+                    Assert.That(error, Is.Null, $"Broken example query: {example}");
+                }
+            }
+        }
+
+        private static void StoreTestEvidence()
+        {
+            Type evidenceType = FindType("Cyverse.Level.SocEvidenceRecord");
+            Type progressType = FindType("Cyverse.Level.SocProgress");
+            object evidence = Activator.CreateInstance(evidenceType);
+            Set(evidence, "alertTitle", "Suspicious Account Discovery Commands");
+            Set(evidence, "computer", "WS-03");
+            Set(evidence, "user", "d.chen");
+            Set(evidence, "activity", "net user /domain");
+            Set(evidence, "verificationResult", "machine locked/idle — activity unexplained");
+            Set(evidence, "collectedAtUtc", "2026-08-14 17:00 UTC");
+            Set(evidence, "analystName", "SOC Analyst");
+            Set(evidence, "inventoryItem", "Evidence: WS-03 disk image + chain-of-custody record");
+            progressType.GetMethod("StoreEvidence").Invoke(null, new[] { evidence });
         }
 
         private static void Set(object instance, string field, string value) =>

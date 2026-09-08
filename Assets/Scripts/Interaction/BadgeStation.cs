@@ -39,6 +39,7 @@ namespace Cyverse.Interaction
         {
             if (Instance == null) Instance = this;
             NormalizeScreen();
+            BuildKit.EnsureAimCollider(gameObject, height: 3.0f, width: 1.8f);
         }
 
         void OnValidate() => NormalizeScreen();

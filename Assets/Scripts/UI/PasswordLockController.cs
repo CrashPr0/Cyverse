@@ -58,6 +58,11 @@ namespace Cyverse.UI
 
         void Start()
         {
+            // Select the authored culprit profile once per browser/application
+            // session.  The roster persists its index in PlayerPrefs so the
+            // next startup rotates identities while all scenes in this run
+            // keep the same evidence trail.
+            ScenarioRoster.BeginStartupSession();
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = false; // typing-only scene, no pointer needed
             AccessibilitySettings.ReduceMotion = PlayerPrefs.GetInt("cv_reducemotion", 0) == 1;

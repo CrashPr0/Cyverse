@@ -54,8 +54,10 @@ namespace Cyverse.Interaction
             BuildKit.SpawnLocal(PrimitiveType.Cylinder, "TopGlow", root.transform,
                 new Vector3(0f, 1.01f, 0f), Vector3.zero, new Vector3(0.48f, 0.01f, 0.48f),
                 BuildKit.MakeHologram(accent), collider: false);
-            BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.55f, 0f),
+            TextMesh label = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.55f, 0f),
                 zoneName, accent, 0.026f, billboard: true);
+            WorldTextLayoutIntent.Configure(label.gameObject,
+                WorldTextLayoutIntent.Mode.InteractionCritical, 400);
 
             // Without this the pedestal is unaimable: its collider tops out at
             // 1m while the interact ray leaves the camera at ~1.7m and travels

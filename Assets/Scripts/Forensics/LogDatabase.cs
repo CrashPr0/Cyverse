@@ -36,9 +36,10 @@ namespace Cyverse.Forensics
     /// The KC7-style investigation dataset: security logs of a small org hit
     /// by a phishing campaign. Authored (not random) so the investigation's
     /// facts are stable: prizes@spartan-rewards.com phishes 6 employees, 3
-    /// click, 1 (the intern's machine, WS-DJAMES) runs the payload
-    /// gold_claim.exe, and DNS shows the attacker's IP also hosts a second
-    /// campaign domain (gold-updates.net) — the final pivot.
+    /// click, one roster-selected employee runs the payload gold_claim.exe,
+    /// and DNS shows the attacker's IP also hosts a second campaign domain
+    /// (gold-updates.net) — the final pivot. The selected identity is stable
+    /// for a run but rotates on the next application startup.
     /// Benign rows are realistic noise so filtering actually matters.
     /// </summary>
     public class LogDatabase
@@ -55,6 +56,7 @@ namespace Cyverse.Forensics
         public static LogDatabase Build()
         {
             var db = new LogDatabase();
+            var roster = ScenarioRoster.Current;
 
             // Mount the structured SOC handoff as the first queryable forensic
             // artifact. Direct scene launches receive a clearly-labelled
@@ -65,7 +67,7 @@ namespace Cyverse.Forensics
                 "activity", "verification", "collected_at", "custody_status");
             manifest.Add(
                 evidence != null ? evidence.computer : "WS-03",
-                evidence != null ? evidence.user : "d.chen",
+                evidence != null ? evidence.user : roster.socUser,
                 evidence != null ? evidence.alertTitle : "TRAINING FIXTURE — Suspicious Account Discovery Commands",
                 evidence != null ? evidence.activity : "cmd.exe running net user /domain",
                 evidence != null ? evidence.verificationResult : "machine locked/idle — activity unexplained",
@@ -96,12 +98,12 @@ namespace Cyverse.Forensics
             email.Add("07-14 08:02", phishSender, "amber.kelly@cyverse.edu", phishSubject, phishLink);
             email.Add("07-14 08:02", phishSender, "jordan.cruz@cyverse.edu", phishSubject, phishLink);
             email.Add("07-14 08:03", phishSender, "casey.fox@cyverse.edu",   phishSubject, phishLink);
-            email.Add("07-14 08:03", phishSender, "devon.james@cyverse.edu", phishSubject, phishLink);
+            email.Add("07-14 08:03", phishSender, roster.payloadEmail, phishSubject, phishLink);
             email.Add("07-14 08:04", phishSender, "jamie.park@cyverse.edu",  phishSubject, phishLink);
             email.Add("07-14 08:04", phishSender, "quinn.baker@cyverse.edu", phishSubject, phishLink);
             // Benign traffic.
             email.Add("07-14 07:45", "amber.kelly@cyverse.edu", "all@cyverse.edu",         "Monday all-hands at 10", "-");
-            email.Add("07-14 07:58", "taylor.reed@cyverse.edu", "devon.james@cyverse.edu", "Intern onboarding forms", "-");
+            email.Add("07-14 07:58", "taylor.reed@cyverse.edu", roster.payloadEmail, "Intern onboarding forms", "-");
             email.Add("07-14 08:11", "jordan.cruz@cyverse.edu", "drew.patel@cyverse.edu",  "Q3 budget review", "-");
             email.Add("07-14 08:30", "sam.ortiz@cyverse.edu",   "all@cyverse.edu",         "Patch window tonight 22:00", "-");
             email.Add("07-14 09:05", "riley.chen@cyverse.edu",  "sam.ortiz@cyverse.edu",   "SIEM alert triage notes", "-");
@@ -119,7 +121,7 @@ namespace Cyverse.Forensics
             var web = new LogTable("WebVisits", "timestamp", "src_ip", "url");
             // Three employees clicked the phishing link.
             web.Add("07-14 08:09", "10.10.1.16", "http://spartan-rewards.com/claim-now");
-            web.Add("07-14 08:15", "10.10.1.17", "http://spartan-rewards.com/claim-now");
+            web.Add("07-14 08:15", roster.payloadIp, "http://spartan-rewards.com/claim-now");
             web.Add("07-14 08:31", "10.10.1.22", "http://spartan-rewards.com/claim-now");
             // Benign browsing noise.
             web.Add("07-14 07:50", "10.10.1.11", "https://portal.cyverse.edu/dashboard");
@@ -139,15 +141,15 @@ namespace Cyverse.Forensics
 
             var proc = new LogTable("ProcessEvents", "timestamp", "hostname", "process_name", "parent_process");
             // The payload: only on the intern's machine.
-            proc.Add("07-14 08:16", "WS-DJAMES", "gold_claim.exe", "chrome.exe");
-            proc.Add("07-14 08:17", "WS-DJAMES", "svchost_helper.exe", "gold_claim.exe");
+            proc.Add("07-14 08:16", roster.payloadHostname, "gold_claim.exe", "chrome.exe");
+            proc.Add("07-14 08:17", roster.payloadHostname, "svchost_helper.exe", "gold_claim.exe");
             // Benign process noise.
             proc.Add("07-14 07:45", "WS-AKELLY", "outlook.exe", "explorer.exe");
             proc.Add("07-14 07:52", "WS-RCHEN",  "chrome.exe",  "explorer.exe");
             proc.Add("07-14 08:00", "WS-SORTIZ", "terminal.exe","explorer.exe");
             proc.Add("07-14 08:05", "WS-MLEE",   "code.exe",    "explorer.exe");
             proc.Add("07-14 08:08", "WS-CFOX",   "chrome.exe",  "explorer.exe");
-            proc.Add("07-14 08:14", "WS-DJAMES", "chrome.exe",  "explorer.exe");
+            proc.Add("07-14 08:14", roster.payloadHostname, "chrome.exe",  "explorer.exe");
             proc.Add("07-14 08:25", "WS-JCRUZ",  "excel.exe",   "explorer.exe");
             proc.Add("07-14 08:30", "WS-QBAKER", "chrome.exe",  "explorer.exe");
             proc.Add("07-14 08:44", "WS-TREED",  "word.exe",    "explorer.exe");
@@ -163,7 +165,7 @@ namespace Cyverse.Forensics
             var logons = new LogTable("LogonEvents", "timestamp", "employee", "event", "workstation");
             logons.Add("07-15 07:52", "amber.kelly",  "logon",  "WS-AKELLY");
             logons.Add("07-15 07:58", "taylor.reed",  "logon",  "WS-TREED");
-            logons.Add("07-15 08:01", "drew.patel",   "logon",  "WS-DPATEL");
+            logons.Add("07-15 08:01", roster.insiderEmployee, "logon",  roster.insiderHostname);
             logons.Add("07-15 08:03", "riley.chen",   "logon",  "WS-RCHEN");
             logons.Add("07-15 08:06", "sam.ortiz",    "logon",  "WS-SORTIZ");
             logons.Add("07-15 08:09", "morgan.lee",   "logon",  "WS-MLEE");
@@ -172,27 +174,27 @@ namespace Cyverse.Forensics
             logons.Add("07-15 08:26", "jamie.park",   "logon",  "WS-JPARK");
             logons.Add("07-15 08:31", "quinn.baker",  "logon",  "WS-QBAKER");
             logons.Add("07-15 08:40", "alex.kim",     "logon",  "WS-AKIM");
-            logons.Add("07-15 12:30", "drew.patel",   "logon",  "WS-DPATEL"); // back from lunch
+            logons.Add("07-15 12:30", roster.insiderEmployee, "logon",  roster.insiderHostname); // back from lunch
             logons.Add("07-15 17:35", "casey.fox",    "logoff", "WS-CFOX");
             logons.Add("07-15 18:02", "amber.kelly",  "logoff", "WS-AKELLY");
             logons.Add("07-15 18:44", "riley.chen",   "logoff", "WS-RCHEN");
-            logons.Add("07-15 18:51", "drew.patel",   "logoff", "WS-DPATEL");
-            logons.Add("07-15 23:40", "drew.patel",   "logon",  "WS-DPATEL"); // the after-hours return
+            logons.Add("07-15 18:51", roster.insiderEmployee, "logoff", roster.insiderHostname);
+            logons.Add("07-15 23:40", roster.insiderEmployee, "logon",  roster.insiderHostname); // the after-hours return
             db.tables.Add(logons);
 
             var files = new LogTable("FileAccess", "timestamp", "employee", "action", "file");
             files.Add("07-15 08:12", "taylor.reed",  "read",        "hr/onboarding_checklist.docx");
-            files.Add("07-15 08:35", "drew.patel",   "read",        "finance/q3_forecast.xlsx");
+            files.Add("07-15 08:35", roster.insiderEmployee, "read",        "finance/q3_forecast.xlsx");
             files.Add("07-15 09:04", "jordan.cruz",  "read",        "finance/q3_budget.xlsx");
             files.Add("07-15 09:20", "riley.chen",   "read",        "soc/incident_4411_report.pdf");
             files.Add("07-15 10:12", "morgan.lee",   "read",        "eng/auth_module_design.md");
             files.Add("07-15 11:03", "amber.kelly",  "read",        "board/strategy_2027.pptx");
-            files.Add("07-15 13:41", "drew.patel",   "read",        "finance/expenses_july.xlsx");
+            files.Add("07-15 13:41", roster.insiderEmployee, "read",        "finance/expenses_july.xlsx");
             files.Add("07-15 15:26", "taylor.reed",  "read",        "hr/benefits_matrix.xlsx");
-            files.Add("07-15 23:52", "drew.patel",   "copy_to_usb", "finance/payroll_2026.xlsx");
-            files.Add("07-15 23:57", "drew.patel",   "copy_to_usb", "finance/clients_2026.xlsx");
-            files.Add("07-16 00:03", "drew.patel",   "copy_to_usb", "board/salaries_board.pdf");
-            files.Add("07-16 00:09", "drew.patel",   "copy_to_usb", "board/mna_draft.docx");
+            files.Add("07-15 23:52", roster.insiderEmployee, "copy_to_usb", "finance/payroll_2026.xlsx");
+            files.Add("07-15 23:57", roster.insiderEmployee, "copy_to_usb", "finance/clients_2026.xlsx");
+            files.Add("07-16 00:03", roster.insiderEmployee, "copy_to_usb", "board/salaries_board.pdf");
+            files.Add("07-16 00:09", roster.insiderEmployee, "copy_to_usb", "board/mna_draft.docx");
             db.tables.Add(files);
 
             var dns = new LogTable("DnsLookups", "domain", "resolved_ip");

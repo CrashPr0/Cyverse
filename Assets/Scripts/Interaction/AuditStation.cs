@@ -47,6 +47,14 @@ namespace Cyverse.Interaction
         public bool CanInteract => !IsComplete && rounds != null && rounds.Length > 0;
         public string Prompt => active ? "Flag highlighted entry" : "Open the access audit log";
 
+        void Awake()
+        {
+            // The saved board's surface is a collider-free Quad and its frame
+            // is easy to miss at eye level. A trigger target makes the board
+            // reliably selectable without adding a movement obstacle.
+            BuildKit.EnsureAimCollider(gameObject, height: 3.4f, width: 4.8f);
+        }
+
         public void Interact(GameObject interactor)
         {
             if (IsComplete || transitioning || rounds == null || rounds.Length == 0) return;

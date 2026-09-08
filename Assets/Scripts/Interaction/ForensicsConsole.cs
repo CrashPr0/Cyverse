@@ -23,8 +23,10 @@ namespace Cyverse.Interaction
             get
             {
                 if (Cases == null || Cases.Length == 0) return null;
-                foreach (var c in Cases) if (!c.IsComplete) return c;
-                return Cases[Cases.Length - 1];
+                foreach (var c in Cases) if (c != null && !c.IsComplete) return c;
+                for (int i = Cases.Length - 1; i >= 0; i--)
+                    if (Cases[i] != null) return Cases[i];
+                return null;
             }
         }
 
@@ -33,19 +35,33 @@ namespace Cyverse.Interaction
             get
             {
                 if (Cases == null) return false;
-                foreach (var c in Cases) if (!c.IsComplete) return false;
+                foreach (var c in Cases) if (c == null || !c.IsComplete) return false;
                 return true;
             }
         }
 
         public int TotalQuestions
         {
-            get { int n = 0; if (Cases != null) foreach (var c in Cases) n += c.questions.Length; return n; }
+            get
+            {
+                int n = 0;
+                if (Cases != null)
+                    foreach (var c in Cases)
+                        if (c != null && c.questions != null) n += c.questions.Length;
+                return n;
+            }
         }
 
         public int TotalAnswered
         {
-            get { int n = 0; if (Cases != null) foreach (var c in Cases) n += c.AnsweredCount; return n; }
+            get
+            {
+                int n = 0;
+                if (Cases != null)
+                    foreach (var c in Cases)
+                        if (c != null) n += c.AnsweredCount;
+                return n;
+            }
         }
 
         void Awake()
@@ -95,11 +111,14 @@ namespace Cyverse.Interaction
         {
             if (Cases == null) return;
             foreach (var investigation in Cases)
-            foreach (var question in investigation.questions)
             {
-                if (question.Answered) continue;
-                question.Answered = true;
-                investigation.NotifyAnswered();
+                if (investigation == null || investigation.questions == null) continue;
+                foreach (var question in investigation.questions)
+                {
+                    if (question == null || question.Answered) continue;
+                    question.Answered = true;
+                    investigation.NotifyAnswered();
+                }
             }
         }
 #endif

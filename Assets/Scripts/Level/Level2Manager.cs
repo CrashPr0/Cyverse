@@ -40,43 +40,28 @@ namespace Cyverse.Level
             if (Instance != null && Instance != this) { Destroy(this); return; }
             Instance = this;
 
-            GameState.Reset();
-            ScoreSystem.Reset();
-            Carryable.ClearCarried();
-            Time.timeScale = 1f;
-            Shader.SetGlobalFloat("_CyMotion", 1f);
+            LevelMissionRuntime.ResetScene(clearCarried: true);
         }
 
         void Start()
         {
             startTime = Time.time;
 
-            if (Quiz.QuizSystem.Instance == null) gameObject.AddComponent<Quiz.QuizSystem>();
-            if (ResultsScreen.Instance == null) gameObject.AddComponent<ResultsScreen>();
-            if (VisualDirector.Instance == null) gameObject.AddComponent<VisualDirector>();
+            LevelMissionRuntime.EnsureSharedRuntime(gameObject, showEvidenceInventory: true);
 
-            var cam = Camera.main;
-            if (cam != null && cam.GetComponent<FirstPersonHands>() == null)
-                cam.gameObject.AddComponent<FirstPersonHands>();
-            if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
-            if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
-            EvidenceInventoryPanel.Ensure(gameObject).RefreshNow();
-
-            Level2SceneFactory.WireTaskRoom();
-
-            siem = FindObjectOfType<SiemConsole>();
-            playbook = FindObjectOfType<PlaybookStation>();
-            exam = FindObjectOfType<CertExamStation>();
+            Level2SceneRealization.Bindings scene =
+                Level2SceneRealization.Realize(gameObject);
+            siem = scene.siem;
+            playbook = scene.playbook;
+            exam = scene.exam;
 
             if (siem != null) siem.Completed += OnTaskCompleted;
             if (playbook != null) playbook.Completed += OnTaskCompleted;
             if (exam != null) exam.Completed += CompleteLevel;
 
-            briefing = FindObjectOfType<VideoStation>();
-            taskDoor = FindObjectOfType<LockedDoor>();
-
-            HubDoor.EnsureReachableExit(2f, GuideGold);
-            exitDoor = NearestExit();
+            briefing = scene.briefing;
+            taskDoor = scene.taskDoor;
+            exitDoor = scene.exitDoor;
 
             if (briefing != null) briefing.FirstCompleted += OnBriefingCompleted;
             else OnBriefingCompleted();
@@ -85,21 +70,7 @@ namespace Cyverse.Level
             UpdateObjective();
         }
 
-        private HubDoor NearestExit()
-        {
-            var cam = Camera.main;
-            Vector3 from = cam != null ? cam.transform.position : Vector3.zero;
-            HubDoor best = null;
-            float bestSqr = float.MaxValue;
-            foreach (var d in FindObjectsOfType<HubDoor>())
-            {
-                float sqr = (d.transform.position - from).sqrMagnitude;
-                if (sqr >= bestSqr) continue;
-                bestSqr = sqr;
-                best = d;
-            }
-            return best;
-        }
+        private HubDoor NearestExit() => LevelSceneLookup.NearestExit();
 
         private int TotalTasks =>
             (siem != null ? 1 : 0) + (playbook != null ? 1 : 0);
@@ -300,26 +271,19 @@ namespace Cyverse.Level
             }
             CurrentPhase = Phase.Complete;
 
-            LevelProgress.MarkCompleted(2); // unlocks Level 3 in the Hub
-            GameState.LevelComplete = true;
             UpdateObjective();
-            FirstPersonController.LockCursor(false);
-
-            if (exitDoor != null) BurstFX.SpawnAbove(exitDoor.transform,
-                GuideGold, 70, 3.4f, 1.3f, 2.5f);
-            else BurstFX.Spawn(Camera.main != null
-                ? Camera.main.transform.position + Camera.main.transform.forward * 2f : Vector3.up * 2f,
-                GuideGold, 70, 3.4f, 1.3f);
-
-            if (ResultsScreen.Instance != null)
-                ResultsScreen.Instance.Show(
-                    ScoreSystem.Score, ScoreSystem.QuizCorrect, ScoreSystem.QuizTotal,
-                    Time.time - startTime,
-                    headerText: "LEVEL 2 COMPLETE",
-                    grantedLine: "Certification Confirmed — SOC Analyst",
-                    nextMissionText: "Level 3 — Digital Forensics is now unlocked in the Hub.",
-                    replaySuffix: "Level 2",
-                    parScore: Level2Content.ParScore);
+            LevelMissionRuntime.Complete(new LevelMissionRuntime.Completion
+            {
+                levelNumber = 2,
+                exitDoor = exitDoor,
+                accent = GuideGold,
+                elapsedSeconds = Time.time - startTime,
+                headerText = "LEVEL 2 COMPLETE",
+                grantedLine = "Certification Confirmed — SOC Analyst",
+                nextMissionText = "Level 3 — Digital Forensics is now unlocked in the Hub.",
+                replaySuffix = "Level 2",
+                parScore = Level2Content.ParScore,
+            });
         }
     }
 }

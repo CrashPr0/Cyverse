@@ -42,6 +42,7 @@ namespace Cyverse.Settings
         private GameObject panel;
         private Text menuText;
         private Camera cam;
+        private ModalSession.Lease modal;
 
         void Awake()
         {
@@ -80,16 +81,27 @@ namespace Cyverse.Settings
 
         public void SetMenuOpen(bool open)
         {
-            GameState.MenuOpen = open;
-            GameState.MenuTransitionFrame = Time.frameCount; // no shared-key double-handling this frame
+            if (open)
+            {
+                if (!ModalSession.TryOpen(this, ModalSession.Channel.Settings,
+                    out modal, releaseCursor: true, pauseTime: true)) return;
+            }
+            else
+            {
+                modal?.Close();
+                modal = null;
+            }
             if (panel != null) panel.SetActive(open);
-            FirstPersonController.LockCursor(!open);
-            Time.timeScale = open ? 0f : 1f; // a pause menu should actually pause
             if (open)
             {
                 if (Sfx.Instance != null) Sfx.Instance.PlayClick();
                 Refresh();
             }
+        }
+
+        private void OnDestroy()
+        {
+            modal?.Close();
         }
 
         private void Move(int dir)

@@ -256,6 +256,14 @@ namespace Cyverse.Testing
             yield return new WaitForSecondsRealtime(1.8f);
             console.CompleteForAutomation();
             yield return null; yield return null;
+            var report = FindObjectOfType<ForensicsReportStation>();
+            if (report == null)
+            { Fail("Level 3 is missing its final report station."); yield break; }
+            yield return MovePlayerTo(report.transform, 2.2f, "D  W", "Walk to Report Desk");
+            if (!lastMoveSucceeded) yield break;
+            Show("E", "Submit final forensic report");
+            report.Interact(null);
+            yield return null; yield return null;
             if (manager.CurrentPhase != Level3ForensicsManager.Phase.Complete)
                 Fail("Digital Forensics did not reach completion.");
         }

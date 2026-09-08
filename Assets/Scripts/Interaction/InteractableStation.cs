@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Cyverse.Dialogue;
+using Cyverse.Level;
 using Cyverse.Player;
 
 namespace Cyverse.Interaction
@@ -35,6 +36,14 @@ namespace Cyverse.Interaction
 
         void Start()
         {
+            // Saved visual-pass scenes predate the shared aim-volume helper.
+            // Their desk collider ends below eye level and the hologram is
+            // deliberately collider-free, so restore the target at runtime.
+            // BuildKit.CreateStation already adds this for newly generated
+            // rooms; the guard keeps the repair idempotent.
+            if (GetComponent<BoxCollider>() == null)
+                BuildKit.AddAimCollider(gameObject, height: 3.0f, width: 1.8f);
+
             var holo = transform.Find("Hologram");
             if (holo != null)
             {

@@ -78,8 +78,11 @@ namespace Cyverse.Level
 
         /// <summary>The SOC room's reusable three-case investigation sequence.
         /// Every case has four distinct computers and exactly one trigger row.</summary>
-        public static SocScenario[] SocScenarios() => new[]
+        public static SocScenario[] SocScenarios()
         {
+            string culprit = ScenarioRoster.Current.socUser;
+            return new[]
+            {
             new SocScenario(
                 "Unusual Script Execution Detected",
                 "A script bypassed normal safety settings on WS-02. Verify whether an employee ran this on purpose.",
@@ -87,7 +90,7 @@ namespace Cyverse.Level
                 {
                     new SocEventRow("09:02", "WS-01", "j.smith",  "outlook.exe — reading email"),
                     new SocEventRow("09:04", "WS-02", "m.garcia", "powershell.exe running printer_fix.ps1 with safety checks bypassed"),
-                    new SocEventRow("09:05", "WS-03", "d.chen",   "chrome.exe — browsing intranet"),
+                    new SocEventRow("09:05", "WS-03", culprit,     "chrome.exe — browsing intranet"),
                     new SocEventRow("09:07", "WS-04", "a.patel",  "excel.exe — editing Q3_budget.xlsx"),
                 },
                 1,
@@ -107,7 +110,7 @@ namespace Cyverse.Level
                 new[]
                 {
                     new SocEventRow("18:21", "WS-01", "j.smith",  "teams.exe — in a call"),
-                    new SocEventRow("18:25", "WS-03", "d.chen",   "spotify.exe — playing audio"),
+                    new SocEventRow("18:25", "WS-03", culprit,     "spotify.exe — playing audio"),
                     new SocEventRow("18:30", "WS-04", "a.patel",  "backup_util.exe copying 2,300 files to FILESERVER backups"),
                     new SocEventRow("18:32", "WS-02", "m.garcia", "outlook.exe — sending email"),
                 },
@@ -129,7 +132,7 @@ namespace Cyverse.Level
                 {
                     new SocEventRow("02:09", "WS-01", "j.smith",  "outlook.exe — background mail sync"),
                     new SocEventRow("02:11", "WS-02", "m.garcia", "onedrive.exe — background file sync"),
-                    new SocEventRow("02:13", "WS-03", "d.chen",   "cmd.exe running net user /domain — listing employee accounts"),
+                    new SocEventRow("02:13", "WS-03", culprit,     "cmd.exe running net user /domain — listing employee accounts"),
                     new SocEventRow("02:15", "WS-04", "a.patel",  "teams.exe — background sync"),
                 },
                 2,
@@ -137,12 +140,13 @@ namespace Cyverse.Level
                 {
                     new SocWorkstationView("WS-01", "Outlook background mail sync", "Screen unlocked — user active"),
                     new SocWorkstationView("WS-02", "OneDrive background file sync", "Screen unlocked — user active"),
-                    new SocWorkstationView("WS-03", "Screen locked — d.chen last active 17:42 yesterday", "No user programs running — machine idle since 17:45"),
+                    new SocWorkstationView("WS-03", $"Screen locked — {culprit} last active 17:42 yesterday", "No user programs running — machine idle since 17:45"),
                     new SocWorkstationView("WS-04", "Teams background sync", "No command prompt activity"),
                 },
                 SocVerdict.NoMatchPossibleTruePositive,
                 "POSSIBLE TRUE POSITIVE — WS-03 was locked and idle; the account-discovery command is unexplained."),
-        };
+            };
+        }
 
         /// <summary>One alert in the SIEM queue.</summary>
         public class Alert

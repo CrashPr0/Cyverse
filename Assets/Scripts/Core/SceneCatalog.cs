@@ -28,6 +28,7 @@ namespace Cyverse.Core
             // the renumbering); prefer the rebuilt, gamified scene.
             new[] { "Level2_CyberDefense_VisualPass", "Level2_CyberDefense", "Level1" },
             new[] { "Level3_Forensics_VisualPass", "Level3_Forensics" },
+            new[] { "Level4_CyberAttack_VisualPass", "Level4_CyberAttack" },
             new[] { "Hub_VisualPass", "Hub" },
         };
 

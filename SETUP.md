@@ -134,6 +134,73 @@ is a blockout of the new standard level template — see
 > (`Assets/Scripts/Level/Level0Bootstrap.cs`). Press Play — the level builds
 > itself. This is the only object the scene needs.
 
+### Playtest metrics
+
+Every play session has a lightweight flight recorder (`Core/PlaytestMetrics`)
+that emits one JSON line per meaningful event with the prefix
+`[PLAYTEST_METRIC]`. It records scene loads, objective changes, interaction
+attempts, score awards, level results, and runtime errors; it never records the
+player's callsign or typed answers.
+
+- In the Unity Editor or a Development WebGL build, filter the Console/browser
+  Console for **`[PLAYTEST_METRIC]`** and save the lines with the test report.
+- Desktop builds also append to
+  `Application.persistentDataPath/cyverse-playtest-metrics.jsonl`.
+- WebGL keeps a bounded JSON snapshot in PlayerPrefs under
+  `cv_playtest_metrics_json`, so it survives a scene change and browser reload
+  on the same profile.
+
+Each session has a `sessionId`, and every event includes the active scene,
+elapsed seconds, event name, and compact detail text. This makes a manual
+playtest easy to correlate with a browser crash or a Unity test artifact
+without requiring a telemetry server.
+
+### Automated visual QA
+
+The editor-side visual QA harness scans every scene under `Assets/Scenes`
+without saving or changing it. It reports machine-readable JSON plus a short
+text summary in `Build/VisualQA` and checks for missing cameras/lights,
+out-of-envelope renderers, suspicious world-text scale/material/depth and
+text/text overlap, missing interactable colliders, and disabled/degenerate aim
+volumes. The asset reference scene (`PropsAndAssets`) is treated as a library,
+not as a gameplay room.
+
+Run it from **CyVerse → Visual QA → Scan All Scenes**, or from a terminal:
+
+```sh
+CYVERSE_VISUAL_QA_OUTPUT=/tmp/cyverse-visual-qa \
+  /Applications/Unity/Hub/Editor/2022.3.40f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -nographics -projectPath . \
+  -executeMethod Cyverse.Editor.VisualQaHarness.RunBatch -quit
+```
+
+Set `CYVERSE_VISUAL_QA_SCENES=Level2_CyberDefense_VisualPass,Level3_Forensics`
+to narrow a run, `CYVERSE_VISUAL_QA_STRICT=1` to fail on hard findings, or
+`CYVERSE_VISUAL_QA_CAPTURE=1` (without `-nographics`) to render PNGs for
+serialized scenes. Captures are best-effort and never modify the scenes.
+
+Procedural room builders are checked after startup by the optional
+`VisualQaRuntimeCaptureTests` PlayMode test. It is a no-op during normal CI;
+enable it when you want post-bootstrap frames for representative scenes:
+
+```sh
+CYVERSE_VISUAL_QA_RUNTIME_CAPTURE=1 \
+  CYVERSE_VISUAL_QA_RUNTIME_OUTPUT=/tmp/cyverse-runtime-captures \
+  /Applications/Unity/Hub/Editor/2022.3.40f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -projectPath . -runTests -testPlatform PlayMode \
+  -testFilter Cyverse.Tests.VisualQaRuntimeCaptureTests
+```
+
+The runtime capture test waits for each bootstrap to settle, verifies that a
+`MainCamera` exists, disables player drift, and writes a deterministic room
+overview. Levels 1–3 also produce focused station frames (briefing; SOC alert,
+south/north workstation views, playbook and overview; Forensics console,
+report and custody)
+so text and puzzle spacing can be reviewed without walking every room.
+Use the normal Development WebGL screenshot tour for focused views of a board,
+workstation row, briefing screen, or custody form; the harness is intended to
+surface candidates for human review rather than decide art direction itself.
+
 ### Building an editable scene (recommended for tweaking)
 
 To lay the level out and tune it by hand instead of at runtime:

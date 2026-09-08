@@ -75,9 +75,6 @@ namespace Cyverse.Level
         /// the badge — identification comes first, enforced by the game rules.
         /// Positions dodge the shared furnishings: server racks x −6.5..−2.9
         /// and 13.6/14.8 at z=18.5, plants (±8,8), wall columns every ±8.</summary>
-        private static System.Func<bool> BadgeGate => () => BadgeStation.EnrolledInScene;
-        private const string GateMsg = "BADGE REQUIRED — enroll at the ID kiosk first.";
-
         /// <summary>Re-installs the task room's runtime-only wiring: content
         /// tables, gates, and the drop-zone delegates. None of that serialises,
         /// so the hand-saved visual-pass scene loads with stations that look
@@ -85,27 +82,13 @@ namespace Cyverse.Level
         /// BuildTaskRoom calls it too, so there is exactly one wiring path.</summary>
         public static void WireTaskRoom()
         {
-            var gauntlet = Object.FindObjectOfType<MfaGauntlet>();
-            if (gauntlet != null)
-                gauntlet.Configure(IamBlue, Level1IamContent.DailyPasscode, BadgeGate, GateMsg);
-
-            var sorting = Object.FindObjectOfType<SortingStation>();
-            if (sorting != null)
-                sorting.Configure(Level1IamContent.SortingCrates(), BadgeGate, GateMsg);
-
-            var audit = Object.FindObjectOfType<AuditStation>();
-            if (audit != null)
-                audit.Configure(Level1IamContent.AuditRounds(), IamBlue, BadgeGate, GateMsg);
-
-            var exam = Object.FindObjectOfType<CertExamStation>();
-            if (exam != null)
-                exam.Configure(Level1IamContent.ExamQuestions());
+            Level1IamSceneRealization.ReconcileTaskRoom();
         }
 
         public static void BuildTaskRoom()
         {
-            System.Func<bool> badgeGate = BadgeGate;
-            const string gateMsg = GateMsg;
+            System.Func<bool> badgeGate = Level1IamSceneRealization.BadgeGate;
+            const string gateMsg = Level1IamSceneRealization.BadgeGateMessage;
 
             // Task 1 — IDENTIFICATION: first thing seen through the divider door.
             BadgeStation.Build(new Vector3(-4.5f, 0f, 6f), 0f, IamBlue);

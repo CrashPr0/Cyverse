@@ -17,11 +17,14 @@ namespace Cyverse.Level
     /// </summary>
     public class Level3ForensicsManager : MonoBehaviour
     {
-        public enum Phase { Watch, Investigate, Complete }
+        public enum Phase { Watch, Investigate, Report, Complete }
 
         public static Level3ForensicsManager Instance { get; private set; }
 
         public Phase CurrentPhase { get; private set; } = Phase.Watch;
+        public bool ReportReady => custodyForm != null && custodyForm.IsComplete &&
+            console != null && console.AllComplete;
+        public bool ReportSubmitted { get; private set; }
 
         private ForensicsConsole console;
         private VideoStation briefing;
@@ -36,46 +39,28 @@ namespace Cyverse.Level
             if (Instance != null && Instance != this) { Destroy(this); return; }
             Instance = this;
 
-            GameState.Reset();
-            ScoreSystem.Reset();
-            Time.timeScale = 1f;
-            Shader.SetGlobalFloat("_CyMotion", 1f);
+            LevelMissionRuntime.ResetScene(clearCarried: false);
         }
 
         void Start()
         {
             startTime = Time.time;
 
-            if (Quiz.QuizSystem.Instance == null) gameObject.AddComponent<Quiz.QuizSystem>();
-            if (QueryTerminal.Instance == null) gameObject.AddComponent<QueryTerminal>();
-            custodyForm = ChainOfCustodyForm.Ensure(gameObject);
-            custodyStation = ChainOfCustodyStation.Ensure();
-            if (ResultsScreen.Instance == null) gameObject.AddComponent<ResultsScreen>();
-            if (VisualDirector.Instance == null) gameObject.AddComponent<VisualDirector>();
-            if (FindObjectOfType<Level3ForensicsPolish>() == null)
-                gameObject.AddComponent<Level3ForensicsPolish>();
-
-            var cam = Camera.main;
-            if (cam != null && cam.GetComponent<FirstPersonHands>() == null)
-                cam.gameObject.AddComponent<FirstPersonHands>();
-            if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
-            if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
-            EvidenceInventoryPanel.Ensure(gameObject).RefreshNow();
+            LevelMissionRuntime.EnsureSharedRuntime(gameObject, showEvidenceInventory: true);
 
             if (!SocProgress.TryGetEvidence(out var receivedEvidence))
                 Debug.LogError("[DF HANDOFF] Level 3 loaded without structured SOC evidence.");
             else
                 Debug.Log($"[DF HANDOFF] Received {receivedEvidence.inventoryItem} from {receivedEvidence.computer}.");
 
-            console = FindObjectOfType<ForensicsConsole>();
-            briefing = FindObjectOfType<VideoStation>();
-            taskDoor = FindObjectOfType<LockedDoor>();
-            exitDoor = FindObjectOfType<HubDoor>();
-
-            // Never trap the player: unlock every exit and make sure one
-            // exists in the briefing room they spawn in (divider at z=2).
-            HubDoor.EnsureReachableExit(2f, new Color(0.90f, 0.66f, 0.14f));
-            if (exitDoor != null) exitDoor.SetUnlocked(true);
+            Level3ForensicsSceneRealization.Bindings scene =
+                Level3ForensicsSceneRealization.Realize(gameObject);
+            console = scene.console;
+            briefing = scene.briefing;
+            taskDoor = scene.taskDoor;
+            exitDoor = scene.exitDoor;
+            custodyForm = scene.custodyForm;
+            custodyStation = scene.custodyStation;
 
             if (console != null && console.Cases != null)
             {
@@ -104,9 +89,21 @@ namespace Cyverse.Level
 
         private void OnDestroy()
         {
-            if (custodyForm == null) return;
-            custodyForm.Changed -= UpdateObjective;
-            custodyForm.Completed -= OnCustodyCompleted;
+            if (console != null && console.Cases != null)
+            {
+                foreach (InvestigationCase investigation in console.Cases)
+                {
+                    if (investigation == null) continue;
+                    investigation.QuestionAnswered -= UpdateObjective;
+                    investigation.CaseCompleted -= OnCaseCompleted;
+                }
+            }
+            if (custodyForm != null)
+            {
+                custodyForm.Changed -= UpdateObjective;
+                custodyForm.Completed -= OnCustodyCompleted;
+            }
+            if (Instance == this) Instance = null;
         }
 
         private void OnCustodyCompleted()
@@ -124,10 +121,12 @@ namespace Cyverse.Level
 
         private void OnCaseCompleted()
         {
-            if (console != null && console.AllComplete &&
-                (custodyForm == null || custodyForm.IsComplete))
+            if (ReportReady)
             {
-                pendingComplete = true;
+                CurrentPhase = Phase.Report;
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("CASEWORK COMPLETE — submit the final report at the REPORT DESK",
+                        new Color(0.90f, 0.66f, 0.14f));
             }
             else
             {
@@ -138,6 +137,17 @@ namespace Cyverse.Level
                     BurstFX.SpawnAbove(console.transform, new Color(0.90f, 0.66f, 0.14f),
                         40, minimumHeight: 2.2f);
             }
+            UpdateObjective();
+        }
+
+        public void SubmitReport()
+        {
+            if (ReportSubmitted || !ReportReady) return;
+            ReportSubmitted = true;
+            pendingComplete = true;
+            if (HudUI.Instance != null)
+                HudUI.Instance.ShowToast("FORENSIC REPORT SUBMITTED — case closed",
+                    new Color(0.30f, 1f, 0.55f));
             UpdateObjective();
         }
 
@@ -171,8 +181,8 @@ namespace Cyverse.Level
             int done = console != null ? console.TotalAnswered : 0;
             string caseName = console != null && console.ActiveCase != null ? console.ActiveCase.title : "the case";
             bool custodyComplete = custodyForm == null || custodyForm.IsComplete;
-            int workflowTotal = total + 1;
-            int workflowDone = done + (custodyComplete ? 1 : 0);
+            int workflowTotal = total + 2; // custody + case questions + report submission
+            int workflowDone = done + (custodyComplete ? 1 : 0) + (ReportSubmitted ? 1 : 0);
 
             switch (CurrentPhase)
             {
@@ -187,6 +197,10 @@ namespace Cyverse.Level
                     else
                         HudUI.Instance.ShowObjective($"Objective: Solve {caseName} at the Investigation Desk  ({done}/{total})");
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal);
+                    break;
+                case Phase.Report:
+                    HudUI.Instance.ShowObjective("Objective: Submit the final forensic report at the REPORT DESK");
+                    HudUI.Instance.SetProgress(workflowDone, workflowTotal, "!");
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 3 COMPLETE — exit to the Hub");
@@ -208,6 +222,8 @@ namespace Cyverse.Level
                     watched && !custodyComplete),
                 new TaskListPanel.Task($"Investigate cases  ({answered}/{total})",
                     answered >= total, watched && custodyComplete && answered < total),
+                new TaskListPanel.Task("Submit forensic report", ReportSubmitted,
+                    CurrentPhase == Phase.Report && !ReportSubmitted),
                 new TaskListPanel.Task("Return to Hub", CurrentPhase == Phase.Complete,
                     CurrentPhase == Phase.Complete),
             });
@@ -223,28 +239,28 @@ namespace Cyverse.Level
                         new Color(1f, 0.55f, 0.4f));
                 return;
             }
+            if (!ReportSubmitted)
+            {
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("Submit the final report at the REPORT DESK before closing the case.",
+                        new Color(1f, 0.55f, 0.4f));
+                return;
+            }
             CurrentPhase = Phase.Complete;
 
-            LevelProgress.MarkCompleted(3); // unlocks Level 4 in the Hub
-            GameState.LevelComplete = true;
             UpdateObjective();
-            FirstPersonController.LockCursor(false);
-
-            if (exitDoor != null) BurstFX.SpawnAbove(exitDoor.transform,
-                new Color(0.90f, 0.66f, 0.14f), 70, 3.4f, 1.3f, 2.5f);
-            else BurstFX.Spawn(Camera.main != null
-                ? Camera.main.transform.position + Camera.main.transform.forward * 2f : Vector3.up * 2f,
-                new Color(0.90f, 0.66f, 0.14f), 70, 3.4f, 1.3f);
-
-            if (ResultsScreen.Instance != null)
-                ResultsScreen.Instance.Show(
-                    ScoreSystem.Score, ScoreSystem.QuizCorrect, ScoreSystem.QuizTotal,
-                    Time.time - startTime,
-                    headerText: "LEVEL 3 COMPLETE",
-                    grantedLine: "Case Closed — Digital Forensics Certified",
-                    nextMissionText: "Level 4 — Cyber Attack  (in development)",
-                    replaySuffix: "Level 3",
-                    parScore: 1800);
+            LevelMissionRuntime.Complete(new LevelMissionRuntime.Completion
+            {
+                levelNumber = 3,
+                exitDoor = exitDoor,
+                accent = new Color(0.90f, 0.66f, 0.14f),
+                elapsedSeconds = Time.time - startTime,
+                headerText = "LEVEL 3 COMPLETE",
+                grantedLine = "Case Closed — Digital Forensics Certified",
+                nextMissionText = "Level 4 — Cyber Attack is now unlocked in the Hub.",
+                replaySuffix = "Level 3",
+                parScore = 1800,
+            });
         }
     }
 }

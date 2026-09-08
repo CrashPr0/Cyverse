@@ -56,6 +56,7 @@ namespace Cyverse.Core
         /// </summary>
         public static void Reset()
         {
+            ModalSession.Reset();
             DialogueActive = false;
             MenuOpen = false;
             QuizActive = false;

@@ -62,6 +62,7 @@ namespace Cyverse.Player
                     if (HudUI.Instance != null) HudUI.Instance.PulseCrosshair();
                     if (Sfx.Instance != null) Sfx.Instance.PlayClick();
                     if (FirstPersonHands.Instance != null) FirstPersonHands.Instance.TriggerInteract();
+                    PlaytestMetrics.RecordInteraction(target.GetType().Name, target.Prompt);
                     target.Interact(gameObject);
                 }
             }

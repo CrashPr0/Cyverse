@@ -129,12 +129,17 @@ namespace Cyverse.Interaction
         private void FitMonitorText()
         {
             if (screenRenderer == null) return;
-            FitMonitorLabel(hostnameText, 1.62f, 0.026f, 0.88f);
-            FitMonitorLabel(activityText, 1.33f, 0.019f, 0.90f);
-            FitMonitorLabel(statusText, 1.05f, 0.016f, 0.88f);
+            // Reserve a vertical band for each readout. Width-only fitting
+            // allowed a three-line process list to spill into the hostname or
+            // status line on a short browser window even though it still fit
+            // the monitor horizontally.
+            FitMonitorLabel(hostnameText, 1.62f, 0.026f, 0.88f, 0.15f);
+            FitMonitorLabel(activityText, 1.33f, 0.019f, 0.90f, 0.34f);
+            FitMonitorLabel(statusText, 1.05f, 0.016f, 0.88f, 0.14f);
         }
 
-        private void FitMonitorLabel(TextMesh label, float localY, float maximumSize, float widthRatio)
+        private void FitMonitorLabel(TextMesh label, float localY, float maximumSize,
+            float widthRatio, float maximumHeight)
         {
             if (label == null) return;
             label.transform.localPosition = new Vector3(0f, localY, 0.04f);
@@ -153,8 +158,14 @@ namespace Cyverse.Interaction
             if (renderer == null) return;
             float width = ProjectedSize(renderer.bounds, transform.right);
             float allowedWidth = Mathf.Abs(screenRenderer.transform.lossyScale.x) * widthRatio;
-            if (width > allowedWidth && width > 0.001f)
-                label.characterSize *= allowedWidth / width;
+            float height = ProjectedSize(renderer.bounds, transform.up);
+            float widthScale = width > allowedWidth && width > 0.001f
+                ? allowedWidth / width
+                : 1f;
+            float heightScale = height > maximumHeight && height > 0.001f
+                ? maximumHeight / height
+                : 1f;
+            label.characterSize *= Mathf.Min(widthScale, heightScale);
         }
 
         private static float ProjectedSize(Bounds bounds, Vector3 axis)

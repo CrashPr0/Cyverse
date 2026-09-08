@@ -50,42 +50,26 @@ namespace Cyverse.Level
             if (Instance != null && Instance != this) { Destroy(this); return; }
             Instance = this;
 
-            GameState.Reset();
-            ScoreSystem.Reset();
-            Carryable.ClearCarried(); // static; survives a scene reload
-            Time.timeScale = 1f;
-            Shader.SetGlobalFloat("_CyMotion", 1f);
+            LevelMissionRuntime.ResetScene(clearCarried: true);
         }
 
         void Start()
         {
             startTime = Time.time;
 
-            if (Quiz.QuizSystem.Instance == null) gameObject.AddComponent<Quiz.QuizSystem>();
+            LevelMissionRuntime.EnsureSharedRuntime(gameObject, showEvidenceInventory: false);
             if (TypingChallenge.Instance == null) gameObject.AddComponent<TypingChallenge>();
-            if (ResultsScreen.Instance == null) gameObject.AddComponent<ResultsScreen>();
-            if (VisualDirector.Instance == null) gameObject.AddComponent<VisualDirector>();
 
-            var cam = Camera.main;
-            if (cam != null && cam.GetComponent<FirstPersonHands>() == null)
-                cam.gameObject.AddComponent<FirstPersonHands>();
-            if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
-            if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
-
-            // A scene saved from the built level (the visual pass) keeps the
-            // geometry but loses every delegate and content array — those are
-            // runtime-only. Re-install them before anything is looked up, or
-            // the pedestals swallow crates and the audit board has no rounds.
-            Level1IamSceneFactory.WireTaskRoom();
-            Level1EndFlowDiagnostics.Install(gameObject);
-
-            badge = FindObjectOfType<BadgeStation>();
-            gauntlet = FindObjectOfType<MfaGauntlet>();
-            foreach (var zone in FindObjectsOfType<DropZone>())
-                if (zone.zoneName == "TOKEN SLOT") { mfaSlot = zone; break; }
-            sorting = FindObjectOfType<SortingStation>();
-            audit = FindObjectOfType<AuditStation>();
-            exam = FindObjectOfType<CertExamStation>();
+            // Both scene adapters are normalized through one realization seam
+            // before the progression manager subscribes to anything.
+            Level1IamSceneRealization.Bindings scene =
+                Level1IamSceneRealization.Realize(gameObject);
+            badge = scene.badge;
+            gauntlet = scene.gauntlet;
+            mfaSlot = scene.mfaSlot;
+            sorting = scene.sorting;
+            audit = scene.audit;
+            exam = scene.exam;
 
             if (badge != null) badge.Completed += OnTaskCompleted;
             if (gauntlet != null) gauntlet.Completed += OnTaskCompleted;
@@ -93,22 +77,10 @@ namespace Cyverse.Level
             if (audit != null) audit.Completed += OnTaskCompleted;
             if (exam != null) exam.Completed += CompleteLevel;
 
-            // Scenes saved before the task rework: no task components, but
-            // StationSetup stations — keep the old review flow working.
-            if (TotalTasks == 0)
-                legacyStations.AddRange(FindObjectsOfType<StationSetup>());
-
-            briefing = FindObjectOfType<VideoStation>();
-            taskDoor = FindObjectOfType<LockedDoor>();
-            exitDoor = FindObjectOfType<HubDoor>();
-
-            // Leaving mid-level is always allowed — a locked exit is a trap,
-            // and completion is persisted separately. The exit also has to be
-            // in the room the player SPAWNS in: the briefing room sits south
-            // of the divider, so a task-room-only door is unreachable until
-            // the briefing is done. (Divider is at z=2.)
-            HubDoor.EnsureReachableExit(2f, new Color(0.90f, 0.66f, 0.14f));
-            exitDoor = NearestExit();
+            legacyStations.AddRange(scene.legacyStations);
+            briefing = scene.briefing;
+            taskDoor = scene.taskDoor;
+            exitDoor = scene.exitDoor;
 
             if (briefing != null) briefing.FirstCompleted += OnBriefingCompleted;
             else OnBriefingCompleted(); // no screen in scene — don't soft-lock
@@ -118,21 +90,7 @@ namespace Cyverse.Level
         }
 
         /// <summary>Closest return door to the player (levels have one per room).</summary>
-        private HubDoor NearestExit()
-        {
-            var cam = Camera.main;
-            Vector3 from = cam != null ? cam.transform.position : Vector3.zero;
-            HubDoor best = null;
-            float bestSqr = float.MaxValue;
-            foreach (var d in FindObjectsOfType<HubDoor>())
-            {
-                float sqr = (d.transform.position - from).sqrMagnitude;
-                if (sqr >= bestSqr) continue;
-                bestSqr = sqr;
-                best = d;
-            }
-            return best;
-        }
+        private HubDoor NearestExit() => LevelSceneLookup.NearestExit();
 
         private int TotalTasks =>
             (badge != null ? 1 : 0) + (gauntlet != null ? 1 : 0) +
@@ -423,27 +381,19 @@ namespace Cyverse.Level
             if (CurrentPhase == Phase.Complete) return;
             CurrentPhase = Phase.Complete;
 
-            LevelProgress.MarkCompleted(1); // unlocks Level 2 in the Hub
-            GameState.LevelComplete = true;
             UpdateObjective();
-            FirstPersonController.LockCursor(false);
-            if (exitDoor != null) exitDoor.SetUnlocked(true);
-
-            if (exitDoor != null) BurstFX.SpawnAbove(exitDoor.transform,
-                new Color(0.90f, 0.66f, 0.14f), 70, 3.4f, 1.3f, 2.5f);
-            else BurstFX.Spawn(Camera.main != null
-                ? Camera.main.transform.position + Camera.main.transform.forward * 2f : Vector3.up * 2f,
-                new Color(0.90f, 0.66f, 0.14f), 70, 3.4f, 1.3f);
-
-            if (ResultsScreen.Instance != null)
-                ResultsScreen.Instance.Show(
-                    ScoreSystem.Score, ScoreSystem.QuizCorrect, ScoreSystem.QuizTotal,
-                    Time.time - startTime,
-                    headerText: "LEVEL 1 COMPLETE",
-                    grantedLine: "I/AM Training Certified",
-                    nextMissionText: "Level 2 — Cyber Defense is now unlocked in the Hub.",
-                    replaySuffix: "Level 1",
-                    parScore: 1100);
+            LevelMissionRuntime.Complete(new LevelMissionRuntime.Completion
+            {
+                levelNumber = 1,
+                exitDoor = exitDoor,
+                accent = GuideGold,
+                elapsedSeconds = Time.time - startTime,
+                headerText = "LEVEL 1 COMPLETE",
+                grantedLine = "I/AM Training Certified",
+                nextMissionText = "Level 2 — Cyber Defense is now unlocked in the Hub.",
+                replaySuffix = "Level 1",
+                parScore = 1100,
+            });
         }
     }
 }

@@ -32,6 +32,13 @@ namespace Cyverse.Interaction
 
         void Start()
         {
+            // The visible GatePanel is a collider-free Quad and the pedestal
+            // ends below the player's eye-level ray. Restore a non-blocking
+            // aim volume for saved visual-pass scenes as well as runtime-built
+            // rooms so certification always exposes an E prompt.
+            if (GetComponent<BoxCollider>() == null)
+                BuildKit.AddAimCollider(gameObject, height: 3.4f, width: 1.8f);
+
             var panel = transform.Find("GatePanel");
             if (panel != null) panelRenderer = panel.GetComponent<Renderer>();
         }

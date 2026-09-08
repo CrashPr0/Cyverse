@@ -36,6 +36,7 @@ namespace Cyverse.Level
         [SerializeField] private float layoutInterval = 0.12f;
         [SerializeField] private float rescanInterval = 2f;
         [SerializeField] private float overlapPaddingPixels = 10f;
+        [SerializeField] private float viewportSafePaddingPixels = 18f;
         [SerializeField, Range(0.05f, 0.5f)] private float obscuredAlpha = 0.08f;
         [SerializeField] private float fadeSpeed = 8f;
 
@@ -168,6 +169,19 @@ namespace Cyverse.Level
 
             foreach (Entry entry in candidates)
             {
+                // A clipped billboard reads as a giant partial word at the
+                // edge of the screen. Fade it until the player turns far
+                // enough for the complete label to enter the safe frame.
+                if (entry.screenRect.xMin < viewportSafePaddingPixels ||
+                    entry.screenRect.yMin < viewportSafePaddingPixels ||
+                    entry.screenRect.xMax > Screen.width - viewportSafePaddingPixels ||
+                    entry.screenRect.yMax > Screen.height - viewportSafePaddingPixels)
+                {
+                    entry.targetVisibility = 0f;
+                    LastOverlapCount++;
+                    continue;
+                }
+
                 Rect padded = Expand(entry.screenRect, overlapPaddingPixels);
                 bool overlaps = false;
                 foreach (Rect accepted in acceptedRects)
@@ -211,12 +225,12 @@ namespace Cyverse.Level
         private void Register(Component text, Renderer renderer)
         {
             int id = text.GetInstanceID();
-            bool floating = IsFloating(text);
+            ResolveIntent(text, out bool floating, out int priority);
             if (byId.TryGetValue(id, out Entry existing))
             {
                 existing.renderer = renderer;
                 existing.floating = floating;
-                existing.priority = Priority(text);
+                existing.priority = priority;
                 ConfigureMotion(text, floating);
                 return;
             }
@@ -227,34 +241,40 @@ namespace Cyverse.Level
                 text = text,
                 renderer = renderer,
                 floating = floating,
-                priority = Priority(text)
+                priority = priority
             };
             entries.Add(entry);
             byId[id] = entry;
             ConfigureMotion(text, floating);
         }
 
-        private static bool IsFloating(Component text)
+        private static void ResolveIntent(Component text, out bool floating, out int priority)
         {
-            // Carryable names are interaction-critical: a player must always
-            // be able to identify the item they are about to pick up. They can
-            // still billboard, but they reserve space instead of being faded
-            // like optional ambient signage.
-            if (text.GetComponentInParent<Cyverse.Interaction.Carryable>() != null)
-                return false;
+            WorldTextLayoutIntent intent = text.GetComponent<WorldTextLayoutIntent>();
+            if (intent != null)
+            {
+                floating = intent.IsFloating;
+                priority = intent.LayoutPriority;
+                return;
+            }
+
+            // Compatibility for text serialized before layout intent existed.
+            // New text creators attach an explicit contract; this fallback can
+            // be removed once the remaining authored scenes are re-saved.
+            if (text.GetComponentInParent<Cyverse.Interaction.Carryable>() != null ||
+                text.GetComponentInParent<Cyverse.Interaction.DropZone>() != null)
+            {
+                floating = false;
+                priority = 400;
+                return;
+            }
 
             Billboard billboard = text.GetComponent<Billboard>();
-            return (billboard != null && billboard.enabled) ||
-                   text.gameObject.name.StartsWith("Sign_") ||
-                   text.gameObject.name.Contains("FloatingSign");
-        }
-
-        private static int Priority(Component text)
-        {
-            string value = text.gameObject.name + " " + GetText(text);
-            if (value.Contains("OBJECTIVE") || value.Contains("ALERT") || value.Contains("EXIT")) return 300;
-            if (value.Contains("Sign_") || value.Contains("ROOM")) return 200;
-            return 100;
+            floating = billboard != null
+                ? billboard.enabled
+                : text.gameObject.name.StartsWith("Sign_") ||
+                  text.gameObject.name.Contains("FloatingSign");
+            priority = text.gameObject.name.StartsWith("Sign_") ? 200 : 100;
         }
 
         private static void ConfigureMotion(Component text, bool floating)
@@ -336,13 +356,6 @@ namespace Cyverse.Level
             Rect.MinMaxRect(rect.xMin - amount, rect.yMin - amount,
                 rect.xMax + amount, rect.yMax + amount);
 
-        private static string GetText(Component text)
-        {
-            if (text is TextMesh legacy) return legacy.text ?? "";
-            if (text is TMP_Text tmp) return tmp.text ?? "";
-            return "";
-        }
-
         private static Color GetColor(Component text)
         {
             if (text is TextMesh legacy) return legacy.color;
@@ -364,6 +377,12 @@ namespace Cyverse.Level
                 : 1f;
             color.a = unmodifiedAlpha * entry.visibility;
             SetColor(entry.text, color);
+            // MakeSign chrome lives on child renderers. Leaving its underline
+            // and halo visible after the glyphs fade creates unexplained bars
+            // at screen edges, so treat the sign as one visual unit.
+            bool showChrome = entry.visibility > 0.5f;
+            foreach (Renderer child in entry.text.GetComponentsInChildren<Renderer>(true))
+                if (child != entry.renderer) child.enabled = showChrome;
             entry.lastAppliedAlpha = entry.visibility;
         }
     }

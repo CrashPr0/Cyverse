@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Level;
+using Cyverse.Player;
 using Cyverse.UI;
 
 namespace Cyverse.Forensics
@@ -32,6 +33,7 @@ namespace Cyverse.Forensics
         private TMP_Text outputText, sidebarText, inputText, titleText;
         private string typed = "";
         private bool open;
+        private ModalSession.Lease modal;
 
         private readonly List<string> history = new List<string>();
         private int historyIndex = -1;
@@ -42,18 +44,38 @@ namespace Cyverse.Forensics
             Instance = this;
         }
 
+        private void OnDestroy()
+        {
+            modal?.Close();
+            if (Instance == this) Instance = null;
+        }
+
         public void Open(LogDatabase database, InvestigationCase investigation, string closedNote = null)
         {
-            if (open || GameState.AnyMenuOpen) return;
+            if (open) return;
+            if (database == null || investigation == null)
+            {
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("Forensic terminal unavailable — the case file is missing.",
+                        new Color(1f, 0.55f, 0.4f));
+                return;
+            }
             if (card == null) Build();
+            if (card == null)
+            {
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("Forensic terminal unavailable — the HUD is missing.",
+                        new Color(1f, 0.55f, 0.4f));
+                return;
+            }
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.Quiz,
+                out modal, releaseCursor: true)) return;
 
             db = database;
             activeCase = investigation;
             caseClosedNote = closedNote;
             typed = "";
             open = true;
-            GameState.QuizActive = true;
-            GameState.MenuTransitionFrame = Time.frameCount;
 
             string evidenceHeader = EvidenceHeader();
             titleText.text = $"CYVERSE FORENSIC TERMINAL  //  {activeCase.title}";
@@ -87,6 +109,7 @@ namespace Cyverse.Forensics
                 else typed = history[historyIndex];
             }
 
+            bool submittedThisFrame = false;
             foreach (char c in Input.inputString)
             {
                 if (c == '\b')
@@ -96,6 +119,7 @@ namespace Cyverse.Forensics
                 else if (c == '\n' || c == '\r')
                 {
                     Submit();
+                    submittedThisFrame = true;
                     break;
                 }
                 else if (!char.IsControl(c) && typed.Length < maxInput)
@@ -103,15 +127,21 @@ namespace Cyverse.Forensics
                     typed += c;
                 }
             }
+            // Some browsers report Return as a key transition without adding a
+            // newline to Input.inputString. Keep desktop text input behavior,
+            // while providing a WebGL-safe submit fallback without double-firing.
+            if (!submittedThisFrame &&
+                (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
+                Submit();
             RefreshInput();
         }
 
         private void Close()
         {
             open = false;
-            card.SetActive(false);
-            GameState.QuizActive = false;
-            GameState.MenuTransitionFrame = Time.frameCount;
+            if (card != null) card.SetActive(false);
+            modal?.Close();
+            modal = null;
         }
 
         /// <summary>Tab-completes the last token of the input against table
@@ -382,7 +412,9 @@ namespace Cyverse.Forensics
             if (open) RefreshInput();
         }
 
-        private static string Escape(string s) => s.Replace("<", "‹").Replace(">", "›");
+        private static string Escape(string s) => string.IsNullOrEmpty(s)
+            ? ""
+            : s.Replace("<", "‹").Replace(">", "›");
 
         // ---- Construction ----------------------------------------------------
 

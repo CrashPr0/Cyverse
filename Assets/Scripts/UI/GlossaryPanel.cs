@@ -27,6 +27,7 @@ namespace Cyverse.UI
         private Text headerCounter;
         private int selected;
         private int windowStart;
+        private ModalSession.Lease modal;
 
         void Awake()
         {
@@ -67,13 +68,25 @@ namespace Cyverse.UI
             if (open && panel == null) Build();
             if (panel == null) return;
 
-            GameState.GlossaryOpen = open;
-            GameState.MenuTransitionFrame = Time.frameCount; // Esc must not also toggle settings this frame
+            if (open)
+            {
+                if (!ModalSession.TryOpen(this, ModalSession.Channel.Glossary,
+                    out modal, releaseCursor: true, pauseTime: true)) return;
+            }
+            else
+            {
+                modal?.Close();
+                modal = null;
+            }
+
             panel.SetActive(open);
-            Time.timeScale = open ? 0f : 1f;
-            FirstPersonController.LockCursor(!open);
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
             if (open) Refresh();
+        }
+
+        private void OnDestroy()
+        {
+            modal?.Close();
         }
 
         private void Refresh()

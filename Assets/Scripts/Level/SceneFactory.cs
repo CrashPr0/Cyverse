@@ -87,6 +87,9 @@ namespace Cyverse.Level
 
             var scanner = root.AddComponent<FaceScanner>();
             scanner.scanLight = l;
+            // Keep the generated scene immediately aimable; FaceScanner also
+            // self-heals saved visual-pass scenes in Start().
+            BuildKit.AddAimCollider(root, height: 3.4f, width: 1.8f);
             return root;
         }
 

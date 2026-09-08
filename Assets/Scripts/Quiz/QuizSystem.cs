@@ -46,6 +46,7 @@ namespace Cyverse.Quiz
         private QuizQuestion current;
         private Action<bool> onAnswered;
         private bool awaitingInput;
+        private ModalSession.Lease modal;
 
         void Awake()
         {
@@ -58,10 +59,14 @@ namespace Cyverse.Quiz
         {
             if (q == null) { answered?.Invoke(true); return; }
             if (card == null) Build();
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.Quiz, out modal))
+            {
+                answered?.Invoke(false);
+                return;
+            }
 
             current = q;
             onAnswered = answered;
-            GameState.QuizActive = true;
 
             bodyText.text = BodyFor(q, chosen: -1);
             feedbackText.text = "<color=#8FB8CC>Press 1, 2 or 3 to answer</color>";
@@ -71,7 +76,7 @@ namespace Cyverse.Quiz
 
         void Update()
         {
-            if (!awaitingInput || GameState.MenuOpen) return;
+            if (!awaitingInput || GameState.MenuOpen || ModalSession.IsTransitionFrame) return;
 
             int choice = -1;
             if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) choice = 0;
@@ -121,10 +126,16 @@ namespace Cyverse.Quiz
         {
             yield return new WaitForSecondsRealtime(feedbackSeconds);
             card.SetActive(false);
-            GameState.QuizActive = false;
+            modal?.Close();
+            modal = null;
             var cb = onAnswered;
             onAnswered = null;
             cb?.Invoke(correct);
+        }
+
+        private void OnDestroy()
+        {
+            modal?.Close();
         }
 
         private string BodyFor(QuizQuestion q, int chosen)

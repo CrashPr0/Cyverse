@@ -86,13 +86,15 @@ namespace Cyverse.Level
             floor.isStatic = true;
         }
 
-        public static void BuildWalls(Color wallColor)
+        public static void BuildWalls(Color wallColor, float roomHeight = 5f)
         {
+            roomHeight = Mathf.Max(3f, roomHeight);
             var mat = MakeStandard(wallColor, 0.45f, 0.25f);
-            CreateWall("Wall_North", new Vector3(0, 2.5f, 20), new Vector3(40, 5, 1), mat);
-            CreateWall("Wall_South", new Vector3(0, 2.5f, -20), new Vector3(40, 5, 1), mat);
-            CreateWall("Wall_East", new Vector3(20, 2.5f, 0), new Vector3(1, 5, 40), mat);
-            CreateWall("Wall_West", new Vector3(-20, 2.5f, 0), new Vector3(1, 5, 40), mat);
+            float centerY = roomHeight * 0.5f;
+            CreateWall("Wall_North", new Vector3(0, centerY, 20), new Vector3(40, roomHeight, 1), mat);
+            CreateWall("Wall_South", new Vector3(0, centerY, -20), new Vector3(40, roomHeight, 1), mat);
+            CreateWall("Wall_East", new Vector3(20, centerY, 0), new Vector3(1, roomHeight, 40), mat);
+            CreateWall("Wall_West", new Vector3(-20, centerY, 0), new Vector3(1, roomHeight, 40), mat);
         }
 
         private static void CreateWall(string name, Vector3 pos, Vector3 scale, Material mat)
@@ -101,23 +103,24 @@ namespace Cyverse.Level
             wall.isStatic = true;
         }
 
-        public static void BuildCeilingPanels()
+        public static void BuildCeilingPanels(float roomHeight = 5f)
         {
+            roomHeight = Mathf.Max(3f, roomHeight);
             // Solid dark ceiling slab so the room reads as an interior (and the
             // sky never shows), with recessed light bars just below it.
             var slabMat = MakeStandard(new Color(0.06f, 0.07f, 0.10f), 0.3f, 0.1f);
             var slab = Spawn(PrimitiveType.Cube, "CeilingSlab", null,
-                new Vector3(0, 5.15f, 0), new Vector3(40f, 0.3f, 40f), slabMat, collider: false);
+                new Vector3(0, roomHeight + 0.15f, 0), new Vector3(40f, 0.3f, 40f), slabMat, collider: false);
             slab.isStatic = true;
 
             var mat = MakeEmissive(PanelWhite, 1.6f);
             for (int z = -14; z <= 14; z += 7)
             {
                 Spawn(PrimitiveType.Cube, "CeilingPanel_" + z, null,
-                    new Vector3(0, 4.92f, z), new Vector3(34f, 0.12f, 0.9f), mat, collider: false);
+                    new Vector3(0, roomHeight - 0.08f, z), new Vector3(34f, 0.12f, 0.9f), mat, collider: false);
             }
 
-            BuildCeilingFixtures();
+            BuildCeilingFixtures(roomHeight);
         }
 
         /// <summary>Real lights under the emissive ceiling bars.
@@ -128,8 +131,9 @@ namespace Cyverse.Level
         /// rooms rendered near-black except right at a station's point light.
         /// These fixtures are what actually lights every generated level.
         /// Idempotent, so it's safe to call on an already-lit scene.</summary>
-        public static void BuildCeilingFixtures()
+        public static void BuildCeilingFixtures(float roomHeight = 5f)
         {
+            roomHeight = Mathf.Max(3f, roomHeight);
             if (GameObject.Find("CeilingLights") != null) return;
 
             var root = new GameObject("CeilingLights");
@@ -140,7 +144,7 @@ namespace Cyverse.Level
                 {
                     var go = new GameObject($"CeilingLight_{x}_{z}");
                     go.transform.SetParent(root.transform, false);
-                    go.transform.position = new Vector3(x, 4.75f, z);
+                    go.transform.position = new Vector3(x, roomHeight - 0.25f, z);
                     var l = go.AddComponent<Light>();
                     l.type = LightType.Point;
                     l.color = new Color(0.86f, 0.91f, 1.00f);
@@ -154,8 +158,9 @@ namespace Cyverse.Level
             }
         }
 
-        public static void BuildWallDetail(Color stripColor)
+        public static void BuildWallDetail(Color stripColor, float roomHeight = 5f)
         {
+            roomHeight = Mathf.Max(3f, roomHeight);
             var stripMat = MakeEmissive(stripColor, 1.2f);
             Spawn(PrimitiveType.Cube, "Strip_N", null, new Vector3(0, 3.4f, 19.45f), new Vector3(39f, 0.08f, 0.08f), stripMat, false);
             Spawn(PrimitiveType.Cube, "Strip_S", null, new Vector3(0, 3.4f, -19.45f), new Vector3(39f, 0.08f, 0.08f), stripMat, false);
@@ -164,12 +169,13 @@ namespace Cyverse.Level
 
             // Structural columns break up the flat walls.
             var colMat = MakeStandard(new Color(0.08f, 0.09f, 0.13f), 0.55f, 0.35f);
+            float columnCenterY = roomHeight * 0.5f;
             for (int i = -16; i <= 16; i += 8)
             {
-                Spawn(PrimitiveType.Cube, "Column_N" + i, null, new Vector3(i, 2.5f, 19.2f), new Vector3(0.5f, 5f, 0.5f), colMat, true).isStatic = true;
-                Spawn(PrimitiveType.Cube, "Column_S" + i, null, new Vector3(i, 2.5f, -19.2f), new Vector3(0.5f, 5f, 0.5f), colMat, true).isStatic = true;
-                Spawn(PrimitiveType.Cube, "Column_E" + i, null, new Vector3(19.2f, 2.5f, i), new Vector3(0.5f, 5f, 0.5f), colMat, true).isStatic = true;
-                Spawn(PrimitiveType.Cube, "Column_W" + i, null, new Vector3(-19.2f, 2.5f, i), new Vector3(0.5f, 5f, 0.5f), colMat, true).isStatic = true;
+                Spawn(PrimitiveType.Cube, "Column_N" + i, null, new Vector3(i, columnCenterY, 19.2f), new Vector3(0.5f, roomHeight, 0.5f), colMat, true).isStatic = true;
+                Spawn(PrimitiveType.Cube, "Column_S" + i, null, new Vector3(i, columnCenterY, -19.2f), new Vector3(0.5f, roomHeight, 0.5f), colMat, true).isStatic = true;
+                Spawn(PrimitiveType.Cube, "Column_E" + i, null, new Vector3(19.2f, columnCenterY, i), new Vector3(0.5f, roomHeight, 0.5f), colMat, true).isStatic = true;
+                Spawn(PrimitiveType.Cube, "Column_W" + i, null, new Vector3(-19.2f, columnCenterY, i), new Vector3(0.5f, roomHeight, 0.5f), colMat, true).isStatic = true;
             }
         }
 
@@ -250,6 +256,7 @@ namespace Cyverse.Level
             tm.alignment = TextAlignment.Center;
             tm.color = new Color(0.96f, 0.98f, 1f);
             go.GetComponent<MeshRenderer>().sharedMaterial = TextMaterial();
+            WorldTextLayoutIntent.Configure(go, WorldTextLayoutIntent.Mode.Mounted);
         }
 
         // ---- Player & shared systems ------------------------------------------
@@ -292,7 +299,6 @@ namespace Cyverse.Level
             sys.AddComponent<Quiz.QuizSystem>();
             sys.AddComponent<ResultsScreen>();
             sys.AddComponent<GlossaryPanel>();
-            sys.AddComponent<EvidenceInventoryPanel>();
             sys.AddComponent<MainMenu>();
             sys.AddComponent<Audio.AmbientHum>();
             sys.AddComponent<Settings.AccessibilitySettings>();
@@ -347,6 +353,12 @@ namespace Cyverse.Level
 
             root.AddComponent<InteractableStation>();
             var setup = root.AddComponent<StationSetup>();
+            // The desk collider stops below the player's eye-level ray and the
+            // hologram intentionally has no collider. Give the station a
+            // non-blocking aim volume so generated and saved visual-pass
+            // scenes both produce an E prompt when the player looks at the
+            // display instead of requiring them to aim at the desk edge.
+            AddAimCollider(root, height: 3.0f, width: 1.8f);
             setup.topic = topic;
             setup.prompt = prompt;
             setup.reviewedMark = mark;
@@ -412,6 +424,7 @@ namespace Cyverse.Level
 
             go.AddComponent<Billboard>();
             go.AddComponent<SignFX>();
+            WorldTextLayoutIntent.Configure(go, WorldTextLayoutIntent.Mode.Floating, 200);
 
             // Holo chrome: a glowing underline and a soft glow halo behind the
             // glyphs, so signs read as projected holograms rather than bare text.
@@ -464,6 +477,7 @@ namespace Cyverse.Level
             tm.alignment = TextAlignment.Center;
             tm.color = new Color(1f, 1f, 1f, 0.92f);
             go.GetComponent<MeshRenderer>().sharedMaterial = TextMaterial();
+            WorldTextLayoutIntent.Configure(go, WorldTextLayoutIntent.Mode.Mounted);
         }
 
         // Keep generated signage outside of the visible object it describes.
@@ -547,6 +561,8 @@ namespace Cyverse.Level
             tm.color = color;
             go.GetComponent<MeshRenderer>().sharedMaterial = TextMaterial();
             if (billboard) go.AddComponent<Billboard>();
+            WorldTextLayoutIntent.Configure(go,
+                billboard ? WorldTextLayoutIntent.Mode.Floating : WorldTextLayoutIntent.Mode.Mounted);
             return tm;
         }
 
@@ -602,10 +618,22 @@ namespace Cyverse.Level
         /// </summary>
         public static void AddAimCollider(GameObject root, float height = 2.4f, float width = 1.1f)
         {
-            var box = root.AddComponent<BoxCollider>();
+            EnsureAimCollider(root, height, width);
+        }
+
+        /// <summary>Idempotent form used by saved visual-pass components.
+        /// Reusing the existing BoxCollider keeps runtime self-healing from
+        /// stacking duplicate triggers when a scene is reloaded in-editor.</summary>
+        public static BoxCollider EnsureAimCollider(GameObject root, float height = 2.4f,
+            float width = 1.1f)
+        {
+            if (root == null) return null;
+            var box = root.GetComponent<BoxCollider>();
+            if (box == null) box = root.AddComponent<BoxCollider>();
             box.isTrigger = true;
             box.center = new Vector3(0f, height * 0.5f, 0f);
             box.size = new Vector3(width, height, width);
+            return box;
         }
 
         /// <summary>Remove a primitive's collider safely in both play and edit mode.</summary>

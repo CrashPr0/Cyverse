@@ -29,6 +29,7 @@ namespace Cyverse.Core
         {
             Score += points;
             Changed?.Invoke(Score, points);
+            PlaytestMetrics.RecordScore(points, Score);
         }
 
         public static void Reset()

@@ -32,6 +32,13 @@ namespace Cyverse.Interaction
 
         void Start()
         {
+            // The visible panel is a collider-free Quad and the pedestal ends
+            // below the player's eye-level ray. Add a trigger aim volume so
+            // both procedural and saved Level 0 scenes can reliably target the
+            // scanner without requiring the player to stare at the pedestal.
+            if (GetComponent<BoxCollider>() == null)
+                BuildKit.AddAimCollider(gameObject, height: 3.4f, width: 1.8f);
+
             var panel = transform.Find("ScannerPanel");
             if (panel != null) panelRenderer = panel.GetComponent<Renderer>();
         }
