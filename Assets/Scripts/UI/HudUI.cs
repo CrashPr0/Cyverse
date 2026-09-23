@@ -301,7 +301,17 @@ namespace Cyverse.UI
             if (ringFill == null) return;
             float frac = total > 0 ? Mathf.Clamp01((float)completed / total) : 0f;
             ringTarget = Mathf.Lerp(RingEndowedStart, 1f, frac);
-            if (ringLabel != null) ringLabel.text = label ?? $"{completed}/{total}";
+            if (ringLabel != null)
+            {
+                // The ring label is a legacy UnityEngine.UI.Text drawn with the
+                // built-in dynamic font (LegacyRuntime/Arial), whose glyph set on
+                // WebGL has no U+2713 (✓) or U+25B6 (▶) — they render as tofu
+                // squares. Fold the known non-ASCII markers to the ASCII subset,
+                // matching the same substitution ShowObjective already uses.
+                string text = label ?? $"{completed}/{total}";
+                text = text.Replace("✓", "OK").Replace("✔", "OK").Replace("▶", ">");
+                ringLabel.text = text;
+            }
         }
 
         /// <summary>Short-lived centred announcement — used for combo call-outs
