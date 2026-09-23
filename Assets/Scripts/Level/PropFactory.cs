@@ -50,15 +50,19 @@ namespace Cyverse.Level
         {
             var root = new GameObject("Furnishings");
 
-            // Work pods, east and west.
-            BuildWorkPod(root.transform, new Vector3(-12f, 0f, -3.5f));
-            BuildWorkPod(root.transform, new Vector3(12f, 0f, -3.5f));
+            // Work pods, west and east. Prefer the finished WorkPodA/B art
+            // prefabs from Resources (WorkPodA = west, WorkPodB = east); fall
+            // back to the greybox BuildWorkPod when the prefab is missing so a
+            // level is never empty. Matches the scene-level whole-pod swap.
+            BuildWorkPodPrefab(root.transform, "WorkPodA", new Vector3(-12f, 0f, -3.5f), 0f);
+            BuildWorkPodPrefab(root.transform, "WorkPodB", new Vector3(12f, 0f, -3.5f), 0f);
 
-            // Lounge, south-west.
-            BuildRug(root.transform, new Vector3(-12f, 0f, -14f), new Vector3(4.8f, 0.02f, 3.6f));
-            BuildCouch(root.transform, new Vector3(-12f, 0f, -15.3f), 0f);
-            BuildCouch(root.transform, new Vector3(-14.4f, 0f, -13.4f), 90f);
-            BuildCoffeeTable(root.transform, new Vector3(-11.6f, 0f, -13.5f));
+            // Lounge, south-west. The couch cluster (2 couches + standalone rug
+            // + coffee table) is superseded by a single Corner Rugs pod at
+            // (-13.2, 0, -14.3) yaw 90 — the same placement the scene levels use.
+            // The Plant is kept. Greybox lounge is the fallback if the CornerRugs
+            // art prefab is missing.
+            BuildLounge(root.transform);
             BuildPlant(root.transform, new Vector3(-9.5f, 0f, -16.5f));
 
             // Reception, near the spawn approach.
@@ -90,6 +94,40 @@ namespace Cyverse.Level
         }
 
         // ---- Compound props --------------------------------------------------
+
+        /// <summary>
+        /// Spawn a finished WorkPod art prefab (WorkPodA/WorkPodB) from Resources
+        /// at a code-gen level's pod slot, falling back to the greybox
+        /// <see cref="BuildWorkPod"/> when the prefab isn't installed. This is
+        /// the code-track equivalent of the Level0/1/2 scene WorkPod swap:
+        /// BuildWorkPod does not itself route through PropLibrary.TrySpawn (it
+        /// hand-builds primitives) and the A/B pair can't be expressed by a
+        /// single TrySpawn name, so the A-vs-B choice lives here at the call
+        /// site rather than inside BuildWorkPod.
+        /// </summary>
+        public static void BuildWorkPodPrefab(Transform parent, string propName, Vector3 center, float rotY)
+        {
+            if (PropLibrary.TrySpawn(propName, parent, center, rotY) != null) return;
+            BuildWorkPod(parent, center);
+        }
+
+        /// <summary>
+        /// Build the south-west lounge as a single Corner Rugs pod (the finished
+        /// art that supersedes the greybox couch cluster), matching the scene
+        /// levels' placement at (-13.2, 0, -14.3) yaw 90. If the CornerRugs art
+        /// prefab isn't installed, fall back to the original greybox lounge
+        /// (rug + two couches + coffee table). The Plant is placed by the caller
+        /// either way.
+        /// </summary>
+        public static void BuildLounge(Transform parent)
+        {
+            if (PropLibrary.TrySpawn("CornerRugs", parent, new Vector3(-13.2f, 0f, -14.3f), 90f) != null) return;
+
+            BuildRug(parent, new Vector3(-12f, 0f, -14f), new Vector3(4.8f, 0.02f, 3.6f));
+            BuildCouch(parent, new Vector3(-12f, 0f, -15.3f), 0f);
+            BuildCouch(parent, new Vector3(-14.4f, 0f, -13.4f), 90f);
+            BuildCoffeeTable(parent, new Vector3(-11.6f, 0f, -13.5f));
+        }
 
         /// <summary>Four desks back-to-back around a partition, with chairs.</summary>
         public static void BuildWorkPod(Transform parent, Vector3 center)
