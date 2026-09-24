@@ -36,8 +36,18 @@ namespace Cyverse.Interaction
         // fallback covers those).
         public static DiegeticPhone Active { get; private set; }
 
-        // Far from any real geometry so the render camera frames only our canvas.
-        private static readonly Vector3 OffscreenOrigin = new Vector3(0f, -1000f, 0f);
+        // Far from ALL real geometry (thousands of units on every axis) so the
+        // main game camera's frustum can never contain the offscreen UI canvas,
+        // even before the culling-mask isolation below takes effect.
+        private static readonly Vector3 OffscreenOrigin = new Vector3(10000f, -1000f, 10000f);
+
+        // A dedicated layer for the offscreen phone-UI canvas. The RT camera
+        // renders ONLY this layer; the main game camera has it REMOVED from its
+        // culling mask, so a WorldSpace canvas (which otherwise draws into every
+        // camera whose mask includes its layer) never appears in the game view.
+        // Chosen at runtime from a free builtin slot so no TagManager edit is
+        // needed; falls back to the UI layer only if none is free.
+        private static int phoneUiLayer = -1;
 
         private const int RtWidth = 256;
         private const int RtHeight = 384;
@@ -45,6 +55,7 @@ namespace Cyverse.Interaction
         private Camera uiCamera;
         private RenderTexture rt;
         private Canvas screenCanvas;
+        private GameObject offscreenRoot; // canvas + camera live here, unparented from the phone
         private Renderer screenRenderer;
         private Light screenGlow;
 
@@ -85,11 +96,15 @@ namespace Cyverse.Interaction
                 new Vector3(0f, 0.5f, 0f), Vector3.zero, new Vector3(0.32f, 1.0f, 0.28f),
                 BuildKit.MakeStandard(new Color(0.08f, 0.09f, 0.13f), 0.5f, 0.4f), collider: true);
 
-            // The phone body, tilted back ~20 deg to face an approaching player.
+            // The phone body stands UPRIGHT on its dock, facing the player who
+            // approaches from -Z. The screen quad below renders on its local -Z
+            // face (VideoStation convention), so identity rotation already faces
+            // the viewer; the previous -20 deg pitch made the whole device lean
+            // back and read as tilted/skewed. No pitch/roll — vertical device.
             var body = new GameObject("Body");
             body.transform.SetParent(transform, false);
             body.transform.localPosition = new Vector3(0f, 1.12f, 0.02f);
-            body.transform.localRotation = Quaternion.Euler(-20f, 0f, 0f);
+            body.transform.localRotation = Quaternion.identity;
 
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Shell", body.transform,
                 Vector3.zero, Vector3.zero, new Vector3(0.20f, 0.40f, 0.025f), caseMat, collider: false);
@@ -140,10 +155,31 @@ namespace Cyverse.Interaction
             screenMat.mainTexture = rt;
             if (screenRenderer != null) screenRenderer.sharedMaterial = screenMat;
 
+            // Resolve a dedicated layer for the offscreen UI, then keep it OUT
+            // of the main camera's culling mask. Without this, a WorldSpace
+            // Canvas draws into EVERY camera whose mask includes its layer — so
+            // the main game camera was rendering the full 2.2 x 3.3 m canvas
+            // into the room (the "room-sized floating blue panel" bug). The RT
+            // camera below is restricted to ONLY this layer, so it captures the
+            // canvas and nothing else; the main camera never sees it.
+            int layer = ResolvePhoneUiLayer();
+            ExcludeLayerFromMainCamera(layer);
+
+            // The offscreen canvas + camera live UNPARENTED (scene root), pinned
+            // to an absolute far-away world position. They must NOT be children
+            // of the phone at the terminal: parenting them there and then setting
+            // .position fights the terminal transform and can leave them near the
+            // room. Unparented + absolute position guarantees the pair sits
+            // thousands of units away where no other geometry (and no main-camera
+            // frustum) can reach them.
+            offscreenRoot = new GameObject("SpartanAuthenticatorOffscreen");
+            offscreenRoot.transform.position = OffscreenOrigin;
+
             // ---- The offscreen canvas ----
             var canvasGo = new GameObject("PhoneUiCanvas", typeof(Canvas));
-            canvasGo.transform.SetParent(transform, false);
-            canvasGo.transform.position = OffscreenOrigin;
+            canvasGo.transform.SetParent(offscreenRoot.transform, false);
+            canvasGo.transform.localPosition = Vector3.zero;      // == OffscreenOrigin in world
+            canvasGo.transform.localRotation = Quaternion.identity;
             screenCanvas = canvasGo.GetComponent<Canvas>();
             screenCanvas.renderMode = RenderMode.WorldSpace;
             var canvasRt = (RectTransform)canvasGo.transform;
@@ -154,18 +190,24 @@ namespace Cyverse.Interaction
 
             BuildScreenContents(canvasGo.transform);
 
+            // Every renderer under the canvas goes on the dedicated layer so the
+            // RT camera sees them and the main camera does not.
+            ApplyLayerRecursively(offscreenRoot, layer);
+
             // ---- The private render camera ----
             var camGo = new GameObject("PhoneUiCamera", typeof(Camera));
-            camGo.transform.SetParent(transform, false);
-            // Sit in front of the canvas (canvas faces +Z), looking toward it.
-            camGo.transform.position = OffscreenOrigin + new Vector3(0f, 0f, -3f);
-            camGo.transform.rotation = Quaternion.LookRotation(Vector3.forward, Vector3.up);
+            camGo.transform.SetParent(offscreenRoot.transform, false);
+            // Sit in front of the canvas (WorldSpace canvas faces +Z), looking
+            // toward it along +Z. Local offset from the offscreen root.
+            camGo.transform.localPosition = new Vector3(0f, 0f, -3f);
+            camGo.transform.localRotation = Quaternion.LookRotation(Vector3.forward, Vector3.up);
             uiCamera = camGo.GetComponent<Camera>();
             uiCamera.orthographic = true;
             uiCamera.orthographicSize = 1.65f;      // half of the 3.3-unit canvas height
             uiCamera.aspect = (float)RtWidth / RtHeight;
             uiCamera.nearClipPlane = 0.1f;
             uiCamera.farClipPlane = 6f;             // brackets the canvas, excludes the world
+            uiCamera.cullingMask = 1 << layer;      // renders ONLY the phone canvas
             uiCamera.clearFlags = CameraClearFlags.SolidColor;
             uiCamera.backgroundColor = new Color(0.015f, 0.025f, 0.045f, 1f);
             uiCamera.targetTexture = rt;
@@ -175,6 +217,57 @@ namespace Cyverse.Interaction
             uiCamera.enabled = false; // render on demand only
 
             screenCanvas.worldCamera = uiCamera;
+        }
+
+        // ---- Layer isolation helpers -----------------------------------------
+
+        /// <summary>Pick a layer for the offscreen phone UI. Prefer a free
+        /// builtin slot (unnamed layers 3, 6..31 in a stock project) so no
+        /// TagManager edit is required; if somehow none is free, fall back to
+        /// the UI layer (5). Resolved once and cached across phones.</summary>
+        private static int ResolvePhoneUiLayer()
+        {
+            if (phoneUiLayer >= 0) return phoneUiLayer;
+            // Builtin-reserved layers that must never be repurposed.
+            for (int i = 8; i <= 31; i++) // user layers first
+            {
+                if (string.IsNullOrEmpty(LayerMask.LayerToName(i)))
+                {
+                    phoneUiLayer = i;
+                    return phoneUiLayer;
+                }
+            }
+            for (int i = 3; i <= 7; i++) // then any free low slot (3 is unnamed in stock)
+            {
+                if (string.IsNullOrEmpty(LayerMask.LayerToName(i)))
+                {
+                    phoneUiLayer = i;
+                    return phoneUiLayer;
+                }
+            }
+            phoneUiLayer = 5; // UI — last resort; main camera will drop UI on it
+            return phoneUiLayer;
+        }
+
+        /// <summary>Set <paramref name="layer"/> on <paramref name="go"/> and
+        /// every descendant, so all canvas child renderers render only into the
+        /// RT camera.</summary>
+        private static void ApplyLayerRecursively(GameObject go, int layer)
+        {
+            if (go == null) return;
+            go.layer = layer;
+            foreach (Transform child in go.transform)
+                ApplyLayerRecursively(child.gameObject, layer);
+        }
+
+        /// <summary>Remove the phone-UI layer from the main camera's culling
+        /// mask so the WorldSpace canvas is never drawn into the game view.
+        /// Idempotent (bit-clear), safe to call once per phone build.</summary>
+        private static void ExcludeLayerFromMainCamera(int layer)
+        {
+            var main = Camera.main;
+            if (main != null)
+                main.cullingMask &= ~(1 << layer);
         }
 
         /// <summary>The phone UI itself — the same header / OTP label / big code
@@ -304,6 +397,10 @@ namespace Cyverse.Interaction
                 rt.Release();
                 Destroy(rt);
             }
+            // The offscreen canvas + camera are unparented from the phone, so
+            // they are NOT destroyed with the phone root — tear them down here
+            // to avoid leaking a canvas/camera per scene reload.
+            if (offscreenRoot != null) Destroy(offscreenRoot);
         }
     }
 }
