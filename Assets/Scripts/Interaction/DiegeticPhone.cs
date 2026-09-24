@@ -96,10 +96,11 @@ namespace Cyverse.Interaction
 
             // The screen: a quad slightly proud of the shell front (-Z of body,
             // which is where the player stands), wearing the RenderTexture
-            // through an unlit material. A Unity Quad shows its texture on its
-            // local -Z face, so a 180° yaw points that face toward the player.
+            // through an unlit material. Unity's Quad renders on its LOCAL -Z
+            // face, so identity rotation already faces a viewer on -Z; a 180°
+            // yaw (used before) backface-culled it away from the player.
             var screen = BuildKit.SpawnLocal(PrimitiveType.Quad, "Screen", body.transform,
-                new Vector3(0f, 0f, -0.014f), new Vector3(0f, 180f, 0f),
+                new Vector3(0f, 0f, -0.014f), new Vector3(0f, 0f, 0f),
                 new Vector3(0.176f, 0.36f, 1f), null, collider: false);
             screenRenderer = screen.GetComponent<Renderer>();
 
