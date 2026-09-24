@@ -12,7 +12,8 @@ namespace Cyverse.Interaction
     /// <summary>
     /// Task 2 — AUTHENTICATION: the MFA Vault. Three factors must be cleared,
     /// each a different mechanic so the taxonomy is *felt*, not memorised:
-    ///   KNOW — type the daily passcode (MfaFactor → TypingChallenge)
+    ///   KNOW — read the daily OTP from the Spartan Authenticator phone; it
+    ///          types into the terminal automatically (MfaFactor → TypingChallenge)
     ///   HAVE — fetch the security token from its rack and slot it (Carryable
     ///          → DropZone; the walk across the room IS the lesson)
     ///   ARE  — biometric pad scan (MfaFactor)
@@ -43,6 +44,7 @@ namespace Cyverse.Interaction
         private Renderer[] lights;
         private Material litMat;
         private Transform vaultPanel;
+        private GameObject legacyPasscodeMemo;
 
         // ---- Wiring ----------------------------------------------------------
 
@@ -56,6 +58,7 @@ namespace Cyverse.Interaction
         {
             if (vaultPanel == null) vaultPanel = transform.Find("VaultPanel");
             if (litMat == null) litMat = BuildKit.MakeEmissive(new Color(0.30f, 1f, 0.45f), 2.4f);
+            HideLegacyPasscodeMemo();
             if (lights == null) lights = new Renderer[3];
             for (int i = 0; i < 3; i++)
             {
@@ -195,9 +198,17 @@ namespace Cyverse.Interaction
             vl.range = 10f;
             vl.intensity = 1.8f;
 
-            // KNOW — passcode terminal, with the memo plaque beside it.
+            // KNOW — passcode terminal, with an in-world reminder that the
+            // actual daily code arrives on the player's phone.
             MfaFactor.Build(terminalPos, 0f, MfaFactor.Kind.Knowledge, gauntlet, accent);
-            BuildMemo(terminalPos + new Vector3(0f, 0f, 1.6f), passcode, accent);
+            BuildPhoneReminder(terminalPos + new Vector3(0f, 0f, 1.6f), accent);
+
+            // The in-world "Spartan Authenticator" phone sits on a dock just to
+            // the side of the passcode terminal. TypingChallenge finds it via
+            // DiegeticPhone.Active and lights its RenderTexture screen with the
+            // OTP when the KNOW factor is interacted with; if none is built the
+            // challenge falls back to its old screen-space HUD panel.
+            DiegeticPhone.Build(terminalPos + new Vector3(-0.9f, 0f, -0.2f), 0f, accent);
 
             // ARE — biometric pad.
             MfaFactor.Build(padPos, 0f, MfaFactor.Kind.Biometric, gauntlet, accent);
@@ -218,9 +229,17 @@ namespace Cyverse.Interaction
             return gauntlet;
         }
 
-        private static void BuildMemo(Vector3 pos, string passcode, Color accent)
+        private void HideLegacyPasscodeMemo()
         {
-            var memo = new GameObject("PasscodeMemo");
+            if (legacyPasscodeMemo == null)
+                legacyPasscodeMemo = GameObject.Find("PasscodeMemo");
+            if (legacyPasscodeMemo != null)
+                legacyPasscodeMemo.SetActive(false);
+        }
+
+        private static void BuildPhoneReminder(Vector3 pos, Color accent)
+        {
+            var memo = new GameObject("PhoneOtpReminder");
             memo.transform.position = pos;
 
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Post", memo.transform,
@@ -230,7 +249,7 @@ namespace Cyverse.Interaction
                 new Vector3(0f, 1.85f, 0.03f), Vector3.zero, new Vector3(1.9f, 0.8f, 0.06f),
                 BuildKit.MakeStandard(new Color(0.05f, 0.055f, 0.08f), 0.5f, 0.4f), collider: false);
             BuildKit.MakeLabel(memo.transform, new Vector3(0f, 1.85f, -0.01f),
-                $"DAILY PASSCODE\n<size=42>{passcode}</size>\n<size=22>rotates every 24h — do not share</size>",
+                "DAILY OTP\n<size=30>CHECK YOUR PHONE</size>\n<size=22>code rotates every 24h</size>",
                 accent, 0.020f);
         }
     }

@@ -9,9 +9,9 @@ using Cyverse.UI;
 namespace Cyverse.Interaction
 {
     /// <summary>
-    /// One factor station of the MFA vault: Knowledge (opens the typed
-    /// passcode challenge) or Biometric (a short in-place scan). The HAVE
-    /// factor is a Carryable + DropZone, so it needs no component here.
+    /// One factor station of the MFA vault: Knowledge (opens the phone OTP
+    /// challenge) or Biometric (a short in-place scan). The HAVE factor is a
+    /// Carryable + DropZone, so it needs no component here.
     /// </summary>
     public class MfaFactor : MonoBehaviour, IInteractable
     {
@@ -58,9 +58,9 @@ namespace Cyverse.Interaction
             {
                 if (TypingChallenge.Instance == null) { Clear(); return; } // no UI — don't soft-lock
                 busy = true;
-                TypingChallenge.Instance.Show(
+                TypingChallenge.Instance.ShowPhoneOtp(
                     "SOMETHING YOU KNOW",
-                    "Enter the daily passcode.\n\n<size=20><color=#8FB8CC>It's posted on the memo beside this terminal. (Noticed how easy that made it? Real attackers look for notes like that too — a lesson for later.)</color></size>",
+                    "Your Spartan Authenticator has the daily verification code. Watch it enter automatically.",
                     passcode,
                     ok => { busy = false; if (ok) Clear(); });
             }
