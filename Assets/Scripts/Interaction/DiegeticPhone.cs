@@ -49,8 +49,13 @@ namespace Cyverse.Interaction
         // needed; falls back to the UI layer only if none is free.
         private static int phoneUiLayer = -1;
 
+        // Matches the screen quad's 0.176 x 0.36 m aspect (~0.489) so the UI is
+        // not squashed horizontally when the RT is stretched onto it. The
+        // canvas (220 x 450 units) and ortho size follow the same ratio.
         private const int RtWidth = 256;
-        private const int RtHeight = 384;
+        private const int RtHeight = 524;
+        private const float CanvasWidth = 220f;
+        private const float CanvasHeight = 450f;
 
         private Camera uiCamera;
         private RenderTexture rt;
@@ -77,8 +82,10 @@ namespace Cyverse.Interaction
             phone.accent = accent;
             phone.BuildProp();
             phone.BuildOffscreenUi();
-            phone.Hide();
+            // built must be set before Hide(): SetVisible() no-ops until then,
+            // which used to leave the idle screen showing a stale "----".
             phone.built = true;
+            phone.Hide();
             Active = phone;
             return phone;
         }
@@ -136,8 +143,9 @@ namespace Cyverse.Interaction
 
         /// <summary>The offscreen render pipeline: a world-space Canvas holding
         /// the phone's UI, a private orthographic camera framing exactly that
-        /// canvas, and the RT they render into. All parented under this phone
-        /// but translated to OffscreenOrigin so nothing else is in shot.</summary>
+        /// canvas, and the RT they render into. They sit under an unparented
+        /// root at OffscreenOrigin (torn down in OnDestroy) so nothing else is
+        /// in shot.</summary>
         private void BuildOffscreenUi()
         {
             rt = new RenderTexture(RtWidth, RtHeight, 16, RenderTextureFormat.ARGB32)
@@ -183,9 +191,9 @@ namespace Cyverse.Interaction
             screenCanvas = canvasGo.GetComponent<Canvas>();
             screenCanvas.renderMode = RenderMode.WorldSpace;
             var canvasRt = (RectTransform)canvasGo.transform;
-            // 1 canvas unit == 1 world unit at scale 0.01; the RectTransform is
-            // 220 x 330 units -> 2.2 x 3.3 world units, matched by the camera.
-            canvasRt.sizeDelta = new Vector2(220f, 330f);
+            // At scale 0.01 the 220 x 450 unit RectTransform is 2.2 x 4.5 world
+            // units, matched by the camera's ortho size below.
+            canvasRt.sizeDelta = new Vector2(CanvasWidth, CanvasHeight);
             canvasRt.localScale = Vector3.one * 0.01f;
 
             BuildScreenContents(canvasGo.transform);
@@ -203,7 +211,7 @@ namespace Cyverse.Interaction
             camGo.transform.localRotation = Quaternion.LookRotation(Vector3.forward, Vector3.up);
             uiCamera = camGo.GetComponent<Camera>();
             uiCamera.orthographic = true;
-            uiCamera.orthographicSize = 1.65f;      // half of the 3.3-unit canvas height
+            uiCamera.orthographicSize = CanvasHeight * 0.01f * 0.5f; // half the canvas height in world units
             uiCamera.aspect = (float)RtWidth / RtHeight;
             uiCamera.nearClipPlane = 0.1f;
             uiCamera.farClipPlane = 6f;             // brackets the canvas, excludes the world
@@ -384,8 +392,12 @@ namespace Cyverse.Interaction
         /// the camera is otherwise disabled — nothing renders per frame.</summary>
         private void RenderNow()
         {
-            if (uiCamera != null && rt != null)
-                uiCamera.Render();
+            if (uiCamera == null || rt == null) return;
+            // Text edits only rebuild canvas geometry at end of frame; rendering
+            // before that captured the PREVIOUS state, so the OTP showed up one
+            // update late and "CODE ACCEPTED" never appeared. Rebuild first.
+            Canvas.ForceUpdateCanvases();
+            uiCamera.Render();
         }
 
         private void OnDestroy()
