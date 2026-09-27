@@ -18,7 +18,7 @@ namespace Cyverse.UI
     /// The phone OTP variant animates a fake authenticator phone into view and
     /// types its four-digit code into the terminal automatically.
     /// </summary>
-    public class TypingChallenge : MonoBehaviour, IGameplayActionTarget
+    public class TypingChallenge : MonoBehaviour
     {
         public static TypingChallenge Instance { get; private set; }
 
@@ -121,11 +121,8 @@ namespace Cyverse.UI
             if (!open || closing) return;
             if (Time.frameCount == GameState.MenuTransitionFrame) return;
 
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                GameplayActions.TryApply(this, GameplayAction.Cancel(), gameObject);
-                return;
-            }
+            // Esc still cancels while the phone is auto-typing; nothing else does.
+            if (Input.GetKeyDown(KeyCode.Escape)) { Close(false); return; }
 
             if (autoTyping) return;
 
@@ -133,49 +130,19 @@ namespace Cyverse.UI
             {
                 if (c == '\b')
                 {
-                    GameplayActions.TryApply(this, GameplayAction.Backspace(), gameObject);
+                    if (typed.Length > 0) typed = typed.Substring(0, typed.Length - 1);
                 }
                 else if (c == '\n' || c == '\r')
                 {
-                    GameplayActions.TryApply(this, GameplayAction.Submit(), gameObject);
+                    Submit();
                     return;
                 }
                 else if (!char.IsControl(c))
                 {
-                    GameplayActions.TryApply(this, GameplayAction.Append(c.ToString()), gameObject);
+                    Append(c.ToString());
                 }
             }
             RefreshInput();
-        }
-
-        public bool TryApply(GameplayAction action, GameObject actor)
-        {
-            if (!open || closing) return false;
-            if (autoTyping && action.Kind != GameplayActionKind.Cancel) return false;
-
-            switch (action.Kind)
-            {
-                case GameplayActionKind.AppendText:
-                case GameplayActionKind.PasteText:
-                    Append(action.Text);
-                    return true;
-                case GameplayActionKind.Backspace:
-                    if (typed.Length > 0) typed = typed.Substring(0, typed.Length - 1);
-                    RefreshInput();
-                    return true;
-                case GameplayActionKind.ClearText:
-                    typed = string.Empty;
-                    RefreshInput();
-                    return true;
-                case GameplayActionKind.Submit:
-                    Submit();
-                    return true;
-                case GameplayActionKind.Cancel:
-                    Close(false);
-                    return true;
-                default:
-                    return false;
-            }
         }
 
         private void Append(string value)
