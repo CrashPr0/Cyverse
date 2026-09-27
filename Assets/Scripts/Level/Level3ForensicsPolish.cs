@@ -166,8 +166,25 @@ namespace Cyverse.Level
             reportDesk.AddComponent<ForensicsReportStation>();
             SpawnCube("DF_ReportMonitor", root, new Vector3(9.2f, 1.52f, 11.15f),
                 new Vector3(2.7f, 1.25f, 0.08f), PanelMaterial());
-            SpawnCube("DF_ReportScreen", root, new Vector3(9.2f, 1.52f, 11.09f),
-                new Vector3(2.45f, 1.04f, 0.025f), BuildKit.MakeEmissive(new Color(0.04f, 0.18f, 0.11f), 0.72f));
+            // The report monitor's screen is now a live DIEGETIC surface instead
+            // of a static emissive cube: the RIGHT "plug-in / upload" station
+            // paints its UPLOADING readout onto this RenderTexture screen. Same
+            // pose/size as the old DF_ReportScreen cube; identity rotation faces
+            // the -Z approach (Quad renders on its local -Z face).
+            DiegeticScreen reportScreen = DiegeticScreen.Create(
+                new Vector3(9.2f, 1.52f, 11.09f), 0f, new Vector2(2.45f, 1.04f),
+                name: "DF_ReportScreen");
+            reportScreen.transform.SetParent(root, true);
+            // The plug-in station: builds the phone prop + dock slot on this desk
+            // and drives the docking->upload animation off custody-completed. The
+            // report-submission flow on DF_ReportDesk is untouched.
+            GameObject plugInHost = new GameObject("DF_PlugInStation");
+            plugInHost.transform.SetParent(root, false);
+            plugInHost.transform.position = Vector3.zero;
+            PlugInStation plugIn = plugInHost.AddComponent<PlugInStation>();
+            // Desk top surface: DF_ReportDesk centered (9.2,0.5,11) with y-scale
+            // 1.0, so its top is y=1.0.
+            plugIn.Configure(new Vector3(9.2f, 1.0f, 11f), reportScreen);
             SpawnCube("DF_ReportHeaderPanel", root, new Vector3(9.2f, 2.38f, 11.10f),
                 new Vector3(3.35f, 0.50f, 0.04f), PanelMaterial());
             CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.38f, 11.02f),
