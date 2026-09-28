@@ -227,15 +227,9 @@ namespace Cyverse.Tests
 
             // Opening intake constructs four mouse-clickable blanks.
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
-            Assert.That(GameplayActionTestDriver.Submit(form), Is.True);
-            Assert.That((bool)formType.GetProperty("IsComplete").GetValue(form), Is.False,
-                "The custody record must stay locked until the Evidence Intake phone finishes.");
-            float downloadDeadline = Time.realtimeSinceStartup + 5f;
-            while (!(bool)formType.GetProperty("IsEvidenceDownloaded").GetValue(form) &&
-                   Time.realtimeSinceStartup < downloadDeadline)
-                yield return null;
-            Assert.That((bool)formType.GetProperty("IsEvidenceDownloaded").GetValue(form), Is.True,
-                "The Evidence Intake phone should finish downloading the workstation image.");
+            // The LEFT rework removed the evidence-download phone: the form is
+            // fillable as soon as it opens, so there is no download gate here.
+            yield return null;
             int blanks = 0;
             foreach (Button button in UnityEngine.Object.FindObjectsOfType<Button>(true))
                 if (button.name.StartsWith("Blank_")) blanks++;
@@ -318,12 +312,8 @@ namespace Cyverse.Tests
 
             Assert.That(GameplayActionTestDriver.Scrub(briefing, float.MaxValue), Is.True);
             Assert.That(GameplayActionTestDriver.Interact(custodyStation), Is.True);
-            float downloadDeadline = Time.realtimeSinceStartup + 5f;
-            while (!(bool)formType.GetProperty("IsEvidenceDownloaded").GetValue(form) &&
-                   Time.realtimeSinceStartup < downloadDeadline)
-                yield return null;
-            Assert.That((bool)formType.GetProperty("IsEvidenceDownloaded").GetValue(form), Is.True,
-                "The Evidence Intake phone should finish downloading the workstation image.");
+            // No evidence-download step in the LEFT rework; proceed to fill.
+            yield return null;
             for (int field = 0; field < 4; field++)
                 Assert.That(GameplayActionTestDriver.Select(form, field, 1), Is.True);
             Assert.That(GameplayActionTestDriver.Submit(form), Is.True);

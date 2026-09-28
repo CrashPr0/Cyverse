@@ -139,8 +139,9 @@ namespace Cyverse.Testing
                     return false;
             }
 
-            if (!form.IsEvidenceDownloaded) return false;
-
+            // The LEFT custody rework removed the separate evidence-download
+            // step (no 2D acquisition phone): the form is ready to fill as
+            // soon as it is open, so there is no download gate to wait on.
             if (form.FieldCount != CustodyRoute.Length) return false;
             for (int field = 0; field < CustodyRoute.Length; field++)
                 if (!GameplayActions.TryApply(form,
@@ -164,12 +165,11 @@ namespace Cyverse.Testing
                     yield break;
             }
 
-            float intakeDeadline = Time.realtimeSinceStartup + 4f;
-            while (!form.IsEvidenceDownloaded &&
-                   Time.realtimeSinceStartup < intakeDeadline)
-                yield return null;
-
-            if (!form.IsEvidenceDownloaded) yield break;
+            // No evidence-download step in the LEFT rework: once the station
+            // interaction has opened the form it is immediately fillable, so
+            // yield a frame for the open to settle and proceed.
+            if (!form.IsOpen) yield break;
+            yield return null;
             CompleteCustodyForm(form, actor);
         }
 
