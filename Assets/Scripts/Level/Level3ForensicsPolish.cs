@@ -189,8 +189,18 @@ namespace Cyverse.Level
                 new Vector3(3.35f, 0.50f, 0.04f), PanelMaterial());
             CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.38f, 11.02f),
                 "04  FORENSIC REPORT", new Color(0.72f, 1f, 0.82f), 0.045f, 52f, 28f);
-            reportStatus = CreateWorldText(root, "DF_ReportStatus", new Vector3(9.2f, 1.53f, 11.00f),
-                "CASEWORK  0 / 14\nREPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.040f, 55f, 25f);
+            // The live case/report readout must NOT sit on the diegetic upload
+            // screen. DF_ReportScreen is a 2.45x1.04 m RT quad at (9.2,1.52,11.09)
+            // spanning y ~1.0..2.04; the old DF_ReportStatus at (9.2,1.53,11.00)
+            // was drawn on the viewer side of it and bled its "CASEWORK / REPORT
+            // LOCKED" text through the "UPLOAD COMPLETE" progress readout. Mount
+            // it low on the desk FRONT face instead (desk centred (9.2,0.5,11),
+            // top y=1.0, front face z~=10.375), well clear of the screen below
+            // its bottom edge, on its own quiet caption panel.
+            SpawnCube("DF_ReportStatusPanel", root, new Vector3(9.2f, 0.60f, 10.38f),
+                new Vector3(2.6f, 0.46f, 0.04f), PanelMaterial());
+            reportStatus = CreateWorldText(root, "DF_ReportStatus", new Vector3(9.2f, 0.60f, 10.36f),
+                "CASEWORK  0 / 14\nREPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.032f, 40f, 22f);
         }
 
         private void BuildWorkflowPath(Transform root)

@@ -159,9 +159,15 @@ namespace Cyverse.Interaction
                     new Vector3(0.9f, 0.55f, 1f),
                     BuildKit.MakeEmissive(new Color(0.05f, 0.22f, 0.10f), 0.8f), collider: false);
             }
-            BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.62f, 0.1f),
-                "FORENSIC\nTERMINAL", new Color(0.45f, 1f, 0.60f), 0.024f)
-                .transform.localRotation = Quaternion.Euler(-8f, 0f, 0f);
+            // NOTE: a large world-space "FORENSIC TERMINAL" TextMesh used to sit
+            // here at local (0,1.62,0.1) — directly in front of MonScreen_0
+            // (0,1.65,0.14) on the viewer's -Z side — and drew a room-sized label
+            // straight across the live diegetic readout. It was redundant: the RT
+            // readout already prints "CYVERSE FORENSIC TERMINAL" as its header,
+            // and the station carries a mounted room sign above the console
+            // (built below as "INVESTIGATION DESK", re-labelled by
+            // Level3ForensicsPolish to "02 ANALYZE EVIDENCE"). Removed so the
+            // centre monitor shows exactly one legible readout.
 
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Keyboard", root.transform,
                 new Vector3(0f, 1.03f, -0.25f), Vector3.zero, new Vector3(0.7f, 0.03f, 0.22f),

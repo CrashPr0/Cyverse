@@ -52,7 +52,28 @@ namespace Cyverse.Interaction
         // Far from ALL real geometry (thousands of units on every axis) so the
         // main game camera's frustum can never contain the offscreen UI canvas,
         // even before the culling-mask isolation below takes effect.
-        private static readonly Vector3 OffscreenOrigin = new Vector3(10000f, -1000f, 10000f);
+        //
+        // Each DiegeticScreen must sit at its OWN origin, spaced far from every
+        // other screen: all screens share ONE isolation layer (resolved once and
+        // cached), and every screen's private ortho RT camera culls exactly that
+        // layer. If two screens' canvases were pinned to the SAME point, each
+        // camera would frame BOTH canvases stacked on top of one another and
+        // paint the composite into both RTs. That is exactly the "overlapping
+        // text / vertical letter column" defect. Spacing successive screens far
+        // apart on X guarantees each camera's tight ortho frustum (near 0.1,
+        // far 6) contains only its own canvas.
+        private static readonly Vector3 OffscreenBaseOrigin = new Vector3(10000f, -1000f, 10000f);
+
+        // Metres between successive screens' offscreen origins. Far larger than
+        // any screen canvas' world size (a few metres) and larger than each RT
+        // camera's far clip, so no camera can ever see a neighbouring canvas.
+        private const float OffscreenSpacing = 1000f;
+
+        // Incremented per screen built, so screen N lives at base + N*spacing.
+        private static int offscreenSlotCount = 0;
+
+        // This instance's own offscreen origin (base + its slot * spacing).
+        private Vector3 offscreenOrigin;
 
         // A dedicated layer for the offscreen screen-UI canvas. The RT camera
         // renders ONLY this layer; the main game camera has it REMOVED from its
@@ -60,10 +81,11 @@ namespace Cyverse.Interaction
         // camera whose mask includes its layer) never appears in the game view.
         // Chosen once at runtime from a free builtin slot so no TagManager edit
         // is needed; falls back to the UI layer only if none is free. Shared by
-        // all DiegeticScreens (and safe to share with DiegeticPhone's own layer:
-        // every screen's canvas + RT camera live at their own OffscreenOrigin far
-        // apart in world space, so the layer only needs to be excluded from the
-        // main camera once).
+        // all DiegeticScreens (and safe to share with DiegeticPhone's own layer):
+        // every screen's canvas + RT camera live at their OWN distinct offscreen
+        // origin (see OffscreenBaseOrigin / OffscreenSpacing) far apart in world
+        // space, so each RT camera sees only its own canvas and the layer only
+        // needs to be excluded from the main camera once.
         private static int screenUiLayer = -1;
 
         private const int DefaultRtWidth = 256;
@@ -214,8 +236,17 @@ namespace Cyverse.Interaction
             // them near the room. Unparented + absolute position guarantees the
             // pair sits thousands of units away where no other geometry (and no
             // main-camera frustum) can reach them.
+            //
+            // Claim a UNIQUE slot so this screen's canvas/camera sit far from
+            // every OTHER screen's, not on top of them. Sharing one origin makes
+            // each RT camera capture every screen's canvas at once (the overlap
+            // defect). Slot is claimed at build time and never reused within a
+            // scene run (a new bootstrap resets the counter with the domain).
+            offscreenOrigin = OffscreenBaseOrigin + new Vector3(offscreenSlotCount * OffscreenSpacing, 0f, 0f);
+            offscreenSlotCount++;
+
             offscreenRoot = new GameObject("DiegeticScreenOffscreen");
-            offscreenRoot.transform.position = OffscreenOrigin;
+            offscreenRoot.transform.position = offscreenOrigin;
 
             // ---- The offscreen canvas ----
             // Canvas dimensions in canvas units, matched to the RT aspect so the
@@ -228,7 +259,7 @@ namespace Cyverse.Interaction
 
             var canvasGo = new GameObject("ScreenUiCanvas", typeof(Canvas));
             canvasGo.transform.SetParent(offscreenRoot.transform, false);
-            canvasGo.transform.localPosition = Vector3.zero;      // == OffscreenOrigin in world
+            canvasGo.transform.localPosition = Vector3.zero;      // == this screen's offscreenOrigin in world
             canvasGo.transform.localRotation = Quaternion.identity;
             screenCanvas = canvasGo.GetComponent<Canvas>();
             screenCanvas.renderMode = RenderMode.WorldSpace;
