@@ -1,5 +1,8 @@
+using System.Text;
+using TMPro;
 using UnityEngine;
 using Cyverse.Audio;
+using Cyverse.Core;
 using Cyverse.Forensics;
 using Cyverse.Level;
 using Cyverse.UI;
@@ -16,6 +19,17 @@ namespace Cyverse.Interaction
     {
         public LogDatabase Database { get; private set; }
         public InvestigationCase[] Cases { get; private set; }
+
+        // The center monitor (MonScreen_0) is a live diegetic readout instead of
+        // a static emissive quad: a DiegeticScreen RenderTexture surface that
+        // shows current case / question / progress / SOC handoff / score. This
+        // is presentation only — the interactive QueryTerminal modal (keyboard
+        // KQL entry, `answer` submission) still opens on the HUD via
+        // QueryTerminal.Open(...); the readout mirrors the state the terminal
+        // reads from these same Cases. See Docs/FORENSICS_REWORK_PLAN.md §"MIDDLE".
+        private DiegeticScreen centerScreen;
+        private TMP_Text readoutText;
+        private bool readoutSubscribed;
 
         /// <summary>The first unsolved case (or the last one, once all done).</summary>
         public InvestigationCase ActiveCase
@@ -101,27 +115,17 @@ namespace Cyverse.Interaction
 
             var current = ActiveCase;
             bool lastCase = current == null || current == Cases[Cases.Length - 1];
-            QueryTerminal.Instance.Open(Database, current, lastCase
+            string closedNote = lastCase
                 ? null // default "results are waiting" close-out
-                : "<b>CASE CLOSED.</b> A new case file just hit your desk — Esc, then open the terminal again.");
-        }
+                : "<b>CASE CLOSED.</b> A new case file just hit your desk — Esc, then open the terminal again.";
+            QueryTerminal.Instance.Open(Database, current, closedNote,
+                guidedStart: Cases != null && Cases.Length > 0 && current == Cases[0]);
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public void CompleteForAutomation()
-        {
-            if (Cases == null) return;
-            foreach (var investigation in Cases)
-            {
-                if (investigation == null || investigation.questions == null) continue;
-                foreach (var question in investigation.questions)
-                {
-                    if (question == null || question.Answered) continue;
-                    question.Answered = true;
-                    investigation.NotifyAnswered();
-                }
-            }
+            // Repaint the diegetic monitor on engage: the QuestionAnswered event
+            // covers mid-session progress, and this catches score/case-advance
+            // that settle as the analyst opens the terminal.
+            RefreshReadout();
         }
-#endif
 
         // ---- Construction ----------------------------------------------------
 
@@ -139,12 +143,17 @@ namespace Cyverse.Interaction
                 BuildKit.MakeEmissive(accent, 1.5f), collider: false);
 
             // Three angled monitors, KC7-appropriately wall-of-data green.
+            // The center (i==0) is left as a body-only mount here; its screen is
+            // a live DiegeticScreen built after the console component exists
+            // (below). The two side monitors stay static emissive quads (ambient
+            // dressing) per the MIDDLE rework plan.
             for (int i = -1; i <= 1; i++)
             {
                 float yaw = i * 24f;
                 BuildKit.SpawnLocal(PrimitiveType.Cube, "MonBody_" + i, root.transform,
                     new Vector3(i * 1.05f, 1.65f, 0.18f), new Vector3(-8f, yaw, 0f),
                     new Vector3(1.0f, 0.65f, 0.05f), bodyMat, collider: i == 0);
+                if (i == 0) continue; // center screen is diegetic; built below
                 BuildKit.SpawnLocal(PrimitiveType.Quad, "MonScreen_" + i, root.transform,
                     new Vector3(i * 1.05f, 1.65f, 0.14f), new Vector3(-8f, yaw, 0f),
                     new Vector3(0.9f, 0.55f, 1f),
@@ -176,7 +185,161 @@ namespace Cyverse.Interaction
                 InvestigationCase.SpartanGold(),
                 InvestigationCase.MidnightExfil(),
             };
+
+            // Build the live diegetic center monitor and paint its first frame.
+            console.BuildCenterScreen(root.transform);
             return console;
         }
+
+        // ---- Diegetic center monitor ----------------------------------------
+
+        // The center screen quad matches the old MonScreen_0: 0.9 x 0.55 world
+        // metres, sat at the same local pose on the console (which is why the
+        // DiegeticScreen is re-parented in rather than placed by Create's world
+        // args). The RT is portrait-ish to suit the stacked readout.
+        private static readonly Vector3 CenterScreenLocalPos = new Vector3(0f, 1.65f, 0.14f);
+        private static readonly Vector3 CenterScreenLocalEuler = new Vector3(-8f, 0f, 0f);
+        private static readonly Vector2 CenterScreenWorldSize = new Vector2(0.9f, 0.55f);
+
+        /// <summary>Build the DiegeticScreen surface for MonScreen_0 and attach a
+        /// TMP readout under its offscreen canvas, then render the first frame.
+        /// Called once from <see cref="Build"/> after the console exists.</summary>
+        private void BuildCenterScreen(Transform consoleRoot)
+        {
+            // Create at origin/identity; we re-parent the screen quad onto the
+            // console mount so it inherits the console's placement and the -8°
+            // monitor tilt. DiegeticScreen keeps its own offscreen canvas/camera
+            // unparented far away, so re-parenting the quad is safe.
+            centerScreen = DiegeticScreen.Create(Vector3.zero, 0f, CenterScreenWorldSize,
+                rtWidth: 384, rtHeight: 256, name: "MonScreen_0");
+            // Parent the DiegeticScreen component's own root under the console at
+            // the exact old MonScreen_0 pose. The screen quad is a CHILD of that
+            // root (see DiegeticScreen.BuildScreenQuad) at local origin, so it
+            // follows automatically — no separate quad reparent. This also means
+            // the screen's OnDestroy cleanup (RT + offscreen canvas/camera) tears
+            // down with the level. The offscreen canvas/camera are held UNPARENTED
+            // far away by the helper regardless, so this only moves the
+            // lightweight screen root, not the isolation.
+            var screenRoot = centerScreen.transform;
+            screenRoot.SetParent(consoleRoot, false);
+            screenRoot.localPosition = CenterScreenLocalPos;
+            screenRoot.localRotation = Quaternion.Euler(CenterScreenLocalEuler);
+
+            BuildReadout(centerScreen.CanvasRoot);
+            SubscribeCaseEvents();
+            RefreshReadout();
+        }
+
+        /// <summary>Lay out the readout widget(s) under the DiegeticScreen canvas.
+        /// One rich-text TMP block fills the canvas; content is composed in
+        /// <see cref="RefreshReadout"/>.</summary>
+        private void BuildReadout(RectTransform canvasRoot)
+        {
+            if (canvasRoot == null) return;
+
+            var go = new GameObject("Readout", typeof(RectTransform), typeof(TextMeshProUGUI));
+            go.transform.SetParent(canvasRoot, false);
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = Vector2.zero;
+            // Inset a small margin so text isn't flush to the bezel.
+            rt.offsetMin = new Vector2(14f, 12f);
+            rt.offsetMax = new Vector2(-14f, -12f);
+
+            readoutText = go.GetComponent<TextMeshProUGUI>();
+            readoutText.font = TMP_Settings.defaultFontAsset;
+            readoutText.fontSize = 15;
+            readoutText.alignment = TextAlignmentOptions.TopLeft;
+            readoutText.color = new Color(0.60f, 1f, 0.72f);
+            readoutText.richText = true;
+            readoutText.enableWordWrapping = true;
+            readoutText.overflowMode = TextOverflowModes.Truncate;
+            readoutText.raycastTarget = false;
+        }
+
+        /// <summary>Subscribe to each case's answered event so the diegetic
+        /// readout re-renders as the analyst makes progress in the HUD terminal
+        /// — without polling per frame (WebGL-friendly, matching DiegeticScreen's
+        /// on-demand render). Idempotent.</summary>
+        private void SubscribeCaseEvents()
+        {
+            if (readoutSubscribed || Cases == null) return;
+            foreach (var c in Cases)
+                if (c != null) c.QuestionAnswered += RefreshReadout;
+            readoutSubscribed = true;
+        }
+
+        private void OnDestroy()
+        {
+            if (readoutSubscribed && Cases != null)
+                foreach (var c in Cases)
+                    if (c != null) c.QuestionAnswered -= RefreshReadout;
+            readoutSubscribed = false;
+        }
+
+        /// <summary>Compose the live readout from this console's own case state
+        /// (the same objects QueryTerminal reads) and render one RT frame.</summary>
+        public void RefreshReadout()
+        {
+            if (readoutText == null || centerScreen == null) return;
+
+            var sb = new StringBuilder();
+            sb.Append("<b><color=#4CFF8C>CYVERSE FORENSIC TERMINAL</color></b>\n");
+
+            if (SocProgress.TryGetEvidence(out var evidence))
+            {
+                sb.Append("<size=12><color=#4CE087>SOC HANDOFF \u2713 VERIFIED</color>\n")
+                  .Append(Escape(evidence.computer)).Append("  \u00b7  ").Append(Escape(evidence.user)).Append('\n')
+                  .Append(Escape(evidence.alertTitle)).Append("</size>\n\n");
+            }
+            else
+            {
+                sb.Append("<size=12><color=#FF8866>SOC HANDOFF MISSING</color></size>\n\n");
+            }
+
+            var current = ActiveCase;
+            if (AllComplete)
+            {
+                sb.Append("<color=#E5A823><b>ALL CASES CLOSED \u2713</b></color>\n\n");
+            }
+            else if (current != null)
+            {
+                sb.Append("<b>").Append(Escape(current.title)).Append("</b>\n");
+                sb.Append("<size=13><color=#8FB8CC>")
+                  .Append(current.AnsweredCount).Append('/').Append(current.questions.Length)
+                  .Append(" solved</color></size>\n\n");
+
+                var q = current.Current;
+                if (q != null)
+                {
+                    sb.Append("<size=13><color=#5BC8FF><b>Q")
+                      .Append(current.CurrentIndex + 1).Append(":</b></color> ")
+                      .Append(Escape(q.prompt)).Append("</size>\n\n");
+                }
+
+                // Progress dots for the active case.
+                sb.Append("<color=#8FB8CC><size=16>");
+                for (int i = 0; i < current.questions.Length; i++)
+                    sb.Append(current.questions[i].Answered
+                        ? "<color=#4CE087>\u25a0</color>" : "\u25a1").Append(' ');
+                sb.Append("</size></color>\n");
+            }
+
+            sb.Append("\n<size=12><color=#8FB8CC>CASE FILES ")
+              .Append(TotalAnswered).Append('/').Append(TotalQuestions)
+              .Append("   \u00b7   SCORE ").Append(ScoreSystem.Score).Append("</color></size>\n");
+            sb.Append("<size=11><color=#607585>Press E \u2014 open terminal</color></size>");
+
+            readoutText.text = sb.ToString();
+            centerScreen.RenderNow();
+        }
+
+        /// <summary>Neutralize angle-bracket sequences in dynamic content so they
+        /// don't collide with TMP rich-text tags (same convention as
+        /// QueryTerminal.Escape).</summary>
+        private static string Escape(string s) => string.IsNullOrEmpty(s)
+            ? "" : s.Replace("<", "\u2039").Replace(">", "\u203a");
     }
 }
