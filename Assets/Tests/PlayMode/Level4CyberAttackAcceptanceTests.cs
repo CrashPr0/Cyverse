@@ -17,9 +17,9 @@ namespace Cyverse.Tests
     /// no exploit process or network action is ever started.</summary>
     public sealed class Level4CyberAttackAcceptanceTests
     {
-        private readonly string[] progressKeys = { "cv_done_4", "cv_best" };
-        private readonly bool[] hadKeys = new bool[2];
-        private readonly int[] savedValues = new int[2];
+        private readonly string[] progressKeys = { "cv_done_3", "cv_done_4", "cv_best" };
+        private readonly bool[] hadKeys = new bool[3];
+        private readonly int[] savedValues = new int[3];
 
         [SetUp]
         public void PreserveProgress()
@@ -76,6 +76,46 @@ namespace Cyverse.Tests
             Assert.That(GetStationTitle(stations, 1), Does.Contain("ESCALATE PRIVILEGES"));
             Assert.That(GetStationTitle(stations, 2), Does.Contain("EXTRACT DATA"));
             Assert.That(GetStationTitle(stations, 3), Does.Contain("COVER TRACKS"));
+        }
+
+        [UnityTest]
+        public IEnumerator Hub_OffersPlayableLevel4AfterLevel3()
+        {
+            PlayerPrefs.SetInt("cv_done_3", 1);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene("Hub", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Type doorType = FindType("Cyverse.Interaction.HubDoor");
+            object level4Door = null;
+            foreach (Object candidate in Object.FindObjectsOfType(doorType))
+                if ((int)doorType.GetField("levelIndex").GetValue(candidate) == 4)
+                {
+                    level4Door = candidate;
+                    break;
+                }
+
+            Assert.That(level4Door, Is.Not.Null, "The Hub must contain a Level 4 gate.");
+            string sceneName = (string)doorType.GetField("sceneName").GetValue(level4Door);
+            Assert.That(sceneName, Is.Not.Empty,
+                "The saved Hub scene must not serialize Level 4 as in development.");
+            Assert.That(Application.CanStreamedLevelBeLoaded(sceneName), Is.True,
+                "The Level 4 door destination must be registered in Build Settings.");
+            string prompt = (string)doorType.GetProperty("Prompt").GetValue(level4Door);
+            Assert.That(prompt, Does.StartWith("Enter Level 4"),
+                "Completing Level 3 should expose Level 4 as a playable destination.");
+
+            Type boardType = FindType("Cyverse.Level.MissionBoard");
+            object board = Object.FindObjectOfType(boardType);
+            Assert.That(board, Is.Not.Null, "The Hub must show live mission status.");
+            int[] levels = (int[])boardType.GetField("levels").GetValue(board);
+            bool[] inDevelopment = (bool[])boardType.GetField("inDevelopment").GetValue(board);
+            int level4Row = Array.IndexOf(levels, 4);
+            Assert.That(level4Row, Is.GreaterThanOrEqualTo(0));
+            Assert.That(inDevelopment[level4Row], Is.False,
+                "The mission board must no longer label the playable Level 4 as in development.");
         }
 
         [UnityTest]
@@ -186,10 +226,9 @@ namespace Cyverse.Tests
                     Is.GreaterThan(0.995f), "Every Level 4 monitor must face the shared inward focal point.");
             }
 
-            // Use the same deterministic hooks as the campaign TAS: the
-            // briefing event starts the timer, then the manager submits each
-            // authored correct choice in station order.
-            briefingType.GetMethod("CompleteForAutomation").Invoke(briefing, null);
+            // Send the same scrub action as live briefing input. The event at
+            // the end starts the timer and unlocks the first station.
+            Assert.That(GameplayActionTestDriver.Scrub(briefing, float.MaxValue), Is.True);
             yield return null;
             Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(), Is.EqualTo("BypassMfa"));
 
@@ -206,7 +245,7 @@ namespace Cyverse.Tests
                 }
             }
             Assert.That(firstStation, Is.Not.Null);
-            stationType.GetMethod("Interact").Invoke(firstStation, new object[] { null });
+            Assert.That(GameplayActionTestDriver.Interact(firstStation), Is.True);
             yield return null;
             GameObject choicePanel = stationType.GetField("panel",
                 BindingFlags.Instance | BindingFlags.NonPublic).GetValue(firstStation) as GameObject;
@@ -220,7 +259,7 @@ namespace Cyverse.Tests
             Assert.That(choices, Has.Length.EqualTo(3));
             foreach (Button choice in choices)
                 AssertRectInside(choiceRect, choice.GetComponent<RectTransform>(), "Choice option");
-            stationType.GetMethod("CloseForManager").Invoke(firstStation, null);
+            Assert.That(GameplayActionTestDriver.Cancel(firstStation), Is.True);
             yield return null;
             Type hudType = FindType("Cyverse.UI.HudUI");
             Component hud = hudType.GetProperty("Instance").GetValue(null) as Component;
@@ -229,7 +268,24 @@ namespace Cyverse.Tests
             Assert.That(objectiveText, Is.Not.Null);
             Assert.That(objectiveText.text, Does.Not.Contain("EXFILTRATION"),
                 "The top objective should not duplicate the dedicated scorecard telemetry.");
-            managerType.GetMethod("CompleteForAutomation").Invoke(manager, null);
+            // Follow the authored route through the same Interact + Choose
+            // commands that a player sends from each station modal.
+            for (int expectedIndex = 0; expectedIndex < expectedKinds.Length; expectedIndex++)
+            {
+                object currentStation = null;
+                foreach (Object station in stations)
+                    if ((int)stationIndexProperty.GetValue(station) == expectedIndex)
+                    {
+                        currentStation = station;
+                        break;
+                    }
+                Assert.That(currentStation, Is.Not.Null);
+                object scenario = managerType.GetMethod("ScenarioFor")
+                    .Invoke(manager, new[] { currentStation });
+                int correctOption = (int)scenario.GetType().GetField("correctOption").GetValue(scenario);
+                Assert.That(GameplayActionTestDriver.Interact(currentStation), Is.True);
+                Assert.That(GameplayActionTestDriver.Choose(currentStation, correctOption), Is.True);
+            }
             yield return null;
             yield return null;
 

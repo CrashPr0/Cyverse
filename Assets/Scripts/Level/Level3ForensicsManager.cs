@@ -83,7 +83,7 @@ namespace Cyverse.Level
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
             if (receivedEvidence != null && HudUI.Instance != null)
                 HudUI.Instance.ShowToast("SOC EVIDENCE RECEIVED — " + receivedEvidence.computer +
-                    " disk image and chain of custody loaded.", new Color(0.30f, 1f, 0.55f));
+                    " image ready for phone download at Evidence Intake.", new Color(0.30f, 1f, 0.55f));
             UpdateObjective();
         }
 

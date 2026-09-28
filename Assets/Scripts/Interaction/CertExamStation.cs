@@ -112,17 +112,6 @@ namespace Cyverse.Interaction
             Completed?.Invoke();
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        /// <summary>Completes the keyboard-driven exam for end-flow automation.
-        /// Question correctness is covered separately; this hook verifies that
-        /// the exam completion event advances and persists the level.</summary>
-        public void CompleteForAutomation()
-        {
-            Activate();
-            Finish();
-        }
-#endif
-
         // ---- Construction ----------------------------------------------------
 
         public static CertExamStation Build(Vector3 pos, float rotY, QuizQuestion[] questions, Color accent)

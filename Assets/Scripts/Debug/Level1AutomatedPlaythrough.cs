@@ -50,13 +50,13 @@ namespace Cyverse.Testing
                 yield break;
             }
 
-            briefing.CompleteForAutomation();
+            DeterministicGameplayAdapter.FinishBriefing(briefing, gameObject);
             if (!WaitCondition(() => manager.CurrentPhase == Level1IamManager.Phase.Tasks,
                 2f, "briefing did not unlock the task phase")) yield break;
             yield return null;
             Debug.Log("[PLAYTHROUGH] Briefing complete; task room unlocked");
 
-            badge.Interact(gameObject);
+            GameplayActions.TryApply(badge, GameplayAction.Interact(), gameObject);
             if (!WaitCondition(() => badge.IsEnrolled, 2f, "badge enrollment did not complete")) yield break;
             yield return null;
 
@@ -72,10 +72,25 @@ namespace Cyverse.Testing
                 Fail("MFA token or TOKEN SLOT is missing.");
                 yield break;
             }
-            token.Interact(gameObject);
-            tokenSlot.Interact(gameObject);
-            mfa.FactorCleared(0);
-            mfa.FactorCleared(2);
+            GameplayActions.TryApply(token, GameplayAction.Interact(), gameObject);
+            GameplayActions.TryApply(tokenSlot, GameplayAction.Interact(), gameObject);
+            MfaFactor knowledge = null;
+            MfaFactor biometric = null;
+            foreach (MfaFactor factor in FindObjectsOfType<MfaFactor>())
+            {
+                if (factor.gauntlet != mfa) continue;
+                if (factor.kind == MfaFactor.Kind.Knowledge) knowledge = factor;
+                else if (factor.kind == MfaFactor.Kind.Biometric) biometric = factor;
+            }
+            yield return DeterministicGameplayAdapter.CompleteMfaFactor(knowledge, gameObject);
+            yield return DeterministicGameplayAdapter.CompleteMfaFactor(biometric, gameObject);
+            float mfaDeadline = Time.realtimeSinceStartup + 3f;
+            while (!mfa.IsComplete && Time.realtimeSinceStartup < mfaDeadline) yield return null;
+            if (!mfa.IsComplete)
+            {
+                Fail("MFA factors did not complete through the shared player-action path.");
+                yield break;
+            }
 
             // Deliver every data crate through the role predicate and normal
             // DropZone callback, catching lost delegate wiring in saved scenes.
@@ -96,8 +111,8 @@ namespace Cyverse.Testing
                     Fail("No wired destination accepts data crate '" + item.id + "'.");
                     yield break;
                 }
-                item.Interact(gameObject);
-                destination.Interact(gameObject);
+                GameplayActions.TryApply(item, GameplayAction.Interact(), gameObject);
+                GameplayActions.TryApply(destination, GameplayAction.Interact(), gameObject);
                 yield return null;
             }
             if (!sorting.IsComplete)
@@ -109,7 +124,8 @@ namespace Cyverse.Testing
             while (!audit.IsComplete)
             {
                 int before = audit.Solved;
-                audit.SolveCurrentRoundForAutomation();
+                int correctRow = Level1IamContent.AuditRounds()[before].anomaly;
+                DeterministicGameplayAdapter.SolveAuditRound(audit, correctRow, gameObject);
                 float deadline = Time.realtimeSinceStartup + 2.5f;
                 while (!audit.IsComplete && audit.Solved == before && Time.realtimeSinceStartup < deadline)
                     yield return null;
@@ -132,7 +148,7 @@ namespace Cyverse.Testing
             }
             Debug.Log("[PLAYTHROUGH] Badge, MFA, Data Triage, and Audit tasks complete");
 
-            exam.CompleteForAutomation();
+            yield return DeterministicGameplayAdapter.CompleteExam(exam, gameObject, 0.01f);
             yield return null;
             if (manager.CurrentPhase != Level1IamManager.Phase.Complete ||
                 !GameState.LevelComplete || !LevelProgress.IsCompleted(1))

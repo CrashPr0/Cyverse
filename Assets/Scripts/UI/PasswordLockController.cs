@@ -26,7 +26,7 @@ namespace Cyverse.UI
     /// build and repo — a speed bump for casual visitors, never protection
     /// for anything sensitive. Real gating belongs on the host.
     /// </summary>
-    public class PasswordLockController : MonoBehaviour
+    public class PasswordLockController : MonoBehaviour, IGameplayActionTarget
     {
         public string password = "C1@scg2laC!";
         public string nextScene = "Hub";
@@ -89,8 +89,7 @@ namespace Cyverse.UI
 
             if (Input.GetKeyDown(KeyCode.Tab))
             {
-                masked = !masked;
-                RefreshInput();
+                GameplayActions.TryApply(this, GameplayAction.Toggle());
             }
 
             bool clipboardModifier = Input.GetKey(KeyCode.LeftControl) ||
@@ -119,16 +118,16 @@ namespace Cyverse.UI
                 }
                 if (c == '\b')
                 {
-                    if (typed.Length > 0) typed = typed.Substring(0, typed.Length - 1);
+                    GameplayActions.TryApply(this, GameplayAction.Backspace());
                 }
                 else if (c == '\n' || c == '\r')
                 {
-                    Submit();
+                    GameplayActions.TryApply(this, GameplayAction.Submit());
                     return;
                 }
                 else if (!char.IsControl(c) && typed.Length < maxLength)
                 {
-                    typed += c;
+                    GameplayActions.TryApply(this, GameplayAction.Append(c.ToString()));
                 }
             }
             RefreshInput();
@@ -146,7 +145,7 @@ namespace Cyverse.UI
                 SetFeedback("<color=#6F8296>CLIPBOARD IS EMPTY</color>");
                 return;
             }
-            Append(clipboard);
+            GameplayActions.TryApply(this, GameplayAction.Paste(clipboard));
         }
 
         /// <summary>Clipboard text arriving from the browser's paste event.
@@ -154,22 +153,55 @@ namespace Cyverse.UI
         public void OnClipboardText(string clipboard)
         {
             if (unlocked || Time.unscaledTime < lockedUntil || string.IsNullOrEmpty(clipboard)) return;
-            Append(clipboard);
+            GameplayActions.TryApply(this, GameplayAction.Paste(clipboard));
         }
 
-        private void Append(string clipboard)
+        private void Append(string text, bool announcePaste)
         {
             int before = typed.Length;
-            foreach (char c in clipboard)
+            foreach (char c in text)
             {
                 if (!char.IsControl(c) && typed.Length < maxLength)
                     typed += c;
             }
 
             RefreshInput();
-            SetFeedback(typed.Length > before
-                ? "<color=#5BC8FF>PASTED FROM CLIPBOARD</color>"
-                : "<color=#6F8296>NO VALID CHARACTERS TO PASTE</color>");
+            if (announcePaste)
+                SetFeedback(typed.Length > before
+                    ? "<color=#5BC8FF>PASTED FROM CLIPBOARD</color>"
+                    : "<color=#6F8296>NO VALID CHARACTERS TO PASTE</color>");
+        }
+
+        public bool TryApply(GameplayAction action, GameObject actor)
+        {
+            if (unlocked || Time.unscaledTime < lockedUntil) return false;
+
+            switch (action.Kind)
+            {
+                case GameplayActionKind.AppendText:
+                    Append(action.Text, announcePaste: false);
+                    return true;
+                case GameplayActionKind.PasteText:
+                    Append(action.Text, announcePaste: true);
+                    return true;
+                case GameplayActionKind.Backspace:
+                    if (typed.Length > 0) typed = typed.Substring(0, typed.Length - 1);
+                    RefreshInput();
+                    return true;
+                case GameplayActionKind.ClearText:
+                    typed = string.Empty;
+                    RefreshInput();
+                    return true;
+                case GameplayActionKind.Submit:
+                    Submit();
+                    return true;
+                case GameplayActionKind.Toggle:
+                    masked = !masked;
+                    RefreshInput();
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void CopyToClipboard()
@@ -225,18 +257,6 @@ namespace Cyverse.UI
                 StartCoroutine(ShakeMonitor());
             }
         }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        /// <summary>Types the configured credential through the same submit
-        /// path used by the watchable campaign TAS.</summary>
-        public void SubmitForAutomation()
-        {
-            if (unlocked) return;
-            typed = password;
-            RefreshInput();
-            Submit();
-        }
-#endif
 
         private IEnumerator EnterTheHub()
         {

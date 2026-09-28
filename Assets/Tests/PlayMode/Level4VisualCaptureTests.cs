@@ -112,11 +112,11 @@ namespace Cyverse.Tests
             }
             Assert.That(briefing, Is.Not.Null);
             Assert.That(firstStation, Is.Not.Null);
-            videoType.GetMethod("CompleteForAutomation")?.Invoke(briefing, null);
+            Assert.That(GameplayActionTestDriver.Scrub(briefing, float.MaxValue), Is.True);
             yield return null;
             HideControlsOverlay();
             yield return null;
-            stationType.GetMethod("Interact")?.Invoke(firstStation, new object[] { null });
+            Assert.That(GameplayActionTestDriver.Interact(firstStation), Is.True);
             yield return null;
             CaptureOverlayCanvases(camera);
             Assert.That(Capture(camera, Path.Combine(output,

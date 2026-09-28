@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Core;
+using Cyverse.Interaction;
 
 namespace Cyverse.Quiz
 {
@@ -31,7 +32,7 @@ namespace Cyverse.Quiz
     /// immediate feedback, then reports back via callback. Keyboard-only, so it
     /// needs no EventSystem and stays accessible.
     /// </summary>
-    public class QuizSystem : MonoBehaviour
+    public class QuizSystem : MonoBehaviour, IGameplayActionTarget
     {
         public static QuizSystem Instance { get; private set; }
 
@@ -47,6 +48,9 @@ namespace Cyverse.Quiz
         private Action<bool> onAnswered;
         private bool awaitingInput;
         private ModalSession.Lease modal;
+
+        public bool IsAwaitingInput => awaitingInput;
+        public QuizQuestion CurrentQuestion => current;
 
         void Awake()
         {
@@ -83,7 +87,18 @@ namespace Cyverse.Quiz
             else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) choice = 1;
             else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) choice = 2;
 
-            if (choice >= 0) Answer(choice);
+            if (choice >= 0)
+                GameplayActions.TryApply(this, GameplayAction.Choose(choice));
+        }
+
+        public bool TryApply(GameplayAction action, GameObject actor)
+        {
+            if (action.Kind != GameplayActionKind.Choose || !awaitingInput || current == null ||
+                current.options == null || action.Index < 0 || action.Index >= current.options.Length)
+                return false;
+
+            Answer(action.Index);
+            return true;
         }
 
         private void Answer(int choice)

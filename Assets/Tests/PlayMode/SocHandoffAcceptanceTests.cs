@@ -178,7 +178,7 @@ namespace Cyverse.Tests
             Assert.That(hit.collider.GetComponentInParent(siemType), Is.SameAs(siem),
                 "The visible Alert Board must resolve to the SiemConsole interaction.");
 
-            siemType.GetMethod("Interact").Invoke(siem, new object[] { null });
+            Assert.That(GameplayActionTestDriver.Interact(siem), Is.True);
             yield return null;
 
             Type gameState = FindType("Cyverse.Core.GameState");
@@ -186,8 +186,12 @@ namespace Cyverse.Tests
             Assert.That(GameObject.Find("SocInvestigationPanel"), Is.Not.Null,
                 "Opening the Alert Board should construct its TMP comparison UI.");
 
-            siemType.GetMethod("ClosePanel", BindingFlags.Instance | BindingFlags.NonPublic)
-                .Invoke(siem, null);
+            Assert.That(GameplayActionTestDriver.Cancel(siem), Is.True);
+            Assert.That(GameplayActionTestDriver.RunDeterministicAction(
+                "CompleteSocInvestigation", siem), Is.True,
+                "The deterministic adapter must finish the SOC route only through player actions.");
+            Assert.That((bool)siemType.GetProperty("IsComplete").GetValue(siem), Is.True);
+            Assert.That(PlayerPrefs.GetInt("cv_soc_chain_of_custody", 0), Is.EqualTo(1));
         }
 
         [UnityTest]
@@ -222,19 +226,30 @@ namespace Cyverse.Tests
             Assert.That(console, Is.Not.Null);
 
             // Opening intake constructs four mouse-clickable blanks.
-            stationType.GetMethod("Interact").Invoke(station, new object[] { null });
-            yield return null;
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            Assert.That(GameplayActionTestDriver.Submit(form), Is.True);
+            Assert.That((bool)formType.GetProperty("IsComplete").GetValue(form), Is.False,
+                "The custody record must stay locked until the Evidence Intake phone finishes.");
+            float downloadDeadline = Time.realtimeSinceStartup + 5f;
+            while (!(bool)formType.GetProperty("IsEvidenceDownloaded").GetValue(form) &&
+                   Time.realtimeSinceStartup < downloadDeadline)
+                yield return null;
+            Assert.That((bool)formType.GetProperty("IsEvidenceDownloaded").GetValue(form), Is.True,
+                "The Evidence Intake phone should finish downloading the workstation image.");
             int blanks = 0;
             foreach (Button button in UnityEngine.Object.FindObjectsOfType<Button>(true))
                 if (button.name.StartsWith("Blank_")) blanks++;
             Assert.That(blanks, Is.EqualTo(4));
             Assert.That(GameObject.Find("ChainOfCustodyForm"), Is.Not.Null);
 
-            formType.GetMethod("CompleteForAutomation").Invoke(form, null);
+            for (int field = 0; field < 4; field++)
+                Assert.That(GameplayActionTestDriver.Select(form, field, 1), Is.True);
+            Assert.That(GameplayActionTestDriver.Submit(form), Is.True);
+            Assert.That(GameplayActionTestDriver.Cancel(form), Is.True);
             yield return null;
             Assert.That((bool)formType.GetProperty("IsComplete").GetValue(form), Is.True);
 
-            consoleType.GetMethod("Interact").Invoke(console, new object[] { null });
+            Assert.That(GameplayActionTestDriver.Interact(console), Is.True);
             yield return null;
             Type gameState = FindType("Cyverse.Core.GameState");
             Assert.That((bool)gameState.GetField("QuizActive").GetValue(null), Is.True,
@@ -242,8 +257,28 @@ namespace Cyverse.Tests
 
             Type terminalType = FindType("Cyverse.Forensics.QueryTerminal");
             object terminal = UnityEngine.Object.FindObjectOfType(terminalType);
-            terminalType.GetMethod("Close", BindingFlags.Instance | BindingFlags.NonPublic)
-                .Invoke(terminal, null);
+            Assert.That(terminalType.GetProperty("TutorialActive").GetValue(terminal), Is.True,
+                "The first forensic investigation should open with a guided start.");
+            Assert.That(terminalType.GetProperty("TutorialStep").GetValue(terminal), Is.EqualTo(0));
+
+            Assert.That(GameplayActionTestDriver.ClearText(terminal), Is.True);
+            Assert.That(GameplayActionTestDriver.Append(terminal, "tables"), Is.True);
+            Assert.That(GameplayActionTestDriver.Submit(terminal), Is.True);
+            Assert.That(terminalType.GetProperty("TutorialStep").GetValue(terminal), Is.EqualTo(1));
+
+            Assert.That(GameplayActionTestDriver.ClearText(terminal), Is.True);
+            Assert.That(GameplayActionTestDriver.Append(terminal,
+                "EvidenceManifest | project computer"), Is.True);
+            Assert.That(GameplayActionTestDriver.Submit(terminal), Is.True);
+            Assert.That(terminalType.GetProperty("TutorialStep").GetValue(terminal), Is.EqualTo(2));
+
+            Assert.That(GameplayActionTestDriver.ClearText(terminal), Is.True);
+            Assert.That(GameplayActionTestDriver.Append(terminal, "answer WS-03"), Is.True);
+            Assert.That(GameplayActionTestDriver.Submit(terminal), Is.True);
+            Assert.That(terminalType.GetProperty("TutorialActive").GetValue(terminal), Is.False,
+                "Submitting the guided finding should hand control back to the normal case flow.");
+            Assert.That(terminalType.GetProperty("TutorialStep").GetValue(terminal), Is.EqualTo(3));
+            Assert.That(GameplayActionTestDriver.Cancel(terminal), Is.True);
         }
 
         [UnityTest]
@@ -257,6 +292,7 @@ namespace Cyverse.Tests
 
             Type managerType = FindType("Cyverse.Level.Level3ForensicsManager");
             Type briefingType = FindType("Cyverse.Interaction.VideoStation");
+            Type custodyStationType = FindType("Cyverse.Interaction.ChainOfCustodyStation");
             Type formType = FindType("Cyverse.Forensics.ChainOfCustodyForm");
             Type consoleType = FindType("Cyverse.Interaction.ForensicsConsole");
             Type reportType = FindType("Cyverse.Interaction.ForensicsReportStation");
@@ -264,11 +300,13 @@ namespace Cyverse.Tests
 
             object manager = UnityEngine.Object.FindObjectOfType(managerType);
             object briefing = UnityEngine.Object.FindObjectOfType(briefingType);
+            object custodyStation = UnityEngine.Object.FindObjectOfType(custodyStationType);
             object form = UnityEngine.Object.FindObjectOfType(formType);
             object console = UnityEngine.Object.FindObjectOfType(consoleType);
             object report = UnityEngine.Object.FindObjectOfType(reportType);
             Assert.That(manager, Is.Not.Null);
             Assert.That(briefing, Is.Not.Null);
+            Assert.That(custodyStation, Is.Not.Null);
             Assert.That(form, Is.Not.Null);
             Assert.That(console, Is.Not.Null);
             Assert.That(report, Is.Not.Null, "The visible report desk must be mechanically usable.");
@@ -278,9 +316,19 @@ namespace Cyverse.Tests
             Assert.That(aim, Is.Not.Null);
             Assert.That(aim.isTrigger, Is.True, "The report aim target must not block player movement.");
 
-            briefingType.GetMethod("CompleteForAutomation").Invoke(briefing, null);
-            formType.GetMethod("CompleteForAutomation").Invoke(form, null);
-            consoleType.GetMethod("CompleteForAutomation").Invoke(console, null);
+            Assert.That(GameplayActionTestDriver.Scrub(briefing, float.MaxValue), Is.True);
+            Assert.That(GameplayActionTestDriver.Interact(custodyStation), Is.True);
+            float downloadDeadline = Time.realtimeSinceStartup + 5f;
+            while (!(bool)formType.GetProperty("IsEvidenceDownloaded").GetValue(form) &&
+                   Time.realtimeSinceStartup < downloadDeadline)
+                yield return null;
+            Assert.That((bool)formType.GetProperty("IsEvidenceDownloaded").GetValue(form), Is.True,
+                "The Evidence Intake phone should finish downloading the workstation image.");
+            for (int field = 0; field < 4; field++)
+                Assert.That(GameplayActionTestDriver.Select(form, field, 1), Is.True);
+            Assert.That(GameplayActionTestDriver.Submit(form), Is.True);
+            Assert.That(GameplayActionTestDriver.Cancel(form), Is.True);
+            yield return GameplayActionTestDriver.RunDeterministic("CompleteForensics", console);
             yield return null;
 
             Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(),
@@ -291,7 +339,7 @@ namespace Cyverse.Tests
                 "Closing the terminal cases must not bypass the report step.");
             Assert.That(PlayerPrefs.GetInt("cv_done_3", 0), Is.EqualTo(0));
 
-            reportType.GetMethod("Interact").Invoke(report, new object[] { null });
+            Assert.That(GameplayActionTestDriver.Interact(report), Is.True);
             yield return null;
             yield return null;
 

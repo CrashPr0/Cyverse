@@ -9,6 +9,65 @@ namespace Cyverse.Tests
 {
     public sealed class ArchitectureSeamsPlayModeTests
     {
+        [Test]
+        public void RichInteractions_ShareGameplayActionsWithoutAutomationHooks()
+        {
+            Type targetInterface = FindType("Cyverse.Interaction.IGameplayActionTarget");
+            string[] actionTargets =
+            {
+                "Cyverse.Interaction.VideoStation",
+                "Cyverse.Interaction.AuditStation",
+                "Cyverse.Interaction.SiemConsole",
+                "Cyverse.Interaction.CyberAttackStation",
+                "Cyverse.Player.FirstPersonController",
+                "Cyverse.Quiz.QuizSystem",
+                "Cyverse.Forensics.ChainOfCustodyForm",
+                "Cyverse.Forensics.QueryTerminal",
+                "Cyverse.UI.PasswordLockController",
+                "Cyverse.UI.TypingChallenge",
+            };
+            foreach (string name in actionTargets)
+                Assert.That(targetInterface.IsAssignableFrom(FindType(name)), Is.True,
+                    name + " must accept the same action vocabulary as live input and TAS playback.");
+
+            string[] gameplayTypes =
+            {
+                "Cyverse.Interaction.VideoStation",
+                "Cyverse.Interaction.AuditStation",
+                "Cyverse.Interaction.CertExamStation",
+                "Cyverse.Interaction.SiemConsole",
+                "Cyverse.Interaction.ForensicsConsole",
+                "Cyverse.Forensics.ChainOfCustodyForm",
+                "Cyverse.Level.Level4CyberAttackManager",
+                "Cyverse.Level.SocProgress",
+                "Cyverse.Level.ScenarioRoster",
+                "Cyverse.UI.PasswordLockController",
+                "Cyverse.UI.TypingChallenge",
+            };
+            foreach (string name in gameplayTypes)
+            foreach (MethodInfo method in FindType(name).GetMethods(
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+                Assert.That(method.Name, Does.Not.Contain("ForAutomation"),
+                    name + " leaked an automation-only state transition into gameplay code.");
+        }
+
+        [UnityTest]
+        public IEnumerator PlayerMotor_AcceptsTheSameMovementActionAsTasPlayback()
+        {
+            Type motorType = FindType("Cyverse.Player.FirstPersonController");
+            var actor = new GameObject("GameplayActionMotorTest");
+            Component motor = actor.AddComponent(motorType);
+            motor.GetType().GetProperty("enabled").SetValue(motor, false);
+            Vector3 before = actor.transform.position;
+
+            Assert.That(GameplayActionTestDriver.Move(motor, Vector3.forward * 4f, 0.25f), Is.True);
+            Assert.That(actor.transform.position.z, Is.GreaterThan(before.z + 0.9f),
+                "The shared motor action must move through CharacterController rather than a TAS teleport.");
+
+            UnityEngine.Object.Destroy(actor);
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator ModalSession_EnforcesExclusiveOwnershipAndRestoresResources()
         {

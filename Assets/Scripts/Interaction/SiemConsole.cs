@@ -14,7 +14,7 @@ namespace Cyverse.Interaction
     /// <summary>Data-driven SOC alert board. The player flags one of four
     /// event rows, walks to that computer, compares the alert with its live
     /// activity, and chooses a benign/possible-true-positive verdict.</summary>
-    public class SiemConsole : MonoBehaviour, IInteractable
+    public class SiemConsole : MonoBehaviour, IInteractable, IGameplayActionTarget
     {
         public event Action Completed;
         public bool IsComplete { get; private set; }
@@ -41,6 +41,7 @@ namespace Cyverse.Interaction
         public int ScenarioCount => scenarios != null ? scenarios.Length : 0;
         public int CompletedScenarios => IsComplete ? ScenarioCount : scenarioIndex;
         public int FlaggedRowIndex => flaggedRow;
+        public int SelectedRowIndex => selectedRow;
         public Level2Content.SocScenario ActiveScenario =>
             scenarios != null && scenarioIndex >= 0 && scenarioIndex < scenarios.Length
                 ? scenarios[scenarioIndex] : null;
@@ -127,39 +128,79 @@ namespace Cyverse.Interaction
             if (mode == PanelMode.AlertBoard)
             {
                 if (Input.GetKeyDown(KeyCode.UpArrow))
-                {
-                    selectedRow = (selectedRow + ActiveScenario.rows.Length - 1) % ActiveScenario.rows.Length;
-                    RenderAlertBoard(feedbackText.text);
-                }
+                    GameplayActions.TryApply(this, GameplayAction.Navigate(-1));
                 else if (Input.GetKeyDown(KeyCode.DownArrow))
-                {
-                    selectedRow = (selectedRow + 1) % ActiveScenario.rows.Length;
-                    RenderAlertBoard(feedbackText.text);
-                }
+                    GameplayActions.TryApply(this, GameplayAction.Navigate(1));
                 else if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Return))
+                    GameplayActions.TryApply(this, GameplayAction.Submit());
+                else if (Input.GetKeyDown(KeyCode.Escape))
+                    GameplayActions.TryApply(this, GameplayAction.Cancel());
+            }
+            else if (mode == PanelMode.Verification)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+                    GameplayActions.TryApply(this, GameplayAction.Choose(0));
+                else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+                    GameplayActions.TryApply(this, GameplayAction.Choose(1));
+                else if (Input.GetKeyDown(KeyCode.Escape))
+                    GameplayActions.TryApply(this, GameplayAction.Cancel());
+            }
+            else if (mode == PanelMode.ChainOfCustody &&
+                     (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Return) ||
+                      Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)))
+            {
+                GameplayActions.TryApply(this, GameplayAction.Submit());
+            }
+        }
+
+        public bool TryApply(GameplayAction action, GameObject actor)
+        {
+            if (mode == PanelMode.Closed || ActiveScenario == null) return false;
+
+            if (action.Kind == GameplayActionKind.Cancel)
+            {
+                ClosePanel();
+                return true;
+            }
+
+            if (mode == PanelMode.AlertBoard)
+            {
+                if (action.Kind == GameplayActionKind.Navigate && ActiveScenario.rows.Length > 0)
+                {
+                    int count = ActiveScenario.rows.Length;
+                    int delta = action.Index % count;
+                    selectedRow = (selectedRow + delta + count) % count;
+                    RenderAlertBoard(feedbackText.text);
+                    return true;
+                }
+                if (action.Kind == GameplayActionKind.Submit)
                 {
                     flaggedRow = selectedRow;
                     string computer = ActiveScenario.rows[flaggedRow].computer;
                     ClosePanel();
                     Toast($"ROW FLAGGED — go investigate {computer}.", true);
                     RefreshWorldDisplay();
+                    return true;
                 }
-                else if (Input.GetKeyDown(KeyCode.Escape)) ClosePanel();
+                return false;
             }
-            else if (mode == PanelMode.Verification)
+
+            if (mode == PanelMode.Verification && action.Kind == GameplayActionKind.Choose)
             {
-                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
-                    ResolveVerdict(Level2Content.SocVerdict.MatchBenignPositive);
-                else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
-                    ResolveVerdict(Level2Content.SocVerdict.NoMatchPossibleTruePositive);
-                else if (Input.GetKeyDown(KeyCode.Escape)) ClosePanel();
+                if (action.Index < 0 || action.Index > 1) return false;
+                ResolveVerdict(action.Index == 0
+                    ? Level2Content.SocVerdict.MatchBenignPositive
+                    : Level2Content.SocVerdict.NoMatchPossibleTruePositive);
+                return true;
             }
-            else if (mode == PanelMode.ChainOfCustody &&
-                     (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Return) ||
-                      Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)))
+
+            if (mode == PanelMode.ChainOfCustody && action.Kind == GameplayActionKind.Submit)
             {
                 ConfirmAndCollect();
+                return true;
             }
+
+            return false;
         }
 
         private void OpenAlertBoard(string hint = "")
@@ -419,21 +460,6 @@ namespace Cyverse.Interaction
                     ? new Color(0.30f, 1f, 0.45f)
                     : new Color(1f, 0.55f, 0.4f));
         }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        /// <summary>Runs the same scenario resolution/state transitions used by
-        /// gameplay while leaving spatial travel to CampaignTasPlayback.</summary>
-        public void CompleteForAutomation()
-        {
-            if (IsComplete || scenarios == null) return;
-            while (!IsComplete)
-            {
-                flaggedRow = ActiveScenario.triggerRowIndex;
-                ResolveVerdict(ActiveScenario.correctVerdict);
-                if (mode == PanelMode.ChainOfCustody) ConfirmAndCollect();
-            }
-        }
-#endif
 
         // ---- Construction --------------------------------------------------
 

@@ -80,15 +80,5 @@ namespace Cyverse.Level
             return string.Join(", ", missing.ToArray());
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public static void ClearForAutomation()
-        {
-            PlayerPrefs.DeleteKey(CompromisedComputerKey);
-            PlayerPrefs.DeleteKey(ChainOfCustodyKey);
-            PlayerPrefs.DeleteKey(PlaybookKey);
-            PlayerPrefs.DeleteKey(EvidenceJsonKey);
-            PlayerPrefs.Save();
-        }
-#endif
     }
 }

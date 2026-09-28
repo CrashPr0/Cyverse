@@ -13,16 +13,16 @@ using Cyverse.UI;
 
 namespace Cyverse.Testing
 {
-    /// <summary>Watchable campaign route: password, Hub, and every completed
-    /// story level through Digital Forensics.</summary>
+    /// <summary>Watchable campaign route: password, Hub, and all four story
+    /// levels through the controlled Cyber Attack simulation.</summary>
     public sealed class CampaignTasPlayback : MonoBehaviour
     {
         public bool Finished { get; private set; }
         public bool Passed { get; private set; }
         public string Failure { get; private set; }
 
-        private readonly bool[] hadKey = new bool[4];
-        private readonly int[] savedProgress = new int[4];
+        private readonly bool[] hadKey = new bool[5];
+        private readonly int[] savedProgress = new int[5];
         private readonly string[] socKeys =
         {
             SocProgress.CompromisedComputerKey,
@@ -41,7 +41,7 @@ namespace Cyverse.Testing
         private IEnumerator Start()
         {
             DontDestroyOnLoad(gameObject);
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < hadKey.Length; i++)
             {
                 string key = "cv_done_" + i;
                 hadKey[i] = PlayerPrefs.HasKey(key);
@@ -54,7 +54,7 @@ namespace Cyverse.Testing
             }
             hadEvidence = PlayerPrefs.HasKey(SocProgress.EvidenceJsonKey);
             savedEvidence = PlayerPrefs.GetString(SocProgress.EvidenceJsonKey, "");
-            SocProgress.ClearForAutomation();
+            DeterministicGameplayAdapter.ResetSocProgress();
             BuildOverlay();
 
             yield return WaitForScene("PasswordLock", 8f);
@@ -63,7 +63,7 @@ namespace Cyverse.Testing
             Show("TYPE  •••••••••••", "Enter configured access credential");
             yield return new WaitForSecondsRealtime(1.4f);
             Show("ENTER", "Submit password and open the Hub gate");
-            password.SubmitForAutomation();
+            DeterministicGameplayAdapter.SubmitConfiguredPassword(password, gameObject);
             yield return WaitForScene("Hub", 8f);
 
             yield return EnterLevelFromHub(1, "LEVEL 1 — I/AM");
@@ -85,10 +85,15 @@ namespace Cyverse.Testing
             yield return EnterLevelFromHub(3, "LEVEL 3 — DIGITAL FORENSICS");
             yield return RunLevel3();
             if (!string.IsNullOrEmpty(Failure)) yield break;
+            yield return ReturnToHub("H", "Return to Hub after Level 3");
+
+            yield return EnterLevelFromHub(4, "LEVEL 4 — CYBER ATTACK");
+            yield return RunLevel4();
+            if (!string.IsNullOrEmpty(Failure)) yield break;
 
             Passed = true;
-            Show("CAMPAIGN TAS COMPLETE", "Password → Hub → Levels 1–3 passed");
-            Debug.Log("[CAMPAIGN TAS] PASS — completed through Digital Forensics");
+            Show("CAMPAIGN TAS COMPLETE", "Password → Hub → Levels 1–4 passed");
+            Debug.Log("[CAMPAIGN TAS] PASS — completed through Cyber Attack");
             yield return new WaitForSecondsRealtime(3f);
             RestoreProgress();
             Finished = true;
@@ -106,7 +111,7 @@ namespace Cyverse.Testing
             Show("E", "Enter " + label);
             yield return new WaitForSecondsRealtime(0.8f);
             string before = SceneManager.GetActiveScene().name;
-            door.Interact(gameObject);
+            GameplayActions.TryApply(door, GameplayAction.Interact(), gameObject);
             yield return WaitForDifferentScene(before, 8f);
         }
 
@@ -120,8 +125,8 @@ namespace Cyverse.Testing
                 { exit = door; break; }
             if (exit == null) { Fail("Return-to-Hub door was not found."); yield break; }
             string before = SceneManager.GetActiveScene().name;
-            exit.SetUnlocked(true);
-            exit.Interact(gameObject);
+            if (!GameplayActions.TryApply(exit, GameplayAction.Interact(), gameObject))
+            { Fail("Return-to-Hub door remained locked after level completion."); yield break; }
             yield return WaitForDifferentScene(before, 8f);
         }
 
@@ -139,7 +144,7 @@ namespace Cyverse.Testing
             yield return MovePlayerTo(briefing.transform, 3f, "W", "Walk to Cyber Defense briefing");
             Show("E  → (HOLD)", "Play and scrub defense briefing");
             yield return new WaitForSecondsRealtime(1.1f);
-            briefing.CompleteForAutomation();
+            DeterministicGameplayAdapter.FinishBriefing(briefing, gameObject);
 
             float playerY = CurrentPlayerY();
             yield return MovePlayerToPoint(new Vector3(4f, playerY, -8.5f),
@@ -156,7 +161,8 @@ namespace Cyverse.Testing
             if (!lastMoveSucceeded) yield break;
             Show("E  ↑  ↓  1  2", "Flag rows and verify all three SOC scenarios");
             yield return new WaitForSecondsRealtime(1.2f);
-            siem.CompleteForAutomation();
+            if (!DeterministicGameplayAdapter.CompleteSocInvestigation(siem, gameObject))
+            { Fail("SOC investigation could not be completed through player actions."); yield break; }
             if (!SocProgress.HasCompromisedComputer || !SocProgress.HasChainOfCustody ||
                 !SocProgress.TryGetEvidence(out var evidence) || evidence.computer != "WS-03")
             { Fail("SOC investigation did not produce the structured WS-03 evidence handoff."); yield break; }
@@ -187,7 +193,7 @@ namespace Cyverse.Testing
                 if (!lastMoveSucceeded) yield break;
                 Show("E", "Pick up " + chosen.itemName);
                 yield return new WaitForSecondsRealtime(0.4f);
-                chosen.Interact(gameObject);
+                GameplayActions.TryApply(chosen, GameplayAction.Interact(), gameObject);
                 yield return MovePlayerToPoint(new Vector3(6f, routeY, 9.8f),
                     new Vector3(6f, 1.4f, 14f), "D", "Carry card around the rack");
                 if (!lastMoveSucceeded) yield break;
@@ -198,7 +204,7 @@ namespace Cyverse.Testing
                 if (!lastMoveSucceeded) yield break;
                 Show("E", "Place next response step");
                 yield return new WaitForSecondsRealtime(0.4f);
-                slot.Interact(gameObject);
+                GameplayActions.TryApply(slot, GameplayAction.Interact(), gameObject);
                 yield return null;
             }
 
@@ -207,7 +213,7 @@ namespace Cyverse.Testing
             yield return MovePlayerTo(exam.transform, 2f, "W", "Walk to Level 2 certification exam");
             Show("E  1  2  3", "Complete certification questions");
             yield return new WaitForSecondsRealtime(1.2f);
-            exam.CompleteForAutomation();
+            yield return DeterministicGameplayAdapter.CompleteExam(exam, gameObject, 0.20f);
             yield return null;
             if (manager.CurrentPhase != Level2Manager.Phase.Complete) Fail("Level 2 did not complete.");
         }
@@ -226,7 +232,7 @@ namespace Cyverse.Testing
             yield return MovePlayerTo(briefing.transform, 3f, "W", "Walk to analyst briefing");
             Show("E  → (HOLD)", "Play and scrub analyst briefing");
             yield return new WaitForSecondsRealtime(1.1f);
-            briefing.CompleteForAutomation();
+            DeterministicGameplayAdapter.FinishBriefing(briefing, gameObject);
             yield return new WaitForSecondsRealtime(0.4f);
 
             // The desk is diagonally across the task room. A straight line
@@ -246,7 +252,9 @@ namespace Cyverse.Testing
             if (!lastMoveSucceeded) yield break;
             Show("E  CLICK ×4", "Complete chain-of-custody form");
             yield return new WaitForSecondsRealtime(0.8f);
-            custodyForm.CompleteForAutomation();
+            yield return DeterministicGameplayAdapter.CompleteCustodyFormRoutine(custodyForm, gameObject);
+            if (!custodyForm.IsComplete)
+            { Fail("Chain-of-custody form could not be completed through player actions."); yield break; }
             yield return new WaitForSecondsRealtime(0.5f);
             yield return MovePlayerTo(console.transform, 2.2f, "W", "Walk to Investigation Desk");
             if (!lastMoveSucceeded) yield break;
@@ -254,7 +262,7 @@ namespace Cyverse.Testing
             yield return new WaitForSecondsRealtime(0.8f);
             Show("TYPE QUERY  •  ENTER", "Solve both Digital Forensics cases");
             yield return new WaitForSecondsRealtime(1.8f);
-            console.CompleteForAutomation();
+            yield return DeterministicGameplayAdapter.CompleteForensics(console, gameObject);
             yield return null; yield return null;
             var report = FindObjectOfType<ForensicsReportStation>();
             if (report == null)
@@ -262,10 +270,77 @@ namespace Cyverse.Testing
             yield return MovePlayerTo(report.transform, 2.2f, "D  W", "Walk to Report Desk");
             if (!lastMoveSucceeded) yield break;
             Show("E", "Submit final forensic report");
-            report.Interact(null);
+            GameplayActions.TryApply(report, GameplayAction.Interact(), gameObject);
             yield return null; yield return null;
             if (manager.CurrentPhase != Level3ForensicsManager.Phase.Complete)
                 Fail("Digital Forensics did not reach completion.");
+        }
+
+        private IEnumerator RunLevel4()
+        {
+            yield return null; yield return null;
+            var manager = FindObjectOfType<Level4CyberAttackManager>();
+            var briefing = FindObjectOfType<VideoStation>();
+            if (manager == null || briefing == null)
+            { Fail("Level 4 is missing its attack manager or briefing."); yield break; }
+
+            yield return MovePlayerTo(briefing.transform, 3f, "W", "Walk to controlled attack briefing");
+            if (!lastMoveSucceeded) yield break;
+            Show("E  → (HOLD)", "Play and scrub controlled attack briefing");
+            yield return new WaitForSecondsRealtime(1.1f);
+            if (!DeterministicGameplayAdapter.FinishBriefing(briefing, gameObject))
+            { Fail("Level 4 briefing could not be completed through player actions."); yield break; }
+            yield return null;
+
+            // The divider is solid except for the central doorway. Route to
+            // the shared inward-facing aisle first, then approach each screen
+            // from its clear side so the collision-aware TAS cannot cut
+            // through the divider, plants, or station bodies.
+            float playerY = CurrentPlayerY();
+            yield return MovePlayerToPoint(new Vector3(0f, playerY, 0f),
+                new Vector3(0f, 1.4f, 4f), "W", "Approach the attack-lab doorway");
+            if (!lastMoveSucceeded) yield break;
+            yield return MovePlayerToPoint(new Vector3(0f, playerY, 4.5f),
+                new Vector3(0f, 1.4f, 11f), "W", "Enter the controlled attack lab");
+            if (!lastMoveSucceeded) yield break;
+            yield return MovePlayerToPoint(new Vector3(0f, playerY, 11f),
+                new Vector3(-7.5f, 1.4f, 11f), "W", "Reach the central simulation aisle");
+            if (!lastMoveSucceeded) yield break;
+
+            int guard = 0;
+            while (manager.CurrentPhase != Level4CyberAttackManager.Phase.Complete && guard++ < 8)
+            {
+                CyberAttackStation station = null;
+                foreach (var candidate in FindObjectsOfType<CyberAttackStation>())
+                    if (candidate.StationIndex == manager.CurrentStationIndex)
+                    {
+                        station = candidate;
+                        break;
+                    }
+                var scenario = manager.ScenarioFor(station);
+                if (station == null || scenario == null)
+                { Fail("Level 4 could not resolve its current simulation station."); yield break; }
+
+                float stagingX = station.transform.position.x < 0f ? -7.5f : 7.5f;
+                yield return MovePlayerToPoint(new Vector3(stagingX, playerY, 11f),
+                    station.transform.position + Vector3.up * 1.4f, "A  D",
+                    "Cross the clear aisle to the next attack station");
+                if (!lastMoveSucceeded) yield break;
+                yield return MovePlayerTo(station.transform, 2.2f, "W  A  D",
+                    "Walk to " + Level4CyberAttackContent.DisplayName(station.Kind));
+                if (!lastMoveSucceeded) yield break;
+                Show("E  1  2  3", "Choose the controlled response at " +
+                    Level4CyberAttackContent.DisplayName(station.Kind));
+                yield return new WaitForSecondsRealtime(0.8f);
+                if (!GameplayActions.TryApply(station, GameplayAction.Interact(), gameObject) ||
+                    !GameplayActions.TryApply(station,
+                        GameplayAction.Choose(scenario.correctOption), gameObject))
+                { Fail("Level 4 rejected a valid station action."); yield break; }
+                yield return null;
+            }
+
+            if (manager.CurrentPhase != Level4CyberAttackManager.Phase.Complete)
+                Fail("Cyber Attack did not reach completion.");
         }
 
         private IEnumerator MovePlayerTo(Transform target, float stopDistance, string keys, string action)
@@ -296,7 +371,6 @@ namespace Cyverse.Testing
             if (controlsCard != null) Destroy(controlsCard);
             var controller = FindObjectOfType<FirstPersonController>();
             var body = controller != null ? controller.transform : null;
-            var cc = body != null ? body.GetComponent<CharacterController>() : null;
             if (body == null)
             {
                 Fail("No first-person player was available while trying to " + action + ".");
@@ -313,9 +387,15 @@ namespace Cyverse.Testing
                 // while realtime advances. Keep the TAS deterministic there
                 // so the same route can run locally and in CI.
                 float stepDelta = Mathf.Max(Time.unscaledDeltaTime, 1f / 60f);
-                delta = Vector3.ClampMagnitude(delta, 7f * stepDelta);
-                if (cc != null && cc.enabled) cc.Move(delta + Vector3.down * 2f * stepDelta);
-                else body.position += delta;
+                Vector3 velocity = delta.sqrMagnitude > 0.0001f
+                    ? delta.normalized * Mathf.Min(7f, delta.magnitude / stepDelta)
+                    : Vector3.zero;
+                if (!GameplayActions.TryApply(controller,
+                    GameplayAction.Move(velocity, stepDelta), gameObject))
+                {
+                    Fail("The player motor rejected TAS movement while trying to " + action + ".");
+                    yield break;
+                }
                 Vector3 look = lookAt - body.position; look.y = 0f;
                 if (look.sqrMagnitude > 0.01f) body.rotation = Quaternion.LookRotation(look);
                 yield return null;
@@ -372,7 +452,7 @@ namespace Cyverse.Testing
 
         private void RestoreProgress()
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < hadKey.Length; i++)
             {
                 string key = "cv_done_" + i;
                 if (hadKey[i]) PlayerPrefs.SetInt(key, savedProgress[i]); else PlayerPrefs.DeleteKey(key);

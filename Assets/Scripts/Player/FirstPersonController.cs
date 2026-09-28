@@ -1,6 +1,7 @@
 using UnityEngine;
 using Cyverse.Audio;
 using Cyverse.Core;
+using Cyverse.Interaction;
 using Cyverse.Settings;
 
 namespace Cyverse.Player
@@ -11,7 +12,7 @@ namespace Cyverse.Player
     /// suspended while a dialogue beat or the settings menu is active.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public class FirstPersonController : MonoBehaviour
+    public class FirstPersonController : MonoBehaviour, IGameplayActionTarget
     {
         [Header("Movement")]
         public float moveSpeed = 4.5f;
@@ -91,20 +92,46 @@ namespace Cyverse.Player
             float h = (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f);
             float v = (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f);
 
-            Vector3 move = transform.right * h + transform.forward * v;
-            move = Vector3.ClampMagnitude(move, 1f) * moveSpeed;
+            Vector3 velocity = Vector3.ClampMagnitude(
+                transform.right * h + transform.forward * v, 1f) * moveSpeed;
+            GameplayActions.TryApply(this,
+                GameplayAction.Move(velocity, Time.deltaTime), gameObject);
+        }
+
+        public bool TryApply(GameplayAction action, GameObject actor)
+        {
+            if (action.Kind != GameplayActionKind.Move || controller == null ||
+                !controller.enabled || action.Amount <= 0f || float.IsNaN(action.Amount) ||
+                float.IsInfinity(action.Amount) || !IsFinite(action.Vector))
+                return false;
+
+            ApplyMovement(action.Vector, action.Amount);
+            return true;
+        }
+
+        private static bool IsFinite(Vector3 value)
+        {
+            return !float.IsNaN(value.x) && !float.IsInfinity(value.x) &&
+                   !float.IsNaN(value.y) && !float.IsInfinity(value.y) &&
+                   !float.IsNaN(value.z) && !float.IsInfinity(value.z);
+        }
+
+        private void ApplyMovement(Vector3 horizontalVelocity, float deltaSeconds)
+        {
+            Vector3 move = horizontalVelocity;
+            move.y = 0f;
 
             if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
-            verticalVelocity += gravity * Time.deltaTime;
+            verticalVelocity += gravity * deltaSeconds;
             move.y = verticalVelocity;
 
-            controller.Move(move * Time.deltaTime);
+            controller.Move(move * deltaSeconds);
 
             // Footsteps: play one every stepInterval metres of ground travel.
             if (controller.isGrounded)
             {
                 Vector3 horiz = new Vector3(controller.velocity.x, 0f, controller.velocity.z);
-                stepDistance += horiz.magnitude * Time.deltaTime;
+                stepDistance += horiz.magnitude * deltaSeconds;
                 if (stepDistance >= stepInterval)
                 {
                     stepDistance = 0f;
@@ -115,9 +142,7 @@ namespace Cyverse.Player
 
         private void ApplyGravityOnly()
         {
-            if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
-            verticalVelocity += gravity * Time.deltaTime;
-            controller.Move(new Vector3(0f, verticalVelocity, 0f) * Time.deltaTime);
+            ApplyMovement(Vector3.zero, Time.deltaTime);
         }
 
         /// <summary>Lock + hide the cursor for play, or release it for menus.</summary>

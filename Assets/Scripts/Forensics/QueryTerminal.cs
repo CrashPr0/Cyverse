@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Core;
+using Cyverse.Interaction;
 using Cyverse.Level;
 using Cyverse.Player;
 using Cyverse.UI;
@@ -19,9 +20,11 @@ namespace Cyverse.Forensics
     /// reopening resumes). Owns the screen via GameState.QuizActive per the
     /// one-menu-at-a-time standard; ↑/↓ cycle command history.
     /// </summary>
-    public class QueryTerminal : MonoBehaviour
+    public class QueryTerminal : MonoBehaviour, IGameplayActionTarget
     {
         public static QueryTerminal Instance { get; private set; }
+
+        private const int TutorialStepCount = 3;
 
         public int maxInput = 90;
 
@@ -33,10 +36,18 @@ namespace Cyverse.Forensics
         private TMP_Text outputText, sidebarText, inputText, titleText;
         private string typed = "";
         private bool open;
+        private bool tutorialEnabled;
+        private bool tutorialComplete;
+        private int tutorialStep;
         private ModalSession.Lease modal;
 
         private readonly List<string> history = new List<string>();
         private int historyIndex = -1;
+
+        public bool IsOpen => open;
+        public bool TutorialActive => open && tutorialEnabled && !tutorialComplete &&
+            activeCase != null && activeCase.CurrentIndex == 0;
+        public int TutorialStep => TutorialActive ? tutorialStep : TutorialStepCount;
 
         void Awake()
         {
@@ -50,7 +61,8 @@ namespace Cyverse.Forensics
             if (Instance == this) Instance = null;
         }
 
-        public void Open(LogDatabase database, InvestigationCase investigation, string closedNote = null)
+        public void Open(LogDatabase database, InvestigationCase investigation,
+            string closedNote = null, bool guidedStart = false)
         {
             if (open) return;
             if (database == null || investigation == null)
@@ -76,11 +88,14 @@ namespace Cyverse.Forensics
             caseClosedNote = closedNote;
             typed = "";
             open = true;
+            tutorialEnabled = guidedStart && !tutorialComplete && activeCase.CurrentIndex == 0;
 
             string evidenceHeader = EvidenceHeader();
             titleText.text = $"CYVERSE FORENSIC TERMINAL  //  {activeCase.title}";
             PrintBlock((activeCase.IsComplete
                 ? "<color=#E5A823>Case closed. Review the logs freely, or Esc to step away.</color>"
+                : TutorialActive
+                    ? TutorialInstruction(tutorialStep)
                 : "Type  <color=#5BC8FF>help</color>  for commands, or start with the example under your current question.") +
                 evidenceHeader);
             RefreshSidebar();
@@ -92,21 +107,23 @@ namespace Cyverse.Forensics
             if (!open) return;
             if (Time.frameCount == GameState.MenuTransitionFrame) return;
 
-            if (Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                GameplayActions.TryApply(this, GameplayAction.Cancel());
+                return;
+            }
 
-            if (Input.GetKeyDown(KeyCode.Tab)) TabComplete();
+            if (Input.GetKeyDown(KeyCode.Tab))
+                GameplayActions.TryApply(this, GameplayAction.CompleteText());
 
             // Command history.
             if (Input.GetKeyDown(KeyCode.UpArrow) && history.Count > 0)
             {
-                historyIndex = historyIndex < 0 ? history.Count - 1 : Mathf.Max(0, historyIndex - 1);
-                typed = history[historyIndex];
+                GameplayActions.TryApply(this, GameplayAction.Navigate(-1));
             }
             else if (Input.GetKeyDown(KeyCode.DownArrow) && historyIndex >= 0)
             {
-                historyIndex++;
-                if (historyIndex >= history.Count) { historyIndex = -1; typed = ""; }
-                else typed = history[historyIndex];
+                GameplayActions.TryApply(this, GameplayAction.Navigate(1));
             }
 
             bool submittedThisFrame = false;
@@ -114,17 +131,17 @@ namespace Cyverse.Forensics
             {
                 if (c == '\b')
                 {
-                    if (typed.Length > 0) typed = typed.Substring(0, typed.Length - 1);
+                    GameplayActions.TryApply(this, GameplayAction.Backspace());
                 }
                 else if (c == '\n' || c == '\r')
                 {
-                    Submit();
+                    GameplayActions.TryApply(this, GameplayAction.Submit());
                     submittedThisFrame = true;
                     break;
                 }
                 else if (!char.IsControl(c) && typed.Length < maxInput)
                 {
-                    typed += c;
+                    GameplayActions.TryApply(this, GameplayAction.Append(c.ToString()));
                 }
             }
             // Some browsers report Return as a key transition without adding a
@@ -132,8 +149,58 @@ namespace Cyverse.Forensics
             // while providing a WebGL-safe submit fallback without double-firing.
             if (!submittedThisFrame &&
                 (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
-                Submit();
+                GameplayActions.TryApply(this, GameplayAction.Submit());
             RefreshInput();
+        }
+
+        public bool TryApply(GameplayAction action, GameObject actor)
+        {
+            if (!open) return false;
+
+            switch (action.Kind)
+            {
+                case GameplayActionKind.AppendText:
+                    if (string.IsNullOrEmpty(action.Text)) return false;
+                    foreach (char c in action.Text)
+                        if (!char.IsControl(c) && typed.Length < maxInput) typed += c;
+                    RefreshInput();
+                    return true;
+                case GameplayActionKind.Backspace:
+                    if (typed.Length > 0) typed = typed.Substring(0, typed.Length - 1);
+                    RefreshInput();
+                    return true;
+                case GameplayActionKind.ClearText:
+                    typed = string.Empty;
+                    RefreshInput();
+                    return true;
+                case GameplayActionKind.Submit:
+                    Submit();
+                    RefreshInput();
+                    return true;
+                case GameplayActionKind.Navigate:
+                    if (history.Count == 0) return false;
+                    if (action.Index < 0)
+                        historyIndex = historyIndex < 0
+                            ? history.Count - 1
+                            : Mathf.Max(0, historyIndex - 1);
+                    else if (historyIndex >= 0)
+                    {
+                        historyIndex++;
+                        if (historyIndex >= history.Count) historyIndex = -1;
+                    }
+                    typed = historyIndex >= 0 ? history[historyIndex] : string.Empty;
+                    RefreshInput();
+                    return true;
+                case GameplayActionKind.CompleteText:
+                    TabComplete();
+                    RefreshInput();
+                    return true;
+                case GameplayActionKind.Cancel:
+                    Close();
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void Close()
@@ -207,9 +274,24 @@ namespace Cyverse.Forensics
             string lower = line.ToLowerInvariant();
             string echo = $"<color=#5BC8FF>> {Escape(line)}</color>\n\n";
 
+            if (TutorialActive && (lower == "skip tutorial" || lower == "skip"))
+            {
+                tutorialComplete = true;
+                tutorialEnabled = false;
+                PrintBlock(echo + "<color=#8FB8CC>Guided start skipped. Type " +
+                    "<color=#5BC8FF>help</color> anytime.\n\n</color>" + CaseText());
+                RefreshSidebar();
+                return;
+            }
             if (lower == "help") { PrintBlock(echo + HelpText()); return; }
             if (lower == "clear") { PrintBlock(""); return; }
-            if (lower == "tables") { PrintBlock(echo + TablesText()); return; }
+            if (lower == "tables")
+            {
+                if (TutorialActive && tutorialStep == 0) tutorialStep = 1;
+                PrintBlock(echo + TablesText() + TutorialFollowUp());
+                RefreshSidebar();
+                return;
+            }
             if (lower == "case") { PrintBlock(echo + CaseText()); return; }
             if (lower == "hint") { DoHint(echo); return; }
             if (lower.StartsWith("fields"))
@@ -229,7 +311,12 @@ namespace Cyverse.Forensics
 
             // Everything else is a query.
             var result = MiniKql.Run(db, line);
-            PrintBlock(echo + Render(result));
+            if (TutorialActive && tutorialStep == 1 && result.error == null &&
+                lower.Contains("evidencemanifest") && lower.Contains("project") &&
+                lower.Contains("computer"))
+                tutorialStep = 2;
+            PrintBlock(echo + Render(result) + TutorialFollowUp());
+            RefreshSidebar();
             if (result.error == null && Sfx.Instance != null) Sfx.Instance.PlayClick();
         }
 
@@ -256,6 +343,7 @@ namespace Cyverse.Forensics
 
             if (q.Matches(given))
             {
+                bool completesTutorial = TutorialActive;
                 q.Answered = true;
 
                 // Score: full points first try without hint; hint halves;
@@ -281,7 +369,18 @@ namespace Cyverse.Forensics
                     ? "\n\n<color=#E5A823>" + (caseClosedNote ??
                         "<b>CASE CLOSED.</b> Outstanding work, analyst. Esc to step away — your results are waiting.") + "</color>"
                     : $"\n\n<color=#8FB8CC>Next question is up on the case file →</color>";
-                PrintBlock(echo + $"<color=#4CE087><b>CORRECT</b>  +{award} points</color>{next}");
+                string tutorialResult = completesTutorial
+                    ? "\n\n<color=#4CE087><b>GUIDED START COMPLETE.</b></color> " +
+                      "You found and submitted live evidence. Use <color=#5BC8FF>hint</color> " +
+                      "or <color=#5BC8FF>help</color> whenever you need them."
+                    : "";
+                if (completesTutorial)
+                {
+                    tutorialComplete = true;
+                    tutorialEnabled = false;
+                }
+                PrintBlock(echo + $"<color=#4CE087><b>CORRECT</b>  +{award} points</color>" +
+                    tutorialResult + next);
 
                 activeCase.NotifyAnswered();
                 RefreshSidebar();
@@ -332,7 +431,8 @@ namespace Cyverse.Forensics
             "  case              reprint the current question\n" +
             "  hint              a nudge (halves the points)\n" +
             "  answer 42         submit your finding\n" +
-            "  clear             wipe the screen";
+            "  clear             wipe the screen\n" +
+            "  skip tutorial     leave the guided start";
 
         private string TablesText()
         {
@@ -358,6 +458,12 @@ namespace Cyverse.Forensics
         private void RefreshSidebar()
         {
             var sb = new System.Text.StringBuilder();
+            if (TutorialActive)
+            {
+                sb.Append($"<color=#E5A823><b>GUIDED START  {tutorialStep + 1}/{TutorialStepCount}</b></color>\n")
+                  .Append(TutorialSidebarInstruction())
+                  .Append("\n<size=15><color=#607585>type  skip tutorial  to exit</color></size>\n\n");
+            }
             if (SocProgress.TryGetEvidence(out var evidence))
             {
                 sb.Append("<color=#4CE087><b>SOC HANDOFF  ✓ VERIFIED</b></color>\n")
@@ -390,6 +496,39 @@ namespace Cyverse.Forensics
                 sb.Append($"   <color=#4CE087>streak x{ScoreSystem.Streak}</color>");
             sb.Append("\n\n<size=17><color=#607585>help · tables · fields ‹t›\nhint · answer ‹x› · clear · TAB\nEsc steps away</color></size>");
             sidebarText.text = sb.ToString();
+        }
+
+        private string TutorialFollowUp()
+        {
+            return TutorialActive ? "\n\n" + TutorialInstruction(tutorialStep) : "";
+        }
+
+        private string TutorialInstruction(int step)
+        {
+            switch (Mathf.Clamp(step, 0, TutorialStepCount - 1))
+            {
+                case 0:
+                    return "<color=#E5A823><b>GUIDED START 1/3 — LIST THE EVIDENCE</b></color>\n" +
+                        "This first investigation is live, and the guide will walk you through it.\n\n" +
+                        "Type  <color=#5BC8FF><b>tables</b></color>  and press Enter.";
+                case 1:
+                    return "<color=#E5A823><b>GUIDED START 2/3 — QUERY THE MANIFEST</b></color>\n" +
+                        "Type  <color=#5BC8FF><b>EvidenceManifest | project computer</b></color>  and press Enter.";
+                default:
+                    return "<color=#E5A823><b>GUIDED START 3/3 — SUBMIT THE FINDING</b></color>\n" +
+                        "Read the computer name above, then type  " +
+                        "<color=#5BC8FF><b>answer ‹computer shown above›</b></color>  and press Enter.";
+            }
+        }
+
+        private string TutorialSidebarInstruction()
+        {
+            switch (Mathf.Clamp(tutorialStep, 0, TutorialStepCount - 1))
+            {
+                case 0: return "Type  <color=#5BC8FF>tables</color>  + Enter";
+                case 1: return "Run the highlighted manifest query";
+                default: return "Submit  <color=#5BC8FF>answer ‹result›</color>";
+            }
         }
 
         private static string EvidenceHeader()

@@ -16,7 +16,7 @@ namespace Cyverse.Interaction
     /// progression and scoring while this component owns the world target and
     /// WebGL-safe choice UI.
     /// </summary>
-    public sealed class CyberAttackStation : MonoBehaviour, IInteractable
+    public sealed class CyberAttackStation : MonoBehaviour, IInteractable, IGameplayActionTarget
     {
         public int StationIndex { get; private set; }
         public Level4CyberAttackContent.StationKind Kind { get; private set; }
@@ -107,10 +107,31 @@ namespace Cyverse.Interaction
         private void Update()
         {
             if (!open || Time.frameCount == openedFrame) return;
-            if (Input.GetKeyDown(KeyCode.Escape)) Close();
-            else if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) Choose(0);
-            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) Choose(1);
-            else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) Choose(2);
+            if (Input.GetKeyDown(KeyCode.Escape))
+                GameplayActions.TryApply(this, GameplayAction.Cancel());
+            else if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+                GameplayActions.TryApply(this, GameplayAction.Choose(0));
+            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+                GameplayActions.TryApply(this, GameplayAction.Choose(1));
+            else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3))
+                GameplayActions.TryApply(this, GameplayAction.Choose(2));
+        }
+
+        public bool TryApply(GameplayAction action, GameObject actor)
+        {
+            if (!open) return false;
+            if (action.Kind == GameplayActionKind.Cancel)
+            {
+                Close();
+                return true;
+            }
+            if (action.Kind != GameplayActionKind.Choose || optionButtons == null ||
+                action.Index < 0 || action.Index >= optionButtons.Length ||
+                !optionButtons[action.Index].gameObject.activeSelf)
+                return false;
+
+            Choose(action.Index);
+            return true;
         }
 
         private void Choose(int optionIndex)
@@ -190,7 +211,8 @@ namespace Cyverse.Interaction
             closeLabel.alignment = TextAlignmentOptions.Center;
             closeLabel.fontSize = 15f;
             closeLabel.enableWordWrapping = false;
-            close.onClick.AddListener(Close);
+            close.onClick.AddListener(() =>
+                GameplayActions.TryApply(this, GameplayAction.Cancel()));
 
             objectiveText = MakeText("Objective", 20f, TextAlignmentOptions.TopLeft);
             SetRect(objectiveText.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f),
@@ -212,7 +234,8 @@ namespace Cyverse.Interaction
                 SetRect(choice.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(1f, 1f),
                     new Vector2(40f, top - choiceHeight), new Vector2(-40f, top));
                 int captured = i;
-                choice.onClick.AddListener(() => Choose(captured));
+                choice.onClick.AddListener(() => GameplayActions.TryApply(this,
+                    GameplayAction.Choose(captured)));
             }
 
             feedbackText = MakeText("Feedback", 19f, TextAlignmentOptions.MidlineLeft);

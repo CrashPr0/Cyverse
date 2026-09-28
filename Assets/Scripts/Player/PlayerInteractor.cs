@@ -59,11 +59,15 @@ namespace Cyverse.Player
 
                 if (Input.GetKeyDown(interactKey))
                 {
-                    if (HudUI.Instance != null) HudUI.Instance.PulseCrosshair();
-                    if (Sfx.Instance != null) Sfx.Instance.PlayClick();
-                    if (FirstPersonHands.Instance != null) FirstPersonHands.Instance.TriggerInteract();
-                    PlaytestMetrics.RecordInteraction(target.GetType().Name, target.Prompt);
-                    target.Interact(gameObject);
+                    string targetType = target.GetType().Name;
+                    string targetPrompt = target.Prompt;
+                    if (GameplayActions.TryApply(target, GameplayAction.Interact(), gameObject))
+                    {
+                        if (HudUI.Instance != null) HudUI.Instance.PulseCrosshair();
+                        if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+                        if (FirstPersonHands.Instance != null) FirstPersonHands.Instance.TriggerInteract();
+                        PlaytestMetrics.RecordInteraction(targetType, targetPrompt);
+                    }
                 }
             }
             else

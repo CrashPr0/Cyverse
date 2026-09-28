@@ -137,14 +137,5 @@ namespace Cyverse.Level
                    PlayerPrefs.HasKey(SocProgress.EvidenceJsonKey);
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        /// <summary>Allows isolated editor/TAS runs to start from a known
-        /// profile without changing a player's persisted rotation.</summary>
-        public static void SetSessionForAutomation(int index)
-        {
-            sessionIndex = ((index % Profiles.Length) + Profiles.Length) % Profiles.Length;
-            sessionInitialized = true;
-        }
-#endif
     }
 }

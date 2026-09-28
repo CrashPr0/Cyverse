@@ -26,7 +26,6 @@ namespace Cyverse.Testing
         public bool restoreProgressOnFinish = true;
 
         private FirstPersonController playerController;
-        private CharacterController characterController;
         private Transform player;
         private Camera viewCamera;
         private TasOverlay overlay;
@@ -43,9 +42,7 @@ namespace Cyverse.Testing
             yield return null;
             playerController = FindObjectOfType<FirstPersonController>();
             viewCamera = Camera.main;
-            player = playerController != null ? playerController.transform :
-                (viewCamera != null ? viewCamera.transform.root : null);
-            characterController = player != null ? player.GetComponent<CharacterController>() : null;
+            player = playerController != null ? playerController.transform : null;
             // Disable only live input. Keep the CharacterController enabled so
             // the TAS travels through the same walls, doors, and floor
             // collision as a real player instead of teleporting through them.
@@ -68,7 +65,7 @@ namespace Cyverse.Testing
             var sorting = FindObjectOfType<SortingStation>();
             var audit = FindObjectOfType<AuditStation>();
             var exam = FindObjectOfType<CertExamStation>();
-            if (player == null || manager == null || briefing == null || badge == null ||
+            if (playerController == null || manager == null || briefing == null || badge == null ||
                 mfa == null || sorting == null || audit == null || exam == null)
             {
                 Fail("The visual-pass scene is missing the player or a required station.");
@@ -78,12 +75,12 @@ namespace Cyverse.Testing
             yield return TravelTo(briefing.transform, "W", "Walk to SECURITY BRIEFING", 3f);
             yield return Show("E", "Play security briefing", actionPause);
             yield return Show("→  (HOLD)", "Tool-assisted scrub to end", 1.2f);
-            briefing.CompleteForAutomation();
+            DeterministicGameplayAdapter.FinishBriefing(briefing, gameObject);
             yield return Show("", "Briefing complete — task door unlocked", 0.9f);
 
             yield return TravelTo(badge.transform, "W", "Walk to ENROLLMENT", 2f);
             yield return Show("E", "Create ID badge", actionPause);
-            badge.Interact(gameObject);
+            GameplayActions.TryApply(badge, GameplayAction.Interact(), gameObject);
             float deadline = Time.realtimeSinceStartup + 3f;
             while (!badge.IsEnrolled && Time.realtimeSinceStartup < deadline) yield return null;
             if (!badge.IsEnrolled) { Fail("Badge enrollment timed out."); yield break; }
@@ -93,23 +90,28 @@ namespace Cyverse.Testing
             if (token == null || tokenSlot == null) { Fail("MFA token route is missing."); yield break; }
             yield return TravelTo(token.transform, "W", "Walk to SECURITY TOKEN", 1.7f);
             yield return Show("E", "Pick up security token", actionPause);
-            token.Interact(gameObject);
+            GameplayActions.TryApply(token, GameplayAction.Interact(), gameObject);
             yield return TravelTo(tokenSlot.transform, "W", "Carry token to TOKEN SLOT", 1.8f);
             yield return Show("E", "Insert token — SOMETHING YOU HAVE", actionPause);
-            tokenSlot.Interact(gameObject);
+            GameplayActions.TryApply(tokenSlot, GameplayAction.Interact(), gameObject);
 
-            MfaFactor knowledge = null, biometric = null;
-            foreach (var factor in FindObjectsOfType<MfaFactor>())
-            {
-                if (factor.kind == MfaFactor.Kind.Knowledge) knowledge = factor;
-                else if (factor.kind == MfaFactor.Kind.Biometric) biometric = factor;
-            }
+            MfaFactor knowledge = FindMfaFactor(mfa, MfaFactor.Kind.Knowledge);
+            MfaFactor biometric = FindMfaFactor(mfa, MfaFactor.Kind.Biometric);
             if (knowledge != null) yield return TravelTo(knowledge.transform, "W", "Walk to PASSCODE terminal", 1.8f);
             yield return Show("E  TYPE  ENTER", "Verify SOMETHING YOU KNOW", 1.1f);
-            mfa.FactorCleared(0);
+            int beforeKnowledge = mfa.ClearedCount;
+            yield return DeterministicGameplayAdapter.CompleteMfaFactor(knowledge, gameObject);
+            if (mfa.ClearedCount == beforeKnowledge)
+            { Fail("Knowledge MFA factor did not complete through player actions."); yield break; }
             if (biometric != null) yield return TravelTo(biometric.transform, "W", "Walk to BIOMETRIC pad", 1.8f);
             yield return Show("E", "Verify SOMETHING YOU ARE", 1.1f);
-            mfa.FactorCleared(2);
+            int beforeBiometric = mfa.ClearedCount;
+            yield return DeterministicGameplayAdapter.CompleteMfaFactor(biometric, gameObject);
+            if (mfa.ClearedCount == beforeBiometric)
+            { Fail("Biometric MFA factor did not complete through player actions."); yield break; }
+            float mfaDeadline = Time.realtimeSinceStartup + 3f;
+            while (!mfa.IsComplete && Time.realtimeSinceStartup < mfaDeadline) yield return null;
+            if (!mfa.IsComplete) { Fail("MFA factors did not complete through player actions."); yield break; }
 
             // Each crate still travels through its real acceptance predicate
             // and DropZone callback. The overlay makes the pickup/delivery
@@ -122,10 +124,10 @@ namespace Cyverse.Testing
                 if (destination == null) { Fail("No destination accepts " + item.id + "."); yield break; }
                 yield return TravelTo(item.transform, "W", "Walk to " + item.itemName, 1.7f);
                 yield return Show("E", "Pick up " + item.itemName, actionPause);
-                item.Interact(gameObject);
+                GameplayActions.TryApply(item, GameplayAction.Interact(), gameObject);
                 yield return TravelTo(destination.transform, "W", "Carry crate to " + destination.zoneName, 1.8f);
                 yield return Show("E", "File under " + destination.zoneName, actionPause);
-                destination.Interact(gameObject);
+                GameplayActions.TryApply(destination, GameplayAction.Interact(), gameObject);
                 yield return null;
             }
             if (!sorting.IsComplete) { Fail("Data Triage did not complete."); yield break; }
@@ -137,7 +139,8 @@ namespace Cyverse.Testing
                 yield return Show("E", "Open audit round " + round, actionPause);
                 yield return Show("↓  ↑", "Select anomalous log entry", 0.8f);
                 yield return Show("E", "Flag highlighted anomaly", actionPause);
-                audit.SolveCurrentRoundForAutomation();
+                int correctRow = Level1IamContent.AuditRounds()[audit.Solved].anomaly;
+                DeterministicGameplayAdapter.SolveAuditRound(audit, correctRow, gameObject);
                 if (!audit.IsComplete) yield return new WaitForSecondsRealtime(1.3f);
             }
 
@@ -150,7 +153,8 @@ namespace Cyverse.Testing
             yield return TravelTo(exam.transform, "W", "Walk to CERTIFICATION EXAM", 2f);
             yield return Show("E", "Start certification exam", 0.8f);
             yield return Show("1   2   3", "Answer certification questions", 1.5f);
-            exam.CompleteForAutomation();
+            yield return DeterministicGameplayAdapter.CompleteExam(exam, gameObject,
+                Mathf.Max(0.05f, actionPause));
             yield return null;
             if (manager.CurrentPhase != Level1IamManager.Phase.Complete || !GameState.LevelComplete)
             { Fail("Level did not reach the results flow."); yield break; }
@@ -177,20 +181,22 @@ namespace Cyverse.Testing
             while ((player.position - destination).sqrMagnitude > 0.02f &&
                    Time.realtimeSinceStartup < deadline)
             {
-                float step = travelSpeed * Time.unscaledDeltaTime;
+                float stepDelta = Mathf.Max(Time.unscaledDeltaTime, 1f / 60f);
                 Vector3 toward = destination - player.position;
                 toward.y = 0f;
-                Vector3 displacement = toward.sqrMagnitude > 0.0001f
-                    ? toward.normalized * Mathf.Min(step, toward.magnitude)
+                Vector3 velocity = toward.sqrMagnitude > 0.0001f
+                    ? toward.normalized * Mathf.Min(travelSpeed, toward.magnitude / stepDelta)
                     : Vector3.zero;
 
-                // CharacterController.Move resolves the environment collision
-                // and a small downward move keeps the actor grounded while the
-                // normal FirstPersonController is temporarily disabled.
-                if (characterController != null && characterController.enabled)
-                    characterController.Move(displacement + Vector3.down * 2f * Time.unscaledDeltaTime);
-                else
-                    player.position += displacement;
+                // TAS travel sends the same world-velocity action as WASD;
+                // the player motor still owns collision, gravity, grounding,
+                // and footsteps while live input is disabled.
+                if (!GameplayActions.TryApply(playerController,
+                    GameplayAction.Move(velocity, stepDelta), gameObject))
+                {
+                    Fail("The player motor rejected TAS movement while trying to " + action + ".");
+                    yield break;
+                }
                 Face(target.position + Vector3.up * 1.4f);
                 yield return null;
             }
@@ -230,6 +236,13 @@ namespace Cyverse.Testing
         private static DropZone FindZone(string name)
         {
             foreach (var zone in FindObjectsOfType<DropZone>()) if (zone.zoneName == name) return zone;
+            return null;
+        }
+
+        private static MfaFactor FindMfaFactor(MfaGauntlet gauntlet, MfaFactor.Kind kind)
+        {
+            foreach (var factor in FindObjectsOfType<MfaFactor>())
+                if (factor.gauntlet == gauntlet && factor.kind == kind) return factor;
             return null;
         }
 

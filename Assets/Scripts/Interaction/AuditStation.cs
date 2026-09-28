@@ -16,7 +16,7 @@ namespace Cyverse.Interaction
     /// scores and loads the next round. Playable entirely in-world — no modal,
     /// so it feels like working a real SOC screen.
     /// </summary>
-    public class AuditStation : MonoBehaviour, IInteractable
+    public class AuditStation : MonoBehaviour, IInteractable, IGameplayActionTarget
     {
         public event Action Completed;
         public bool IsComplete { get; private set; }
@@ -34,6 +34,8 @@ namespace Cyverse.Interaction
         /// <summary>Rounds solved / rounds total (for the HUD checklist).</summary>
         public int Solved => round;
         public int Rounds => rounds != null ? rounds.Length : 0;
+        public bool IsAwaitingSelection => active && !transitioning && !IsComplete;
+        public int SelectedRowIndex => cursor;
         private bool active, transitioning;
 
         private TextMesh headerText, hintText;
@@ -92,13 +94,24 @@ namespace Cyverse.Interaction
             else if (Input.GetKeyDown(KeyCode.DownArrow)) move = 1;
             if (move == 0) return;
 
+            GameplayActions.TryApply(this, GameplayAction.Navigate(move));
+        }
+
+        public bool TryApply(GameplayAction action, GameObject actor)
+        {
+            if (action.Kind != GameplayActionKind.Navigate || !IsAwaitingSelection ||
+                rounds == null || rowTexts == null)
+                return false;
+
             // Only rows that actually carry an entry are selectable — a round
             // with fewer lines than the board has rows would otherwise let the
             // highlight park on blank space.
             int count = Mathf.Clamp(rounds[round].lines.Length, 1, rowTexts.Length);
-            cursor = (cursor + move + count) % count;
+            int delta = action.Index % count;
+            cursor = (cursor + delta + count) % count;
             PositionHighlight();
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+            return true;
         }
 
         private void Flag()
@@ -136,24 +149,6 @@ namespace Cyverse.Interaction
                     HudUI.Instance.ShowToast($"That entry checks out. Hint: {r.hint}", new Color(1f, 0.75f, 0.45f));
             }
         }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        /// <summary>Selects and flags the correct row through the normal flag
-        /// path. The runner calls this once per round and still waits for the
-        /// station's real transition delay between rounds.</summary>
-        public void SolveCurrentRoundForAutomation()
-        {
-            if (IsComplete || transitioning || rounds == null || rounds.Length == 0) return;
-            if (!active)
-            {
-                active = true;
-                LoadRound();
-            }
-            cursor = rounds[round].anomaly;
-            PositionHighlight();
-            Flag();
-        }
-#endif
 
         private IEnumerator NextRoundSoon()
         {

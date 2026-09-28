@@ -22,7 +22,7 @@ namespace Cyverse.Interaction
     /// playable before any video files exist — drop the real video in later
     /// without touching level logic.
     /// </summary>
-    public class VideoStation : MonoBehaviour, IInteractable
+    public class VideoStation : MonoBehaviour, IInteractable, IGameplayActionTarget
     {
         [Serializable]
         public class Slide
@@ -291,7 +291,8 @@ namespace Cyverse.Interaction
                 if (Input.GetKey(KeyCode.LeftArrow)) scrub -= 1f;
                 if (Input.GetKey(KeyCode.RightArrow)) scrub += 1f;
                 if (scrub != 0f)
-                    Seek(Position + scrub * scrubSecondsPerSecond * Time.deltaTime);
+                    GameplayActions.TryApply(this,
+                        GameplayAction.Scrub(scrub * scrubSecondsPerSecond * Time.deltaTime));
             }
 
             if (!useVideo && playing)
@@ -324,18 +325,21 @@ namespace Cyverse.Interaction
             FirstCompleted?.Invoke();
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        /// <summary>Deterministic hook for the automated end-to-end runner.
-        /// It follows the same completion path as reaching the end naturally,
-        /// without making CI wait for the full briefing.</summary>
-        public void CompleteForAutomation()
+        public bool TryApply(GameplayAction action, GameObject actor)
         {
-            Seek(Duration);
-            SetPlaying(false);
-            OnReachedEnd();
+            if (action.Kind != GameplayActionKind.Scrub || float.IsNaN(action.Amount))
+                return false;
+
+            controlsRevealed = true;
+            Seek(Position + action.Amount);
+            if (AtEnd)
+            {
+                SetPlaying(false);
+                OnReachedEnd();
+            }
             RefreshScreen();
+            return true;
         }
-#endif
 
         private void RefreshScreen()
         {

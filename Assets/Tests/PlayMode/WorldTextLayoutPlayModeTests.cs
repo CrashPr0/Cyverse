@@ -41,14 +41,11 @@ namespace Cyverse.Tests
             // actually invalidated the decorative BoxCollider, then pick up.
             yield return null;
 
-            var interactor = new GameObject("PickupTestInteractor");
-            Assert.DoesNotThrow(() => carryableType.GetMethod("Interact").Invoke(card,
-                new object[] { interactor }));
+            Assert.That(GameplayActionTestDriver.Interact(card), Is.True);
 
             carryableType.GetMethod("ClearCarried", BindingFlags.Public | BindingFlags.Static)
                 .Invoke(null, null);
             UnityEngine.Object.Destroy(card.gameObject);
-            UnityEngine.Object.Destroy(interactor);
         }
 
         [UnityTest]

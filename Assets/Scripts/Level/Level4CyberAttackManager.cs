@@ -382,23 +382,5 @@ namespace Cyverse.Level
             });
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        /// <summary>Deterministic hook for the campaign TAS and PlayMode tests.
-        /// It resolves the same authored choices as the UI without launching
-        /// any tools or touching a real system.</summary>
-        public void CompleteForAutomation()
-        {
-            if (!ScenarioStarted) OnBriefingCompleted();
-            if (stations == null || stations.Length == 0)
-                stations = FindObjectsOfType<CyberAttackStation>();
-            for (int i = 0; i < scenarios.Length; i++)
-            {
-                CyberAttackStation station = null;
-                for (int j = 0; j < stations.Length; j++)
-                    if (stations[j] != null && stations[j].StationIndex == i) { station = stations[j]; break; }
-                if (station != null && !completed[i]) TryResolve(station, scenarios[i].correctOption);
-            }
-        }
-#endif
     }
 }
