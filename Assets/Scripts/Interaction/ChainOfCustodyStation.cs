@@ -58,6 +58,23 @@ namespace Cyverse.Interaction
             BuildKit.SpawnLocal(PrimitiveType.Cube, "CustodyTablet", root.transform,
                 new Vector3(0.62f, 1.08f, -0.18f), new Vector3(12f, 0f, 0f), new Vector3(0.95f, 0.06f, 0.72f),
                 BuildKit.MakeEmissive(new Color(0.04f, 0.18f, 0.11f), 0.72f), collider: false);
+
+            // Diegetic (in-world) custody readout screen. Mounted upright at the
+            // back of the plinth so it faces a viewer approaching from -Z (Unity
+            // Quads render on their local -Z face at identity rotation — the
+            // Level3 station convention). The interactive custody form stays a
+            // HUD modal; this screen mirrors its live state. Placed in WORLD
+            // space (DiegeticScreen.Create takes a world pos), so derive it from
+            // the station root's transform in case the station is ever yawed.
+            Vector3 screenWorldPos = root.transform.TransformPoint(new Vector3(-0.35f, 1.75f, 0.55f));
+            float screenYaw = root.transform.eulerAngles.y;
+            DiegeticScreen custodyScreen = DiegeticScreen.Create(
+                screenWorldPos, screenYaw, new Vector2(0.9f, 1.2f),
+                name: "CustodyReadoutScreen");
+            custodyScreen.transform.SetParent(root.transform, worldPositionStays: true);
+            DiegeticCustodyReadout readout = DiegeticCustodyReadout.Attach(custodyScreen);
+            if (readout != null && ChainOfCustodyForm.Instance != null)
+                ChainOfCustodyForm.Instance.BindDiegeticReadout(readout);
             BuildKit.MakeLabel(root.transform, new Vector3(0.62f, 1.18f, -0.56f),
                 "CUSTODY FORM\nCLICK E TO OPEN", accent, 0.016f, billboard: false);
             BuildKit.MakeSign(root.transform, position + new Vector3(0f, 2.25f, 0f),

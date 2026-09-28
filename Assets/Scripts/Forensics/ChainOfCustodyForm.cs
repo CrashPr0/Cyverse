@@ -5,8 +5,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Core;
+using Cyverse.Interaction;
 using Cyverse.Level;
 using Cyverse.Player;
+using Cyverse.Settings;
 using Cyverse.UI;
 
 namespace Cyverse.Forensics
@@ -16,7 +18,7 @@ namespace Cyverse.Forensics
     /// custom dropdown so the interaction remains reliable in WebGL without a
     /// prefab or a scene-bound EventSystem.
     /// </summary>
-    public sealed class ChainOfCustodyForm : MonoBehaviour
+    public sealed class ChainOfCustodyForm : MonoBehaviour, IGameplayActionTarget
     {
         private sealed class Field
         {
@@ -45,6 +47,7 @@ namespace Cyverse.Forensics
             }
         }
         public int FieldCount => fields != null ? fields.Count : 4;
+        public bool IsOpen => open;
 
         private readonly List<Field> fields = new List<Field>();
         private GameObject card;
@@ -53,6 +56,20 @@ namespace Cyverse.Forensics
         private Button submitButton;
         private bool open;
         private ModalSession.Lease modal;
+
+        // Optional in-world (diegetic) readout of custody progress, rendered on
+        // the station's DiegeticScreen. The interactive form stays a HUD modal;
+        // this mirrors its state onto the world screen at the intake plinth.
+        private DiegeticCustodyReadout diegetic;
+
+        /// <summary>Bind a diegetic readout so the form mirrors its live state
+        /// onto a world screen. Set by <see cref="ChainOfCustodyStation"/> when
+        /// it builds the station screen. Safe to leave null (HUD-only).</summary>
+        public void BindDiegeticReadout(DiegeticCustodyReadout readout)
+        {
+            diegetic = readout;
+            RefreshDiegetic();
+        }
 
         private static readonly Color Green = new Color(0.30f, 1f, 0.55f);
         private static readonly Color Gold = new Color(0.90f, 0.66f, 0.14f);
@@ -94,7 +111,8 @@ namespace Cyverse.Forensics
         private void Update()
         {
             if (!open || Time.frameCount == GameState.MenuTransitionFrame) return;
-            if (Input.GetKeyDown(KeyCode.Escape)) Close();
+            if (Input.GetKeyDown(KeyCode.Escape))
+                GameplayActions.TryApply(this, GameplayAction.Cancel());
         }
 
         private void Close()
@@ -129,7 +147,7 @@ namespace Cyverse.Forensics
                 new Vector2(32f, -24f), new Vector2(-120f, 52f), new Vector2(0f, 1f));
 
             TMP_Text intro = MakeText("Instructions", card.transform, 20, TextAlignmentOptions.TopLeft);
-            intro.text = "Complete each blank from the SOC evidence package. Click a blank, choose the defensible record, then submit.";
+            intro.text = "Log the custody trail for the seized device: where it was collected, who received it, and how each handoff was signed. Chain of custody is about WHO handled the evidence, not what is on it.";
             intro.color = new Color(0.78f, 0.90f, 0.94f);
             SetRect(intro.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f),
                 new Vector2(32f, -82f), new Vector2(-64f, 58f), new Vector2(0f, 1f));
@@ -137,7 +155,8 @@ namespace Cyverse.Forensics
             Button close = MakeButton("Close", card.transform, "ESC", new Color(0.13f, 0.17f, 0.18f), Color.white);
             SetRect(close.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(1f, 1f),
                 new Vector2(-30f, -25f), new Vector2(70f, 38f), new Vector2(1f, 1f));
-            close.onClick.AddListener(Close);
+            close.onClick.AddListener(() =>
+                GameplayActions.TryApply(this, GameplayAction.Cancel()));
             close.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
 
             for (int i = 0; i < fields.Count; i++) BuildRow(i);
@@ -151,7 +170,8 @@ namespace Cyverse.Forensics
                 new Color(0.12f, 0.42f, 0.25f), Color.white);
             SetRect(submitButton.GetComponent<RectTransform>(), new Vector2(1f, 0f), new Vector2(1f, 0f),
                 new Vector2(-32f, 30f), new Vector2(280f, 58f), new Vector2(1f, 0f));
-            submitButton.onClick.AddListener(Validate);
+            submitButton.onClick.AddListener(() =>
+                GameplayActions.TryApply(this, GameplayAction.Submit()));
             TMP_Text submitLabel = submitButton.GetComponentInChildren<TMP_Text>();
             submitLabel.alignment = TextAlignmentOptions.Center;
             submitLabel.fontSize = 18f;
@@ -164,13 +184,33 @@ namespace Cyverse.Forensics
             fields.Clear();
             string source = SocProgress.TryGetEvidence(out SocEvidenceRecord evidence)
                 ? evidence.computer : "WS-03";
+            string handler = evidence != null && !string.IsNullOrEmpty(evidence.analystName)
+                ? evidence.analystName : "on-call analyst";
 
-            fields.Add(MakeField("EVIDENCE SOURCE",
-                new[] { "WS-01", source, "WS-04" }, 1));
-            fields.Add(MakeField("COLLECTED ITEM",
-                new[] { "Printed alert screenshot", "Forensic disk image", "Live production workstation" }, 1));
-            fields.Add(MakeField("INTEGRITY CHECK",
-                new[] { "Filename visually checked", "SHA-256 hash verified", "No hash required" }, 1));
+            // Chain of custody is about WHO handled the device and WHERE it came
+            // from — never the contents. Four fields keeps FieldCount aligned
+            // with the objective text / task list in Level3ForensicsManager.
+            fields.Add(MakeField("COLLECTED FROM (LOCATION)",
+                new[]
+                {
+                    "Found unattended, origin unknown",
+                    $"SOC evidence locker ({source} intake)",
+                    "Copied off the network share"
+                }, 1));
+            fields.Add(MakeField("RECEIVING HANDLER",
+                new[]
+                {
+                    "Left on the desk, unsigned",
+                    $"Named + signed by {handler}",
+                    "Anonymous drop, no name"
+                }, 1));
+            fields.Add(MakeField("CUSTODY TRANSFER LOGGED",
+                new[]
+                {
+                    "Verbal handoff only",
+                    "Transfer signed by both parties",
+                    "Not logged"
+                }, 1));
             fields.Add(MakeField("CUSTODY ACTION",
                 new[] { "Return device to service", "Seal, log, and transfer", "Copy to personal USB" }, 1));
         }
@@ -231,7 +271,8 @@ namespace Cyverse.Forensics
                 ort.pivot = new Vector2(0.5f, 1f);
                 ort.anchoredPosition = new Vector2(0f, -4f - optionIndex * 48f);
                 ort.sizeDelta = new Vector2(-8f, 44f);
-                option.onClick.AddListener(() => Select(fieldIndex, selected));
+                option.onClick.AddListener(() => GameplayActions.TryApply(this,
+                    GameplayAction.Select(fieldIndex, selected)));
             }
         }
 
@@ -245,7 +286,32 @@ namespace Cyverse.Forensics
             feedback.color = new Color(0.68f, 0.82f, 0.88f);
             CloseDropdown();
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+            RefreshDiegetic();
             Changed?.Invoke();
+        }
+
+        public bool TryApply(GameplayAction action, GameObject actor)
+        {
+            if (!open) return false;
+
+            switch (action.Kind)
+            {
+                case GameplayActionKind.Select:
+                    if (action.Index < 0 || action.Index >= fields.Count) return false;
+                    Field field = fields[action.Index];
+                    if (action.ValueIndex < 0 || action.ValueIndex >= field.options.Length) return false;
+                    Select(action.Index, action.ValueIndex);
+                    return true;
+                case GameplayActionKind.Submit:
+                    if (IsComplete) return false;
+                    Validate();
+                    return true;
+                case GameplayActionKind.Cancel:
+                    Close();
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void Validate()
@@ -288,6 +354,7 @@ namespace Cyverse.Forensics
             feedback.color = Green;
             submitButton.interactable = false;
             submitButton.GetComponentInChildren<TMP_Text>().text = "RECORD VERIFIED";
+            RefreshDiegetic();
         }
 
         private void Refresh()
@@ -305,25 +372,17 @@ namespace Cyverse.Forensics
             }
         }
 
+        private void RefreshDiegetic()
+        {
+            if (diegetic == null) return;
+            diegetic.SetState(SelectedCount, FieldCount, IsComplete);
+        }
+
         private void CloseDropdown()
         {
             if (dropdown != null) Destroy(dropdown);
             dropdown = null;
         }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public void CompleteForAutomation()
-        {
-            if (card == null) Build();
-            for (int i = 0; i < fields.Count; i++)
-            {
-                fields[i].selectedIndex = fields[i].correctIndex;
-                fields[i].value.text = fields[i].options[fields[i].correctIndex] + "  v";
-            }
-            Validate();
-            if (open) Close();
-        }
-#endif
 
         private static Button MakeButton(string name, Transform parent, string label, Color background, Color foreground)
         {
