@@ -144,7 +144,9 @@
 <script>
   // The game is published separately (a Unity WebGL build is large and slow to
   // produce). Until it lands at /play/, don't hand visitors a dead link.
-  fetch('./play/index.html', { method: 'HEAD' })
+  // webgl-deploy.yml publishes the game to ./play/ next to this page.
+  // `no-store`: Pages caches for 10 min; don't show a stale "not published".
+  fetch('./play/index.html', { method: 'HEAD', cache: 'no-store' })
     .then(function (r) { if (!r.ok) throw 0; })
     .catch(function () {
       var b = document.getElementById('play');

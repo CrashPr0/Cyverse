@@ -2,14 +2,16 @@
 #
 # This deploys the LANDING PAGE only, and needs no secrets, so Pages works
 # immediately — the Unity build is published separately into /play/ by
-# webgl-deploy.yml. Both write to the same `gh-pages` branch with
-# keep_files: true, so neither erases the other's files.
+# webgl-deploy.yml. Both write to the same `gh-pages` branch: this workflow
+# adds a small commit with keep_files: true so it never erases /play/, and
+# webgl-deploy.yml replaces the branch with one orphan commit holding
+# web/ + the game (so branch history never accumulates 25 MB per build).
 #
-# ONE-TIME SETUP: Settings → Pages → Source: "Deploy from a branch",
-# branch `gh-pages`, folder `/ (root)`. The branch is created by the first
-# run of this workflow.
+# ONE-TIME SETUP (already done for this repo): Settings → Pages → Source:
+# "Deploy from a branch", branch `gh-pages`, folder `/ (root)`. The branch is
+# created by the first run of this workflow.
 #
-# Site lands at https://<owner>.github.io/<repo>/
+# Site lands at https://<owner>.github.io/<repo>/  (game: .../play/)
 name: Deploy Site to Pages
 
 on:
@@ -42,6 +44,7 @@ jobs:
           publish_dir: web
           # Preserve /play/ — the game build lives there and is published by a
           # different workflow. Without this, every site edit would delete it.
+          # (Do NOT combine with force_orphan here: that would wipe /play/.)
           keep_files: true
           # .nojekyll is added automatically; Unity's Build/ files start with
           # underscores and Jekyll would otherwise drop them.

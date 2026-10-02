@@ -646,8 +646,9 @@ pauses the game. Reduce Motion uses a global shader float `_CyMotion`.
    loading bar and accents, fullscreen button, offline-safe system fonts).
 3. Run **CyVerse → Add Scenes To Build Settings** so all six scenes are in
    the build, PasswordLock first (it's the entry scene).
-4. **Player Settings → Publishing Settings → Compression Format:** `Brotli`
-   (smaller downloads; needs HTTPS hosting) or `Gzip`.
+4. **Player Settings → Publishing Settings → Compression Format:** `Gzip` with
+   **Decompression Fallback** ON. (`Brotli` needs a host that sends
+   `Content-Encoding: br`; GitHub Pages does not — see *Web deployment*.)
 5. Keep textures compressed and the build lean for low-bandwidth / remote users.
 6. `Build` and host the output folder on any static web server.
 
@@ -735,6 +736,51 @@ rather than queueing.
 
 Editing the landing page is just editing `web/index.html`; pushing to `main`
 redeploys it.
+
+**Public URLs** (project site, no backend): landing page
+`https://crashpr0.github.io/Cyverse/`, game `https://crashpr0.github.io/Cyverse/play/`.
+
+**Pages-specific rules.**
+- Player Settings must stay: Compression `Gzip` + **Decompression Fallback ON**
+  (Pages sends no `Content-Encoding` for `.br`/`.gz`; the workflow fails the
+  build if it finds them), Threads Support OFF (needs COOP/COEP headers Pages
+  can't send).
+- `webgl-deploy.yml` publishes landing page + game as a single orphan commit on
+  `gh-pages`, so the branch never accumulates history (builds are ~25 MB each).
+- A failing PlayMode test blocks the deploy on push. To publish anyway:
+  *Actions → WebGL Build & Deploy → Run workflow → skip_tests*.
+
+### Embedding on another site (Cybers Learning)
+
+Link button (most reliable — fullscreen and mouse-look work best in the
+game's own tab):
+
+```html
+<a href="https://crashpr0.github.io/Cyverse/play/" target="_blank" rel="noopener"
+   style="display:inline-block;padding:14px 32px;background:#0055A2;color:#fff;
+          font:700 16px/1 system-ui,sans-serif;text-decoration:none;border-radius:8px">
+  Play CyVerse
+</a>
+```
+
+Inline `<iframe>` (the game page has a header and footer around a 16:9 canvas,
+so give it a bit more height than 16:9):
+
+```html
+<iframe src="https://crashpr0.github.io/Cyverse/play/"
+        title="CyVerse - cybersecurity training game"
+        style="display:block;width:100%;max-width:1100px;height:760px;margin:0 auto;border:0;background:#000"
+        allow="fullscreen; autoplay" allowfullscreen loading="lazy"></iframe>
+<p><a href="https://crashpr0.github.io/Cyverse/play/" target="_blank" rel="noopener">Open in its own tab</a>
+   for fullscreen and the best mouse-look.</p>
+```
+
+Notes: do not add a `sandbox` attribute (if the host requires one it needs at
+least `allow-scripts allow-same-origin allow-pointer-lock`); if the host site
+sets a Content-Security-Policy, allow `frame-src https://crashpr0.github.io`.
+Click inside the game once so it takes keyboard focus. Safari/Firefox may
+partition or block storage for cross-site iframes, so saved progress and the
+asset cache can reset there — another reason to offer the link button.
 
 **Manual alternative:** build WebGL locally and drag the output onto any
 static host — itch.io (HTML5 project, upload a zip), Netlify Drop, or SJSU web

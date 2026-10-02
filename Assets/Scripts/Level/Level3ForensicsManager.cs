@@ -49,7 +49,7 @@ namespace Cyverse.Level
             LevelMissionRuntime.EnsureSharedRuntime(gameObject, showEvidenceInventory: true);
 
             if (!SocProgress.TryGetEvidence(out var receivedEvidence))
-                Debug.LogError("[DF HANDOFF] Level 3 loaded without structured SOC evidence.");
+                Debug.LogWarning("[DF HANDOFF] Level 3 loaded without structured SOC evidence; using the training image.");
             else
                 Debug.Log($"[DF HANDOFF] Received {receivedEvidence.inventoryItem} from {receivedEvidence.computer}.");
 

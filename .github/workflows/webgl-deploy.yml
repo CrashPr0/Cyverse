@@ -7,7 +7,11 @@
 #        UNITY_PASSWORD — Unity account password
 #      To get the .ulf for a personal license, follow game-ci's activation
 #      guide: https://game.ci/docs/github/activation
+#      (If CI logs "machine binding doesn't match", game-ci falls back to
+#      UNITY_EMAIL/UNITY_PASSWORD — that works, but the account must not use
+#      2FA for the headless login and needs a free Personal seat.)
 #   2. Settings → Pages → Source: "Deploy from a branch" → `gh-pages` → `/ (root)`
+#      (already configured for this repo)
 #   3. In Unity, run "CyVerse > Add Scenes To Build Settings" and select the
 #      CyVerse WebGL template (Player Settings → Resolution and Presentation),
 #      then commit ProjectSettings so the build uses them.
@@ -17,11 +21,26 @@
 # Actions tab. Doc- and website-only pushes are deliberately excluded — a
 # Unity cloud build takes 15-30 minutes and shouldn't fire for a typo fix.
 #
-# The game updates at https://<owner>.github.io/<repo>/play/ when it finishes.
+# MANUAL RUN WITHOUT THE TEST GATE: Actions → "WebGL Build & Deploy" → Run
+# workflow → tick "skip_tests" (or `gh workflow run webgl-deploy.yml -f
+# skip_tests=true`). On pushes the PlayMode tests still gate the deploy.
 #
-# The landing page is deployed separately by pages.yml and needs no secrets,
-# so the site is useful before Unity CI is configured — and stays up if a
-# build ever fails.
+# URLs once published (landing page at the root, game under /play/):
+#   https://<owner>.github.io/<repo>/        landing page (web/index.html)
+#   https://<owner>.github.io/<repo>/play/   the game (embed THIS in iframes)
+#
+# HOW THE SITE IS PUBLISHED: the build is assembled together with web/ into one
+# folder (landing page at the root, game in play/) and pushed to `gh-pages` as a
+# single ORPHAN commit. Why: every build is ~25 MB of already-compressed binary
+# that git cannot delta, so appending a commit per build grew the repo by that
+# much each time (17 builds ≈ 440 MB of the repo's ~710 MB; GitHub asks repos to
+# stay under ~1 GB). One orphan commit keeps gh-pages at a single build, and also
+# drops files a newer build no longer produces (old *.gz leftovers, etc.).
+#
+# The landing page is also deployed on its own by pages.yml (needs no secrets),
+# so the site is useful before Unity CI is configured — and stays up if a build
+# ever fails. pages.yml adds a small commit on top (keep_files: true), which the
+# next game build folds into its orphan commit.
 name: WebGL Build & Deploy
 
 on:
@@ -33,10 +52,17 @@ on:
       - 'ProjectSettings/**'
       - '.github/workflows/webgl-deploy.yml'
   workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip the PlayMode test gate and build + publish anyway'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
   checks: write
+  # `pages: write` / `id-token: write` are NOT needed: the site is served from
+  # the gh-pages branch ("Deploy from a branch"), not via actions/deploy-pages.
 
 # Shares a lock with the site deploy so the two can't write gh-pages at once.
 # cancel-in-progress supersedes an in-flight build when new commits land, so a
@@ -47,19 +73,28 @@ concurrency:
 
 jobs:
   playthrough-test:
-    runs-on: ubuntu-latest
+    # Skipped only when someone manually ticks "skip_tests".
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_tests) }}
+    # Pinned: `ubuntu-latest` moves to Ubuntu 26 on 2026-10-19; keep the Unity
+    # Docker jobs on the image they have been passing on until that's tested.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           lfs: true
 
+      # A fixed key is saved once and never refreshed, so the cache goes stale.
+      # Key per commit and restore the newest earlier entry via the prefixes.
       - name: Cache Library
         uses: actions/cache@v4
         with:
           path: Library
-          key: Library-Tests-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
-          restore-keys: Library-Tests-
+          key: Library-Tests-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-${{ github.sha }}
+          restore-keys: |
+            Library-Tests-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-
+            Library-Tests-
 
       - name: Run Unity Play Mode tests
         uses: game-ci/unity-test-runner@v4
@@ -81,7 +116,13 @@ jobs:
 
   build-and-deploy:
     needs: playthrough-test
-    runs-on: ubuntu-latest
+    # Run when tests passed OR were deliberately skipped; never when they failed
+    # or the run was cancelled. (Needed because a skipped `needs` job would
+    # otherwise skip this job too.) Tests and build must stay sequential: both
+    # activate the same Unity Personal licence seat.
+    if: ${{ !cancelled() && (needs.playthrough-test.result == 'success' || needs.playthrough-test.result == 'skipped') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -92,8 +133,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: Library
-          key: Library-WebGL-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
-          restore-keys: Library-WebGL-
+          key: Library-WebGL-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-${{ github.sha }}
+          restore-keys: |
+            Library-WebGL-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-
+            Library-WebGL-
 
       - name: Build WebGL
         uses: game-ci/unity-builder@v4
@@ -104,17 +147,68 @@ jobs:
         with:
           targetPlatform: WebGL
           # unityVersion is read from ProjectSettings/ProjectVersion.txt by default.
+          # With no buildMethod, game-ci builds every ENABLED scene in
+          # ProjectSettings/EditorBuildSettings.asset (PasswordLock, Hub, Level0,
+          # Level1, Level1_IAM, Level2_CyberDefense, Level3_Forensics,
+          # Level4_CyberAttack) and honours the WebGL Player Settings there
+          # (CyVerse template, Gzip + Decompression Fallback, ...).
 
-      - name: Publish game to /play/
+      # Landing page at the root, game under /play/ — the layout the landing
+      # page's Play link and "build published?" probe expect (./play/).
+      - name: Assemble site and check GitHub Pages limits
+        run: |
+          set -euo pipefail
+          GAME=build/WebGL/WebGL
+
+          test -f "$GAME/index.html" || { echo "::error::No $GAME/index.html — the WebGL build produced nothing."; exit 1; }
+
+          # GitHub Pages never sends `Content-Encoding` for .br/.gz, so a build
+          # compressed WITHOUT "Decompression Fallback" loads as garbage and the
+          # game never starts. With the fallback on, Unity names the files
+          # *.unityweb and decompresses them in JS (works on any static host).
+          if compgen -G "$GAME/Build/*.br" > /dev/null || compgen -G "$GAME/Build/*.gz" > /dev/null; then
+            echo "::error::Build has .br/.gz files. Turn on Player Settings → Publishing Settings → Decompression Fallback (or set Compression Format to Disabled) — GitHub Pages cannot serve .br/.gz with the right headers."
+            exit 1
+          fi
+
+          rm -rf site
+          mkdir -p site/play
+          cp -R web/. site/
+          cp -R "$GAME"/. site/play/
+
+          # Pages limits: 100 MB per pushed file (hard), ~1 GB published site.
+          big=$(find site -type f -size +95M)
+          if [ -n "$big" ]; then
+            echo "::error::File(s) exceed GitHub's 100 MB limit:"; echo "$big"; exit 1
+          fi
+          find site -type f -size +50M -exec echo "::warning::Large file (>50 MB): {}" \;
+          total_mb=$(du -sm site | cut -f1)
+          echo "Site size: ${total_mb} MB"
+          if [ "$total_mb" -gt 900 ]; then
+            echo "::error::Site is ${total_mb} MB; GitHub Pages sites are limited to 1 GB."; exit 1
+          fi
+          ls -lh site/play/Build
+
+      # force_orphan replaces the whole branch with one commit (see header), so
+      # `site/` must hold EVERYTHING: that is why the landing page is copied in
+      # above rather than relying on keep_files.
+      - name: Publish site (landing page + game in /play/)
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/WebGL/WebGL
-          # The landing page (pages.yml) owns the site root; the game lives at
-          # /play/. keep_files stops each deploy from erasing the other's files.
-          destination_dir: play
-          keep_files: true
+          publish_dir: site
+          force_orphan: true
           # .nojekyll keeps Pages from dropping Unity's Build/ files, whose
           # names start with underscores.
           enable_jekyll: false
-          commit_message: 'Publish WebGL build to /play/'
+          commit_message: 'Publish site + WebGL build to /play/'
+
+      - name: Summary
+        run: |
+          owner=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]'); repo="${GITHUB_REPOSITORY#*/}"
+          {
+            echo "### CyVerse published"
+            echo "- Landing page: https://${owner}.github.io/${repo}/"
+            echo "- Game (embed this): https://${owner}.github.io/${repo}/play/"
+            echo "- Pages can take 1-2 minutes to update after this job finishes."
+          } >> "$GITHUB_STEP_SUMMARY"
