@@ -47,24 +47,25 @@ namespace Cyverse.Forensics
         {
             Vector2 size = screen.CanvasSize; // canvas units (e.g. ~220 x 330)
             RectTransform root = screen.CanvasRoot;
+            float contentWidth = Mathf.Max(1f, size.x - 20f);
 
             headerText = MakeText("CustodyHeader", root, 22f, TextAlignmentOptions.Top);
             headerText.text = "CHAIN OF CUSTODY";
             headerText.color = Green;
             headerText.fontStyle = FontStyles.Bold;
-            Place(headerText.rectTransform, size, new Vector2(0f, 1f),
-                new Vector2(10f, -14f), new Vector2(-20f, 46f));
+            Place(headerText.rectTransform, new Vector2(0f, 1f),
+                new Vector2(10f, -14f), new Vector2(contentWidth, 46f));
 
             statusText = MakeText("CustodyStatus", root, 30f, TextAlignmentOptions.Center);
             statusText.color = Gold;
             statusText.fontStyle = FontStyles.Bold;
-            Place(statusText.rectTransform, size, new Vector2(0f, 1f),
-                new Vector2(10f, -0.42f * size.y), new Vector2(-20f, 70f));
+            Place(statusText.rectTransform, new Vector2(0f, 1f),
+                new Vector2(10f, -92f), new Vector2(contentWidth, 74f));
 
             detailText = MakeText("CustodyDetail", root, 16f, TextAlignmentOptions.Bottom);
             detailText.color = Dim;
-            Place(detailText.rectTransform, size, new Vector2(0f, 0f),
-                new Vector2(10f, 16f), new Vector2(-20f, 0.42f * size.y));
+            Place(detailText.rectTransform, new Vector2(0f, 0f),
+                new Vector2(10f, 16f), new Vector2(contentWidth, 115f));
 
             // Everything we just added is on the canvas; RenderNow re-applies the
             // isolation layer to these new widgets and draws them once.
@@ -79,14 +80,16 @@ namespace Cyverse.Forensics
             {
                 statusText.text = "CUSTODY\nACCEPTED";
                 statusText.color = Green;
-                detailText.text = "Location, handler and transfer\nsigned off. Cleared for analysis.";
+                detailText.text = "Entry 2 signed and logged:\nSOC to Digital Forensics.\nTake the device to the\nINVESTIGATION DESK.";
                 detailText.color = Green;
             }
             else
             {
                 statusText.text = $"{selected}/{total}\nLOGGED";
                 statusText.color = Gold;
-                detailText.text = "Log WHERE it was collected,\nWHO received it, and how each\nhandoff was signed.";
+                // Second custody form of the run (the SOC logged the first), so
+                // spell out why: a new handoff always gets its own entry.
+                detailText.text = "Write entry 2 on the custody record:\nSOC to Digital Forensics.\nEvery handoff gets its own row,\neven inside one department.";
                 detailText.color = Dim;
             }
             if (screen != null) screen.RenderNow();
@@ -105,20 +108,27 @@ namespace Cyverse.Forensics
             text.alignment = alignment;
             text.color = Color.white;
             text.raycastTarget = false;
-            text.enableWordWrapping = true;
+            // The copy has deliberate line breaks. Auto-size each complete row
+            // into its box instead of introducing surprise wraps that collide
+            // with neighbouring rows.
+            text.enableWordWrapping = false;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 12f;
+            text.fontSizeMax = size;
+            text.overflowMode = TextOverflowModes.Ellipsis;
             return text;
         }
 
         /// <summary>Anchor a widget to a corner of the canvas and offset it in
         /// canvas units. <paramref name="cornerAnchor"/> picks the corner; offset
         /// is measured from it, size is the widget box.</summary>
-        private static void Place(RectTransform rt, Vector2 canvasSize, Vector2 cornerAnchor,
+        private static void Place(RectTransform rt, Vector2 cornerAnchor,
             Vector2 offset, Vector2 boxSize)
         {
             rt.anchorMin = cornerAnchor;
             rt.anchorMax = cornerAnchor;
             rt.pivot = cornerAnchor;
-            rt.sizeDelta = boxSize.y <= 0f ? new Vector2(boxSize.x, canvasSize.y * 0.4f) : boxSize;
+            rt.sizeDelta = new Vector2(Mathf.Max(1f, boxSize.x), Mathf.Max(1f, boxSize.y));
             rt.anchoredPosition = offset;
         }
     }

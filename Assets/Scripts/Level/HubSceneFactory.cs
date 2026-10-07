@@ -9,8 +9,7 @@ namespace Cyverse.Level
 {
     /// <summary>
     /// The Main Hub: the room every level is entered from. Four level doorways
-    /// along the east wall (Level 1 I/AM playable; Level 2 Cyber Defense
-    /// unlocks after it; Levels 3-4 in development) plus an Orientation door
+    /// along the east wall, unlocked in story order, plus an Orientation door
     /// on the west wall for the original Level 0 demo. Built on BuildKit like
     /// every level, but furnished as an ATRIUM, not an office: a central dais
     /// under the holo core, lounge seating, SJSU banners, a live mission-status
@@ -38,12 +37,12 @@ namespace Cyverse.Level
             // Story doors along the EAST wall (the z slots clear the wall
             // columns at every ±8). rotY=90 points each door's readable face
             // west, into the room.
-            new DoorSpec("Level 1 — I/AM", "Level1_IAM_VisualPass", 1, new Color(0.25f, 0.65f, 1f), new Vector3(19.2f, 0f, 12f), 90f),
-            new DoorSpec("Level 2 — Cyber Defense", "Level1", 2, new Color(0.95f, 0.35f, 0.25f), new Vector3(19.2f, 0f, 4f), 90f),
+            new DoorSpec("Level 1 — I/AM", "Level1_IAM", 1, new Color(0.25f, 0.65f, 1f), new Vector3(19.2f, 0f, 12f), 90f),
+            new DoorSpec("Level 2 — Cyber Defense", "Level2_CyberDefense", 2, new Color(0.95f, 0.35f, 0.25f), new Vector3(19.2f, 0f, 4f), 90f),
             new DoorSpec("Level 3 — Digital Forensics", "Level3_Forensics", 3, new Color(0.75f, 0.35f, 1f), new Vector3(19.2f, 0f, -4f), 90f),
             new DoorSpec("Level 4 — Cyber Attack", "Level4_CyberAttack", 4, new Color(1f, 0.60f, 0.15f), new Vector3(19.2f, 0f, -12f), 90f),
             // Orientation demo on the west wall (facing east, into the room).
-            new DoorSpec("Orientation (Demo)", "Level0 Visual Pass", 0, new Color(0.30f, 1f, 0.65f), new Vector3(-19.2f, 0f, -12f), -90f),
+            new DoorSpec("Orientation (Demo)", "Level0", 0, new Color(0.30f, 1f, 0.65f), new Vector3(-19.2f, 0f, -12f), -90f),
         };
 
         public static void BuildAll()

@@ -28,18 +28,25 @@ namespace Cyverse.Testing
             SocProgress.CompromisedComputerKey,
             SocProgress.ChainOfCustodyKey,
             SocProgress.PlaybookKey,
+            SocProgress.EvidenceLockedKey,
         };
-        private readonly bool[] hadSocKey = new bool[3];
-        private readonly int[] savedSocProgress = new int[3];
+        private readonly bool[] hadSocKey = new bool[4];
+        private readonly int[] savedSocProgress = new int[4];
         private bool hadEvidence;
         private string savedEvidence;
+        private bool hadRosterIndex, hadRosterFinished;
+        private int savedRosterIndex, savedRosterFinished;
+        private ScenarioRoster.SessionState savedRosterSession;
+        private bool progressSaved, progressRestored;
         private Canvas overlayCanvas;
         private TextMeshProUGUI keysText;
         private TextMeshProUGUI actionText;
         private bool lastMoveSucceeded;
 
-        private IEnumerator Start()
+        private void Awake()
         {
+            // Capture before the password scene's Start selects a profile.
+            // The editor runner adds this component on EnteredPlayMode.
             DontDestroyOnLoad(gameObject);
             for (int i = 0; i < hadKey.Length; i++)
             {
@@ -54,6 +61,16 @@ namespace Cyverse.Testing
             }
             hadEvidence = PlayerPrefs.HasKey(SocProgress.EvidenceJsonKey);
             savedEvidence = PlayerPrefs.GetString(SocProgress.EvidenceJsonKey, "");
+            hadRosterIndex = PlayerPrefs.HasKey(ScenarioRoster.RotationKey);
+            savedRosterIndex = PlayerPrefs.GetInt(ScenarioRoster.RotationKey);
+            hadRosterFinished = PlayerPrefs.HasKey(ScenarioRoster.FinishedKey);
+            savedRosterFinished = PlayerPrefs.GetInt(ScenarioRoster.FinishedKey);
+            savedRosterSession = ScenarioRoster.CaptureSessionState();
+            progressSaved = true;
+        }
+
+        private IEnumerator Start()
+        {
             DeterministicGameplayAdapter.ResetSocProgress();
             BuildOverlay();
 
@@ -80,9 +97,11 @@ namespace Cyverse.Testing
             yield return EnterLevelFromHub(2, "LEVEL 2 — CYBER DEFENSE");
             yield return RunLevel2();
             if (!string.IsNullOrEmpty(Failure)) yield break;
-            yield return ReturnToHub("H", "Return to Hub after Level 2");
 
-            yield return EnterLevelFromHub(3, "LEVEL 3 — DIGITAL FORENSICS");
+            // The SOC hands off through its own door to the lab (the Hub door stays for
+            // replays; the Hub's Level 3 gate is covered by the Level 4 entry below).
+            yield return EnterForensicsFromSoc();
+            if (!string.IsNullOrEmpty(Failure)) yield break;
             yield return RunLevel3();
             if (!string.IsNullOrEmpty(Failure)) yield break;
             yield return ReturnToHub("H", "Return to Hub after Level 3");
@@ -130,6 +149,21 @@ namespace Cyverse.Testing
             yield return WaitForDifferentScene(before, 8f);
         }
 
+        private IEnumerator EnterForensicsFromSoc()
+        {
+            HubDoor door = Level2SceneFactory.FindForensicsDoor();
+            if (door == null) { Fail("Level 2 has no Forensics Lab door."); yield break; }
+            yield return MovePlayerTo(door.transform, 2.2f, "W", "Walk to the Forensics Lab door");
+            if (!lastMoveSucceeded) yield break;
+            if (!door.IsOpen)
+            { Fail("The Forensics Lab door stayed locked after the SOC handoff and Level 2 completion."); yield break; }
+            Show("E", "Enter the Digital Forensics Lab with the sealed device");
+            yield return new WaitForSecondsRealtime(0.8f);
+            string before = SceneManager.GetActiveScene().name;
+            GameplayActions.TryApply(door, GameplayAction.Interact(), gameObject);
+            yield return WaitForDifferentScene(before, 8f);
+        }
+
         private IEnumerator RunLevel2()
         {
             yield return null; yield return null;
@@ -166,6 +200,40 @@ namespace Cyverse.Testing
             if (!SocProgress.HasCompromisedComputer || !SocProgress.HasChainOfCustody ||
                 !SocProgress.TryGetEvidence(out var evidence) || evidence.computer != "WS-03")
             { Fail("SOC investigation did not produce the structured WS-03 evidence handoff."); yield break; }
+
+            // The alert produces a physical device that has to be sealed in the locker
+            // before the SOC can be left for the lab.
+            var locker = FindObjectOfType<EvidenceLocker>();
+            HubDoor forensicsDoor = Level2SceneFactory.FindForensicsDoor();
+            Carryable seized = null;
+            foreach (var item in FindObjectsOfType<Carryable>())
+                if (item.id == EvidenceLocker.SeizedDeviceId) { seized = item; break; }
+            if (locker == null || forensicsDoor == null || seized == null)
+            { Fail("The SOC did not produce a seized device, an evidence locker, and a Forensics Lab door."); yield break; }
+            if (forensicsDoor.IsOpen)
+            { Fail("The Forensics Lab door was open before the device was sealed."); yield break; }
+
+            float evidenceY = CurrentPlayerY();
+            yield return MovePlayerToPoint(new Vector3(-10.5f, evidenceY, 10.5f),
+                seized.transform.position, "S  A", "Round the Alert Board toward WS-03");
+            if (!lastMoveSucceeded) yield break;
+            yield return MovePlayerToPoint(new Vector3(-15.3f, evidenceY, 10.9f),
+                seized.transform.position + Vector3.up * 0.2f, "A", "Walk to the seized device on WS-03's desk");
+            if (!lastMoveSucceeded) yield break;
+            Show("E", "Pick up the seized device");
+            yield return new WaitForSecondsRealtime(0.5f);
+            GameplayActions.TryApply(seized, GameplayAction.Interact(), gameObject);
+            if (Carryable.Carried != seized)
+            { Fail("The seized device could not be picked up."); yield break; }
+            yield return MovePlayerToPoint(new Vector3(Level2SceneFactory.LockerX, evidenceY, 17.3f),
+                locker.transform.position + Vector3.up * 1.5f, "W  D", "Carry the device to the evidence locker");
+            if (!lastMoveSucceeded) yield break;
+            Show("E", "Lock the device in the evidence locker");
+            yield return new WaitForSecondsRealtime(0.6f);
+            if (!DeterministicGameplayAdapter.SecureSeizedDevice(locker, gameObject) ||
+                !SocProgress.HasEvidenceLocked)
+            { Fail("The evidence locker did not accept the seized device."); yield break; }
+            yield return null;
 
             while (!playbook.IsComplete)
             {
@@ -228,6 +296,26 @@ namespace Cyverse.Testing
             var custodyForm = FindObjectOfType<ChainOfCustodyForm>();
             if (manager == null || briefing == null || console == null || custody == null || custodyForm == null)
             { Fail("Level 3 is missing its briefing, custody intake, or investigation desk."); yield break; }
+
+            // First DF step: the device the SOC sealed is waiting in the locker behind the
+            // spawn point (a training unit if this run skipped the SOC deposit).
+            var locker = FindObjectOfType<EvidenceLocker>();
+            if (locker == null) { Fail("Level 3 is missing its evidence locker."); yield break; }
+            float lockerY = CurrentPlayerY();
+            yield return MovePlayerToPoint(new Vector3(Level3ForensicsSceneFactory.LockerX, lockerY, -17.3f),
+                locker.transform.position + Vector3.up * 1.5f, "D  S", "Walk to the evidence locker");
+            if (!lastMoveSucceeded) yield break;
+            Show("E", "Retrieve the device from the evidence locker");
+            yield return new WaitForSecondsRealtime(0.8f);
+            if (!DeterministicGameplayAdapter.RetrieveEvidenceDevice(locker, gameObject) ||
+                Carryable.Carried == null)
+            { Fail("The device could not be retrieved from the evidence locker."); yield break; }
+            yield return new WaitForSecondsRealtime(0.4f);
+            // Back to the spawn column, so the walk to the briefing screen starts where it
+            // always did (a straight line from the locker would clip the reception desk).
+            yield return MovePlayerToPoint(new Vector3(0f, lockerY, -16f),
+                briefing.transform.position + Vector3.up * 1.4f, "A", "Carry the device back to the briefing room");
+            if (!lastMoveSucceeded) yield break;
 
             yield return MovePlayerTo(briefing.transform, 3f, "W", "Walk to analyst briefing");
             Show("E  → (HOLD)", "Play and scrub analyst briefing");
@@ -452,6 +540,8 @@ namespace Cyverse.Testing
 
         private void RestoreProgress()
         {
+            if (!progressSaved || progressRestored) return;
+            progressRestored = true;
             for (int i = 0; i < hadKey.Length; i++)
             {
                 string key = "cv_done_" + i;
@@ -464,7 +554,18 @@ namespace Cyverse.Testing
             }
             if (hadEvidence) PlayerPrefs.SetString(SocProgress.EvidenceJsonKey, savedEvidence);
             else PlayerPrefs.DeleteKey(SocProgress.EvidenceJsonKey);
+            if (hadRosterIndex) PlayerPrefs.SetInt(ScenarioRoster.RotationKey, savedRosterIndex);
+            else PlayerPrefs.DeleteKey(ScenarioRoster.RotationKey);
+            if (hadRosterFinished) PlayerPrefs.SetInt(ScenarioRoster.FinishedKey, savedRosterFinished);
+            else PlayerPrefs.DeleteKey(ScenarioRoster.FinishedKey);
+            ScenarioRoster.RestoreSessionState(savedRosterSession);
             PlayerPrefs.Save();
+        }
+
+        private void OnDestroy()
+        {
+            RestoreProgress();
+            if (overlayCanvas != null) Destroy(overlayCanvas.gameObject);
         }
 
         private void BuildOverlay()

@@ -10,7 +10,7 @@ namespace Cyverse.EditorTools
     /// <summary>
     /// Editor tools for the new game flow: build the Hub and Level 1 (I/AM)
     /// as editable GameObjects (same pattern as the Level 0/SOC builders),
-    /// and register every CyVerse scene in Build Settings so scene loading
+    /// and register the production CyVerse scenes in Build Settings so scene loading
     /// (Password Lock → Hub → levels) works in Play mode and in builds.
     /// </summary>
     public static class CyverseSceneTools
@@ -68,19 +68,23 @@ namespace Cyverse.EditorTools
             string[] wanted =
             {
                 // PasswordLock stays first — it is the build's entry scene.
-                // Visual-pass scenes are listed alongside their procedural
-                // counterparts; SceneCatalog prefers the visual pass at runtime
-                // whenever it is present here, so doors upgrade themselves.
+                // Bootstrap scenes are the production source of truth. Legacy
+                // visual-pass assets deliberately stay out of player builds.
                 "Assets/Scenes/PasswordLock.unity",
                 "Assets/Scenes/Hub.unity",
-                "Assets/Scenes/Level0 Visual Pass.unity",
                 "Assets/Scenes/Level0.unity",
-                "Assets/Scenes/Level1_IAM_VisualPass.unity",
                 "Assets/Scenes/Level1_IAM.unity",
-                "Assets/Scenes/Level2_CyberDefense_VisualPass.unity",
                 "Assets/Scenes/Level2_CyberDefense.unity",
                 "Assets/Scenes/Level1.unity",
                 "Assets/Scenes/Level3_Forensics.unity",
+                "Assets/Scenes/Level4_CyberAttack.unity",
+            };
+
+            var legacyVisualPasses = new HashSet<string>
+            {
+                "Assets/Scenes/Level0 Visual Pass.unity",
+                "Assets/Scenes/Level1_IAM_VisualPass.unity",
+                "Assets/Scenes/Level2_CyberDefense_VisualPass.unity",
             };
 
             var list = new List<EditorBuildSettingsScene>();
@@ -93,7 +97,8 @@ namespace Cyverse.EditorTools
             }
 
             foreach (var existing in EditorBuildSettings.scenes)
-                if (System.Array.IndexOf(wanted, existing.path) < 0)
+                if (System.Array.IndexOf(wanted, existing.path) < 0 &&
+                    !legacyVisualPasses.Contains(existing.path))
                     list.Add(existing);
 
             EditorBuildSettings.scenes = list.ToArray();

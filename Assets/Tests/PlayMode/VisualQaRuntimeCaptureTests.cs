@@ -27,11 +27,8 @@ namespace Cyverse.Tests
         {
             "PasswordLock",
             "Hub",
-            "Level0 Visual Pass",
             "Level0",
-            "Level1_IAM_VisualPass",
             "Level1_IAM",
-            "Level2_CyberDefense_VisualPass",
             "Level2_CyberDefense",
             "Level3_Forensics",
             "Level4_CyberAttack"
@@ -90,6 +87,8 @@ namespace Cyverse.Tests
                 {
                     if (!TryPositionFocusedView(camera, view)) continue;
                     yield return null; // allow billboards/layout to face the new camera
+                    if (view.StartsWith("locker", StringComparison.Ordinal))
+                        yield return new WaitForSecondsRealtime(0.25f); // settle distance-based replica visibility
                     RefreshWorldTextLayout();
                     string focusedPath = Path.Combine(outputDirectory,
                         MakeSafeFileName(sceneName) + "__" + view + ".png");
@@ -103,13 +102,15 @@ namespace Cyverse.Tests
         private static string[] FocusedViews(string sceneName)
         {
             if (sceneName.StartsWith("Level2_CyberDefense", StringComparison.OrdinalIgnoreCase))
-                return new[] { "alert", "workstations_south", "workstations_north", "playbook", "soc" };
+                return new[] { "briefing", "alert", "workstations_south", "workstations_north",
+                    "playbook", "soc", "certification", "locker", "locker_angle", "locker_far" };
             if (sceneName.StartsWith("Level3_Forensics", StringComparison.OrdinalIgnoreCase))
-                return new[] { "forensics", "report", "custody" };
+                return new[] { "forensics", "report", "locker", "locker_angle", "locker_far", "custody" };
             if (sceneName.StartsWith("Level4_CyberAttack", StringComparison.OrdinalIgnoreCase))
                 return new[] { "level4_overview" };
             if (sceneName.StartsWith("Level1_IAM", StringComparison.OrdinalIgnoreCase))
-                return new[] { "briefing" };
+                return new[] { "briefing", "iam_tasks", "iam_badge", "iam_mfa",
+                    "iam_authorization", "iam_audit", "iam_cert", "iam_exit" };
             return Array.Empty<string>();
         }
 
@@ -124,9 +125,20 @@ namespace Cyverse.Tests
                 case "playbook": methodName = "PositionPlaybook"; break;
                 case "soc": methodName = "PositionSocOverview"; break;
                 case "briefing": methodName = "PositionBriefing"; break;
+                case "iam_tasks": methodName = "PositionIamTasks"; break;
+                case "iam_badge": methodName = "PositionIamBadge"; break;
+                case "iam_mfa": methodName = "PositionIamMfa"; break;
+                case "iam_authorization": methodName = "PositionIamAuthorization"; break;
+                case "iam_audit": methodName = "PositionIamAudit"; break;
+                case "iam_exit": methodName = "PositionIamExit"; break;
+                case "iam_cert": methodName = "PositionCertification"; break;
+                case "certification": methodName = "PositionCertification"; break;
                 case "custody": methodName = "PositionCustody"; break;
                 case "forensics": methodName = "PositionForensicsOverview"; break;
                 case "report": methodName = "PositionForensicsReport"; break;
+                case "locker": methodName = "PositionLocker"; break;
+                case "locker_angle": methodName = "PositionLockerAngle"; break;
+                case "locker_far": methodName = "PositionLockerFar"; break;
                 case "level4_overview": methodName = "PositionOverview"; break;
                 default: return false;
             }
@@ -211,14 +223,42 @@ namespace Cyverse.Tests
                 if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy) continue;
                 if (renderer.GetComponentInParent<Canvas>() != null) continue;
                 if (renderer.GetComponentInParent<Camera>() != null) continue;
+                if (IsAtmosphericRenderer(renderer)) continue;
                 if (!found) { bounds = renderer.bounds; found = true; }
                 else bounds.Encapsulate(renderer.bounds);
             }
             return found && bounds.size.sqrMagnitude > 0.0001f;
         }
 
+        private static bool IsAtmosphericRenderer(Renderer renderer)
+        {
+            // The evidence locker's mirror room sits beyond the shared wall on purpose.
+            if (renderer.transform.root.name == "LockerMirrorRoom" || renderer.name == "SightlineStandIn") return true;
+            string name = renderer.name;
+            return name == "DustMotes" || name == "LightGlow" || name == "Glow" ||
+                   name.StartsWith("Lamp_Ceiling_", StringComparison.Ordinal);
+        }
+
         private static void Position(Camera camera, Bounds bounds)
         {
+            // The generated levels are closed 40x40 rooms. A conventional
+            // bounds camera lands outside their opaque walls/ceiling and
+            // captures the shell instead of the lighting inside it. Use a
+            // deterministic interior establishing shot for those scenes.
+            if (GameObject.Find("CeilingSlab") != null)
+            {
+                Vector3 roomTarget = new Vector3(
+                    Mathf.Clamp(bounds.center.x, -3f, 3f),
+                    1.6f,
+                    Mathf.Clamp(bounds.center.z, -2f, 4f));
+                Vector3 position = roomTarget + new Vector3(14f, 2.5f, -17f);
+                camera.transform.SetPositionAndRotation(position,
+                    Quaternion.LookRotation(roomTarget - position, Vector3.up));
+                camera.nearClipPlane = 0.05f;
+                camera.farClipPlane = 200f;
+                return;
+            }
+
             Vector3 target = bounds.center;
             Vector3 offset = new Vector3(Mathf.Max(6f, bounds.extents.x * 0.9f),
                 Mathf.Max(3f, bounds.extents.y * 0.55f),
@@ -261,7 +301,11 @@ namespace Cyverse.Tests
                 RenderTexture.active = previous;
                 if (camera != null) camera.targetTexture = null;
                 if (pixels != null) UnityEngine.Object.Destroy(pixels);
-                if (target != null) target.Release();
+                if (target != null)
+                {
+                    target.Release();
+                    UnityEngine.Object.Destroy(target);
+                }
             }
         }
 

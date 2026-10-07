@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Core;
+using Cyverse.Forensics;
 using Cyverse.Level;
 using Cyverse.Player;
 using Cyverse.UI;
@@ -227,8 +228,10 @@ namespace Cyverse.Interaction
             for (int i = 0; i < scenario.rows.Length; i++)
             {
                 var row = scenario.rows[i];
-                string cursor = i == selectedRow ? "<color=#E5A823>▶</color>" : " ";
-                string flag = i == flaggedRow ? "<color=#FF8A78>⚑</color>" : " ";
+                // Keep selection markers in the shipped font's ASCII range;
+                // triangle/flag glyphs otherwise become missing-glyph boxes.
+                string cursor = i == selectedRow ? "<color=#E5A823>></color>" : " ";
+                string flag = i == flaggedRow ? "<color=#FF8A78>*</color>" : " ";
                 string computer = wrongRowAttempts >= 2 && i == scenario.triggerRowIndex
                     ? $"<color=#E5A823><b>{row.computer}</b></color>" : row.computer;
                 sb.AppendLine($"{cursor}{flag}  {row.time,-7} {computer,-10} {row.user,-12} {row.activity}");
@@ -237,7 +240,7 @@ namespace Cyverse.Interaction
             feedbackText.text = string.IsNullOrEmpty(hint)
                 ? "Only one row can be flagged at a time."
                 : "<color=#FFB347>" + hint + "</color>";
-            controlsText.text = "↑ / ↓ SELECT ROW     ·     E / ENTER FLAG & GO INVESTIGATE     ·     ESC CLOSE";
+            controlsText.text = "UP / DOWN SELECT ROW     ·     E / ENTER FLAG & GO INVESTIGATE     ·     ESC CLOSE";
         }
 
         private void OpenVerification()
@@ -309,7 +312,7 @@ namespace Cyverse.Interaction
                 activity = row.activity,
                 verificationResult = "machine locked/idle — activity unexplained",
                 collectedAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'"),
-                analystName = PlayerPrefs.GetString("cv_analyst_name", "SOC Analyst"),
+                analystName = CustodyLog.SocAnalystName,
                 inventoryItem = "Evidence: WS-03 disk image + chain-of-custody record",
             };
         }
@@ -318,18 +321,40 @@ namespace Cyverse.Interaction
         {
             mode = PanelMode.ChainOfCustody;
             openedFrame = Time.frameCount;
-            headerText.text = "CHAIN OF CUSTODY  ·  AUTO-GENERATED";
+            headerText.text = "CHAIN OF CUSTODY FORM  ·  ENTRY 1";
+            // Short text-based intro to the form; the lab repeats this same
+            // record and has the player write entry 2 (see CustodyLog).
+            const string Key = "<color=#5BD9FF><b>";
+            const string EndKey = "</b></color>";
             bodyText.text =
-                $"<color=#5BD9FF><b>ALERT</b></color>        {pendingEvidence.alertTitle}\n" +
-                $"<color=#5BD9FF><b>TIME</b></color>         {pendingEvidence.time}\n" +
-                $"<color=#5BD9FF><b>COMPUTER</b></color>     {pendingEvidence.computer}\n" +
-                $"<color=#5BD9FF><b>USER</b></color>         {pendingEvidence.user}\n" +
-                $"<color=#5BD9FF><b>ACTIVITY</b></color>     {pendingEvidence.activity}\n" +
-                $"<color=#5BD9FF><b>VERIFICATION</b></color> {pendingEvidence.verificationResult}\n" +
-                $"<color=#5BD9FF><b>COLLECTED</b></color>    {pendingEvidence.collectedAtUtc}\n" +
-                $"<color=#5BD9FF><b>ANALYST</b></color>      {pendingEvidence.analystName}";
-            feedbackText.text = "<color=#E5A823>WS-03 will be powered down and collected as evidence.</color>";
+                "<color=#E5A823><b>WHAT IS A CHAIN-OF-CUSTODY FORM?</b></color> " +
+                "A record of every time evidence changes hands: WHO released it, WHO received it, WHEN, and WHY. " +
+                "Every handoff gets its own row, even inside one department, or the evidence may not hold up in court.\n\n" +
+                $"<size=88%>{Key}CASE #{EndKey} {CustodyLog.CaseNumber(pendingEvidence)}" +
+                $"      {Key}CLIENT ITEM {CustodyLog.ItemNumber}{EndKey} {CustodyLog.ItemDescription(pendingEvidence)}" +
+                $"      {Key}SERIAL{EndKey} {CustodyLog.Serial(pendingEvidence)}\n" +
+                $"{Key}ALERT{EndKey} {pendingEvidence.alertTitle}  ·  {pendingEvidence.time}  ·  user {pendingEvidence.user}  ·  " +
+                $"{pendingEvidence.verificationResult}</size>\n\n" +
+                "<b>CHAIN OF CUSTODY</b>\n" +
+                "<size=86%><color=#7FA8C8><b>ITEM<pos=7%>DATE / TIME<pos=25%>RELEASED BY<pos=47%>RECEIVED BY<pos=72%>REASON</b></color>\n" +
+                // Two lines per entry, like the paper form: name, then role/time.
+                $"{CustodyLog.ItemNumber}<pos=7%>{DatePart(pendingEvidence.collectedAtUtc, 0)}<pos=25%>{CustodyLog.ClientName}" +
+                $"<pos=47%>{CustodyLog.SocAnalystName}<pos=72%>{CustodyLog.CollectionReason}\n" +
+                $"<color=#9FB4C0><pos=7%>{DatePart(pendingEvidence.collectedAtUtc, 1)}<pos=25%>{CustodyLog.ClientRole}" +
+                $"<pos=47%>{CustodyLog.SocRole}</color>\n" +
+                $"<line-height=150%> </line-height>\n" +
+                $"<color=#6F8796>{CustodyLog.ItemNumber}<pos=7%>NEXT ENTRY<pos=25%>Logged by Digital Forensics when the device reaches the lab.</color></size>";
+            feedbackText.text = "<color=#E5A823>Entry 1: the client releases the device to SOC analyst L. Torres. Lock it in the evidence locker; Digital Forensics adds entry 2.</color>";
             controlsText.text = "[ E / ENTER ]  CONFIRM & COLLECT";
+        }
+
+        /// <summary>"2026-10-05 14:02 UTC" -> part 0 "2026-10-05", part 1 "14:02 UTC".</summary>
+        private static string DatePart(string stamp, int part)
+        {
+            if (string.IsNullOrEmpty(stamp)) return "";
+            int split = stamp.IndexOf(' ');
+            if (split < 0) return part == 0 ? stamp : "";
+            return part == 0 ? stamp.Substring(0, split) : stamp.Substring(split + 1);
         }
 
         private void ConfirmAndCollect()
@@ -420,6 +445,28 @@ namespace Cyverse.Interaction
                 var screen = transform.Find("Screen");
                 if (screen != null) screenRenderer = screen.GetComponent<Renderer>();
             }
+
+            // The canonical Level 2 scene has stable label names. Resolve
+            // those first so a body label containing "ALERT" cannot be
+            // mistaken for the body and leave the actual heading unmapped.
+            if (worldHeader == null)
+            {
+                Transform header = transform.Find("Label_ALERT_BOARD");
+                if (header != null) worldHeader = header.GetComponent<TextMesh>();
+            }
+            if (worldBody == null)
+            {
+                Transform body = transform.Find("Label_Active_SOC_scenario");
+                if (body != null) worldBody = body.GetComponent<TextMesh>();
+            }
+            if (worldHint == null)
+            {
+                Transform hint = transform.Find("Label_[E]_REVIEW_&_FLAG");
+                if (hint != null) worldHint = hint.GetComponent<TextMesh>();
+            }
+
+            // Retain content-based fallbacks for procedural and older scene
+            // variants whose labels predate the canonical names above.
             foreach (var label in GetComponentsInChildren<TextMesh>(true))
             {
                 if (worldHeader == null && (label.text.Contains("SIEM") || label.text.Contains("SHIFT"))) worldHeader = label;

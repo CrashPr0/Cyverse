@@ -9,7 +9,7 @@ namespace Cyverse.Editor
     [InitializeOnLoad]
     public static class Level1PlaythroughAutomation
     {
-        private const string ScenePath = "Assets/Scenes/Level1_IAM_VisualPass.unity";
+        private const string ScenePath = "Assets/Scenes/Level1_IAM.unity";
         private const string ActiveKey = "Cyverse.Playthrough.Active";
         private const string CiKey = "Cyverse.Playthrough.CI";
         private const string PreviousSceneKey = "Cyverse.Playthrough.PreviousScene";

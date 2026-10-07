@@ -33,8 +33,6 @@ namespace Cyverse.Level
         private static Material ChairDark => Mat("chair", () => BuildKit.MakeStandard(new Color(0.07f, 0.08f, 0.11f), 0.4f, 0.2f));
         private static Material Couch => Mat("couch", () => BuildKit.MakeStandard(new Color(0.14f, 0.17f, 0.24f), 0.15f, 0f));
         private static Material Cushion => Mat("cushion", () => BuildKit.MakeStandard(new Color(0.19f, 0.23f, 0.32f), 0.15f, 0f));
-        private static Material PlantGreen => Mat("plant", () => BuildKit.MakeStandard(new Color(0.14f, 0.36f, 0.19f), 0.2f, 0f));
-        private static Material PotDark => Mat("pot", () => BuildKit.MakeStandard(new Color(0.09f, 0.09f, 0.11f), 0.35f, 0.1f));
         private static Material RackDark => Mat("rack", () => BuildKit.MakeStandard(new Color(0.06f, 0.07f, 0.10f), 0.5f, 0.4f));
         private static Material Rug => Mat("rug", () => BuildKit.MakeStandard(new Color(0.09f, 0.11f, 0.16f), 0.05f, 0f));
         private static Material Screen => Mat("screen", () => BuildKit.MakeEmissive(new Color(0.35f, 0.70f, 1f), 0.9f));
@@ -246,18 +244,11 @@ namespace Cyverse.Level
         public static void BuildPlant(Transform parent, Vector3 localPos)
         {
             if (PropLibrary.TrySpawn("Plant", parent, localPos, Random.Range(0f, 360f)) != null) return;
-            var plant = Group(parent, "Plant", localPos, Random.Range(0f, 360f));
-
-            Child(plant, PrimitiveType.Cylinder, "Pot", new Vector3(0, 0.18f, 0), Vector3.zero,
-                new Vector3(0.32f, 0.18f, 0.32f), PotDark, collider: true);
-            Child(plant, PrimitiveType.Cylinder, "Trunk", new Vector3(0, 0.55f, 0), Vector3.zero,
-                new Vector3(0.05f, 0.26f, 0.05f), Wood, collider: false);
-            Child(plant, PrimitiveType.Sphere, "FoliageA", new Vector3(0, 1.02f, 0), Vector3.zero,
-                new Vector3(0.56f, 0.5f, 0.56f), PlantGreen, collider: false);
-            Child(plant, PrimitiveType.Sphere, "FoliageB", new Vector3(0.2f, 0.86f, 0.12f), Vector3.zero,
-                new Vector3(0.4f, 0.36f, 0.4f), PlantGreen, collider: false);
-            Child(plant, PrimitiveType.Sphere, "FoliageC", new Vector3(-0.18f, 0.9f, -0.1f), Vector3.zero,
-                new Vector3(0.38f, 0.34f, 0.38f), PlantGreen, collider: false);
+            // Turn the planter's lit side toward the room, where players are.
+            Vector3 world = parent != null ? parent.TransformPoint(localPos) : localPos;
+            float worldYaw = ProceduralPlanter.YawFacing(world, ProceduralPlanter.RoomFocus(world));
+            float parentYaw = parent != null ? parent.eulerAngles.y : 0f;
+            ProceduralPlanter.Create(parent, localPos, worldYaw - parentYaw);
         }
 
         public static void BuildServerRack(Transform parent, Vector3 localPos, float rotY)

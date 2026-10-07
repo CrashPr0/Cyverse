@@ -16,7 +16,7 @@ namespace Cyverse.Tests
         [Timeout(30000)]
         public IEnumerator RuntimeBuiltCarryable_PickupIgnoresDeferredDestroyedColliders()
         {
-            SceneManager.LoadScene("Level2_CyberDefense_VisualPass", LoadSceneMode.Single);
+            SceneManager.LoadScene("Level2_CyberDefense", LoadSceneMode.Single);
             yield return null;
             yield return null;
             yield return null;
@@ -50,9 +50,9 @@ namespace Cyverse.Tests
 
         [UnityTest]
         [Timeout(30000)]
-        public IEnumerator VisualPass_NormalizesDepthAndDeconflictsFloatingSigns()
+        public IEnumerator BootstrapScene_NormalizesDepthAndDeconflictsFloatingSigns()
         {
-            SceneManager.LoadScene("Level2_CyberDefense_VisualPass", LoadSceneMode.Single);
+            SceneManager.LoadScene("Level2_CyberDefense", LoadSceneMode.Single);
             yield return null;
             yield return null;
             yield return null;
@@ -294,6 +294,152 @@ namespace Cyverse.Tests
             Assert.That(report, Is.Not.Null);
             Assert.That(Vector3.Distance(intake.position, analysis.position), Is.GreaterThan(2.5f));
             Assert.That(Vector3.Distance(analysis.position, report.position), Is.GreaterThan(2.5f));
+        }
+
+        [UnityTest]
+        [Timeout(30000)]
+        public IEnumerator ForensicsDiegeticScreens_KeepTextInPositiveNonOverlappingRects()
+        {
+            SceneManager.LoadScene("Level3_Forensics", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Type screenType = FindType("Cyverse.Interaction.DiegeticScreen");
+            UnityEngine.Object[] screens = UnityEngine.Object.FindObjectsOfType(screenType);
+            Assert.That(screens.Length, Is.EqualTo(3),
+                "Level 3 should build one isolated diegetic screen per workflow station.");
+
+            TMP_Text custodyStatus = GameObject.Find("CustodyStatus")?.GetComponent<TMP_Text>();
+            Assert.That(custodyStatus, Is.Not.Null,
+                "The evidence-intake screen should expose its custody progress row.");
+            StringAssert.StartsWith("0/4", custodyStatus.text,
+                "The intake screen must show the four required custody fields before the form is opened.");
+
+            var canvasPositions = new System.Collections.Generic.List<Vector3>();
+            foreach (UnityEngine.Object candidate in screens)
+            {
+                var screen = (Component)candidate;
+                var canvas = (RectTransform)screenType.GetProperty("CanvasRoot").GetValue(screen);
+                Assert.That(canvas, Is.Not.Null, $"{screen.name} should expose its offscreen canvas.");
+                canvasPositions.Add(canvas.position);
+
+                var surface = (Transform)screenType.GetProperty("ScreenTransform").GetValue(screen);
+                var texture = (RenderTexture)screenType.GetProperty("Texture").GetValue(screen);
+                Assert.That(surface, Is.Not.Null, $"{screen.name} should expose its physical display surface.");
+                Assert.That(texture, Is.Not.Null, $"{screen.name} should expose its render texture.");
+                float surfaceAspect = Mathf.Abs(surface.lossyScale.x / surface.lossyScale.y);
+                float textureAspect = (float)texture.width / texture.height;
+                Assert.That(textureAspect, Is.EqualTo(surfaceAspect).Within(0.05f),
+                    $"{screen.name} render texture should match its physical aspect ratio so text is not stretched.");
+
+                foreach (TMP_Text text in canvas.GetComponentsInChildren<TMP_Text>(true))
+                {
+                    text.ForceMeshUpdate();
+                    Rect rect = text.rectTransform.rect;
+                    StringAssert.DoesNotContain("✓", text.text,
+                        $"{screen.name}/{text.name} uses a glyph missing from the runtime TMP font.");
+                    Assert.That(rect.width, Is.GreaterThan(0f),
+                        $"{screen.name}/{text.name} has a non-positive text width and will render as a vertical letter stack.");
+                    Assert.That(rect.height, Is.GreaterThan(0f),
+                        $"{screen.name}/{text.name} has a non-positive text height.");
+                }
+
+                foreach (Text text in canvas.GetComponentsInChildren<Text>(true))
+                {
+                    Rect rect = text.rectTransform.rect;
+                    Assert.That(rect.width, Is.GreaterThan(0f),
+                        $"{screen.name}/{text.name} has a non-positive text width.");
+                    Assert.That(rect.height, Is.GreaterThan(0f),
+                        $"{screen.name}/{text.name} has a non-positive text height.");
+                }
+
+                if (screen.name != "DF_UploadScreen") continue;
+                RectTransform title = canvas.Find("UploadTitle") as RectTransform;
+                RectTransform percent = canvas.Find("UploadPercent") as RectTransform;
+                Assert.That(title, Is.Not.Null);
+                Assert.That(percent, Is.Not.Null);
+                Rect titleRect = RelativeRect(canvas, title);
+                Rect percentRect = RelativeRect(canvas, percent);
+                Assert.That(titleRect.Overlaps(percentRect), Is.False,
+                    "The acquisition title and progress percentage need separate rows when upload text is populated.");
+            }
+
+            for (int i = 0; i < canvasPositions.Count; i++)
+            for (int j = i + 1; j < canvasPositions.Count; j++)
+                Assert.That(Vector3.Distance(canvasPositions[i], canvasPositions[j]), Is.GreaterThan(10f),
+                    "Each diegetic render camera must frame only its own canvas; shared origins composite all station text.");
+
+            // Evidence acquisition is the step after custody: it lives on the
+            // Investigation Desk's LEFT monitor, not the report desk.
+            GameObject console = GameObject.Find("ForensicsConsole");
+            GameObject uploadScreen = GameObject.Find("DF_UploadScreen");
+            Assert.That(console, Is.Not.Null);
+            Assert.That(uploadScreen, Is.Not.Null);
+            Assert.That(uploadScreen.transform.parent, Is.EqualTo(console.transform),
+                "The acquisition screen should be mounted on the investigation console.");
+            Assert.That(console.transform.InverseTransformPoint(uploadScreen.transform.position).x, Is.LessThan(-0.5f),
+                "The acquisition screen should replace the console's LEFT monitor.");
+            Assert.That(console.transform.Find("MonScreen_-1") == null ||
+                !console.transform.Find("MonScreen_-1").GetComponent<Renderer>().enabled, Is.True,
+                "The static left monitor quad must not z-fight the acquisition screen.");
+
+            Type plugInType = FindType("Cyverse.Interaction.PlugInStation");
+            object plugIn = plugInType.GetProperty("Instance").GetValue(null);
+            Assert.That(plugIn, Is.Not.Null);
+            Assert.That(GameObject.Find("DF_EvidencePhone"), Is.Null,
+                "The evidence phone should stay at intake until custody is accepted.");
+            plugInType.GetMethod("CompleteNow").Invoke(plugIn, null);
+            yield return null;
+
+            GameObject evidencePhone = GameObject.Find("DF_EvidencePhone");
+            Assert.That(evidencePhone, Is.Not.Null, "Completing acquisition should leave the phone docked.");
+            Bounds phoneBounds = default;
+            bool hasPhoneBounds = false;
+            foreach (Renderer part in evidencePhone.GetComponentsInChildren<Renderer>())
+            {
+                if (!hasPhoneBounds) { phoneBounds = part.bounds; hasPhoneBounds = true; }
+                else phoneBounds.Encapsulate(part.bounds);
+            }
+            Renderer uploadSurface = uploadScreen.transform.Find("Screen").GetComponent<Renderer>();
+            Assert.That(phoneBounds.max.y, Is.LessThan(uploadSurface.bounds.min.y),
+                "The docked phone must sit below the acquisition screen instead of covering its rows.");
+            float deskTop = console.transform.position.y + 1.0f;
+            Assert.That(phoneBounds.min.y, Is.GreaterThanOrEqualTo(deskTop - 0.005f),
+                "The docked phone should rest in its cradle on the desk, not sink into it.");
+            TMP_Text uploadTitle = FindCanvasText(uploadScreen, screenType, "UploadTitle");
+            Assert.That(uploadTitle, Is.Not.Null);
+            StringAssert.Contains("COMPLETE", uploadTitle.text);
+
+            Renderer custodySurface = GameObject.Find("CustodyReadoutScreen")
+                .transform.Find("Screen").GetComponent<Renderer>();
+            Renderer intakeCaption = GameObject.Find("DF_IntakeStatus").GetComponent<Renderer>();
+            Assert.That(intakeCaption.bounds.max.y, Is.LessThan(custodySurface.bounds.min.y),
+                "The legacy intake caption must stay below the diegetic custody screen instead of drawing through it.");
+
+            // With the upload gone, the casework status is back on the report monitor.
+            Renderer reportSurface = GameObject.Find("DF_ReportScreen").GetComponent<Renderer>();
+            Renderer reportCaption = GameObject.Find("DF_ReportStatus").GetComponent<Renderer>();
+            Assert.That(reportCaption.bounds.min.y, Is.GreaterThan(reportSurface.bounds.min.y),
+                "The casework status should sit on the report screen.");
+            Assert.That(reportCaption.bounds.max.y, Is.LessThan(reportSurface.bounds.max.y),
+                "The casework status should sit on the report screen.");
+            Assert.That(reportCaption.transform.position.z, Is.LessThan(reportSurface.bounds.min.z - 0.005f),
+                "The casework status must sit in front of the report screen instead of depth-fighting through it.");
+        }
+
+        private static TMP_Text FindCanvasText(GameObject screenObject, Type screenType, string name)
+        {
+            Component screen = screenObject.GetComponent(screenType);
+            var canvas = (RectTransform)screenType.GetProperty("CanvasRoot").GetValue(screen);
+            Transform child = canvas != null ? canvas.Find(name) : null;
+            return child != null ? child.GetComponent<TMP_Text>() : null;
+        }
+
+        private static Rect RelativeRect(RectTransform root, RectTransform child)
+        {
+            Bounds bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(root, child);
+            return Rect.MinMaxRect(bounds.min.x, bounds.min.y, bounds.max.x, bounds.max.y);
         }
 
         private static void AssertNextTaskCalloutIsProminent()

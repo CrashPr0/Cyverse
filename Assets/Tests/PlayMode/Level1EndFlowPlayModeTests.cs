@@ -12,9 +12,9 @@ namespace Cyverse.Tests
     {
         [UnityTest]
         [Timeout(30000)]
-        public IEnumerator VisualPass_CompletesEndFlowAndPersistsProgress()
+        public IEnumerator BootstrapScene_CompletesEndFlowAndPersistsProgress()
         {
-            SceneManager.LoadScene("Level1_IAM_VisualPass", LoadSceneMode.Single);
+            SceneManager.LoadScene("Level1_IAM", LoadSceneMode.Single);
             yield return null;
             yield return null;
 

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
@@ -19,16 +20,26 @@ namespace Cyverse.Tests
             "cv_soc_compromised_computer",
             "cv_soc_chain_of_custody",
             "cv_soc_playbook_solved",
+            "cv_soc_evidence_locked",
+            "cv_scenario_roster_index",
+            "cv_scenario_roster_finished",
         };
 
         private bool[] hadInt;
         private int[] savedInt;
         private bool hadEvidence;
         private string savedEvidence;
+        private bool savedRosterInitialized;
+        private int savedRosterIndex;
 
         [SetUp]
         public void PreserveProgress()
         {
+            Type roster = FindType("Cyverse.Level.ScenarioRoster");
+            savedRosterInitialized = (bool)roster.GetField("sessionInitialized",
+                BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+            savedRosterIndex = (int)roster.GetField("sessionIndex",
+                BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
             hadInt = new bool[intKeys.Length];
             savedInt = new int[intKeys.Length];
             for (int i = 0; i < intKeys.Length; i++)
@@ -52,6 +63,11 @@ namespace Cyverse.Tests
             }
             if (hadEvidence) PlayerPrefs.SetString("cv_soc_evidence_json", savedEvidence);
             else PlayerPrefs.DeleteKey("cv_soc_evidence_json");
+            Type roster = FindType("Cyverse.Level.ScenarioRoster");
+            roster.GetField("sessionInitialized", BindingFlags.Static | BindingFlags.NonPublic)
+                .SetValue(null, savedRosterInitialized);
+            roster.GetField("sessionIndex", BindingFlags.Static | BindingFlags.NonPublic)
+                .SetValue(null, savedRosterIndex);
             PlayerPrefs.Save();
         }
 
@@ -137,10 +153,71 @@ namespace Cyverse.Tests
             Assert.That(PlayerPrefs.GetInt("cv_soc_chain_of_custody"), Is.EqualTo(1));
         }
 
-        [UnityTest]
-        public IEnumerator VisualPass_RewiresFourWorkstationsAndBuildsAlertBoard()
+        [Test]
+        public void EvidenceLockedKey_IsSetByDepositAndClearedByFreshEvidence()
         {
-            SceneManager.LoadScene("Level2_CyberDefense_VisualPass", LoadSceneMode.Single);
+            Type progressType = FindType("Cyverse.Level.SocProgress");
+            Assert.That(PlayerPrefs.GetInt("cv_soc_evidence_locked", 0), Is.EqualTo(0));
+
+            progressType.GetMethod("MarkEvidenceLocked").Invoke(null, null);
+            Assert.That(PlayerPrefs.GetInt("cv_soc_evidence_locked"), Is.EqualTo(1));
+            Assert.That((bool)progressType.GetProperty("HasEvidenceLocked").GetValue(null), Is.True);
+
+            // A device seized after the deposit is a new device: it has not been locked up yet.
+            StoreTestEvidence();
+            Assert.That(PlayerPrefs.GetInt("cv_soc_evidence_locked"), Is.EqualTo(0));
+            Assert.That((bool)progressType.GetProperty("HasEvidenceLocked").GetValue(null), Is.False);
+        }
+
+        [Test]
+        public void DigitalForensicsGate_DoesNotNeedTheLockerDeposit()
+        {
+            // Players who return to the Hub (or never used the locker) must still be able to
+            // enter the lab: the locker holds a training device for them.
+            PlayerPrefs.SetInt("cv_done_2", 1);
+            PlayerPrefs.SetInt("cv_soc_compromised_computer", 1);
+            PlayerPrefs.SetInt("cv_soc_chain_of_custody", 1);
+            PlayerPrefs.SetInt("cv_soc_playbook_solved", 1);
+            PlayerPrefs.SetInt("cv_soc_evidence_locked", 0);
+            Type progress = FindType("Cyverse.Core.LevelProgress");
+            Assert.That((bool)progress.GetMethod("IsUnlocked").Invoke(null, new object[] { 3 }), Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator AlertBoard_UsesPortableSelectionMarkers()
+        {
+            SceneManager.LoadScene("Level2_CyberDefense", LoadSceneMode.Single);
+            for (int i = 0; i < 6; i++) yield return null;
+            Type siemType = FindType("Cyverse.Interaction.SiemConsole");
+            object siem = UnityEngine.Object.FindObjectOfType(siemType);
+            Assert.That(GameplayActionTestDriver.Interact(siem), Is.True);
+            yield return null;
+            try
+            {
+                siemType.GetField("flaggedRow", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(siem, 0);
+                siemType.GetMethod("RenderAlertBoard", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(siem, new object[] { "" });
+                var body = (TMP_Text)siemType.GetField("bodyText",
+                    BindingFlags.Instance | BindingFlags.NonPublic).GetValue(siem);
+                var controls = (TMP_Text)siemType.GetField("controlsText",
+                    BindingFlags.Instance | BindingFlags.NonPublic).GetValue(siem);
+                StringAssert.Contains("<color=#E5A823>></color>", body.text);
+                StringAssert.Contains("<color=#FF8A78>*</color>", body.text);
+                StringAssert.DoesNotContain("\u25B6", body.text);
+                StringAssert.DoesNotContain("\u2691", body.text);
+                StringAssert.Contains("UP / DOWN SELECT ROW", controls.text);
+            }
+            finally
+            {
+                GameplayActionTestDriver.Cancel(siem);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator BootstrapScene_RewiresFourWorkstationsAndBuildsAlertBoard()
+        {
+            SceneManager.LoadScene("Level2_CyberDefense", LoadSceneMode.Single);
             yield return null;
             yield return null;
 
@@ -164,7 +241,7 @@ namespace Cyverse.Tests
             var siemComponent = (Component)siem;
             var aimCollider = siemComponent.GetComponent<BoxCollider>();
             Assert.That(aimCollider, Is.Not.Null,
-                "The Alert Board needs an eye-level target collider in the saved visual-pass scene.");
+                "The Alert Board needs an eye-level target collider in the bootstrap scene.");
             Assert.That(aimCollider.isTrigger, Is.True,
                 "The enlarged Alert Board target must not block player movement.");
 
@@ -192,6 +269,45 @@ namespace Cyverse.Tests
                 "The deterministic adapter must finish the SOC route only through player actions.");
             Assert.That((bool)siemType.GetProperty("IsComplete").GetValue(siem), Is.True);
             Assert.That(PlayerPrefs.GetInt("cv_soc_chain_of_custody", 0), Is.EqualTo(1));
+
+            // The resolved alert yields a physical device that has to be sealed in the
+            // north-wall locker; the direct door to the lab stays shut until then (and
+            // until the rest of the SOC mission is done).
+            Type lockerType = FindType("Cyverse.Interaction.EvidenceLocker");
+            Type carryableType = FindType("Cyverse.Interaction.Carryable");
+            Type doorType = FindType("Cyverse.Interaction.HubDoor");
+            object locker = UnityEngine.Object.FindObjectOfType(lockerType);
+            Assert.That(locker, Is.Not.Null,
+                "The saved SOC scene gets its evidence locker from the manager at startup.");
+            Assert.That(((Component)locker).transform.position.z, Is.GreaterThan(18.5f),
+                "The SOC locker belongs in the north wall, the wall the player exits through.");
+
+            object forensicsDoor = null;
+            foreach (UnityEngine.Object candidate in UnityEngine.Object.FindObjectsOfType(doorType))
+                if ((string)doorType.GetField("sceneName").GetValue(candidate) == "Level3_Forensics")
+                    forensicsDoor = candidate;
+            Assert.That(forensicsDoor, Is.Not.Null, "The SOC needs a direct door to the Forensics Lab.");
+            Assert.That((bool)doorType.GetProperty("IsOpen").GetValue(forensicsDoor), Is.False);
+
+            Component seized = null;
+            foreach (UnityEngine.Object candidate in UnityEngine.Object.FindObjectsOfType(carryableType))
+                if ((string)carryableType.GetField("id").GetValue(candidate) == "seized_device")
+                    seized = (Component)candidate;
+            Assert.That(seized, Is.Not.Null, "Resolving the alert must hand the player the seized device.");
+            Assert.That(PlayerPrefs.GetInt("cv_soc_evidence_locked", 0), Is.EqualTo(0));
+
+            // An empty-handed player cannot seal anything.
+            Assert.That(GameplayActionTestDriver.Interact(locker), Is.True);
+            Assert.That((bool)lockerType.GetProperty("IsSealed").GetValue(locker), Is.False);
+
+            Assert.That(GameplayActionTestDriver.RunDeterministicAction("SecureSeizedDevice", locker), Is.True,
+                "The seized device must be carried to the locker through the normal pickup/place actions.");
+            Assert.That((bool)lockerType.GetProperty("IsSealed").GetValue(locker), Is.True);
+            Assert.That(PlayerPrefs.GetInt("cv_soc_evidence_locked", 0), Is.EqualTo(1));
+            Assert.That(carryableType.GetProperty("Carried").GetValue(null), Is.Null,
+                "The device leaves the player's hands when it is locked away.");
+            Assert.That((bool)doorType.GetProperty("IsOpen").GetValue(forensicsDoor), Is.False,
+                "The lab door also waits for the playbook and the certification exam.");
         }
 
         [UnityTest]
@@ -225,6 +341,25 @@ namespace Cyverse.Tests
             Assert.That(form, Is.Not.Null);
             Assert.That(console, Is.Not.Null);
 
+            // The first step in the lab is taking the device out of the evidence locker,
+            // and Evidence Intake refuses to open until that has been done.
+            Type lockerType = FindType("Cyverse.Interaction.EvidenceLocker");
+            Type carryableType = FindType("Cyverse.Interaction.Carryable");
+            object locker = UnityEngine.Object.FindObjectOfType(lockerType);
+            Assert.That(locker, Is.Not.Null, "The lab must hold the handed-off device in an evidence locker.");
+            Assert.That(((Component)locker).transform.position.z, Is.LessThan(-18.5f),
+                "The lab locker belongs in the south wall the player arrives through.");
+            Assert.That((bool)lockerType.GetProperty("DeviceRetrieved").GetValue(locker), Is.False);
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            Assert.That((bool)formType.GetProperty("IsOpen").GetValue(form), Is.False,
+                "Evidence Intake must not open before the device is retrieved.");
+
+            Assert.That(GameplayActionTestDriver.RunDeterministicAction("RetrieveEvidenceDevice", locker), Is.True);
+            Assert.That((bool)lockerType.GetProperty("DeviceRetrieved").GetValue(locker), Is.True);
+            Assert.That(carryableType.GetProperty("Carried").GetValue(null), Is.Not.Null,
+                "The retrieved device should be in the player's hands.");
+
             // Opening intake constructs four mouse-clickable blanks.
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
             // The LEFT rework removed the evidence-download phone: the form is
@@ -237,15 +372,29 @@ namespace Cyverse.Tests
             Assert.That(GameObject.Find("ChainOfCustodyForm"), Is.Not.Null);
 
             for (int field = 0; field < 4; field++)
-                Assert.That(GameplayActionTestDriver.Select(form, field, 1), Is.True);
+                Assert.That(GameplayActionTestDriver.Select(form, field, GameplayActionTestDriver.CustodyAnswer(field)), Is.True);
             Assert.That(GameplayActionTestDriver.Submit(form), Is.True);
             Assert.That(GameplayActionTestDriver.Cancel(form), Is.True);
             yield return null;
             Assert.That((bool)formType.GetProperty("IsComplete").GetValue(form), Is.True);
 
+            // First E docks the evidence device and starts the upload; the
+            // second opens the terminal (finishing the upload instantly).
+            Type uploadType = FindType("Cyverse.Interaction.PlugInStation");
+            object upload = uploadType.GetProperty("Instance").GetValue(null);
+            Assert.That(upload, Is.Not.Null, "The investigation desk should host the evidence upload.");
             Assert.That(GameplayActionTestDriver.Interact(console), Is.True);
             yield return null;
+            Assert.That((bool)uploadType.GetProperty("UploadStarted").GetValue(upload), Is.True,
+                "The first E at the desk after custody should start the evidence upload.");
             Type gameState = FindType("Cyverse.Core.GameState");
+            Assert.That((bool)gameState.GetField("QuizActive").GetValue(null), Is.False,
+                "Starting the upload must not also open the terminal.");
+            Assert.That(carryableType.GetProperty("Carried").GetValue(null), Is.Null,
+                "The device leaves the player's hands when it docks in the cradle.");
+            Assert.That(GameplayActionTestDriver.Interact(console), Is.True);
+            yield return null;
+            Assert.That((bool)uploadType.GetProperty("UploadComplete").GetValue(upload), Is.True);
             Assert.That((bool)gameState.GetField("QuizActive").GetValue(null), Is.True,
                 "Completing custody should unlock the forensic query terminal.");
 
@@ -311,15 +460,27 @@ namespace Cyverse.Tests
             Assert.That(aim.isTrigger, Is.True, "The report aim target must not block player movement.");
 
             Assert.That(GameplayActionTestDriver.Scrub(briefing, float.MaxValue), Is.True);
+            object locker = UnityEngine.Object.FindObjectOfType(FindType("Cyverse.Interaction.EvidenceLocker"));
+            Assert.That(locker, Is.Not.Null);
+            Assert.That(GameplayActionTestDriver.RunDeterministicAction("RetrieveEvidenceDevice", locker), Is.True);
             Assert.That(GameplayActionTestDriver.Interact(custodyStation), Is.True);
             // No evidence-download step in the LEFT rework; proceed to fill.
             yield return null;
             for (int field = 0; field < 4; field++)
-                Assert.That(GameplayActionTestDriver.Select(form, field, 1), Is.True);
+                Assert.That(GameplayActionTestDriver.Select(form, field, GameplayActionTestDriver.CustodyAnswer(field)), Is.True);
             Assert.That(GameplayActionTestDriver.Submit(form), Is.True);
             Assert.That(GameplayActionTestDriver.Cancel(form), Is.True);
             yield return GameplayActionTestDriver.RunDeterministic("CompleteForensics", console);
             yield return null;
+
+            TMP_Text consoleReadout = (TMP_Text)consoleType
+                .GetField("readoutText", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(console);
+            Assert.That(consoleReadout, Is.Not.Null);
+            StringAssert.DoesNotContain("\u2713", consoleReadout.text,
+                "The completed terminal uses a glyph missing from the runtime TMP font.");
+            StringAssert.Contains("[OK]", consoleReadout.text,
+                "The completed terminal should expose an ASCII-safe completion marker.");
 
             Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(),
                 Is.EqualTo("Report"));
@@ -338,6 +499,33 @@ namespace Cyverse.Tests
             Assert.That((bool)managerType.GetProperty("ReportSubmitted").GetValue(manager), Is.True);
             Assert.That((bool)gameState.GetField("LevelComplete").GetValue(null), Is.True);
             Assert.That(PlayerPrefs.GetInt("cv_done_3", 0), Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator ForensicsLocker_HoldsATrainingDeviceWhenNothingCameFromTheSoc()
+        {
+            // Arriving from the Hub with no SOC deposit must never soft-lock the lab.
+            LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex(@"\[DF HANDOFF\]"));
+            SceneManager.LoadScene("Level3_Forensics", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Type lockerType = FindType("Cyverse.Interaction.EvidenceLocker");
+            Type stationType = FindType("Cyverse.Interaction.ChainOfCustodyStation");
+            Type formType = FindType("Cyverse.Forensics.ChainOfCustodyForm");
+            object locker = UnityEngine.Object.FindObjectOfType(lockerType);
+            object station = UnityEngine.Object.FindObjectOfType(stationType);
+            object form = UnityEngine.Object.FindObjectOfType(formType);
+            Assert.That(locker, Is.Not.Null);
+            Assert.That(station, Is.Not.Null);
+            Assert.That(GameplayActionTestDriver.RunDeterministicAction("RetrieveEvidenceDevice", locker), Is.True,
+                "The locker still releases a (training) device without a SOC deposit.");
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            Assert.That((bool)formType.GetProperty("IsOpen").GetValue(form), Is.True,
+                "With the device in hand, Evidence Intake opens as normal.");
+            GameplayActionTestDriver.Cancel(form);
         }
 
         [Test]

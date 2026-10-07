@@ -86,6 +86,37 @@ namespace Cyverse.Level
             floor.isStatic = true;
         }
 
+        /// <summary>
+        /// Calms the legacy showcase grid without removing the navigational
+        /// texture. Runtime polish calls this for canonical saved scenes as
+        /// well as procedurally generated rooms.
+        /// </summary>
+        public static void ToneGridFloor(Color baseColor, Color lineColor)
+        {
+            Renderer floor = GameObject.Find("Floor")?.GetComponent<Renderer>();
+            Material material = floor != null ? floor.sharedMaterial : null;
+            ToneGridFloor(material, baseColor, lineColor);
+        }
+
+        public static void ToneGridFloor(Material material, Color baseColor, Color lineColor)
+        {
+            if (material == null || material.shader == null ||
+                material.shader.name != "Cyverse/GridFloor") return;
+
+            material.SetColor("_BaseColor", baseColor);
+            material.SetColor("_LineColor", lineColor);
+            // 4 m cells: major lines land on +-2, +-6 ... +-18, so the divider
+            // (z = 2) sits on a line and the room is symmetric about the doors.
+            material.SetFloat("_GridScale", 4f);
+            material.SetFloat("_LineWidth", 0.012f);
+            material.SetFloat("_MinorEmission", 0.05f);
+            material.SetFloat("_Emission", 0.42f);
+            material.SetFloat("_PulseStrength", 0f);
+            material.SetFloat("_FadeDistance", 26f);
+            material.SetFloat("_Smoothness", 0.52f);
+            material.SetFloat("_Metallic", 0.12f);
+        }
+
         public static void BuildWalls(Color wallColor, float roomHeight = 5f)
         {
             roomHeight = Mathf.Max(3f, roomHeight);
@@ -113,7 +144,10 @@ namespace Cyverse.Level
                 new Vector3(0, roomHeight + 0.15f, 0), new Vector3(40f, 0.3f, 40f), slabMat, collider: false);
             slab.isStatic = true;
 
-            var mat = MakeEmissive(PanelWhite, 1.6f);
+            // The fixtures below provide the actual room illumination. Keep
+            // the visible diffuser below clipping white so it retains detail
+            // against the dark ceiling instead of reading as a blown-out bar.
+            var mat = MakeEmissive(new Color(0.62f, 0.72f, 0.86f), 0.78f);
             for (int z = -14; z <= 14; z += 7)
             {
                 Spawn(PrimitiveType.Cube, "CeilingPanel_" + z, null,

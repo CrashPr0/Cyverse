@@ -18,7 +18,13 @@ namespace Cyverse.Testing
     /// </summary>
     public static class DeterministicGameplayAdapter
     {
-        private static readonly int[] CustodyRoute = { 1, 1, 1, 1 };
+        // Entry 2 of the custody form: item #1, released by the SOC analyst,
+        // received by Digital Forensics, for analysis (ChainOfCustodyForm.ConfigureFields).
+        private static readonly int[] CustodyRoute = { 0, 1, 2, 0 };
+
+        /// <summary>The correct option for a custody-form blank, for tests that
+        /// fill the form one blank at a time.</summary>
+        public static int CustodyAnswer(int field) => CustodyRoute[field];
 
         public static void ResetSocProgress()
         {
@@ -26,7 +32,37 @@ namespace Cyverse.Testing
             PlayerPrefs.DeleteKey(SocProgress.ChainOfCustodyKey);
             PlayerPrefs.DeleteKey(SocProgress.PlaybookKey);
             PlayerPrefs.DeleteKey(SocProgress.EvidenceJsonKey);
+            PlayerPrefs.DeleteKey(SocProgress.EvidenceLockedKey);
             PlayerPrefs.Save();
+        }
+
+        /// <summary>SOC handoff, step two: pick up the seized device (the same Carryable
+        /// pickup a player does) and lock it in the evidence locker.</summary>
+        public static bool SecureSeizedDevice(EvidenceLocker locker, GameObject actor = null)
+        {
+            if (locker == null || locker.side != EvidenceLocker.Side.Soc) return false;
+            if (locker.IsSealed) return true;
+
+            Carryable device = null;
+            foreach (Carryable candidate in Object.FindObjectsOfType<Carryable>())
+                if (candidate.id == EvidenceLocker.SeizedDeviceId) { device = candidate; break; }
+            if (device == null) return false;
+
+            if (Carryable.Carried != device &&
+                !GameplayActions.TryApply(device, GameplayAction.Interact(), actor))
+                return false;
+            if (Carryable.Carried != device) return false;
+            return GameplayActions.TryApply(locker, GameplayAction.Interact(), actor) && locker.IsSealed;
+        }
+
+        /// <summary>Forensics Lab, first step: take the device out of the evidence
+        /// locker. Evidence Intake refuses to open until this has been done.</summary>
+        public static bool RetrieveEvidenceDevice(EvidenceLocker locker, GameObject actor = null)
+        {
+            if (locker == null || locker.side != EvidenceLocker.Side.Forensics) return false;
+            if (locker.DeviceRetrieved) return true;
+            return GameplayActions.TryApply(locker, GameplayAction.Interact(), actor) &&
+                   locker.DeviceRetrieved;
         }
 
         public static bool SubmitConfiguredPassword(PasswordLockController controller,
@@ -131,6 +167,9 @@ namespace Cyverse.Testing
         public static bool CompleteCustodyForm(ChainOfCustodyForm form, GameObject actor = null)
         {
             if (form == null) return false;
+            if (!EvidenceLocker.DeviceReadyForIntake &&
+                !RetrieveEvidenceDevice(EvidenceLocker.Instance, actor))
+                return false;
             if (!form.IsOpen)
             {
                 ChainOfCustodyStation station = ChainOfCustodyStation.Instance;
@@ -157,6 +196,11 @@ namespace Cyverse.Testing
             GameObject actor = null)
         {
             if (form == null) yield break;
+            // Intake needs the device in hand; a route that has not walked to the
+            // locker yet takes it out first rather than skipping the step.
+            if (!EvidenceLocker.DeviceReadyForIntake &&
+                !RetrieveEvidenceDevice(EvidenceLocker.Instance, actor))
+                yield break;
             if (!form.IsOpen)
             {
                 ChainOfCustodyStation station = ChainOfCustodyStation.Instance;
@@ -177,6 +221,18 @@ namespace Cyverse.Testing
             GameObject actor = null)
         {
             if (console == null) yield break;
+
+            // The first E at the desk docks the evidence device and starts the
+            // upload; the case loop below then opens the terminal as usual.
+            PlugInStation upload = PlugInStation.Instance;
+            if (upload != null && !upload.UploadStarted)
+            {
+                if (!GameplayActions.TryApply(console, GameplayAction.Interact(), actor)) yield break;
+                // Let the docking/imaging beat play, as a player would see it.
+                float deadline = Time.realtimeSinceStartup + 8f;
+                while (!upload.UploadComplete && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+            }
 
             int caseGuard = 0;
             while (!console.AllComplete && caseGuard++ < 8)

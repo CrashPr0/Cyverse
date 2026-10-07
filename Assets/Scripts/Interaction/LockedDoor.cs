@@ -32,6 +32,10 @@ namespace Cyverse.Interaction
             NormalizeGeometry();
         }
 
+        // Start, not Awake: Build() sets doorwayWidth after AddComponent. Saved
+        // visual-pass scenes predate the floor track, so it is added here too.
+        void Start() => EnsureThreshold();
+
         void OnValidate()
         {
             ResolveReferences();
@@ -93,11 +97,16 @@ namespace Cyverse.Interaction
         {
             if (panelCollider != null) panelCollider.enabled = false;
 
+            // Sink by the panel's full height plus a margin so its top ends
+            // below the floor. The old fixed 3.2 m drop left the top 0.7 m of a
+            // 3.8 m panel glowing across the open doorway.
             Vector3 start = panel.localPosition;
-            Vector3 end = start + Vector3.down * 3.2f; // sink into the floor
+            float panelTop = start.y + panel.localScale.y * 0.5f;
+            Vector3 end = start + Vector3.down * (panelTop + SunkenClearance);
             if (Settings.AccessibilitySettings.ReduceMotion)
             {
                 panel.localPosition = end;
+                HidePanel();
                 yield break;
             }
 
@@ -109,6 +118,42 @@ namespace Cyverse.Interaction
                 yield return null;
             }
             panel.localPosition = end;
+            HidePanel();
+        }
+
+        private const float SunkenClearance = 0.06f;
+
+        /// <summary>Fully sunk, the panel is pure overdraw under the floor; turn
+        /// its renderers off so no camera angle can catch it.</summary>
+        private void HidePanel()
+        {
+            foreach (Renderer r in panel.GetComponentsInChildren<Renderer>()) r.enabled = false;
+        }
+
+        /// <summary>A flush floor track the panel drops into, so it visibly
+        /// enters a slot instead of clipping through solid floor tiles.</summary>
+        private void EnsureThreshold()
+        {
+            if (transform.Find("Threshold") != null) return;
+            float width = Mathf.Max(1.5f, doorwayWidth);
+            var plate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            plate.name = "Threshold";
+            plate.transform.SetParent(transform, false);
+            plate.transform.localPosition = new Vector3(0f, 0.006f, 0f);
+            plate.transform.localScale = new Vector3(width - 0.06f, 0.012f, 0.44f);
+            plate.GetComponent<Renderer>().sharedMaterial =
+                BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.14f), 0.6f, 0.7f);
+            BuildKit.StripCollider(plate);
+
+            var slot = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            slot.name = "Slot";
+            slot.transform.SetParent(plate.transform, false);
+            // Slightly taller than the plate so its top sits 1 mm above it.
+            slot.transform.localPosition = new Vector3(0f, 0.04f, 0f);
+            slot.transform.localScale = new Vector3((width - 0.16f) / (width - 0.06f), 1.08f, 0.24f / 0.44f);
+            slot.GetComponent<Renderer>().sharedMaterial =
+                BuildKit.MakeStandard(new Color(0.008f, 0.009f, 0.012f), 0.2f, 0.1f);
+            BuildKit.StripCollider(slot);
         }
 
         // ---- Construction ----------------------------------------------------
@@ -139,7 +184,15 @@ namespace Cyverse.Interaction
             panelGo.transform.SetParent(root.transform, false);
             panelGo.transform.localPosition = new Vector3(0f, 2f, 0f);
             panelGo.transform.localScale = new Vector3(width - 0.2f, 3.8f, 0.16f);
-            panelGo.GetComponent<Renderer>().sharedMaterial = BuildKit.MakeHologram(accent);
+            panelGo.GetComponent<Renderer>().sharedMaterial = BuildKit.MakeStandard(
+                new Color(0.035f, 0.05f, 0.075f), 0.62f, 0.32f);
+
+            // Keep the door physically legible while preserving the level's
+            // holographic language as a shallow luminous face. Parenting the
+            // face to the panel makes both pieces slide away together.
+            BuildKit.SpawnLocal(PrimitiveType.Quad, "PanelGlow", panelGo.transform,
+                new Vector3(0f, 0f, -0.51f), Vector3.zero, new Vector3(0.94f, 0.94f, 1f),
+                BuildKit.MakeHologram(accent), collider: false);
 
             var door = root.AddComponent<LockedDoor>();
             door.lockedMessage = lockedMessage;
@@ -147,6 +200,7 @@ namespace Cyverse.Interaction
             door.panel = panelGo.transform;
             door.panelCollider = panelGo.GetComponent<Collider>();
             door.NormalizeGeometry();
+            door.EnsureThreshold();
 
             var glow = new GameObject("DoorLight");
             glow.transform.SetParent(root.transform, false);

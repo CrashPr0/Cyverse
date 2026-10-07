@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Cyverse.Core;
@@ -23,6 +24,8 @@ namespace Cyverse.UI
 
         private const int BaseCaptionSize = 28;
         private const int BaseObjectiveSize = 24;
+        private const float ToastTopOffset = -118f;
+        private const float ToastRowGap = 6f;
 
         // Captions / objective
         private GameObject captionPanel;
@@ -51,6 +54,7 @@ namespace Cyverse.UI
         private float scorePop = 1f;
         private float objectivePop = 1f;
         private float objectiveHighlight;
+        private readonly List<Text> activeToasts = new List<Text>();
 
         private static readonly Color ObjectiveBackground = new Color(0.018f, 0.035f, 0.06f, 0.90f);
         private static readonly Color ObjectiveHighlight = new Color(0.16f, 0.11f, 0.025f, 0.96f);
@@ -318,6 +322,7 @@ namespace Cyverse.UI
         /// and "glossary entries unlocked" — fades after a beat.</summary>
         public void ShowToast(string message, Color color)
         {
+            CompactToastRows();
             var t = CreateText("Toast", Canvas.transform, 26, TextAnchor.UpperCenter);
             t.fontStyle = FontStyle.Bold;
             t.color = color;
@@ -327,9 +332,24 @@ namespace Cyverse.UI
             rt.anchorMin = new Vector2(0.5f, 1f);
             rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.anchoredPosition = new Vector2(0, -66);
-            rt.sizeDelta = new Vector2(700, 40);
+            rt.sizeDelta = new Vector2(960f, 40f);
+            rt.sizeDelta = new Vector2(960f,
+                Mathf.Clamp(t.preferredHeight + 8f, 40f, 86f));
+            activeToasts.Add(t);
+            CompactToastRows();
             StartCoroutine(ToastRoutine(t, color));
+        }
+
+        private void CompactToastRows()
+        {
+            activeToasts.RemoveAll(toast => toast == null);
+            float y = ToastTopOffset;
+            for (int i = 0; i < activeToasts.Count; i++)
+            {
+                RectTransform rect = activeToasts[i].rectTransform;
+                rect.anchoredPosition = new Vector2(0, y);
+                y -= rect.sizeDelta.y + ToastRowGap;
+            }
         }
 
         private IEnumerator ToastRoutine(Text t, Color baseColor)
@@ -345,7 +365,9 @@ namespace Cyverse.UI
                 t.color = c;
                 yield return null;
             }
+            activeToasts.Remove(t);
             if (t != null) Destroy(t.gameObject);
+            CompactToastRows();
         }
 
         // ---- Construction ---------------------------------------------------

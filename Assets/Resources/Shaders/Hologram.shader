@@ -13,6 +13,9 @@ Shader "Cyverse/Hologram"
         _GridWidth ("Grid Line Width", Range(0, 0.2)) = 0.03
         _BarSpeed ("Scan Bar Speed", Float) = 0.5
         _BarSize ("Scan Bar Size", Range(0.005, 0.4)) = 0.06
+        _BarStrength ("Scan Bar Strength", Range(0, 1)) = 1
+        _GridStrength ("Grid Strength", Range(0, 1)) = 1
+        _ScanStrength ("Scanline Strength", Range(0, 1)) = 1
         _Alpha ("Base Alpha", Range(0,1)) = 0.35
     }
     SubShader
@@ -48,6 +51,7 @@ Shader "Cyverse/Hologram"
             fixed4 _Color;
             float _RimPower, _ScanSpeed, _ScanDensity;
             float _GridDensity, _GridWidth, _BarSpeed, _BarSize, _Alpha;
+            float _BarStrength, _GridStrength, _ScanStrength;
             float _CyMotion; // global: 1 = animate, 0 = Reduce Motion
 
             v2f vert (appdata v)
@@ -68,14 +72,14 @@ Shader "Cyverse/Hologram"
 
                 // procedural grid
                 float2 g = abs(frac(i.uv * _GridDensity) - 0.5);
-                float grid = 1.0 - smoothstep(0.0, _GridWidth, min(g.x, g.y));
+                float grid = (1.0 - smoothstep(0.0, _GridWidth, min(g.x, g.y))) * _GridStrength;
 
                 // fine horizontal scanlines
-                float scan = 0.5 + 0.5 * sin(i.uv.y * _ScanDensity - _Time.y * _ScanSpeed * _CyMotion);
+                float scan = (0.5 + 0.5 * sin(i.uv.y * _ScanDensity - _Time.y * _ScanSpeed * _CyMotion)) * _ScanStrength;
 
                 // a bright bar sweeping upward
                 float barPos = frac(_Time.y * _BarSpeed * _CyMotion);
-                float bar = smoothstep(_BarSize, 0.0, abs(i.uv.y - barPos));
+                float bar = smoothstep(_BarSize, 0.0, abs(i.uv.y - barPos)) * _BarStrength;
 
                 float flicker = 0.92 + 0.08 * sin(_Time.y * 40.0 * _CyMotion);
 

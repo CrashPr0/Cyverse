@@ -193,6 +193,19 @@ namespace Cyverse.Forensics
         {
             new VideoStation.Slide("DIGITAL FORENSICS",
                 "A phishing campaign hit CyVerse this morning. Your job: work the logs, follow the trail, and find the attacker's infrastructure. Analysts don't scroll — they QUERY.", 10f),
+            // Chain-of-custody explainer (placeholder for a recorded video). The
+            // custody form shows up twice on purpose: once in the SOC, again at
+            // evidence intake here, because every handoff needs its own entry.
+            new VideoStation.Slide("CHAIN OF CUSTODY",
+                "Evidence only counts if you can prove it never changed. A chain-of-custody record tracks every transfer: WHO handed it over, WHO received it, WHAT it is, WHEN, WHERE, and WHY.", 12f),
+            new VideoStation.Slide("EVERY HANDOFF, EVERY TIME",
+                "The device just moved from the SOC to Digital Forensics, so it needs a NEW entry. Even inside one department, every handoff is logged and signed. That is why you see this form twice, on purpose.", 12f),
+            new VideoStation.Slide("SEAL IT. SIGN IT. LOG IT.",
+                "Evidence goes in sealed, tamper-evident packaging with a label. Sender and receiver both sign, with the date and time, at every transfer. A broken seal or missing signature raises doubt.", 11f),
+            new VideoStation.Slide("HASH VALUES",
+                "A hash (like SHA-256) is a fingerprint of a disk image. Take it at collection and again on receipt. If the two match, the image was not altered. Change even one bit and the hash changes completely.", 12f),
+            new VideoStation.Slide("WHEN THE CHAIN BREAKS",
+                "A gap in the record or a missing signature lets the other side ask: who had it, and what did they do? Evidence can be challenged or ruled inadmissible in court, even if it is real.", 12f),
             new VideoStation.Slide("TABLES",
                 "Start by validating EvidenceManifest — the disk image and custody record received from the SOC. Then correlate Employees, Email, WebVisits, ProcessEvents, DnsLookups, LogonEvents, and FileAccess.", 11f),
             new VideoStation.Slide("FILTERING",

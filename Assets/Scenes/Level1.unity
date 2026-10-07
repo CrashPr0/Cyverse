@@ -24110,6 +24110,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   faceRange: 8
   turnSpeed: 3
+  dialogueProfile: 0
   displayName: SOC Lead
 --- !u!136 &1396702698
 CapsuleCollider:

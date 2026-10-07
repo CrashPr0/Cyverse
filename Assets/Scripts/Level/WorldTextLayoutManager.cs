@@ -114,9 +114,11 @@ namespace Cyverse.Level
                 entries.RemoveAt(i);
             }
 
+            // Mirror-room copies behind the evidence locker are scenery seen through
+            // a window; laying them out would push real signs around.
             foreach (TextMesh text in FindObjectsOfType<TextMesh>(true))
             {
-                if (!text.gameObject.scene.IsValid()) continue;
+                if (!text.gameObject.scene.IsValid() || LockerSightline.IsReplica(text.transform)) continue;
                 Renderer renderer = text.GetComponent<Renderer>();
                 if (renderer == null) continue;
                 renderer.sharedMaterial = BuildKit.TextMaterial();
@@ -125,7 +127,7 @@ namespace Cyverse.Level
 
             foreach (TextMeshPro text in FindObjectsOfType<TextMeshPro>(true))
             {
-                if (!text.gameObject.scene.IsValid()) continue;
+                if (!text.gameObject.scene.IsValid() || LockerSightline.IsReplica(text.transform)) continue;
                 NormalizeTmpMaterial(text);
                 Renderer renderer = text.GetComponent<Renderer>();
                 if (renderer != null) Register(text, renderer);

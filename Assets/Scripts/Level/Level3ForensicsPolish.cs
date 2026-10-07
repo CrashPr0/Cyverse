@@ -17,6 +17,15 @@ namespace Cyverse.Level
     {
         private const string RootName = "FORENSICS_LAB_POLISH";
 
+        // Floor dressing is inlaid, not stacked: zone pads 4-12 mm proud (no
+        // visible side faces, clear of the floor's depth), rails/paths just
+        // above them. The old 3.5 cm slabs floated 9 mm off the floor and the
+        // rails stood 6 cm tall, which read as debris on the grid.
+        private const float PadY = 0.008f;
+        private const float PadHeight = 0.008f;
+        private const float InlayY = 0.0145f;
+        private const float InlayHeight = 0.005f;
+
         private Material panelMaterial;
         private Material furnitureMaterial;
         private Material floorMaterial;
@@ -37,6 +46,9 @@ namespace Cyverse.Level
             if (applied) return;
             applied = true;
             ApplyAtmosphere();
+            BuildKit.ToneGridFloor(
+                new Color(0.020f, 0.035f, 0.028f),
+                new Color(0.08f, 0.38f, 0.20f));
             ToneFixtures();
             BuildLab();
             BindProgress();
@@ -121,40 +133,45 @@ namespace Cyverse.Level
 
         private void BuildAnalysisZone(Transform root)
         {
-            SpawnCube("DF_AnalysisPad", root, new Vector3(0f, 0.026f, 10f),
-                new Vector3(7.4f, 0.035f, 6.2f), FloorMaterial());
-            SpawnCube("DF_AnalysisRail_L", root, new Vector3(-3.66f, 0.052f, 10f),
-                new Vector3(0.04f, 0.022f, 6.0f), GreenMaterial());
-            SpawnCube("DF_AnalysisRail_R", root, new Vector3(3.66f, 0.052f, 10f),
-                new Vector3(0.04f, 0.022f, 6.0f), GreenMaterial());
+            SpawnCube("DF_AnalysisPad", root, new Vector3(0f, PadY, 10f),
+                new Vector3(7.4f, PadHeight, 6.2f), FloorMaterial());
+            SpawnCube("DF_AnalysisRail_L", root, new Vector3(-3.66f, InlayY, 10f),
+                new Vector3(0.04f, InlayHeight, 6.0f), GreenMaterial());
+            SpawnCube("DF_AnalysisRail_R", root, new Vector3(3.66f, InlayY, 10f),
+                new Vector3(0.04f, InlayHeight, 6.0f), GreenMaterial());
         }
 
         private void BuildAcquisitionZone(Transform root)
         {
-            SpawnCube("DF_AcquisitionPad", root, new Vector3(-11.5f, 0.026f, 8f),
-                new Vector3(5.2f, 0.035f, 4.6f), FloorMaterial());
+            SpawnCube("DF_AcquisitionPad", root, new Vector3(-11.5f, PadY, 8f),
+                new Vector3(5.2f, PadHeight, 4.6f), FloorMaterial());
 
             string evidenceText = SocProgress.TryGetEvidence(out var evidence)
-                ? $"{evidence.computer} DISK IMAGE\nCUSTODY FORM REQUIRED"
-                : "01  ACQUISITION\nTRAINING IMAGE  ·  NO CAMPAIGN HANDOFF";
-            intakeStatus = CreateWorldText(root, "DF_IntakeStatus", new Vector3(-11.5f, 1.55f, 7.28f),
-                evidenceText, new Color(0.78f, 0.92f, 1f), 0.040f, 48f, 27f);
+                ? $"{evidence.computer} IMAGE  ·  CUSTODY REQUIRED"
+                : "TRAINING IMAGE  ·  CUSTODY REQUIRED";
+            // Keep the evidence identity as a compact caption on the plinth's
+            // front face. Its old y=1.55 position sat directly in front of the
+            // new custody RT and painted a second set of words across it.
+            SpawnCube("DF_IntakeStatusPanel", root, new Vector3(-11.5f, 0.60f, 7.31f),
+                new Vector3(2.45f, 0.42f, 0.04f), PanelMaterial());
+            intakeStatus = CreateWorldText(root, "DF_IntakeStatus", new Vector3(-11.5f, 0.60f, 7.28f),
+                evidenceText, new Color(0.78f, 0.92f, 1f), 0.026f, 88f, 22f);
         }
 
         private void BuildEvidenceZone(Transform root)
         {
-            SpawnCube("DF_EvidencePad", root, new Vector3(-8f, 0.025f, 15f),
-                new Vector3(6.2f, 0.034f, 4.2f), FloorMaterial());
-            SpawnCube("DF_EvidenceRail", root, new Vector3(-8f, 0.052f, 12.92f),
-                new Vector3(5.6f, 0.022f, 0.045f), GoldMaterial());
+            SpawnCube("DF_EvidencePad", root, new Vector3(-8f, PadY, 15f),
+                new Vector3(6.2f, PadHeight, 4.2f), FloorMaterial());
+            SpawnCube("DF_EvidenceRail", root, new Vector3(-8f, InlayY, 12.92f),
+                new Vector3(5.6f, InlayHeight, 0.045f), GoldMaterial());
             CreateWorldText(root, "DF_CorrelationLabel", new Vector3(-8f, 3.55f, 14.82f),
                 "03  CORRELATE FINDINGS", new Color(0.92f, 0.72f, 0.30f), 0.045f, 52f, 28f);
         }
 
         private void BuildReportingZone(Transform root)
         {
-            SpawnCube("DF_ReportingPad", root, new Vector3(9.2f, 0.026f, 10.5f),
-                new Vector3(5.4f, 0.035f, 5.0f), FloorMaterial());
+            SpawnCube("DF_ReportingPad", root, new Vector3(9.2f, PadY, 10.5f),
+                new Vector3(5.4f, PadHeight, 5.0f), FloorMaterial());
             // Create this primitive with its collider intact. SpawnCube strips
             // colliders with deferred Destroy during play mode, so immediately
             // reusing that component as an aim trigger would lose it at the end
@@ -166,51 +183,28 @@ namespace Cyverse.Level
             reportDesk.AddComponent<ForensicsReportStation>();
             SpawnCube("DF_ReportMonitor", root, new Vector3(9.2f, 1.52f, 11.15f),
                 new Vector3(2.7f, 1.25f, 0.08f), PanelMaterial());
-            // The report monitor's screen is now a live DIEGETIC surface instead
-            // of a static emissive cube: the RIGHT "plug-in / upload" station
-            // paints its UPLOADING readout onto this RenderTexture screen. Same
-            // pose/size as the old DF_ReportScreen cube; identity rotation faces
-            // the -Z approach (Quad renders on its local -Z face).
-            DiegeticScreen reportScreen = DiegeticScreen.Create(
-                new Vector3(9.2f, 1.52f, 11.09f), 0f, new Vector2(2.45f, 1.04f),
-                name: "DF_ReportScreen");
-            reportScreen.transform.SetParent(root, true);
-            // The plug-in station: builds the phone prop + dock slot on this desk
-            // and drives the docking->upload animation off custody-completed. The
-            // report-submission flow on DF_ReportDesk is untouched.
-            GameObject plugInHost = new GameObject("DF_PlugInStation");
-            plugInHost.transform.SetParent(root, false);
-            plugInHost.transform.position = Vector3.zero;
-            PlugInStation plugIn = plugInHost.AddComponent<PlugInStation>();
-            // Desk top surface: DF_ReportDesk centered (9.2,0.5,11) with y-scale
-            // 1.0, so its top is y=1.0.
-            plugIn.Configure(new Vector3(9.2f, 1.0f, 11f), reportScreen);
+            SpawnCube("DF_ReportScreen", root, new Vector3(9.2f, 1.52f, 11.09f),
+                new Vector3(2.45f, 1.04f, 0.025f), BuildKit.MakeEmissive(new Color(0.04f, 0.18f, 0.11f), 0.72f));
             SpawnCube("DF_ReportHeaderPanel", root, new Vector3(9.2f, 2.38f, 11.10f),
                 new Vector3(3.35f, 0.50f, 0.04f), PanelMaterial());
             CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.38f, 11.02f),
                 "04  FORENSIC REPORT", new Color(0.72f, 1f, 0.82f), 0.045f, 52f, 28f);
-            // The live case/report readout must NOT sit on the diegetic upload
-            // screen. DF_ReportScreen is a 2.45x1.04 m RT quad at (9.2,1.52,11.09)
-            // spanning y ~1.0..2.04; the old DF_ReportStatus at (9.2,1.53,11.00)
-            // was drawn on the viewer side of it and bled its "CASEWORK / REPORT
-            // LOCKED" text through the "UPLOAD COMPLETE" progress readout. Mount
-            // it low on the desk FRONT face instead (desk centred (9.2,0.5,11),
-            // top y=1.0, front face z~=10.375), well clear of the screen below
-            // its bottom edge, on its own quiet caption panel.
-            SpawnCube("DF_ReportStatusPanel", root, new Vector3(9.2f, 0.60f, 10.38f),
-                new Vector3(2.6f, 0.46f, 0.04f), PanelMaterial());
-            reportStatus = CreateWorldText(root, "DF_ReportStatus", new Vector3(9.2f, 0.60f, 10.36f),
-                "CASEWORK  0 / 14\nREPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.032f, 40f, 22f);
+            // Evidence acquisition now happens at the Investigation Desk, so the
+            // report monitor is free to carry the casework status again. 1.75 cm
+            // proud of the screen face (z 11.0775) to stay out of its depth.
+            reportStatus = CreateWorldText(root, "DF_ReportStatus", new Vector3(9.2f, 1.52f, 11.06f),
+                "CASEWORK  0 / 14  ·  REPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.040f, 58f, 30f);
         }
 
         private void BuildWorkflowPath(Transform root)
         {
-            SpawnBeam("DF_Path_AcquireToAnalyze", root, new Vector3(-9.3f, 0.055f, 8f),
-                new Vector3(-3.8f, 0.055f, 9.2f), GreenMaterial());
-            SpawnBeam("DF_Path_AnalyzeToEvidence", root, new Vector3(-2.4f, 0.055f, 12.5f),
-                new Vector3(-5.4f, 0.055f, 13.8f), GoldMaterial());
-            SpawnBeam("DF_Path_EvidenceToReport", root, new Vector3(-4.9f, 0.055f, 15f),
-                new Vector3(6.5f, 0.055f, 11.8f), GreenMaterial());
+            // z = 7, not 8: the shared furnishing planter stands at (-8, 8).
+            SpawnOrthogonalPath("DF_Path_AcquireToAnalyze", root, new Vector3(-9.3f, InlayY, 7f),
+                new Vector3(-3.8f, InlayY, 9.2f), GreenMaterial());
+            SpawnOrthogonalPath("DF_Path_AnalyzeToEvidence", root, new Vector3(-2.4f, InlayY, 12.5f),
+                new Vector3(-5.4f, InlayY, 13.8f), GoldMaterial());
+            SpawnOrthogonalPath("DF_Path_EvidenceToReport", root, new Vector3(-4.9f, InlayY, 15f),
+                new Vector3(6.5f, InlayY, 11.8f), GreenMaterial());
         }
 
         private void BuildFillLights(Transform root)
@@ -229,7 +223,13 @@ namespace Cyverse.Level
             if (found == null) return;
             SetMaterial(found.transform.Find("Desk"), FurnitureMaterial());
             foreach (Renderer renderer in found.GetComponentsInChildren<Renderer>(true))
-                if (renderer.name.StartsWith("MonBody_")) renderer.sharedMaterial = PanelMaterial();
+                if (renderer.name.StartsWith("MonBody_") || renderer.name.StartsWith("MonArm_"))
+                    renderer.sharedMaterial = PanelMaterial();
+
+            // Evidence acquisition is the step right after custody, so it lives
+            // on this desk: cradle + write blocker under the LEFT monitor, which
+            // becomes the imaging readout.
+            PlugInStation.Build(found);
 
             // The generated floating title sat directly on the room's neon
             // wall rail. Mount it to a quiet panel above the console so the
@@ -302,8 +302,8 @@ namespace Cyverse.Level
             string source = SocProgress.TryGetEvidence(out var evidence) ? evidence.computer : "TRAINING IMAGE";
             bool complete = custodyForm != null && custodyForm.IsComplete;
             intakeStatus.text = complete
-                ? $"{source} DISK IMAGE\nCUSTODY ACCEPTED  [OK]"
-                : $"{source} DISK IMAGE\nCUSTODY FORM  {custodyForm?.SelectedCount ?? 0} / {custodyForm?.FieldCount ?? 4}";
+                ? $"{source} IMAGE  ·  CUSTODY ACCEPTED  [OK]"
+                : $"{source} IMAGE  ·  CUSTODY  {custodyForm?.SelectedCount ?? 0} / {custodyForm?.FieldCount ?? 4}";
             intakeStatus.color = complete ? new Color(0.35f, 1f, 0.55f) : new Color(0.78f, 0.92f, 1f);
         }
 
@@ -316,10 +316,10 @@ namespace Cyverse.Level
             bool submitted = Level3ForensicsManager.Instance != null &&
                 Level3ForensicsManager.Instance.ReportSubmitted;
             reportStatus.text = submitted
-                ? $"CASEWORK  {total} / {total}\nREPORT SUBMITTED  [OK]"
+                ? $"CASEWORK  {total} / {total}  ·  REPORT SUBMITTED  [OK]"
                 : ready
-                    ? $"CASEWORK  {total} / {total}\nREPORT READY — PRESS E"
-                : $"CASEWORK  {done} / {total}\nREPORT LOCKED — ANALYSIS IN PROGRESS";
+                    ? $"CASEWORK  {total} / {total}  ·  PRESS E TO SUBMIT"
+                    : $"CASEWORK  {done} / {total}  ·  REPORT LOCKED";
             reportStatus.color = ready ? new Color(0.35f, 1f, 0.55f) : new Color(0.82f, 0.92f, 1f);
         }
 
@@ -342,8 +342,19 @@ namespace Cyverse.Level
         {
             Vector3 delta = to - from;
             GameObject beam = SpawnCube(name, root, (from + to) * 0.5f,
-                new Vector3(0.05f, 0.020f, delta.magnitude), material);
+                new Vector3(0.05f, InlayHeight, delta.magnitude), material);
             beam.transform.rotation = Quaternion.LookRotation(delta.normalized, Vector3.up);
+        }
+
+        private static void SpawnOrthogonalPath(string name, Transform root,
+            Vector3 from, Vector3 to, Material material)
+        {
+            // Route along the room's X/Z grid instead of drawing a direct
+            // diagonal across it. The right-angle turn reads as intentional
+            // wayfinding and no longer creates malformed-looking crossings.
+            Vector3 corner = new Vector3(to.x, from.y, from.z);
+            SpawnBeam(name + "_X", root, from, corner, material);
+            SpawnBeam(name + "_Z", root, corner, to, material);
         }
 
         private static GameObject SpawnCube(string name, Transform root, Vector3 position,
@@ -400,24 +411,38 @@ namespace Cyverse.Level
             return furnitureMaterial;
         }
 
+        /// <summary>Zone inlays reuse the floor's world-space grid so lines run
+        /// unbroken through each station zone; a lifted base and brighter lines
+        /// mark the zone instead of a dark slab that blanked the grid.</summary>
         private Material FloorMaterial()
         {
-            if (floorMaterial == null)
-                floorMaterial = BuildKit.MakeStandard(new Color(0.022f, 0.046f, 0.038f), 0.40f, 0.34f);
+            if (floorMaterial != null) return floorMaterial;
+            floorMaterial = BuildKit.MakeGridFloor(new Color(0.12f, 0.52f, 0.28f), new Color(0.034f, 0.062f, 0.048f));
+            if (floorMaterial.shader != null && floorMaterial.shader.name == "Cyverse/GridFloor")
+            {
+                floorMaterial.SetFloat("_GridScale", 4f);
+                floorMaterial.SetFloat("_LineWidth", 0.012f);
+                floorMaterial.SetFloat("_MinorEmission", 0.08f);
+                floorMaterial.SetFloat("_Emission", 0.5f);
+                floorMaterial.SetFloat("_PulseStrength", 0f);
+                floorMaterial.SetFloat("_FadeDistance", 26f);
+                floorMaterial.SetFloat("_Smoothness", 0.5f);
+                floorMaterial.SetFloat("_Metallic", 0.12f);
+            }
             return floorMaterial;
         }
 
         private Material GreenMaterial()
         {
             if (greenMaterial == null)
-                greenMaterial = BuildKit.MakeEmissive(new Color(0.24f, 0.92f, 0.50f), 1.18f);
+                greenMaterial = BuildKit.MakeEmissive(new Color(0.24f, 0.92f, 0.50f), 0.85f);
             return greenMaterial;
         }
 
         private Material GoldMaterial()
         {
             if (goldMaterial == null)
-                goldMaterial = BuildKit.MakeEmissive(new Color(0.90f, 0.64f, 0.22f), 1.08f);
+                goldMaterial = BuildKit.MakeEmissive(new Color(0.90f, 0.64f, 0.22f), 0.8f);
             return goldMaterial;
         }
     }

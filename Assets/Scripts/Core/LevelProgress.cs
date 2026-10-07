@@ -19,6 +19,9 @@ namespace Cyverse.Core
         {
             PlayerPrefs.SetInt(Key(level), 1);
             PlayerPrefs.Save();
+            // cv_done_N never resets, so the roster needs its own signal that
+            // a playthrough just ended (see ScenarioRoster.FinishedKey).
+            Cyverse.Level.ScenarioRoster.NotifyLevelCompleted(level);
         }
 
         public static bool IsUnlocked(int level)

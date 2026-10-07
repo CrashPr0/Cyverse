@@ -62,7 +62,7 @@ namespace Cyverse.UI
                 if (t.done)
                     sb.Append($"<color=#4CE087>  [x]  {t.label}</color>\n");
                 else if (t.current)
-                    sb.Append($"<color=#E5A823>  &gt;  <b>{t.label}</b></color>\n");
+                    sb.Append($"<color=#E5A823>  >  <b>{t.label}</b></color>\n");
                 else
                     sb.Append($"<color=#7E93A6>  [ ]  {t.label}</color>\n");
             }

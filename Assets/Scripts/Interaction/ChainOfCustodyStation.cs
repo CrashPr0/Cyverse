@@ -1,4 +1,5 @@
 using UnityEngine;
+using Cyverse.Audio;
 using Cyverse.Forensics;
 using Cyverse.Level;
 using Cyverse.UI;
@@ -12,7 +13,9 @@ namespace Cyverse.Interaction
 
         public bool IsComplete => ChainOfCustodyForm.Instance != null && ChainOfCustodyForm.Instance.IsComplete;
         public bool CanInteract => true;
-        public string Prompt => IsComplete ? "Review chain-of-custody record" : "Complete chain-of-custody form";
+        public string Prompt => !EvidenceLocker.DeviceReadyForIntake
+            ? "Evidence Intake — retrieve the device from the locker first"
+            : IsComplete ? "Review chain-of-custody record" : "Complete chain-of-custody form";
 
         private void Awake()
         {
@@ -27,6 +30,18 @@ namespace Cyverse.Interaction
 
         public void Interact(GameObject interactor)
         {
+            // Intake logs the physical device, so it has to be in hand first. The locker
+            // always holds one (a training unit when nothing came from the SOC), so this
+            // gate cannot strand anyone.
+            if (!EvidenceLocker.DeviceReadyForIntake)
+            {
+                if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast(
+                        "Retrieve the device from the evidence locker first — it is on the south wall by the entrance.",
+                        new Color(1f, 0.55f, 0.4f));
+                return;
+            }
             if (ChainOfCustodyForm.Instance == null)
             {
                 if (HudUI.Instance != null)
@@ -66,10 +81,14 @@ namespace Cyverse.Interaction
             // HUD modal; this screen mirrors its live state. Placed in WORLD
             // space (DiegeticScreen.Create takes a world pos), so derive it from
             // the station root's transform in case the station is ever yawed.
-            Vector3 screenWorldPos = root.transform.TransformPoint(new Vector3(-0.35f, 1.75f, 0.55f));
+            // Fit the live panel between the plinth top and the mounted station
+            // heading. The former portrait panel extended behind that heading,
+            // which hid its header and first progress row from the approach.
+            Vector3 screenWorldPos = root.transform.TransformPoint(new Vector3(-0.35f, 1.45f, 0.55f));
             float screenYaw = root.transform.eulerAngles.y;
             DiegeticScreen custodyScreen = DiegeticScreen.Create(
-                screenWorldPos, screenYaw, new Vector2(0.9f, 1.2f),
+                screenWorldPos, screenYaw, new Vector2(1.2f, 0.9f),
+                rtWidth: 384, rtHeight: 288,
                 name: "CustodyReadoutScreen");
             custodyScreen.transform.SetParent(root.transform, worldPositionStays: true);
             DiegeticCustodyReadout readout = DiegeticCustodyReadout.Attach(custodyScreen);

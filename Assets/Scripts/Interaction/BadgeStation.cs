@@ -52,6 +52,8 @@ namespace Cyverse.Interaction
                 Transform panel = transform.Find("PanelScreen");
                 if (panel != null) scanBar = panel.Find("ScanBar");
             }
+            if (scanBar != null && !scanning)
+                scanBar.gameObject.SetActive(false);
             if (screenText == null)
             {
                 Transform label = transform.Find("Label_ENROLL\n[E]");
@@ -81,6 +83,8 @@ namespace Cyverse.Interaction
             // Scan bar sweeps the panel twice (snaps under Reduce Motion).
             if (scanBar != null && !AccessibilitySettings.ReduceMotion)
             {
+                scanBar.gameObject.SetActive(true);
+                scanBar.localPosition = new Vector3(0f, -0.38f, -0.03f);
                 for (float t = 0f; t < 1.6f; t += Time.deltaTime)
                 {
                     float y = Mathf.PingPong(t * 1.25f, 1f);

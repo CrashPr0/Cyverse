@@ -233,14 +233,18 @@ namespace Cyverse.Interaction
                     WorldTextLayoutIntent.Mode.Mounted, 200);
                 SignFX titleMotion = title.GetComponent<SignFX>();
                 if (titleMotion != null) titleMotion.enabled = false;
-                title.localPosition = new Vector3(0f, 3.1f, 0f);
+                TextMesh titleText = title.GetComponent<TextMesh>();
+                if (titleText != null) titleText.characterSize = 0.040f;
+                title.localPosition = new Vector3(0f, 3.75f, 0f);
                 title.localRotation = Quaternion.identity;
             }
 
             TextMesh instruction = null;
             foreach (TextMesh label in GetComponentsInChildren<TextMesh>(true))
             {
-                if (!label.text.Contains("response steps") && label.gameObject.name != "PlaybookInstruction")
+                if (!label.text.Contains("response steps") &&
+                    !label.text.Contains("TAKE A CARD") &&
+                    label.gameObject.name != "PlaybookInstruction")
                     continue;
                 instruction = label;
                 break;
@@ -248,20 +252,33 @@ namespace Cyverse.Interaction
             if (instruction != null)
             {
                 instruction.gameObject.name = "PlaybookInstruction";
-                instruction.text = "TAKE A CARD FROM THE RACK, THEN PLACE IT ON THE NEXT NUMBERED SLOT";
-                instruction.characterSize = 0.017f;
-                instruction.transform.localPosition = new Vector3(0f, 2.5f, 0.3f);
+                instruction.text = "TAKE A CARD FROM THE RACK\nPLACE IT ON THE NEXT NUMBERED SLOT";
+                instruction.characterSize = 0.032f;
+                instruction.transform.localPosition = new Vector3(0f, 2.98f, 0.3f);
                 Billboard billboard = instruction.GetComponent<Billboard>();
                 if (billboard != null) billboard.enabled = false;
             }
 
-            if (transform.Find("PlaybookSequenceGuide") == null)
+            Transform guideTransform = transform.Find("PlaybookSequenceGuide");
+            TextMesh guide;
+            if (guideTransform == null)
             {
-                var guide = BuildKit.MakeLabel(transform, new Vector3(0f, 2.18f, 0.3f),
+                guide = BuildKit.MakeLabel(transform, new Vector3(0f, 2.45f, 0.3f),
                     "1  PREPARATION   >   2  DETECTION   >   3  CONTAINMENT\n" +
                     "4  ERADICATION   >   5  RECOVERY   >   6  LESSONS LEARNED",
-                    new Color(0.90f, 0.95f, 1f), 0.015f, billboard: false);
+                    new Color(0.90f, 0.95f, 1f), 0.024f, billboard: false);
                 guide.gameObject.name = "PlaybookSequenceGuide";
+            }
+            else
+            {
+                guide = guideTransform.GetComponent<TextMesh>();
+                if (guide != null)
+                {
+                    guide.characterSize = 0.024f;
+                    guide.transform.localPosition = new Vector3(0f, 2.45f, 0.3f);
+                    Billboard billboard = guide.GetComponent<Billboard>();
+                    if (billboard != null) billboard.enabled = false;
+                }
             }
 
             var zones = new System.Collections.Generic.List<DropZone>();

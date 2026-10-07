@@ -23,6 +23,11 @@ namespace Cyverse.Level
                 "Endpoint Detection & Response watches what actually RUNS on machines. Malware hides behind normal-looking names — a PDF that's really an .exe, PowerShell running encoded commands. Find it, then isolate the endpoint.", 11f),
             new VideoStation.Slide("INCIDENT RESPONSE",
                 "When something is real, you follow the playbook in ORDER: Preparation, Detection & Analysis, Containment, Eradication, Recovery, and Post-Incident review. Skipping steps destroys evidence or reinfects the network.", 12f),
+            // Text-only intro to the chain-of-custody record the player confirms at
+            // the end of the SIEM task. Digital Forensics repeats the form on
+            // purpose (and explains why), so keep this one brief.
+            new VideoStation.Slide("EVIDENCE & CUSTODY",
+                "When an alert is real, the machine becomes evidence. A chain-of-custody form logs WHO collected it, WHEN, and WHERE it goes next. Log every handoff, even inside one department, or it may not hold up in court.", 11f),
         };
 
         // ---- Task 1: SIEM alert queue ----------------------------------------

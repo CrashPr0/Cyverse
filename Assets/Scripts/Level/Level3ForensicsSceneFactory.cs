@@ -29,6 +29,10 @@ namespace Cyverse.Level
             BuildTaskRoom();
             var player = BuildKit.BuildPlayer();
             player.transform.position = new Vector3(0f, 2f, -16f);
+            // Arrive facing the evidence locker in the wall just come through: it is
+            // the first thing to do here.
+            player.transform.rotation = Quaternion.LookRotation(
+                new Vector3(LockerX, 0f, -19.5f - (-16f)));
             BuildSystems();
         }
 
@@ -64,6 +68,22 @@ namespace Cyverse.Level
             var spawnExit = HubDoor.Build(new Vector3(4f, 0f, -19.2f), 180f, "Return to Hub",
                 "Hub", 0, new Color(0.90f, 0.66f, 0.14f), HubDoor.Mode.Manual);
             spawnExit.SetUnlocked(true);
+
+            BuildEvidenceLocker();
+        }
+
+        /// <summary>Same x as the SOC copy on Level 2's north wall (east of the Hub
+        /// door, clear of the x=8 column and the south-wall locker banks at x -7..-2.7).</summary>
+        public const float LockerX = 6.85f;
+
+        /// <summary>The Forensics half of the two-way evidence locker, in the south wall
+        /// the player arrives through. Idempotent.</summary>
+        public static EvidenceLocker BuildEvidenceLocker()
+        {
+            EvidenceLocker existing = Object.FindObjectOfType<EvidenceLocker>();
+            if (existing != null) return existing;
+            return EvidenceLocker.Build(new Vector3(LockerX, 0f, -19.48f), 180f,
+                EvidenceLocker.Side.Forensics);
         }
 
         public static void BuildTaskRoom()

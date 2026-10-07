@@ -466,7 +466,7 @@ namespace Cyverse.Forensics
             }
             if (SocProgress.TryGetEvidence(out var evidence))
             {
-                sb.Append("<color=#4CE087><b>SOC HANDOFF  ✓ VERIFIED</b></color>\n")
+                sb.Append("<color=#4CE087><b>SOC HANDOFF  [OK] VERIFIED</b></color>\n")
                   .Append($"<size=17>{Escape(evidence.computer)}  ·  {Escape(evidence.user)}\n")
                   .Append($"{Escape(evidence.alertTitle)}\n")
                   .Append("DISK IMAGE + CUSTODY RECORD</size>\n\n");
@@ -485,7 +485,7 @@ namespace Cyverse.Forensics
             }
             else
             {
-                sb.Append("<color=#E5A823><b>CASE CLOSED ✓</b></color>\n\n");
+                sb.Append("<color=#E5A823><b>CASE CLOSED [OK]</b></color>\n\n");
             }
             sb.Append("<color=#8FB8CC><size=18>");
             for (int i = 0; i < activeCase.questions.Length; i++)

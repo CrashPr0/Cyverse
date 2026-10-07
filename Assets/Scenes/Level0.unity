@@ -12094,6 +12094,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   faceRange: 8
   turnSpeed: 3
+  dialogueProfile: 0
   displayName: Security Guard
 --- !u!136 &660524245
 CapsuleCollider:

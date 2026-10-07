@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Dialogue;
 using Cyverse.Interaction;
@@ -38,6 +40,31 @@ namespace Cyverse.Level
                 "Identifiers distinguish you from every other user, but a claim alone proves nothing — that's the next step's job."),
         };
 
+        /// <summary>Recorded MFA explainer, played once as the player first
+        /// reaches the MFA Vault: it introduces exactly the three factors the
+        /// vault asks for. Captions match the audio word for word.</summary>
+        public static List<DialogueLine> MfaBriefing() => new List<DialogueLine>
+        {
+            new DialogueLine("MFA",
+                "Multi-factor authentication, also known as MFA, is a security method used to protect data, information, and systems from unauthorized access.",
+                Narration.Clip("mfa_01")),
+            new DialogueLine("MFA",
+                "Instead of relying on just one form of verification, MFA requires users to provide two or more factors to prove their identity. There are three primary factors of authentication.",
+                Narration.Clip("mfa_02")),
+            new DialogueLine("MFA",
+                "The first factor is something you know. This includes information such as a password, passphrase, or a personal identification number. It is the most common form of authentication. However, when used alone, it can be easily compromised.",
+                Narration.Clip("mfa_03")),
+            new DialogueLine("MFA",
+                "The second factor is something you have. This refers to a physical item or digital tool, such as a one-time authentication app, security token, or a one-time code sent via email or text message.",
+                Narration.Clip("mfa_04")),
+            new DialogueLine("MFA",
+                "The third factor is something you are. This includes biometric authentication, which relies on unique physical characteristics such as fingerprints, eye scans, facial recognition, or voice recognition.",
+                Narration.Clip("mfa_05")),
+            new DialogueLine("MFA",
+                "By combining multiple authentication factors, MFA significantly strengthens security and reduces the risk of unauthorized access.",
+                Narration.Clip("mfa_06")),
+        };
+
         public static List<DialogueLine> Authentication() => new List<DialogueLine>
         {
             new DialogueLine("Authentication",
@@ -60,9 +87,28 @@ namespace Cyverse.Level
 
         // ---- Task data (the gamified task room) -------------------------------
 
-        /// <summary>The MFA vault's "something you know". Posted on the memo
-        /// beside the terminal — passphrase-styled, SJSU flavoured.</summary>
-        public const string DailyPasscode = "SPARTAN-GOLD-1857";
+        /// <summary>The MFA vault's "something you know": a four-digit code
+        /// generated once per UTC day for the Spartan Authenticator phone.</summary>
+        private static string dailyPasscode;
+        private static DateTime dailyPasscodeDate;
+
+        public static string DailyPasscode
+        {
+            get
+            {
+                DateTime today = DateTime.UtcNow.Date;
+                if (dailyPasscode == null || dailyPasscodeDate != today)
+                {
+                    // A daily code should feel random while remaining stable
+                    // for every run of the same day's training scenario.
+                    int seed = today.Year * 10000 + today.Month * 100 + today.Day;
+                    var random = new Random(seed);
+                    dailyPasscode = random.Next(0, 10000).ToString("D4");
+                    dailyPasscodeDate = today;
+                }
+                return dailyPasscode;
+            }
+        }
 
         /// <summary>A data crate for the sorting task.</summary>
         public class CrateDef
@@ -94,32 +140,42 @@ namespace Cyverse.Level
             { this.lines = lines; this.anomaly = anomaly; this.hint = hint; this.why = why; }
         }
 
-        public static LogRound[] AuditRounds() => new[]
+        public static LogRound[] AuditRounds()
         {
-            new LogRound(new[]
+            // Carry the playthrough's roster identity into I/AM so the same
+            // person appears in the impossible-travel trail, SOC investigation,
+            // and downstream forensic evidence for the entire campaign. The
+            // other usernames here must stay OUTSIDE the roster pool
+            // (d.chen, k.ramos, j.okafor, n.singh) so a bystander can never
+            // share a name with the culprit.
+            string scenarioUser = ScenarioRoster.Current.socUser;
+            return new[]
             {
-                $"08:59  {PlayerIdentity.Callsign}  badge-in  ·  Lobby",
-                "09:04  k.ramos  view  ·  HR/records",
-                "09:17  sysadmin  patch  ·  server-03",
-                "03:12  guest-04  download  ·  PAYROLL/*",
-                "09:31  j.okafor  print  ·  Marketing/brief",
-                "09:45  k.ramos  badge-out  ·  Lobby",
-            }, 3,
-            "Look for an account acting far outside its role (and its hours).",
-            "A guest account bulk-downloading payroll at 3 AM — access beyond its role."),
+                new LogRound(new[]
+                {
+                    $"08:59  {PlayerIdentity.Callsign}  badge-in  ·  Lobby",
+                    "09:04  r.alvarez  view  ·  HR/records",
+                    "09:17  sysadmin  patch  ·  server-03",
+                    "03:12  guest-04  download  ·  PAYROLL/*",
+                    "09:31  t.nguyen  print  ·  Marketing/brief",
+                    "09:45  r.alvarez  badge-out  ·  Lobby",
+                }, 3,
+                "Look for an account acting far outside its role (and its hours).",
+                "A guest account bulk-downloading payroll at 3 AM — access beyond its role."),
 
-            new LogRound(new[]
-            {
-                "10:02  d.chen  login  ·  San José, US",
-                "10:06  d.chen  login  ·  Kyiv, UA",
-                "10:11  sysadmin  backup  ·  server-01",
-                "10:19  m.silva  view  ·  Sales/pipeline",
-                "10:24  intern-02  view  ·  Public/FAQ",
-                "10:30  d.chen  logout  ·  —",
-            }, 1,
-            "Check WHERE each login comes from — and how fast they'd have to travel.",
-            "The same account logged in from two countries four minutes apart — impossible travel."),
-        };
+                new LogRound(new[]
+                {
+                    $"10:02  {scenarioUser}  login  ·  San José, US",
+                    $"10:06  {scenarioUser}  login  ·  Kyiv, UA",
+                    "10:11  sysadmin  backup  ·  server-01",
+                    "10:19  m.silva  view  ·  Sales/pipeline",
+                    "10:24  intern-02  view  ·  Public/FAQ",
+                    $"10:30  {scenarioUser}  logout  ·  —",
+                }, 1,
+                "Check WHERE each login comes from — and how fast they'd have to travel.",
+                "The same account logged in from two countries four minutes apart — impossible travel."),
+            };
+        }
 
         /// <summary>The Certification Exam bank (the four knowledge checks,
         /// now asked together as the level's boss check).</summary>

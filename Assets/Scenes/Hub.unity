@@ -3400,7 +3400,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mode: 0
-  sceneName: Level1
+  sceneName: Level2_CyberDefense
   displayName: "Level 2 \u2014 Cyber Defense"
   levelIndex: 2
 --- !u!4 &251281838
@@ -18890,7 +18890,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mode: 0
-  sceneName: Level0 Visual Pass
+  sceneName: Level0
   displayName: Orientation (Demo)
   levelIndex: 0
 --- !u!4 &1249347461
@@ -26470,7 +26470,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mode: 0
-  sceneName: Level1_IAM_VisualPass
+  sceneName: Level1_IAM
   displayName: "Level 1 \u2014 I/AM"
   levelIndex: 1
 --- !u!4 &1785023807

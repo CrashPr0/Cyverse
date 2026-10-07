@@ -38,8 +38,9 @@ namespace Cyverse.Forensics
     /// facts are stable: prizes@spartan-rewards.com phishes 6 employees, 3
     /// click, one roster-selected employee runs the payload gold_claim.exe,
     /// and DNS shows the attacker's IP also hosts a second campaign domain
-    /// (gold-updates.net) — the final pivot. The selected identity is stable
-    /// for a run but rotates on the next application startup.
+    /// (gold-updates.net) — the final pivot. The selected identity comes from
+    /// ScenarioRoster: fixed for a whole playthrough (same person as Level 1
+    /// and the Level 2 SOC handoff), different on the next playthrough.
     /// Benign rows are realistic noise so filtering actually matters.
     /// </summary>
     public class LogDatabase

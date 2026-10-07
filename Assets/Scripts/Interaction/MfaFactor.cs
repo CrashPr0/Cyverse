@@ -33,14 +33,26 @@ namespace Cyverse.Interaction
 
         void Awake()
         {
-            if (kind == Kind.Knowledge)
-                BuildKit.AlignKioskScreen(transform, "ScreenBody", "Screen");
+            NormalizeScreen();
         }
 
-        void OnValidate()
+        void OnValidate() => NormalizeScreen();
+
+        private void NormalizeScreen()
         {
-            if (kind == Kind.Knowledge)
-                BuildKit.AlignKioskScreen(transform, "ScreenBody", "Screen");
+            if (kind != Kind.Knowledge) return;
+
+            Transform body = BuildKit.AlignKioskScreen(transform, "ScreenBody", "Screen");
+            Transform label = transform.Find("Label_PASSCODE");
+            if (label == null) return;
+
+            Billboard billboard = label.GetComponent<Billboard>();
+            if (billboard != null)
+            {
+                if (Application.isPlaying) Destroy(billboard);
+                else DestroyImmediate(billboard);
+            }
+            BuildKit.PlaceOnKioskScreen(label, body, Vector2.zero, 0.024f);
         }
 
         public void Interact(GameObject interactor)
@@ -114,7 +126,8 @@ namespace Cyverse.Interaction
                 BuildKit.SpawnLocal(PrimitiveType.Quad, "Screen", root.transform,
                     new Vector3(0f, 1.280f, -0.009f), new Vector3(35f, 0f, 0f), new Vector3(0.66f, 0.42f, 1f),
                     BuildKit.MakeHologram(accent), collider: false);
-                BuildKit.MakeLabel(root.transform, new Vector3(0f, 2.0f, 0f), "PASSCODE", accent, 0.026f, billboard: true);
+                BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.3f, -0.08f),
+                    "PASSCODE", new Color(0.95f, 0.98f, 1f), 0.026f);
             }
             else
             {
@@ -136,6 +149,7 @@ namespace Cyverse.Interaction
             var factor = root.AddComponent<MfaFactor>();
             factor.kind = kind;
             factor.gauntlet = gauntlet;
+            factor.NormalizeScreen();
 
             var glow = new GameObject("FactorLight");
             glow.transform.SetParent(root.transform, false);

@@ -89,9 +89,18 @@ namespace Cyverse.Interaction
 
         private bool CustodyReady => ChainOfCustodyForm.Instance == null || ChainOfCustodyForm.Instance.IsComplete;
 
+        private static bool AcquisitionPending =>
+            PlugInStation.Instance != null && !PlugInStation.Instance.UploadStarted;
+        private static bool AcquisitionRunning =>
+            PlugInStation.Instance != null && PlugInStation.Instance.UploadInProgress;
+
         public bool CanInteract => true;
         public string Prompt => !CustodyReady
             ? "Complete the chain-of-custody form first"
+            : AcquisitionPending
+                ? "Dock the evidence device — start the upload"
+            : AcquisitionRunning
+                ? "Imaging the evidence device — E to skip to the terminal"
             : AllComplete
                 ? "Review the case logs"
                 : $"Work {(ActiveCase != null ? ActiveCase.title : "the case")} — Forensic Terminal";
@@ -105,6 +114,12 @@ namespace Cyverse.Interaction
                         new Color(0.90f, 0.66f, 0.14f));
                 return;
             }
+            // First E after custody docks the device and starts the upload; the
+            // next E opens the terminal (finishing a running upload instantly,
+            // so it never blocks analysis).
+            PlugInStation upload = PlugInStation.Instance;
+            if (upload != null && upload.StartUpload()) return;
+            if (upload != null) upload.CompleteNow();
             if (QueryTerminal.Instance == null)
             {
                 if (HudUI.Instance != null)
@@ -145,14 +160,16 @@ namespace Cyverse.Interaction
             // Three angled monitors, KC7-appropriately wall-of-data green.
             // The center (i==0) is left as a body-only mount here; its screen is
             // a live DiegeticScreen built after the console component exists
-            // (below). The two side monitors stay static emissive quads (ambient
-            // dressing) per the MIDDLE rework plan.
+            // (below). The side monitors are static emissive quads; the LEFT one
+            // is swapped for the evidence-acquisition screen by PlugInStation.
             for (int i = -1; i <= 1; i++)
             {
                 float yaw = i * 24f;
+                var monitorPos = new Vector3(i * 1.05f, 1.65f, 0.18f);
                 BuildKit.SpawnLocal(PrimitiveType.Cube, "MonBody_" + i, root.transform,
-                    new Vector3(i * 1.05f, 1.65f, 0.18f), new Vector3(-8f, yaw, 0f),
+                    monitorPos, new Vector3(-8f, yaw, 0f),
                     new Vector3(1.0f, 0.65f, 0.05f), bodyMat, collider: i == 0);
+                BuildMonitorStand(root.transform, i, monitorPos, Quaternion.Euler(-8f, yaw, 0f), 1.0f, bodyMat);
                 if (i == 0) continue; // center screen is diegetic; built below
                 BuildKit.SpawnLocal(PrimitiveType.Quad, "MonScreen_" + i, root.transform,
                     new Vector3(i * 1.05f, 1.65f, 0.14f), new Vector3(-8f, yaw, 0f),
@@ -197,12 +214,42 @@ namespace Cyverse.Interaction
             return console;
         }
 
+        /// <summary>VESA mount, neck and foot for one monitor. The monitors used to
+        /// float 0.33 m above the desk, which reads as unfinished once props
+        /// (the evidence cradle) sit beneath them. Collider-free so the console's
+        /// interact ray is unaffected.</summary>
+        private static void BuildMonitorStand(Transform root, int index, Vector3 monitorPos,
+            Quaternion monitorRot, float deskTop, Material mat)
+        {
+            Vector3 back = monitorRot * Vector3.forward;      // out of the monitor's rear face
+            Vector3 rear = monitorPos + back * 0.025f;        // body is 0.05 m deep
+            Vector3 flatBack = new Vector3(back.x, 0f, back.z).normalized;
+            float yaw = monitorRot.eulerAngles.y;
+
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "MonArm_Mount_" + index, root,
+                rear + back * 0.02f, monitorRot.eulerAngles, new Vector3(0.14f, 0.14f, 0.04f), mat, collider: false);
+
+            // The neck stands behind the mount plate and is hidden by the screen
+            // above the desk gap.
+            Vector3 neck = rear + back * 0.04f + flatBack * 0.02f;
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "MonArm_Neck_" + index, root,
+                new Vector3(neck.x, (deskTop + rear.y) * 0.5f, neck.z), new Vector3(0f, yaw, 0f),
+                new Vector3(0.055f, rear.y - deskTop, 0.04f), mat, collider: false);
+
+            // Foot reaches forward under the screen, as on a real stand.
+            Vector3 foot = neck - flatBack * 0.04f;
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "MonArm_Foot_" + index, root,
+                new Vector3(foot.x, deskTop + 0.008f, foot.z), new Vector3(0f, yaw, 0f),
+                new Vector3(0.26f, 0.016f, 0.18f), mat, collider: false);
+        }
+
         // ---- Diegetic center monitor ----------------------------------------
 
         // The center screen quad matches the old MonScreen_0: 0.9 x 0.55 world
         // metres, sat at the same local pose on the console (which is why the
         // DiegeticScreen is re-parented in rather than placed by Create's world
-        // args). The RT is portrait-ish to suit the stacked readout.
+        // args). Keep the RT aspect matched to the 0.9 x 0.55 surface so the
+        // stacked readout is not stretched after it is mapped onto the quad.
         private static readonly Vector3 CenterScreenLocalPos = new Vector3(0f, 1.65f, 0.14f);
         private static readonly Vector3 CenterScreenLocalEuler = new Vector3(-8f, 0f, 0f);
         private static readonly Vector2 CenterScreenWorldSize = new Vector2(0.9f, 0.55f);
@@ -217,7 +264,7 @@ namespace Cyverse.Interaction
             // monitor tilt. DiegeticScreen keeps its own offscreen canvas/camera
             // unparented far away, so re-parenting the quad is safe.
             centerScreen = DiegeticScreen.Create(Vector3.zero, 0f, CenterScreenWorldSize,
-                rtWidth: 384, rtHeight: 256, name: "MonScreen_0");
+                rtWidth: 432, rtHeight: 264, name: "MonScreen_0");
             // Parent the DiegeticScreen component's own root under the console at
             // the exact old MonScreen_0 pose. The screen quad is a CHILD of that
             // root (see DiegeticScreen.BuildScreenQuad) at local origin, so it
@@ -296,7 +343,7 @@ namespace Cyverse.Interaction
 
             if (SocProgress.TryGetEvidence(out var evidence))
             {
-                sb.Append("<size=12><color=#4CE087>SOC HANDOFF \u2713 VERIFIED</color>\n")
+                sb.Append("<size=12><color=#4CE087>SOC HANDOFF [OK] VERIFIED</color>\n")
                   .Append(Escape(evidence.computer)).Append("  \u00b7  ").Append(Escape(evidence.user)).Append('\n')
                   .Append(Escape(evidence.alertTitle)).Append("</size>\n\n");
             }
@@ -308,7 +355,7 @@ namespace Cyverse.Interaction
             var current = ActiveCase;
             if (AllComplete)
             {
-                sb.Append("<color=#E5A823><b>ALL CASES CLOSED \u2713</b></color>\n\n");
+                sb.Append("<color=#E5A823><b>ALL CASES CLOSED [OK]</b></color>\n\n");
             }
             else if (current != null)
             {

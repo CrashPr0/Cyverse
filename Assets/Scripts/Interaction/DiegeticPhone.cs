@@ -130,8 +130,11 @@ namespace Cyverse.Interaction
             screenGlow.range = 1.6f;
             screenGlow.intensity = 0f; // lit only while showing a code
 
-            BuildKit.MakeLabel(transform, new Vector3(0f, 1.9f, 0f),
-                "AUTHENTICATOR", accent, 0.018f, billboard: true);
+            // This dock sits immediately beside the passcode terminal. Keep
+            // its caption on a lower, smaller row so the two billboard labels
+            // cannot collapse into one unreadable word cloud.
+            BuildKit.MakeLabel(transform, new Vector3(0f, 1.48f, 0f),
+                "AUTHENTICATOR", accent, 0.015f, billboard: true);
         }
 
         /// <summary>The offscreen render pipeline: a world-space Canvas holding

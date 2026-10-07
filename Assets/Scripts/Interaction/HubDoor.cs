@@ -25,6 +25,14 @@ namespace Cyverse.Interaction
         public string displayName = "Level";
         public int levelIndex;
 
+        /// <summary>Optional extra condition for Manual doors (runtime-only, like every
+        /// delegate in a procedurally built door). While it returns false the door stays
+        /// locked even if a level-wide "unlock every exit" pass calls SetUnlocked(true) —
+        /// the SOC-to-DF transfer door relies on that.</summary>
+        public System.Func<bool> unlockGate;
+        /// <summary>Locked-door message for a gated door; null falls back to the generic text.</summary>
+        public System.Func<string> lockedMessage;
+
         private bool manualUnlocked;
         private bool loading;
         private Renderer panelRenderer;
@@ -32,7 +40,12 @@ namespace Cyverse.Interaction
 
         private bool InDevelopment => string.IsNullOrEmpty(sceneName);
         private bool Unlocked => !InDevelopment &&
-            (mode == Mode.Manual ? manualUnlocked : LevelProgress.IsUnlocked(levelIndex));
+            (mode == Mode.Manual
+                ? manualUnlocked && (unlockGate == null || unlockGate())
+                : LevelProgress.IsUnlocked(levelIndex));
+
+        /// <summary>True when interacting would actually load the target scene.</summary>
+        public bool IsOpen => Unlocked;
         private bool Completed => mode == Mode.LevelGate && LevelProgress.IsCompleted(levelIndex);
 
         public string Prompt
@@ -49,10 +62,8 @@ namespace Cyverse.Interaction
 
         void Start()
         {
-            // Upgrade to the artist-authored version of this level if the build
-            // has one. Doing it here (rather than at author time) means doors
-            // already saved inside hand-built scenes pick up visual passes
-            // without anyone re-editing them.
+            // Canonicalize legacy scene names at runtime so old saved Hub doors
+            // cannot route players into outdated VisualPass scenes.
             sceneName = SceneCatalog.Preferred(sceneName);
             RefreshVisuals();
         }
@@ -78,7 +89,7 @@ namespace Cyverse.Interaction
                 if (HudUI.Instance != null)
                     HudUI.Instance.ShowToast(
                         mode == Mode.Manual
-                            ? "Complete this level's task first."
+                            ? (lockedMessage != null ? lockedMessage() : "Complete this level's task first.")
                             : levelIndex == 3 && LevelProgress.IsCompleted(2) && !SocProgress.HasAllDfKeys
                                 ? "Digital Forensics requires: " + SocProgress.MissingDfKeysText() + "."
                                 : $"Complete the previous level to unlock {displayName}.",
@@ -152,16 +163,35 @@ namespace Cyverse.Interaction
             root.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
 
             Material frameMat = BuildKit.MakeStandard(new Color(0.08f, 0.09f, 0.13f), 0.55f, 0.35f);
+            Material recessMat = BuildKit.MakeStandard(new Color(0.025f, 0.035f, 0.055f), 0.62f, 0.28f);
+            Material trimMat = BuildKit.MakeEmissive(Color.Lerp(accent, Color.white, 0.12f), 0.62f);
 
             Frame(root.transform, new Vector3(-1.5f, 2f, 0f), new Vector3(0.4f, 4f, 0.5f), frameMat);
             Frame(root.transform, new Vector3(1.5f, 2f, 0f), new Vector3(0.4f, 4f, 0.5f), frameMat);
             Frame(root.transform, new Vector3(0f, 4.1f, 0f), new Vector3(3.4f, 0.35f, 0.5f), frameMat);
 
+            // The old portal was transparent directly onto the room wall, so
+            // wall-light strips visibly crossed through the doorway. A dark
+            // recess establishes a real opening; the hologram is now a thin
+            // status layer in front of it rather than the door itself.
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "PortalBacking", root.transform,
+                new Vector3(0f, 2f, -0.17f), Vector3.zero, new Vector3(2.72f, 3.88f, 0.12f),
+                recessMat, collider: false);
+
+            InnerTrim(root.transform, "InnerTrim_Left", new Vector3(-1.37f, 2f, -0.285f),
+                new Vector3(0.055f, 3.9f, 0.035f), trimMat);
+            InnerTrim(root.transform, "InnerTrim_Right", new Vector3(1.37f, 2f, -0.285f),
+                new Vector3(0.055f, 3.9f, 0.035f), trimMat);
+            InnerTrim(root.transform, "InnerTrim_Top", new Vector3(0f, 3.93f, -0.285f),
+                new Vector3(2.78f, 0.055f, 0.035f), trimMat);
+            InnerTrim(root.transform, "InnerTrim_Bottom", new Vector3(0f, 0.07f, -0.285f),
+                new Vector3(2.78f, 0.055f, 0.035f), trimMat);
+
             var panel = GameObject.CreatePrimitive(PrimitiveType.Quad);
             panel.name = "Portal";
             panel.transform.SetParent(root.transform, false);
-            panel.transform.localPosition = new Vector3(0f, 2f, 0f);
-            panel.transform.localScale = new Vector3(2.7f, 3.9f, 1f);
+            panel.transform.localPosition = new Vector3(0f, 2f, -0.305f);
+            panel.transform.localScale = new Vector3(2.62f, 3.72f, 1f);
             panel.GetComponent<Renderer>().sharedMaterial = BuildKit.MakeHologram(accent);
             // Keep the quad's collider: it's what the interact raycast hits.
 
@@ -177,7 +207,7 @@ namespace Cyverse.Interaction
 
             var statusGo = new GameObject("Status");
             statusGo.transform.SetParent(root.transform, false);
-            statusGo.transform.localPosition = new Vector3(0f, 0.35f, -0.3f);
+            statusGo.transform.localPosition = new Vector3(0f, 0.35f, -0.325f);
             var font = HudUI.LoadFont();
             var tm = statusGo.AddComponent<TextMesh>();
             tm.font = font;
@@ -230,6 +260,13 @@ namespace Cyverse.Interaction
             go.transform.localPosition = localPos;
             go.transform.localScale = scale;
             go.GetComponent<Renderer>().sharedMaterial = mat;
+        }
+
+        private static void InnerTrim(Transform parent, string name, Vector3 localPos,
+            Vector3 scale, Material mat)
+        {
+            BuildKit.SpawnLocal(PrimitiveType.Cube, name, parent, localPos, Vector3.zero,
+                scale, mat, collider: false);
         }
     }
 }

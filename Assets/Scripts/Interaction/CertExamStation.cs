@@ -39,6 +39,17 @@ namespace Cyverse.Interaction
         private void NormalizeScreen()
         {
             Transform body = BuildKit.AlignKioskScreen(transform, "ScreenBody", "Screen");
+            Transform sign = transform.Find("Sign_CERTIFICATION");
+            if (sign != null)
+            {
+                Billboard billboard = sign.GetComponent<Billboard>();
+                if (billboard != null) billboard.enabled = false;
+                SignFX motion = sign.GetComponent<SignFX>();
+                if (motion != null) motion.enabled = false;
+                Vector3 signPosition = sign.localPosition;
+                sign.localPosition = new Vector3(signPosition.x, 3.8f, signPosition.z);
+                sign.localRotation = Quaternion.identity;
+            }
             if (statusText == null)
             {
                 foreach (TextMesh label in GetComponentsInChildren<TextMesh>(true))
@@ -135,7 +146,7 @@ namespace Cyverse.Interaction
                 "LOCKED", new Color(0.95f, 0.98f, 1f), 0.026f);
             station.Configure(questions);
 
-            BuildKit.MakeSign(root.transform, pos + new Vector3(0f, 2.7f, 0f), "CERTIFICATION", accent, 0.032f);
+            BuildKit.MakeSign(root.transform, pos + new Vector3(0f, 3.8f, 0f), "CERTIFICATION", accent, 0.032f);
 
             var glow = new GameObject("ExamLight");
             glow.transform.SetParent(root.transform, false);

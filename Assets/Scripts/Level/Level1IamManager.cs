@@ -166,6 +166,7 @@ namespace Cyverse.Level
             {
                 guidanceTimer = 0f;
                 UpdateGuidance();
+                MaybePlayMfaBriefing();
             }
 
             if (legacyStations.Count == 0 || CurrentPhase != Phase.Tasks) return;
@@ -173,6 +174,41 @@ namespace Cyverse.Level
             if (legacyPollTimer < 1f) return;
             legacyPollTimer = 0f;
             NotifyStationReviewed();
+        }
+
+        // ---- MFA briefing -------------------------------------------------------
+
+        // Covers the vault and its factor stations (terminal ~5.7 m from it).
+        private const float MfaBriefingRadius = 6.5f;
+        private bool mfaBriefed;
+
+        /// <summary>Plays the recorded MFA explainer once, the first time the
+        /// enrolled player walks up to the vault, so the three factors are
+        /// introduced right before they're used. Each line can be skipped.</summary>
+        private void MaybePlayMfaBriefing()
+        {
+            if (mfaBriefed || gauntlet == null || gauntlet.IsComplete || CurrentPhase != Phase.Tasks) return;
+            if (badge != null && !badge.IsEnrolled) return;
+            if (GameState.Busy || Dialogue.DialogueManager.Instance == null) return;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // Automated playthroughs move the player by script; a 70 s
+            // narration mid-route would stall their pacing.
+            if (FindObjectOfType<Cyverse.Testing.Level1TasPlayback>() != null ||
+                FindObjectOfType<Cyverse.Testing.CampaignTasPlayback>() != null)
+            {
+                mfaBriefed = true;
+                return;
+            }
+#endif
+
+            Camera cam = Camera.main;
+            if (cam == null) return;
+            Vector3 toVault = gauntlet.transform.position - cam.transform.position;
+            toVault.y = 0f;
+            if (toVault.sqrMagnitude > MfaBriefingRadius * MfaBriefingRadius) return;
+
+            mfaBriefed = true;
+            Dialogue.DialogueManager.Instance.Play(Level1IamContent.MfaBriefing());
         }
 
         // ---- Player guidance --------------------------------------------------

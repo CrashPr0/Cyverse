@@ -33,6 +33,9 @@ namespace Cyverse.Level
 
         public static Bindings Realize(GameObject host)
         {
+            BuildKit.ToneGridFloor(
+                new Color(0.035f, 0.045f, 0.07f),
+                new Color(0.16f, 0.40f, 0.62f));
             ReconcileTaskRoom();
             Level1EndFlowDiagnostics.Install(host);
 

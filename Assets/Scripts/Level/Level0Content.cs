@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Dialogue;
 
@@ -44,14 +45,28 @@ namespace Cyverse.Level
                 "Availability ensures information and resources are accessible to authorized users when needed, reliably and without disruption."),
         };
 
+        // Recorded narration: captions must match the audio word for word
+        // (the game promises captions on all narration).
         public static List<DialogueLine> Nice() => new List<DialogueLine>
         {
             new DialogueLine("NICE Roles",
-                "The National Initiative for Cybersecurity Education — NICE — defines the workforce roles across cybersecurity."),
+                "The National Institute of Standards and Technology has identified five cybersecurity workforce roles. They are Oversight and Governance, Design and Development, Implementation and Operation, Protection and Defense, and Investigation.",
+                Narration.Clip("nice_00_intro")),
             new DialogueLine("NICE Roles",
-                "Oversight & Governance provides leadership and manages cybersecurity risk. Design & Development researches and builds secure systems."),
+                "The first workforce role, Oversight and Governance, provides leadership, management, direction and advocacy so the organization may effectively manage cybersecurity-related risks to the enterprise and conduct cybersecurity work.",
+                Narration.Clip("nice_01_oversight_governance")),
             new DialogueLine("NICE Roles",
-                "Implementation & Operation runs and maintains systems. Protection & Defense identifies and analyzes threats. Investigation handles cybercrime and digital evidence."),
+                "The second workforce role, Design and Development, conducts research, conceptualizes, designs, develops, and tests secure technology systems, including on perimeter and cloud-based networks.",
+                Narration.Clip("nice_02_design_development")),
+            new DialogueLine("NICE Roles",
+                "The third workforce role, Implementation and Operation, provides implementation, administration, configuration, operation and maintenance to ensure effective and efficient technology system performance and security.",
+                Narration.Clip("nice_03_implementation_operation")),
+            new DialogueLine("NICE Roles",
+                "The fourth workforce role, Protection and Defense, protects against, identifies, and analyzes risks to technology systems or networks. It includes the investigation of cybersecurity events or crimes related to technology systems and networks.",
+                Narration.Clip("nice_04_protection_defense")),
+            new DialogueLine("NICE Roles",
+                "The fifth workforce role, Investigation, conducts national cybersecurity and cybercrime investigations, including the collection, management, and analysis of digital evidence.",
+                Narration.Clip("nice_05_investigation")),
         };
 
         public static List<DialogueLine> AllReviewed() => new List<DialogueLine>

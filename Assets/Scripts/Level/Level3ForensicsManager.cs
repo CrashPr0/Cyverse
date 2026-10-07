@@ -10,6 +10,8 @@ namespace Cyverse.Level
 {
     /// <summary>
     /// Level 3 (Digital Forensics) flow:
+    ///   Retrieve    — take the seized device out of the evidence locker (south
+    ///                 wall, the SOC handoff); needed before Evidence Intake
     ///   Watch       — analyst briefing (query syntax 101); unlocks the door
     ///   Investigate — solve two linked cases (14 findings) at the terminal
     ///   Complete    — level persisted, results, exit celebrated.
@@ -32,14 +34,18 @@ namespace Cyverse.Level
         private HubDoor exitDoor;
         private ChainOfCustodyForm custodyForm;
         private ChainOfCustodyStation custodyStation;
+        private EvidenceLocker locker;
         private float startTime;
+
+        private static readonly Color GuideGold = new Color(0.90f, 0.66f, 0.14f);
 
         void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(this); return; }
             Instance = this;
 
-            LevelMissionRuntime.ResetScene(clearCarried: false);
+            // This level now has a carried item (the device from the locker).
+            LevelMissionRuntime.ResetScene(clearCarried: true);
         }
 
         void Start()
@@ -61,6 +67,10 @@ namespace Cyverse.Level
             exitDoor = scene.exitDoor;
             custodyForm = scene.custodyForm;
             custodyStation = scene.custodyStation;
+            // Procedural builds already have the locker; this covers any other way the
+            // scene was assembled.
+            locker = Level3ForensicsSceneFactory.BuildEvidenceLocker();
+            if (locker != null) locker.Retrieved += OnDeviceRetrieved;
 
             if (console != null && console.Cases != null)
             {
@@ -82,8 +92,8 @@ namespace Cyverse.Level
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
             if (receivedEvidence != null && HudUI.Instance != null)
-                HudUI.Instance.ShowToast("SOC EVIDENCE RECEIVED — " + receivedEvidence.computer +
-                    " image ready for phone download at Evidence Intake.", new Color(0.30f, 1f, 0.55f));
+                HudUI.Instance.ShowToast("SOC EVIDENCE RECEIVED — the " + receivedEvidence.computer +
+                    " device is waiting in the evidence locker.", new Color(0.30f, 1f, 0.55f));
             UpdateObjective();
         }
 
@@ -103,13 +113,27 @@ namespace Cyverse.Level
                 custodyForm.Changed -= UpdateObjective;
                 custodyForm.Completed -= OnCustodyCompleted;
             }
+            if (locker != null) locker.Retrieved -= OnDeviceRetrieved;
             if (Instance == this) Instance = null;
+        }
+
+        private bool DeviceRetrieved => locker == null || locker.DeviceRetrieved;
+
+        private void OnDeviceRetrieved()
+        {
+            if (HudUI.Instance != null)
+                HudUI.Instance.ShowToast(
+                    CurrentPhase == Phase.Watch
+                        ? "DEVICE RETRIEVED — watch the analyst briefing to open the lab, then take it to EVIDENCE INTAKE."
+                        : "DEVICE RETRIEVED — take it to EVIDENCE INTAKE and complete the custody form.",
+                    new Color(0.30f, 1f, 0.55f));
+            UpdateObjective();
         }
 
         private void OnCustodyCompleted()
         {
             if (HudUI.Instance != null)
-                HudUI.Instance.ShowToast("Custody accepted — forensic analysis is unlocked",
+                HudUI.Instance.ShowToast("Custody accepted — take the device to the Investigation Desk",
                     new Color(0.30f, 1f, 0.55f));
             if (custodyStation != null)
                 BurstFX.SpawnAbove(custodyStation.transform, new Color(0.30f, 1f, 0.55f),
@@ -151,6 +175,8 @@ namespace Cyverse.Level
             UpdateObjective();
         }
 
+        private float guidanceTimer;
+
         void Update()
         {
             if (pendingComplete && !GameState.AnyMenuOpen)
@@ -158,7 +184,25 @@ namespace Cyverse.Level
                 pendingComplete = false;
                 CompleteLevel();
             }
+
+            // The locker is the only thing this level points at; the beacon hides itself
+            // up close and is cleared once the device is out.
+            guidanceTimer += Time.deltaTime;
+            if (guidanceTimer < 0.4f) return;
+            guidanceTimer = 0f;
+            if (locker != null && !locker.DeviceRetrieved)
+            {
+                ObjectiveBeacon.Ensure().PointAt(locker.transform, "RETRIEVE THE DEVICE", GuideGold);
+                beaconShown = true;
+            }
+            else if (beaconShown)
+            {
+                ObjectiveBeacon.Ensure().Hide();
+                beaconShown = false;
+            }
         }
+
+        private bool beaconShown;
 
         private void OnBriefingCompleted()
         {
@@ -181,17 +225,26 @@ namespace Cyverse.Level
             int done = console != null ? console.TotalAnswered : 0;
             string caseName = console != null && console.ActiveCase != null ? console.ActiveCase.title : "the case";
             bool custodyComplete = custodyForm == null || custodyForm.IsComplete;
-            int workflowTotal = total + 2; // custody + case questions + report submission
-            int workflowDone = done + (custodyComplete ? 1 : 0) + (ReportSubmitted ? 1 : 0);
+            bool retrieved = DeviceRetrieved;
+            // device retrieval + custody + case questions + report submission
+            int workflowTotal = total + 3;
+            int workflowDone = done + (retrieved ? 1 : 0) + (custodyComplete ? 1 : 0) + (ReportSubmitted ? 1 : 0);
 
             switch (CurrentPhase)
             {
                 case Phase.Watch:
-                    HudUI.Instance.ShowObjective("Objective: Watch the analyst briefing  (E to play, ←/→ to scrub)");
-                    HudUI.Instance.SetProgress(0, workflowTotal, "▶");
+                    if (!retrieved)
+                        HudUI.Instance.ShowObjective(
+                            "Objective: Retrieve the seized device from the EVIDENCE LOCKER  (south wall, by the entrance)");
+                    else
+                        HudUI.Instance.ShowObjective("Objective: Watch the analyst briefing  (E to play, ←/→ to scrub)");
+                    HudUI.Instance.SetProgress(workflowDone, workflowTotal, "▶");
                     break;
                 case Phase.Investigate:
-                    if (!custodyComplete)
+                    if (!retrieved)
+                        HudUI.Instance.ShowObjective(
+                            "Objective: Retrieve the seized device from the EVIDENCE LOCKER  (south wall, by the entrance)");
+                    else if (!custodyComplete)
                         HudUI.Instance.ShowObjective(
                             $"Objective: Complete the chain-of-custody form at EVIDENCE INTAKE  ({custodyForm.SelectedCount}/{custodyForm.FieldCount} blanks)");
                     else
@@ -204,22 +257,23 @@ namespace Cyverse.Level
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 3 COMPLETE — exit to the Hub");
-                    HudUI.Instance.SetProgress(workflowTotal, workflowTotal, "✓");
+                    HudUI.Instance.SetProgress(workflowTotal, workflowTotal, "[OK]");
                     break;
             }
-            UpdateTaskList(done, total, custodyComplete);
+            UpdateTaskList(done, total, custodyComplete, retrieved);
         }
 
-        private void UpdateTaskList(int answered, int total, bool custodyComplete)
+        private void UpdateTaskList(int answered, int total, bool custodyComplete, bool retrieved)
         {
             TaskListPanel list = TaskListPanel.Ensure(gameObject);
             list.SetHeader("DIGITAL FORENSICS");
             bool watched = CurrentPhase != Phase.Watch;
             list.Show(new List<TaskListPanel.Task>
             {
-                new TaskListPanel.Task("Watch analyst briefing", watched, !watched),
+                new TaskListPanel.Task("Retrieve device from evidence locker", retrieved, !retrieved),
+                new TaskListPanel.Task("Watch analyst briefing", watched, retrieved && !watched),
                 new TaskListPanel.Task("Chain of custody  (4 fields)", custodyComplete,
-                    watched && !custodyComplete),
+                    watched && retrieved && !custodyComplete),
                 new TaskListPanel.Task($"Investigate cases  ({answered}/{total})",
                     answered >= total, watched && custodyComplete && answered < total),
                 new TaskListPanel.Task("Submit forensic report", ReportSubmitted,

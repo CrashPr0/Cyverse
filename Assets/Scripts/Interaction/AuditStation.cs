@@ -169,6 +169,7 @@ namespace Cyverse.Interaction
         {
             var r = rounds[round];
             headerText.text = $"ACCESS AUDIT — ROUND {round + 1}/{rounds.Length}";
+            if (highlight != null) highlight.gameObject.SetActive(true);
             for (int i = 0; i < rowTexts.Length; i++)
             {
                 rowTexts[i].text = i < r.lines.Length ? r.lines[i] : "";
@@ -201,6 +202,18 @@ namespace Cyverse.Interaction
             this.gate = gate;
             this.gateMessage = gateMessage;
             if (!ScreenIsWired() && !TryAdoptScreen()) BuildScreen(accent);
+            if (!active && !IsComplete) ShowIdleScreen();
+        }
+
+        private void ShowIdleScreen()
+        {
+            if (!ScreenIsWired()) return;
+            headerText.text = "ACCESS AUDIT // STANDBY";
+            hintText.text = "PRESS [E] TO OPEN ACCESS LOG";
+            for (int i = 0; i < rowTexts.Length; i++) rowTexts[i].text = "";
+            rowTexts[0].text = "REVIEW IDENTITY  ·  PRIVILEGE  ·  TIME  ·  LOCATION";
+            rowTexts[0].color = new Color(0.62f, 0.74f, 0.88f);
+            if (highlight != null) highlight.gameObject.SetActive(false);
         }
 
         private bool ScreenIsWired()

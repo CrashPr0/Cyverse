@@ -1,4 +1,5 @@
 using UnityEngine;
+using Cyverse.Core;
 using Cyverse.Interaction;
 
 namespace Cyverse.Level
@@ -109,6 +110,53 @@ namespace Cyverse.Level
 
             HubDoor.Build(new Vector3(4f, 0f, 19.2f), 0f, "Return to Hub",
                 "Hub", 0, new Color(0.90f, 0.66f, 0.14f), HubDoor.Mode.Manual);
+
+            BuildEvidenceHandoff();
+        }
+
+        /// <summary>Evidence locker x. East of the Hub door (x 2.3..5.7), clear of the
+        /// x=8 wall column; the cabinet is 1.4 wide, so it spans 6.15..7.55.</summary>
+        public const float LockerX = 6.85f;
+        /// <summary>Direct door to the lab. Between the x=8 column and the rack bank
+        /// (x 13.2+), nudged west of centre to stay clear of the playbook table's
+        /// north end (x 11.3..12.7).</summary>
+        public const float ForensicsDoorX = 10.3f;
+
+        /// <summary>
+        /// The SOC half of the SOC-to-DF handoff: the two-way evidence locker and a
+        /// direct door to the Forensics Lab, both in the north wall beside the existing
+        /// Return to Hub door. Idempotent, because the shipped Level 2 is a saved scene
+        /// that BuildAll never runs on: Level2Manager calls this too, and whichever
+        /// comes first wins. Delegates (the door gate) do not serialize, so they are
+        /// re-attached on every call.
+        /// </summary>
+        public static HubDoor BuildEvidenceHandoff()
+        {
+            if (Object.FindObjectOfType<EvidenceLocker>() == null)
+                EvidenceLocker.Build(new Vector3(LockerX, 0f, 19.48f), 0f, EvidenceLocker.Side.Soc);
+
+            HubDoor door = FindForensicsDoor();
+            if (door == null)
+            {
+                door = HubDoor.Build(new Vector3(ForensicsDoorX, 0f, 19.2f), 0f, "Forensics Lab",
+                    "Level3_Forensics", 3, Level3ForensicsSceneFactory.ForensicGreen, HubDoor.Mode.Manual);
+            }
+
+            // Manual doors are unlocked by several level-wide passes ("never trap the
+            // player"); the gate is what keeps this one shut until the handoff is done.
+            door.unlockGate = () => Level2Manager.ForensicsTransferOpen;
+            door.lockedMessage = Level2Manager.ForensicsTransferLockedMessage;
+            door.SetUnlocked(true);
+            return door;
+        }
+
+        public static HubDoor FindForensicsDoor()
+        {
+            foreach (HubDoor candidate in Object.FindObjectsOfType<HubDoor>())
+                if (candidate.mode == HubDoor.Mode.Manual &&
+                    SceneCatalog.Preferred(candidate.sceneName) == "Level3_Forensics")
+                    return candidate;
+            return null;
         }
     }
 }

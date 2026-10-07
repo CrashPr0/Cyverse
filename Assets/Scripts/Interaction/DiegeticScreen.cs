@@ -173,6 +173,11 @@ namespace Cyverse.Interaction
         {
             if (!built) return;
             if (offscreenRoot != null) ApplyLayerRecursively(offscreenRoot, screenUiLayer);
+            // Callers build and mutate their UI immediately before asking for a
+            // frame. Flush anchor, auto-size and text geometry first; otherwise
+            // a disabled on-demand camera can preserve the previous frame's
+            // one-column/intermediate layout until some later state change.
+            Canvas.ForceUpdateCanvases();
             if (uiCamera != null && rt != null) uiCamera.Render();
         }
 

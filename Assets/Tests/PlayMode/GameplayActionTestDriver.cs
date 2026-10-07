@@ -33,6 +33,14 @@ namespace Cyverse.Tests
             return (IEnumerator)method.Invoke(null, new[] { target, null });
         }
 
+        public static int CustodyAnswer(int field)
+        {
+            Type adapter = FindType("Cyverse.Testing.DeterministicGameplayAdapter");
+            MethodInfo method = adapter.GetMethod("CustodyAnswer", BindingFlags.Public | BindingFlags.Static);
+            if (method == null) throw new MissingMethodException(adapter.FullName, "CustodyAnswer");
+            return (int)method.Invoke(null, new object[] { field });
+        }
+
         public static bool RunDeterministicAction(string methodName, object target)
         {
             Type adapter = FindType("Cyverse.Testing.DeterministicGameplayAdapter");

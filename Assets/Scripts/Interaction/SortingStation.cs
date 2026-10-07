@@ -184,7 +184,7 @@ namespace Cyverse.Interaction
             BuildKit.SpawnLocal(PrimitiveType.Cube, "TableTrim", root.transform,
                 new Vector3(0f, 0.92f, -0.91f), Vector3.zero, new Vector3(3.8f, 0.04f, 0.02f),
                 BuildKit.MakeEmissive(accent, 1.4f), collider: false);
-            BuildKit.MakeSign(root.transform, tablePos + new Vector3(0f, 2.5f, 0f), "DATA TRIAGE", accent, 0.032f);
+            BuildKit.MakeSign(root.transform, tablePos + new Vector3(0f, 3.8f, 0f), "DATA TRIAGE", accent, 0.032f);
 
             var glow = new GameObject("TriageLight");
             glow.transform.SetParent(root.transform, false);
