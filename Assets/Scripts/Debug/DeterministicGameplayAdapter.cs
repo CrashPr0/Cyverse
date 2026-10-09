@@ -80,6 +80,17 @@ namespace Cyverse.Testing
                 GameplayAction.Scrub(float.MaxValue), actor);
         }
 
+        /// <summary>Talk to the MFA Specialist (which unlocks the vault's
+        /// factors) and cut her recorded briefing short: an automated run has
+        /// no one to listen to it. True when the vault is no longer waiting on her.</summary>
+        public static bool TalkToMfaSpecialist(MfaSpecialist specialist, GameObject actor = null)
+        {
+            if (specialist == null) return true;
+            if (!specialist.Briefed) GameplayActions.TryApply(specialist, GameplayAction.Interact(), actor);
+            if (Cyverse.Dialogue.DialogueManager.Instance != null) Cyverse.Dialogue.DialogueManager.Instance.Stop();
+            return specialist.Briefed;
+        }
+
         public static IEnumerator CompleteMfaFactor(MfaFactor factor,
             GameObject actor = null)
         {

@@ -160,8 +160,9 @@ namespace Cyverse.Interaction
             // Three angled monitors, KC7-appropriately wall-of-data green.
             // The center (i==0) is left as a body-only mount here; its screen is
             // a live DiegeticScreen built after the console component exists
-            // (below). The side monitors are static emissive quads; the LEFT one
-            // is swapped for the evidence-acquisition screen by PlugInStation.
+            // (below). The side monitors are static emissive quads; PlugInStation
+            // swaps the LEFT one for the acquisition screen and the RIGHT one for
+            // the copied-image screen.
             for (int i = -1; i <= 1; i++)
             {
                 float yaw = i * 24f;

@@ -34,6 +34,7 @@ namespace Cyverse.Level
 
         private BadgeStation badge;
         private MfaGauntlet gauntlet;
+        private MfaSpecialist specialist;
         private DropZone mfaSlot;
         private SortingStation sorting;
         private AuditStation audit;
@@ -66,6 +67,7 @@ namespace Cyverse.Level
                 Level1IamSceneRealization.Realize(gameObject);
             badge = scene.badge;
             gauntlet = scene.gauntlet;
+            specialist = scene.specialist;
             mfaSlot = scene.mfaSlot;
             sorting = scene.sorting;
             audit = scene.audit;
@@ -73,6 +75,7 @@ namespace Cyverse.Level
 
             if (badge != null) badge.Completed += OnTaskCompleted;
             if (gauntlet != null) gauntlet.Completed += OnTaskCompleted;
+            if (specialist != null) specialist.BriefingStarted += UpdateGuidance;
             if (sorting != null) sorting.Completed += OnTaskCompleted;
             if (audit != null) audit.Completed += OnTaskCompleted;
             if (exam != null) exam.Completed += CompleteLevel;
@@ -166,7 +169,6 @@ namespace Cyverse.Level
             {
                 guidanceTimer = 0f;
                 UpdateGuidance();
-                MaybePlayMfaBriefing();
             }
 
             if (legacyStations.Count == 0 || CurrentPhase != Phase.Tasks) return;
@@ -176,41 +178,6 @@ namespace Cyverse.Level
             NotifyStationReviewed();
         }
 
-        // ---- MFA briefing -------------------------------------------------------
-
-        // Covers the vault and its factor stations (terminal ~5.7 m from it).
-        private const float MfaBriefingRadius = 6.5f;
-        private bool mfaBriefed;
-
-        /// <summary>Plays the recorded MFA explainer once, the first time the
-        /// enrolled player walks up to the vault, so the three factors are
-        /// introduced right before they're used. Each line can be skipped.</summary>
-        private void MaybePlayMfaBriefing()
-        {
-            if (mfaBriefed || gauntlet == null || gauntlet.IsComplete || CurrentPhase != Phase.Tasks) return;
-            if (badge != null && !badge.IsEnrolled) return;
-            if (GameState.Busy || Dialogue.DialogueManager.Instance == null) return;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // Automated playthroughs move the player by script; a 70 s
-            // narration mid-route would stall their pacing.
-            if (FindObjectOfType<Cyverse.Testing.Level1TasPlayback>() != null ||
-                FindObjectOfType<Cyverse.Testing.CampaignTasPlayback>() != null)
-            {
-                mfaBriefed = true;
-                return;
-            }
-#endif
-
-            Camera cam = Camera.main;
-            if (cam == null) return;
-            Vector3 toVault = gauntlet.transform.position - cam.transform.position;
-            toVault.y = 0f;
-            if (toVault.sqrMagnitude > MfaBriefingRadius * MfaBriefingRadius) return;
-
-            mfaBriefed = true;
-            Dialogue.DialogueManager.Instance.Play(Level1IamContent.MfaBriefing());
-        }
-
         // ---- Player guidance --------------------------------------------------
         // Three complementary answers so the player is never lost:
         //   ObjectiveBeacon  → WHERE to go (light pillar + distance)
@@ -218,6 +185,9 @@ namespace Cyverse.Level
         //   HUD objective    → the single next action, phrased as an instruction
 
         private static readonly Color GuideGold = new Color(0.90f, 0.66f, 0.14f);
+
+        /// <summary>The vault is still locked behind the specialist's briefing.</summary>
+        private bool NeedsMfaBriefing => specialist != null && !specialist.Briefed;
 
         /// <summary>Holding the MFA token specifically (vs. a data crate).</summary>
         private bool CarryingToken =>
@@ -301,7 +271,11 @@ namespace Cyverse.Level
                 bestLabel = label;
             }
 
-            if (gauntlet != null && !gauntlet.IsComplete) Consider(gauntlet, "CLEAR THE MFA VAULT");
+            if (gauntlet != null && !gauntlet.IsComplete)
+            {
+                if (NeedsMfaBriefing) Consider(specialist, "TALK TO THE MFA SPECIALIST");
+                else Consider(gauntlet, "CLEAR THE MFA VAULT");
+            }
             if (sorting != null && !sorting.IsComplete) Consider(sorting, "FILE THE DATA CRATES");
             if (audit != null && !audit.IsComplete) Consider(audit, "FIND THE AUDIT ANOMALY");
 
@@ -325,10 +299,13 @@ namespace Cyverse.Level
             }
             bool enrolled = badge == null || badge.IsEnrolled;
 
+            if (specialist != null && gauntlet != null)
+                tasks.Add(new TaskListPanel.Task("Talk to the MFA Specialist",
+                    specialist.Briefed, watched && enrolled && !specialist.Briefed));
             if (gauntlet != null)
                 tasks.Add(new TaskListPanel.Task(
                     $"MFA Vault  ({gauntlet.ClearedCount}/3 factors)",
-                    gauntlet.IsComplete, watched && enrolled && !gauntlet.IsComplete));
+                    gauntlet.IsComplete, watched && enrolled && !NeedsMfaBriefing && !gauntlet.IsComplete));
             if (sorting != null)
                 tasks.Add(new TaskListPanel.Task(
                     $"Data Triage  ({sorting.Delivered}/{sorting.Total} filed)",
@@ -356,6 +333,8 @@ namespace Cyverse.Level
             if (Carryable.Carried != null)
                 return $"Carrying {Carryable.Carried.itemName} — press E on the role that should have access  (Q puts it down)";
 
+            if (gauntlet != null && !gauntlet.IsComplete && NeedsMfaBriefing)
+                return "MFA Vault: first talk to the MFA SPECIALIST by the vault — press E";
             if (gauntlet != null && !gauntlet.IsComplete)
                 return $"MFA Vault: verify all three factors  ({gauntlet.ClearedCount}/3) — passcode terminal, token, biometric pad";
             if (sorting != null && !sorting.IsComplete)

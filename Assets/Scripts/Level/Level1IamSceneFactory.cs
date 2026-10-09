@@ -104,6 +104,9 @@ namespace Cyverse.Level
                 accent: IamBlue,
                 passcode: Level1IamContent.DailyPasscode,
                 gate: badgeGate, gateMessage: gateMsg);
+            // Her briefing introduces the three factors, so she stands in the
+            // open on the walk from the badge kiosk to the vault, facing it.
+            MfaSpecialist.Build(new Vector3(-9.8f, 0f, 6.2f), 98f, Level1IamContent.MfaBriefing);
 
             // Task 3 — AUTHORIZATION: intake table + role pedestals, east side.
             SortingStation.Build(new Vector3(13f, 0f, 8f),

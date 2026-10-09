@@ -85,6 +85,18 @@ namespace Cyverse.Testing
             while (!badge.IsEnrolled && Time.realtimeSinceStartup < deadline) yield return null;
             if (!badge.IsEnrolled) { Fail("Badge enrollment timed out."); yield break; }
 
+            var specialist = FindObjectOfType<MfaSpecialist>();
+            if (specialist != null)
+            {
+                yield return TravelTo(specialist.transform, "W", "Walk to the MFA SPECIALIST", 1.8f);
+                yield return Show("E", "Talk to the MFA Specialist", actionPause);
+                GameplayActions.TryApply(specialist, GameplayAction.Interact(), gameObject);
+                // Let a moment of the briefing play on camera, then move on.
+                yield return new WaitForSecondsRealtime(2.5f);
+                if (!DeterministicGameplayAdapter.TalkToMfaSpecialist(specialist, gameObject))
+                { Fail("Talking to the MFA Specialist did not unlock the vault."); yield break; }
+            }
+
             Carryable token = FindCarryable("mfa_token");
             DropZone tokenSlot = FindZone("TOKEN SLOT");
             if (token == null || tokenSlot == null) { Fail("MFA token route is missing."); yield break; }

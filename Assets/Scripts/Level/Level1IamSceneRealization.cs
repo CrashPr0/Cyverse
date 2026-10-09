@@ -17,6 +17,15 @@ namespace Cyverse.Level
 
         internal static Func<bool> BadgeGate => () => BadgeStation.EnrolledInScene;
 
+        internal const string BriefingGateMessage =
+            "Talk to the MFA SPECIALIST by the vault first — press E.";
+
+        /// <summary>The vault's factors need the badge and the specialist's
+        /// briefing; the toast names whichever is still missing.</summary>
+        internal static Func<bool> MfaGate => () => BadgeStation.EnrolledInScene && MfaSpecialist.BriefedInScene;
+        internal static string MfaGateMessage() =>
+            !BadgeStation.EnrolledInScene ? BadgeGateMessage : BriefingGateMessage;
+
         internal sealed class Bindings
         {
             public BadgeStation badge;
@@ -26,6 +35,7 @@ namespace Cyverse.Level
             public AuditStation audit;
             public CertExamStation exam;
             public VideoStation briefing;
+            public MfaSpecialist specialist;
             public LockedDoor taskDoor;
             public HubDoor exitDoor;
             public readonly List<StationSetup> legacyStations = new List<StationSetup>();
@@ -47,6 +57,7 @@ namespace Cyverse.Level
                 audit = UnityEngine.Object.FindObjectOfType<AuditStation>(),
                 exam = UnityEngine.Object.FindObjectOfType<CertExamStation>(),
                 briefing = UnityEngine.Object.FindObjectOfType<VideoStation>(),
+                specialist = UnityEngine.Object.FindObjectOfType<MfaSpecialist>(),
                 taskDoor = UnityEngine.Object.FindObjectOfType<LockedDoor>(),
             };
 
@@ -71,7 +82,7 @@ namespace Cyverse.Level
             MfaGauntlet gauntlet = UnityEngine.Object.FindObjectOfType<MfaGauntlet>();
             if (gauntlet != null)
                 gauntlet.Configure(Level1IamSceneFactory.IamBlue,
-                    Level1IamContent.DailyPasscode, BadgeGate, BadgeGateMessage);
+                    Level1IamContent.DailyPasscode, MfaGate, BadgeGateMessage, MfaGateMessage);
 
             SortingStation sorting = UnityEngine.Object.FindObjectOfType<SortingStation>();
             if (sorting != null)

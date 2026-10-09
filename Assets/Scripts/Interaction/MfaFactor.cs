@@ -22,6 +22,9 @@ namespace Cyverse.Interaction
         public string passcode;
         public Func<bool> gate;
         public string gateMessage = "You can't use this yet.";
+        /// <summary>Runtime-only: overrides <see cref="gateMessage"/> when the
+        /// reason depends on what is still missing.</summary>
+        [System.NonSerialized] public System.Func<string> gateMessageProvider;
 
         private bool cleared, busy;
         private Light scanLight;
@@ -62,7 +65,8 @@ namespace Cyverse.Interaction
             {
                 if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
                 if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast(gateMessage, new Color(1f, 0.55f, 0.4f));
+                    HudUI.Instance.ShowToast(gateMessageProvider != null ? gateMessageProvider() : gateMessage,
+                        new Color(1f, 0.55f, 0.4f));
                 return;
             }
 

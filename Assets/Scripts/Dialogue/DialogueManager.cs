@@ -66,6 +66,29 @@ namespace Cyverse.Dialogue
         private AudioSource voice;
         private Coroutine running;
 
+        /// <summary>Raised as each line begins, before its audio starts — lets a
+        /// speaker on screen animate the line that is actually playing.</summary>
+        public event Action<DialogueLine> LineStarted;
+
+        /// <summary>The recorded clip being voiced right now, or null.</summary>
+        public AudioClip SpeakingClip => voice != null && voice.isPlaying ? voice.clip : null;
+
+        /// <summary>A sequence is on screen.</summary>
+        public bool IsPlaying => running != null;
+
+        /// <summary>End the current sequence immediately, without its
+        /// completion callback (used by automated playthroughs).</summary>
+        public void Stop()
+        {
+            if (running != null) StopCoroutine(running);
+            running = null;
+            if (voice != null) voice.Stop();
+            Cyverse.Audio.Speech.Cancel();
+            ttsPending = false;
+            if (HudUI.Instance != null) HudUI.Instance.HideCaption();
+            GameState.DialogueActive = false;
+        }
+
         void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(this); return; }
@@ -99,6 +122,8 @@ namespace Cyverse.Dialogue
                         ? string.Empty
                         : $"<b><color=#5BC8FF>{line.speaker}</color></b>\n";
                     string body = line.text ?? string.Empty;
+
+                    LineStarted?.Invoke(line);
 
                     float voiceVol = AccessibilitySettings.Instance != null
                         ? AccessibilitySettings.Instance.VoiceVolume

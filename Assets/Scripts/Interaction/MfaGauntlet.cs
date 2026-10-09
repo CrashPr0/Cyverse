@@ -54,7 +54,8 @@ namespace Cyverse.Interaction
         /// loads with a slot that swallows the token without ever clearing the
         /// "something you have" factor. Called by Build and again by the level
         /// factory on load; safe either way.</summary>
-        public void Configure(Color accent, string passcode, Func<bool> gate, string gateMessage)
+        public void Configure(Color accent, string passcode, Func<bool> gate, string gateMessage,
+            Func<string> gateMessageProvider = null)
         {
             if (vaultPanel == null) vaultPanel = transform.Find("VaultPanel");
             if (litMat == null) litMat = BuildKit.MakeEmissive(new Color(0.30f, 1f, 0.45f), 2.4f);
@@ -72,6 +73,7 @@ namespace Cyverse.Interaction
                 if (factor.gauntlet != this) continue;
                 factor.gate = gate;
                 factor.gateMessage = gateMessage;
+                factor.gateMessageProvider = gateMessageProvider;
                 if (factor.kind == MfaFactor.Kind.Knowledge) factor.passcode = passcode;
             }
 
@@ -80,6 +82,7 @@ namespace Cyverse.Interaction
                 if (item.id != "mfa_token") continue;
                 item.gate = gate;
                 item.gateMessage = gateMessage;
+                item.gateMessageProvider = gateMessageProvider;
             }
 
             foreach (var candidate in FindObjectsOfType<DropZone>())

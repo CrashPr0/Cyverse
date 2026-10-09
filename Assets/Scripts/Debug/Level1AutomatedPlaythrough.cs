@@ -60,6 +60,12 @@ namespace Cyverse.Testing
             if (!WaitCondition(() => badge.IsEnrolled, 2f, "badge enrollment did not complete")) yield break;
             yield return null;
 
+            if (!DeterministicGameplayAdapter.TalkToMfaSpecialist(FindObjectOfType<MfaSpecialist>(), gameObject))
+            {
+                Fail("Talking to the MFA Specialist did not unlock the vault.");
+                yield break;
+            }
+
             // Exercise the real carry/drop plumbing for the physical MFA token.
             Carryable token = null;
             DropZone tokenSlot = null;

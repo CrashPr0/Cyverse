@@ -63,6 +63,13 @@ namespace Cyverse.Interaction
 
         private Transform consoleRoot;
         private DiegeticScreen screen;
+        // The RIGHT monitor: blank while the device is imaged, then shows the
+        // working copy the analysis runs on.
+        private DiegeticScreen imageScreen;
+        private TMP_Text imageTitleText;
+        private TMP_Text imageDetailText;
+        private TMP_Text imageNoteText;
+        private Image imageAccent;
 
         private Transform phone;
         private Vector3 dockLocalPos;
@@ -146,6 +153,7 @@ namespace Cyverse.Interaction
             station.BuildCables(deskTop);
             station.BuildPhone();
             station.BuildReadout();
+            station.BuildImageScreen();
             station.ShowAwaitingCustody();
             station.StartCoroutine(station.SubscribeWhenReady());
             return station;
@@ -444,10 +452,10 @@ namespace Cyverse.Interaction
         /// <summary>Top-left anchored text box; <paramref name="pos"/> is measured
         /// down from the canvas' top-left corner.</summary>
         private TMP_Text Label(string name, Vector2 pos, Vector2 box, float size,
-            TextAlignmentOptions alignment, Color color, bool bold = false)
+            TextAlignmentOptions alignment, Color color, bool bold = false, RectTransform canvas = null)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-            go.transform.SetParent(screen.CanvasRoot, false);
+            go.transform.SetParent(canvas != null ? canvas : screen.CanvasRoot, false);
             PlaceTopLeft((RectTransform)go.transform, pos, box);
             var text = go.GetComponent<TextMeshProUGUI>();
             text.font = TMP_Settings.defaultFontAsset;
@@ -465,10 +473,10 @@ namespace Cyverse.Interaction
             return text;
         }
 
-        private Image Panel(string name, Vector2 pos, Vector2 box, Color color)
+        private Image Panel(string name, Vector2 pos, Vector2 box, Color color, RectTransform canvas = null)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(screen.CanvasRoot, false);
+            go.transform.SetParent(canvas != null ? canvas : screen.CanvasRoot, false);
             PlaceTopLeft((RectTransform)go.transform, pos, box);
             Image image = go.GetComponent<Image>();
             image.color = color;
@@ -483,6 +491,72 @@ namespace Cyverse.Interaction
             rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = new Vector2(pos.x, -pos.y);
             rt.sizeDelta = new Vector2(Mathf.Max(1f, box.x), Mathf.Max(1f, box.y));
+        }
+
+        /// <summary>Take over the console's RIGHT monitor the same way the left
+        /// one is: a render-texture screen at the static quad's pose.</summary>
+        private void BuildImageScreen()
+        {
+            Transform staticScreen = consoleRoot.Find("MonScreen_1");
+            if (staticScreen == null) return;
+            Vector2 size = new Vector2(staticScreen.localScale.x, staticScreen.localScale.y);
+            imageScreen = DiegeticScreen.Create(Vector3.zero, 0f, size,
+                ScreenRtWidth, ScreenRtHeight, "DF_ImageScreen");
+            imageScreen.transform.SetParent(consoleRoot, false);
+            imageScreen.transform.localPosition = staticScreen.localPosition;
+            imageScreen.transform.localRotation = staticScreen.localRotation;
+            Renderer staticRenderer = staticScreen.GetComponent<Renderer>();
+            if (staticRenderer != null) staticRenderer.enabled = false;
+            Destroy(staticScreen.gameObject);
+
+            RectTransform canvas = imageScreen.CanvasRoot;
+            if (canvas == null) return;
+            Vector2 canvasSize = imageScreen.CanvasSize;
+            const float margin = 18f;
+            float content = canvasSize.x - margin * 2f;
+
+            Image bg = Panel("ImageBg", Vector2.zero, canvasSize, new Color(0.012f, 0.035f, 0.028f), canvas);
+            bg.rectTransform.anchorMin = Vector2.zero;
+            bg.rectTransform.anchorMax = Vector2.one;
+            bg.rectTransform.offsetMin = Vector2.zero;
+            bg.rectTransform.offsetMax = Vector2.zero;
+
+            imageTitleText = Label("ImageTitle", new Vector2(margin, 92f), new Vector2(content, 76f), 54f,
+                TextAlignmentOptions.Center, Green, bold: true, canvas: canvas);
+            imageAccent = Panel("ImageAccent", new Vector2(canvasSize.x * 0.5f - 120f, 176f),
+                new Vector2(240f, 3f), Green, canvas);
+            imageDetailText = Label("ImageDetail", new Vector2(margin, 190f), new Vector2(content, 30f), 18f,
+                TextAlignmentOptions.Center, Dim, canvas: canvas);
+            imageNoteText = Label("ImageNote", new Vector2(margin, 224f), new Vector2(content, 28f), 15f,
+                TextAlignmentOptions.Center, Muted, canvas: canvas);
+            ShowImageEmpty();
+        }
+
+        private void ShowImageEmpty()
+        {
+            if (imageScreen == null || imageTitleText == null) return;
+            imageTitleText.text = "";
+            imageDetailText.text = "";
+            imageNoteText.text = "";
+            imageAccent.enabled = false;
+            imageScreen.RenderNow();
+        }
+
+        private void ShowImageCopied()
+        {
+            if (imageScreen == null || imageTitleText == null) return;
+            imageTitleText.text = "IMAGE COPIED";
+            imageAccent.enabled = true;
+            imageDetailText.text = $"{ImageFileName()}   ·   {DeviceCapacityGb:0.0} GB   ·   SHA-256 match";
+            imageNoteText.text = "Analysis runs on this copy; the original stays sealed.";
+            imageScreen.RenderNow();
+        }
+
+        private static string ImageFileName()
+        {
+            string source = SocProgress.TryGetEvidence(out var evidence) && !string.IsNullOrEmpty(evidence.computer)
+                ? evidence.computer : "training";
+            return source + "_phone.E01";
         }
 
         private void ShowAwaitingCustody()
@@ -789,6 +863,7 @@ namespace Cyverse.Interaction
             SetEmission(activityLedMat, Green, 0.05f);
             SetEmission(phoneFaceMat, new Color(0.10f, 0.42f, 0.30f), 1.4f);
             if (titleText != null) ShowComplete();
+            ShowImageCopied();
             if (playSound && Cyverse.Audio.Sfx.Instance != null) Cyverse.Audio.Sfx.Instance.PlayConfirm();
         }
 

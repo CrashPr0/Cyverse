@@ -307,8 +307,10 @@ namespace Cyverse.Tests
 
             Type screenType = FindType("Cyverse.Interaction.DiegeticScreen");
             UnityEngine.Object[] screens = UnityEngine.Object.FindObjectsOfType(screenType);
-            Assert.That(screens.Length, Is.EqualTo(3),
-                "Level 3 should build one isolated diegetic screen per workflow station.");
+            // Custody intake, the centre terminal, and the console's left
+            // (acquisition) and right (copied image) monitors.
+            Assert.That(screens.Length, Is.EqualTo(4),
+                "Level 3 should build one isolated diegetic screen per workflow display.");
 
             TMP_Text custodyStatus = GameObject.Find("CustodyStatus")?.GetComponent<TMP_Text>();
             Assert.That(custodyStatus, Is.Not.Null,
@@ -384,6 +386,16 @@ namespace Cyverse.Tests
                 !console.transform.Find("MonScreen_-1").GetComponent<Renderer>().enabled, Is.True,
                 "The static left monitor quad must not z-fight the acquisition screen.");
 
+            // The RIGHT monitor holds the working copy: blank until imaging ends.
+            GameObject imageScreen = GameObject.Find("DF_ImageScreen");
+            Assert.That(imageScreen, Is.Not.Null, "The console's right monitor should become the copied-image screen.");
+            Assert.That(console.transform.InverseTransformPoint(imageScreen.transform.position).x, Is.GreaterThan(0.5f),
+                "The copied-image screen should replace the console's RIGHT monitor.");
+            GameObject imageTitle = GameObject.Find("ImageTitle");
+            Assert.That(imageTitle, Is.Not.Null);
+            Assert.That(imageTitle.GetComponent<TMP_Text>().text, Is.Empty,
+                "The right monitor stays empty until the acquisition finishes.");
+
             Type plugInType = FindType("Cyverse.Interaction.PlugInStation");
             object plugIn = plugInType.GetProperty("Instance").GetValue(null);
             Assert.That(plugIn, Is.Not.Null);
@@ -391,6 +403,8 @@ namespace Cyverse.Tests
                 "The evidence phone should stay at intake until custody is accepted.");
             plugInType.GetMethod("CompleteNow").Invoke(plugIn, null);
             yield return null;
+            Assert.That(imageTitle.GetComponent<TMP_Text>().text, Is.EqualTo("IMAGE COPIED"),
+                "Once acquisition finishes the right monitor shows the copied image.");
 
             GameObject evidencePhone = GameObject.Find("DF_EvidencePhone");
             Assert.That(evidencePhone, Is.Not.Null, "Completing acquisition should leave the phone docked.");

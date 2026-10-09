@@ -40,27 +40,28 @@ namespace Cyverse.Level
                 "Identifiers distinguish you from every other user, but a claim alone proves nothing — that's the next step's job."),
         };
 
-        /// <summary>Recorded MFA explainer, played once as the player first
-        /// reaches the MFA Vault: it introduces exactly the three factors the
-        /// vault asks for. Captions match the audio word for word.</summary>
+        /// <summary>Recorded MFA explainer, spoken by the MFA Specialist beside
+        /// the vault: it introduces exactly the three factors the vault asks
+        /// for (lines 3-5 light her hologram's tiles). Captions match the audio
+        /// word for word.</summary>
         public static List<DialogueLine> MfaBriefing() => new List<DialogueLine>
         {
-            new DialogueLine("MFA",
+            new DialogueLine("MFA Specialist",
                 "Multi-factor authentication, also known as MFA, is a security method used to protect data, information, and systems from unauthorized access.",
                 Narration.Clip("mfa_01")),
-            new DialogueLine("MFA",
+            new DialogueLine("MFA Specialist",
                 "Instead of relying on just one form of verification, MFA requires users to provide two or more factors to prove their identity. There are three primary factors of authentication.",
                 Narration.Clip("mfa_02")),
-            new DialogueLine("MFA",
+            new DialogueLine("MFA Specialist",
                 "The first factor is something you know. This includes information such as a password, passphrase, or a personal identification number. It is the most common form of authentication. However, when used alone, it can be easily compromised.",
                 Narration.Clip("mfa_03")),
-            new DialogueLine("MFA",
+            new DialogueLine("MFA Specialist",
                 "The second factor is something you have. This refers to a physical item or digital tool, such as a one-time authentication app, security token, or a one-time code sent via email or text message.",
                 Narration.Clip("mfa_04")),
-            new DialogueLine("MFA",
+            new DialogueLine("MFA Specialist",
                 "The third factor is something you are. This includes biometric authentication, which relies on unique physical characteristics such as fingerprints, eye scans, facial recognition, or voice recognition.",
                 Narration.Clip("mfa_05")),
-            new DialogueLine("MFA",
+            new DialogueLine("MFA Specialist",
                 "By combining multiple authentication factors, MFA significantly strengthens security and reduces the risk of unauthorized access.",
                 Narration.Clip("mfa_06")),
         };

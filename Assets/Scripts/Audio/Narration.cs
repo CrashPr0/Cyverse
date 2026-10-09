@@ -12,6 +12,7 @@ namespace Cyverse.Audio
     {
         private const string Folder = "Audio/Narration/";
         private static readonly Dictionary<string, AudioClip> cache = new Dictionary<string, AudioClip>();
+        private static readonly Dictionary<string, byte[]> envelopes = new Dictionary<string, byte[]>();
 
         public static AudioClip Clip(string name)
         {
@@ -19,6 +20,18 @@ namespace Cyverse.Audio
             clip = Resources.Load<AudioClip>(Folder + name);
             cache[name] = clip;
             return clip;
+        }
+
+        /// <summary>The clip's loudness at 30 frames per second, 0-255 per frame
+        /// (<c>name_env.bytes</c>, precomputed offline because WebGL cannot read
+        /// audio samples at runtime). Null when the clip has none.</summary>
+        public static byte[] Envelope(string name)
+        {
+            if (envelopes.TryGetValue(name, out byte[] data)) return data;
+            var asset = Resources.Load<TextAsset>(Folder + name + "_env");
+            data = asset != null ? asset.bytes : null;
+            envelopes[name] = data;
+            return data;
         }
     }
 }
