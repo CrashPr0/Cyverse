@@ -10,6 +10,11 @@ namespace Cyverse.Player
     /// Casts a ray from the camera each frame. When it hits something that
     /// implements <see cref="IInteractable"/>, the HUD shows a prompt and the
     /// interact key activates it.
+    ///
+    /// While carrying an item there is one action, on E (Q does the same):
+    /// aimed at a slot or station it places the item there; aimed at nothing
+    /// it puts the item down. Playtesters were confused by being told "Q to
+    /// drop" in one place and "E to place" in another.
     /// </summary>
     public class PlayerInteractor : MonoBehaviour
     {
@@ -52,12 +57,16 @@ namespace Cyverse.Player
             TargetInView = target != null && target.CanInteract;
             CurrentTarget = TargetInView ? target : null;
 
+            Carryable carried = Carryable.Carried;
+            bool actPressed = Input.GetKeyDown(interactKey) ||
+                              (carried != null && Input.GetKeyDown(KeyCode.Q));
+
             if (TargetInView)
             {
                 if (HudUI.Instance != null)
                     HudUI.Instance.SetInteract(true, target.Prompt, interactKey.ToString());
 
-                if (Input.GetKeyDown(interactKey))
+                if (actPressed)
                 {
                     string targetType = target.GetType().Name;
                     string targetPrompt = target.Prompt;
@@ -68,6 +77,19 @@ namespace Cyverse.Player
                         if (FirstPersonHands.Instance != null) FirstPersonHands.Instance.TriggerInteract();
                         PlaytestMetrics.RecordInteraction(targetType, targetPrompt);
                     }
+                }
+            }
+            else if (carried != null)
+            {
+                // Carrying, aimed at nothing that takes it: the same key sets
+                // it down. The badge says so, so there is never a separate
+                // "drop" key to remember.
+                if (HudUI.Instance != null)
+                    HudUI.Instance.SetInteract(true, $"Put down {carried.itemName}", interactKey.ToString());
+                if (actPressed)
+                {
+                    carried.PutDown();
+                    if (Sfx.Instance != null) Sfx.Instance.PlayClick();
                 }
             }
             else

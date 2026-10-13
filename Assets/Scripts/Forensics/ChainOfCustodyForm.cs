@@ -117,7 +117,7 @@ namespace Cyverse.Forensics
         private void Update()
         {
             if (!open || Time.frameCount == GameState.MenuTransitionFrame) return;
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (GameInput.CancelDown)
                 GameplayActions.TryApply(this, GameplayAction.Cancel());
         }
 
@@ -169,9 +169,9 @@ namespace Cyverse.Forensics
             SetRect(caseLine.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f),
                 new Vector2(34f, -68f), new Vector2(-120f, 26f), new Vector2(0f, 1f));
 
-            Button close = MakeButton("Close", card.transform, "ESC", new Color(0.13f, 0.17f, 0.18f), Color.white);
+            Button close = MakeButton("Close", card.transform, "ESC / TAB", new Color(0.13f, 0.17f, 0.18f), Color.white);
             SetRect(close.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(1f, 1f),
-                new Vector2(-30f, -25f), new Vector2(70f, 38f), new Vector2(1f, 1f));
+                new Vector2(-30f, -25f), new Vector2(130f, 38f), new Vector2(1f, 1f));
             close.onClick.AddListener(() =>
                 GameplayActions.TryApply(this, GameplayAction.Cancel()));
             close.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;

@@ -134,7 +134,7 @@ namespace Cyverse.Interaction
                     GameplayActions.TryApply(this, GameplayAction.Navigate(1));
                 else if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Return))
                     GameplayActions.TryApply(this, GameplayAction.Submit());
-                else if (Input.GetKeyDown(KeyCode.Escape))
+                else if (GameInput.CancelDown)
                     GameplayActions.TryApply(this, GameplayAction.Cancel());
             }
             else if (mode == PanelMode.Verification)
@@ -143,7 +143,7 @@ namespace Cyverse.Interaction
                     GameplayActions.TryApply(this, GameplayAction.Choose(0));
                 else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
                     GameplayActions.TryApply(this, GameplayAction.Choose(1));
-                else if (Input.GetKeyDown(KeyCode.Escape))
+                else if (GameInput.CancelDown)
                     GameplayActions.TryApply(this, GameplayAction.Cancel());
             }
             else if (mode == PanelMode.ChainOfCustody &&
@@ -240,7 +240,7 @@ namespace Cyverse.Interaction
             feedbackText.text = string.IsNullOrEmpty(hint)
                 ? "Only one row can be flagged at a time."
                 : "<color=#FFB347>" + hint + "</color>";
-            controlsText.text = "UP / DOWN SELECT ROW     ·     E / ENTER FLAG & GO INVESTIGATE     ·     ESC CLOSE";
+            controlsText.text = "UP / DOWN SELECT ROW     ·     E / ENTER FLAG & GO INVESTIGATE     ·     ESC / TAB CLOSE";
         }
 
         private void OpenVerification()
@@ -264,7 +264,7 @@ namespace Cyverse.Interaction
                 "<color=#5BD9FF><b>LIVE WORKSTATION ACTIVITY</b></color>\n" +
                 $"> {lines[0]}\n> {lines[1]}";
             feedbackText.text = "Does the flagged activity match what is visibly running here?";
-            controlsText.text = "[1] MATCH — BENIGN POSITIVE     ·     [2] NO MATCH — POSSIBLE TRUE POSITIVE     ·     ESC CLOSE";
+            controlsText.text = "[1] MATCH — BENIGN POSITIVE     ·     [2] NO MATCH — POSSIBLE TRUE POSITIVE     ·     ESC / TAB CLOSE";
         }
 
         private void ResolveVerdict(Level2Content.SocVerdict verdict)

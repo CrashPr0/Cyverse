@@ -57,6 +57,7 @@ namespace Cyverse.Forensics
 
         private void OnDestroy()
         {
+            if (GameInput.TabReservedBy == (object)this) GameInput.TabReservedBy = null;
             modal?.Close();
             if (Instance == this) Instance = null;
         }
@@ -88,6 +89,7 @@ namespace Cyverse.Forensics
             caseClosedNote = closedNote;
             typed = "";
             open = true;
+            GameInput.TabReservedBy = this; // Tab completes commands here
             tutorialEnabled = guidedStart && !tutorialComplete && activeCase.CurrentIndex == 0;
 
             string evidenceHeader = EvidenceHeader();
@@ -205,6 +207,7 @@ namespace Cyverse.Forensics
 
         private void Close()
         {
+            if (GameInput.TabReservedBy == (object)this) GameInput.TabReservedBy = null;
             open = false;
             if (card != null) card.SetActive(false);
             modal?.Close();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Cyverse.Core;
 using UnityEngine.UI;
 using Cyverse.UI;
 
@@ -254,7 +255,7 @@ namespace Cyverse.Interaction
             Key(bar.transform, "E"); Word(bar.transform, "or", Muted, 30f); Key(bar.transform, "ENTER");
             Word(bar.transform, "FLAG ENTRY", Ink, 150f);
             Spacer(bar.transform, 34f);
-            Key(bar.transform, "ESC");
+            Key(bar.transform, "ESC"); Word(bar.transform, "or", Muted, 30f); Key(bar.transform, "TAB");
             Word(bar.transform, "CLOSE", Ink, 90f);
         }
 

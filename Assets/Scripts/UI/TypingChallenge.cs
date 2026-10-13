@@ -82,7 +82,7 @@ namespace Cyverse.UI
 
             headerText.text = header;
             bodyText.text = body;
-            feedbackText.text = "<color=#8FB8CC>ENTER submit   ·   ESC step away</color>";
+            feedbackText.text = "<color=#8FB8CC>ENTER submit   ·   ESC / TAB step away</color>";
             bodyRect.offsetMax = phone
                 ? new Vector2(-280f, -76f)
                 : new Vector2(-46f, -76f);
@@ -92,7 +92,7 @@ namespace Cyverse.UI
             card.SetActive(true);
             if (phone)
             {
-                feedbackText.text = "<color=#8FB8CC>TYPE THE CODE FROM YOUR PHONE\nENTER submit   ·   ESC step away</color>";
+                feedbackText.text = "<color=#8FB8CC>TYPE THE CODE FROM YOUR PHONE\nENTER submit   ·   ESC / TAB step away</color>";
                 // The card can cover the in-world phone, so its own phone
                 // panel always shows the code too; the in-world phone lights up
                 // with it as well.
@@ -119,7 +119,7 @@ namespace Cyverse.UI
             if (!open || closing) return;
             if (Time.frameCount == GameState.MenuTransitionFrame) return;
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (GameInput.CancelDown)
             {
                 GameplayActions.TryApply(this, GameplayAction.Cancel(), gameObject);
                 return;

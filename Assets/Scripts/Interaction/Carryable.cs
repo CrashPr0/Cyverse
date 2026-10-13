@@ -10,7 +10,8 @@ namespace Cyverse.Interaction
 {
     /// <summary>
     /// An item the player can pick up (E), walk around with, and either place
-    /// on a DropZone (E while looking at it) or put back down (Q). One item at
+    /// on a DropZone (E while looking at it) or put back down (E while looking
+    /// at nothing; Q works the same — see PlayerInteractor). One item at
     /// a time; while carried its colliders are disabled so the interact ray
     /// passes through to drop zones. The optional gate lets a level refuse
     /// pickup until some condition holds (e.g. "enroll your badge first").
@@ -82,15 +83,9 @@ namespace Cyverse.Interaction
             {
                 hintShown = true;
                 HudUI.Instance.ShowToast(
-                    $"Carrying {itemName} — deliver it, or press Q to put it down",
+                    $"Carrying {itemName} — press E on where it goes, or E anywhere else to put it down",
                     new Color(0.70f, 0.85f, 1f));
             }
-        }
-
-        void Update()
-        {
-            if (Carried != this || GameState.Busy) return;
-            if (Input.GetKeyDown(KeyCode.Q)) PutDown();
         }
 
         /// <summary>Set the item down in front of the player, on whatever

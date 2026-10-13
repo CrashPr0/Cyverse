@@ -237,7 +237,7 @@ namespace Cyverse.Level
                         HudUI.Instance.ShowObjective(
                             "Objective: Retrieve the seized device from the EVIDENCE LOCKER  (south wall, by the entrance)");
                     else
-                        HudUI.Instance.ShowObjective("Objective: Watch the analyst briefing  (E to play, ←/→ to scrub)");
+                        HudUI.Instance.ShowObjective($"Objective: Watch the analyst briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal, "▶");
                     break;
                 case Phase.Investigate:

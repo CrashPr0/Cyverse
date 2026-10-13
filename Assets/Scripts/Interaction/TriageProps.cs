@@ -158,27 +158,41 @@ namespace Cyverse.Interaction
         public const float DeliveredSpacing = 0.29f;
 
         /// <summary>Restyles a role drop zone as that role's desk: an inbox
-        /// tray (delivered crates stack in it) and a hologram bust of the
-        /// person behind it, with the role label lifted above the bust.</summary>
-        public static void DressRoleDesk(GameObject zone, string role, Color accent)
+        /// tray with one lit bay per crate the role takes (so HR's desk is
+        /// visibly built for two), and a hologram bust of the person behind
+        /// it, with the role label lifted above the bust.</summary>
+        public static void DressRoleDesk(GameObject zone, string role, Color accent, int bays = 1)
         {
             Transform zt = zone.transform;
             Remove(zt, "Pedestal", "TopGlow");
+            bays = Mathf.Max(1, bays);
 
             Material body = Mat(BodyColor, 0.45f, 0.4f);
             Material trim = Mat(TrimColor, 0.55f, 0.6f);
             Material glow = BuildKit.MakeEmissive(accent, 1.4f);
-            Block("DeskBase", zt, Vector3.zero, Vector3.zero, 0f, 0.1f, new Vector2(0.36f, 0.30f), new Vector2(0.34f, 0.28f), 0.03f, trim, solid: true);
-            Block("DeskColumn", zt, Vector3.zero, Vector3.zero, 0.1f, 0.9f, new Vector2(0.24f, 0.20f), new Vector2(0.22f, 0.18f), 0.04f, body, solid: true);
-            Block("Inbox", zt, Vector3.zero, Vector3.zero, 0.9f, InboxHeight, new Vector2(0.34f, 0.30f), new Vector2(0.34f, 0.30f), 0.03f, trim, solid: true);
+            // A single bay keeps the original square desk; each extra bay
+            // widens the inbox, and the column and base widen with it.
+            float half = bays > 1 ? 0.22f + bays * 0.2f : 0.34f;
+            float column = half - 0.12f;
+            Block("DeskBase", zt, Vector3.zero, Vector3.zero, 0f, 0.1f, new Vector2(half + 0.02f, 0.30f), new Vector2(half, 0.28f), 0.03f, trim, solid: true);
+            Block("DeskColumn", zt, Vector3.zero, Vector3.zero, 0.1f, 0.9f, new Vector2(column + 0.02f, 0.20f), new Vector2(column, 0.18f), 0.04f, body, solid: true);
+            Block("Inbox", zt, Vector3.zero, Vector3.zero, 0.9f, InboxHeight, new Vector2(half, 0.30f), new Vector2(half, 0.30f), 0.03f, trim, solid: true);
             var rim = new List<CombineInstance>
             {
-                Piece(CubeMesh, new Vector3(0f, InboxHeight + 0.04f, 0.28f), Vector3.zero, new Vector3(0.68f, 0.08f, 0.04f)),
-                Piece(CubeMesh, new Vector3(-0.32f, InboxHeight + 0.04f, 0f), Vector3.zero, new Vector3(0.04f, 0.08f, 0.6f)),
-                Piece(CubeMesh, new Vector3(0.32f, InboxHeight + 0.04f, 0f), Vector3.zero, new Vector3(0.04f, 0.08f, 0.6f)),
+                Piece(CubeMesh, new Vector3(0f, InboxHeight + 0.04f, 0.28f), Vector3.zero, new Vector3(half * 2f, 0.08f, 0.04f)),
+                Piece(CubeMesh, new Vector3(-half + 0.02f, InboxHeight + 0.04f, 0f), Vector3.zero, new Vector3(0.04f, 0.08f, 0.6f)),
+                Piece(CubeMesh, new Vector3(half - 0.02f, InboxHeight + 0.04f, 0f), Vector3.zero, new Vector3(0.04f, 0.08f, 0.6f)),
             };
+            // Dividers between bays.
+            for (int i = 1; i < bays; i++)
+                rim.Add(Piece(CubeMesh, new Vector3((BayX(i - 1, bays) + BayX(i, bays)) * 0.5f, InboxHeight + 0.025f, -0.01f),
+                    Vector3.zero, new Vector3(0.025f, 0.05f, 0.5f)));
             Batch("InboxRim", zt, trim, rim);
-            Batch("InboxBed", zt, BuildKit.MakeEmissive(accent, 0.9f), Outline(new Vector3(0f, InboxHeight + 0.003f, -0.01f), 0.5f, 0.44f, 0.012f));
+            var beds = new List<CombineInstance>();
+            float bedWidth = bays > 1 ? 0.34f : 0.5f;
+            for (int i = 0; i < bays; i++)
+                beds.AddRange(Outline(new Vector3(BayX(i, bays), InboxHeight + 0.003f, -0.01f), bedWidth, 0.44f, 0.012f));
+            Batch("InboxBed", zt, BuildKit.MakeEmissive(accent, 0.9f), beds);
             Box("DeskAccent", zt, new Vector3(0f, 0.5f, -0.205f), new Vector3(0.025f, 0.6f, 0.01f), glow);
 
             // Projector behind the inbox, and the person it shows. The bust
@@ -196,14 +210,18 @@ namespace Cyverse.Interaction
             if (label != null) label.transform.localPosition = new Vector3(0f, 3.0f, 0f);
         }
 
-        /// <summary>A delivered crate, filed in a role desk's inbox (stacking
-        /// when one role takes several).</summary>
-        public static Transform FileCrate(Transform zone, string crateId, int alreadyFiled, Color accent)
+        /// <summary>A delivered crate, filed in the next free bay of a role
+        /// desk's inbox (stacking only if it ever runs out of bays).</summary>
+        public static Transform FileCrate(Transform zone, string crateId, int alreadyFiled, int bays, Color accent)
         {
+            bays = Mathf.Max(1, bays);
             return BuildCrateCase(zone, "Delivered_" + crateId,
-                new Vector3(0f, InboxHeight + alreadyFiled * DeliveredSpacing, 0f),
+                new Vector3(BayX(alreadyFiled % bays, bays), InboxHeight + alreadyFiled / bays * DeliveredSpacing, 0f),
                 IconFor(crateId), accent, DeliveredScale, solid: false);
         }
+
+        /// <summary>Centre of bay <paramref name="i"/> of <paramref name="bays"/>, side by side along X.</summary>
+        private static float BayX(int i, int bays) => bays <= 1 ? 0f : (i - (bays - 1) * 0.5f) * 0.4f;
 
         /// <summary>A hologram head and shoulders for a role, each with its own
         /// tell: the intern's lanyard badge, the HR manager's tie, the

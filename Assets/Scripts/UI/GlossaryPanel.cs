@@ -39,7 +39,7 @@ namespace Cyverse.UI
         {
             if (GameState.GlossaryOpen)
             {
-                if (Input.GetKeyDown(toggleKey) || Input.GetKeyDown(KeyCode.Escape))
+                if (Input.GetKeyDown(toggleKey) || GameInput.CancelDown)
                 {
                     SetOpen(false);
                     return;

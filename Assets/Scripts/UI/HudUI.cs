@@ -621,7 +621,9 @@ namespace Cyverse.UI
             ilrt.anchorMax = new Vector2(0.5f, 0.5f);
             ilrt.pivot = new Vector2(0f, 0.5f);
             ilrt.anchoredPosition = new Vector2(-110, 0);
-            ilrt.sizeDelta = new Vector2(300, 58);
+            // Wide enough for one line of "Put down PAYROLL DATA" or
+            // "Place SECURITY TOKEN — TOKEN SLOT".
+            ilrt.sizeDelta = new Vector2(600, 58);
             interactLabel.text = "Interact";
         }
 
@@ -637,6 +639,15 @@ namespace Cyverse.UI
             crosshairRect.sizeDelta = new Vector2(10, 10);
             crosshairImage = dot.GetComponent<Image>();
             crosshairImage.color = new Color(1f, 1f, 1f, 0.75f);
+            crosshairImage.raycastTarget = false;
+            // A dark rim keeps the dot visible on bright surfaces: on the
+            // light-blue briefing screen the accent-tinted dot used to vanish.
+            var rim = dot.AddComponent<Outline>();
+            rim.effectColor = new Color(0f, 0.03f, 0.07f, 0.85f);
+            rim.effectDistance = new Vector2(1.5f, -1.5f);
+            var shadow = dot.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0.03f, 0.07f, 0.6f);
+            shadow.effectDistance = new Vector2(-1.5f, 1.5f);
         }
 
         private Text CreateText(string name, Transform parent, int fontSize, TextAnchor anchor)

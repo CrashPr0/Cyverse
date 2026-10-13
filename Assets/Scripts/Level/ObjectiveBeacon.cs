@@ -38,10 +38,24 @@ namespace Cyverse.Level
         private const float MarkerClearance = 0.45f;
         private const float MarkerHalfExtent = 0.20f;
 
+        /// <summary>What the beacon is marking, or null.</summary>
+        public Transform Target => target;
+
+        /// <summary>True while the marker cube is up (it hides once the player
+        /// is close enough that the interact prompt takes over).</summary>
+        public bool MarkerShown => target != null && cube != null && cube.gameObject.activeSelf;
+
+        /// <summary>Where the marker cube floats.</summary>
+        public Vector3 MarkerPosition => cube != null ? cube.position
+            : target != null ? target.position + Vector3.up * markerHeight : transform.position;
+
         void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
+            // Every level that marks objectives also gets the guide drone,
+            // which points the way whenever this marker is out of sight.
+            if (Application.isPlaying) GuideDrone.Ensure();
         }
 
         /// <summary>Get (or build) the scene's beacon.</summary>

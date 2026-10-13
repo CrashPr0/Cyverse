@@ -85,12 +85,18 @@ namespace Cyverse.Player
 
         private void HandleMove()
         {
-            // WASD only — deliberately NOT the "Horizontal"/"Vertical" axes,
-            // which also map the arrow keys. Arrows belong to stations (video
-            // scrubbing, audit-log navigation); reading axes made every arrow
-            // press strafe the player away from the screen they were using.
-            float h = (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f);
-            float v = (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f);
+            // WASD, plus the arrow keys unless the player turned that off in
+            // settings. Read key by key, not through the "Horizontal" /
+            // "Vertical" axes, so the setting is respected; the one walk-up
+            // station that used arrows (briefing scrubbing) moves to [ and ]
+            // while arrows move. Full-screen panels pause movement (Busy).
+            bool arrows = AccessibilitySettings.ArrowKeysMove;
+            bool right = Input.GetKey(KeyCode.D) || (arrows && Input.GetKey(KeyCode.RightArrow));
+            bool left = Input.GetKey(KeyCode.A) || (arrows && Input.GetKey(KeyCode.LeftArrow));
+            bool forward = Input.GetKey(KeyCode.W) || (arrows && Input.GetKey(KeyCode.UpArrow));
+            bool back = Input.GetKey(KeyCode.S) || (arrows && Input.GetKey(KeyCode.DownArrow));
+            float h = (right ? 1f : 0f) - (left ? 1f : 0f);
+            float v = (forward ? 1f : 0f) - (back ? 1f : 0f);
 
             Vector3 velocity = Vector3.ClampMagnitude(
                 transform.right * h + transform.forward * v, 1f) * moveSpeed;

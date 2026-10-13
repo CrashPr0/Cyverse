@@ -9,11 +9,12 @@ using Cyverse.UI;
 namespace Cyverse.Settings
 {
     /// <summary>
-    /// Accessibility / pause menu (Esc). Keyboard-driven (Up/Down select,
+    /// Accessibility / pause menu (Esc or Tab). Keyboard-driven (Up/Down select,
     /// Left/Right adjust) so it works with no mouse and no UI event-system.
     /// Opening it pauses the game. Covers volume channels (master/voice/SFX),
     /// caption text scaling, look sensitivity, field of view (motion comfort),
-    /// and a reduce-motion toggle (photosensitivity). Persists via PlayerPrefs.
+    /// a reduce-motion toggle (photosensitivity), and whether the arrow keys
+    /// move the player. Persists via PlayerPrefs.
     /// </summary>
     public class AccessibilitySettings : MonoBehaviour
     {
@@ -21,6 +22,10 @@ namespace Cyverse.Settings
 
         // Read by shaders/HUD/rotators without needing an instance reference.
         public static bool ReduceMotion;
+
+        /// <summary>The arrow keys move the player as well as WASD. While they
+        /// do, the briefing screen scrubs with [ and ] instead.</summary>
+        public static bool ArrowKeysMove = true;
 
         public float MasterVolume { get; private set; } = 1f;
         public float VoiceVolume { get; private set; } = 1f;
@@ -35,7 +40,8 @@ namespace Cyverse.Settings
         private readonly string[] rows =
         {
             "Master Volume", "Voice Volume", "Voiceover (TTS)", "SFX Volume",
-            "Caption Size", "Look Sensitivity", "Field of View", "Reduce Motion"
+            "Caption Size", "Look Sensitivity", "Field of View", "Reduce Motion",
+            "Move With"
         };
         private int selected;
 
@@ -68,7 +74,7 @@ namespace Cyverse.Settings
             // the glossary from also opening settings later this same frame.
             bool canToggle = (GameState.MenuOpen || !GameState.AnyMenuOpen)
                              && Time.frameCount != GameState.MenuTransitionFrame;
-            if (Input.GetKeyDown(KeyCode.Escape) && canToggle)
+            if (GameInput.CancelDown && canToggle)
                 SetMenuOpen(!GameState.MenuOpen);
 
             if (!GameState.MenuOpen) return;
@@ -126,6 +132,7 @@ namespace Cyverse.Settings
                 case 5: MouseSensitivity = Mathf.Clamp(MouseSensitivity + 0.1f * dir, 0.2f, 3f); break;
                 case 6: FieldOfView = Mathf.Clamp(FieldOfView + 5f * dir, 50f, 100f); break;
                 case 7: ReduceMotion = !ReduceMotion; break;
+                case 8: ArrowKeysMove = !ArrowKeysMove; break;
             }
             Apply();
             Save();
@@ -156,7 +163,7 @@ namespace Cyverse.Settings
                 sb.AppendLine($"{cursor}{name}:  {ValueLabel(i)}");
                 sb.AppendLine();
             }
-            sb.AppendLine("<size=20><color=#8FB8CC>Up/Down: select    Left/Right: adjust    Esc: resume</color></size>");
+            sb.AppendLine("<size=20><color=#8FB8CC>Up/Down: select    Left/Right: adjust    Esc / Tab: resume</color></size>");
             menuText.text = sb.ToString();
         }
 
@@ -174,6 +181,7 @@ namespace Cyverse.Settings
                 case 5: return $"{MouseSensitivity:0.0}x";
                 case 6: return $"{Mathf.RoundToInt(FieldOfView)}°";
                 case 7: return ReduceMotion ? "On" : "Off";
+                case 8: return ArrowKeysMove ? "WASD + Arrow Keys" : "WASD only";
                 default: return string.Empty;
             }
         }
@@ -190,6 +198,7 @@ namespace Cyverse.Settings
             FieldOfView = PlayerPrefs.GetFloat("cv_fov", 60f);
             ReduceMotion = PlayerPrefs.GetInt("cv_reducemotion", 0) == 1;
             TtsEnabled = PlayerPrefs.GetInt("cv_tts", 1) == 1;
+            ArrowKeysMove = PlayerPrefs.GetInt("cv_arrowmove", 1) == 1;
         }
 
         private void Save()
@@ -202,6 +211,7 @@ namespace Cyverse.Settings
             PlayerPrefs.SetFloat("cv_fov", FieldOfView);
             PlayerPrefs.SetInt("cv_reducemotion", ReduceMotion ? 1 : 0);
             PlayerPrefs.SetInt("cv_tts", TtsEnabled ? 1 : 0);
+            PlayerPrefs.SetInt("cv_arrowmove", ArrowKeysMove ? 1 : 0);
             PlayerPrefs.Save();
         }
 

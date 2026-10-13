@@ -110,7 +110,7 @@ namespace Cyverse.Interaction
         {
             if (!panelOpen || Time.frameCount == GameState.MenuTransitionFrame) return;
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (GameInput.CancelDown)
             {
                 if (!IsComplete) CloseLog();
                 return;

@@ -99,6 +99,26 @@ namespace Cyverse.Interaction
 
             if (loading) return;
 
+            // Leaving a level for the Hub mid-way throws away its progress, and
+            // the spawn-side exit sits right behind where players start — ask
+            // first. Once the level is complete nothing is lost.
+            if (LeavesUnfinishedLevel)
+            {
+                ConfirmDialog.Show("RETURN TO THE HUB?",
+                    "This level's progress isn't saved until you finish it.\nIf you leave now, you'll start it over next time.",
+                    "RETURN TO HUB", "KEEP PLAYING", Leave);
+                return;
+            }
+            Leave();
+        }
+
+        /// <summary>Going back to the Hub from a level that isn't finished.</summary>
+        private bool LeavesUnfinishedLevel =>
+            sceneName == "Hub" && SceneManager.GetActiveScene().name != "Hub" && !GameState.LevelComplete;
+
+        private void Leave()
+        {
+            if (loading) return;
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
             if (Application.CanStreamedLevelBeLoaded(sceneName))
             {

@@ -75,7 +75,7 @@ namespace Cyverse.UI
             if (!open) return;
             if (Time.frameCount == GameState.MenuTransitionFrame) return;
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (GameInput.CancelDown)
             {
                 if (screen == Screen.Question)
                 {

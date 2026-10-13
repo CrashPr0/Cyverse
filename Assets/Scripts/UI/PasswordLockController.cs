@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using Cyverse.Core;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Cyverse.Audio;
@@ -56,8 +57,14 @@ namespace Cyverse.UI
         private bool unlocked;
         private float lockedUntil;
 
+        void OnDestroy()
+        {
+            if (GameInput.TabReservedBy == (object)this) GameInput.TabReservedBy = null;
+        }
+
         void Start()
         {
+            GameInput.TabReservedBy = this; // Tab shows/hides the password here
             // Select the authored culprit profile once per browser/application
             // session.  The roster persists its index in PlayerPrefs so the
             // next startup rotates identities while all scenes in this run

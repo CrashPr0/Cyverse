@@ -107,7 +107,7 @@ namespace Cyverse.Interaction
         private void Update()
         {
             if (!open || Time.frameCount == openedFrame) return;
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (GameInput.CancelDown)
                 GameplayActions.TryApply(this, GameplayAction.Cancel());
             else if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
                 GameplayActions.TryApply(this, GameplayAction.Choose(0));
@@ -251,7 +251,7 @@ namespace Cyverse.Interaction
             TMP_Text controls = MakeText("Controls", 16f, TextAlignmentOptions.Center);
             SetRect(controls.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f),
                 new Vector2(42f, 12f), new Vector2(-42f, 43f));
-            controls.text = "CLICK A CHOICE OR PRESS 1 / 2 / 3     ·     ESC CLOSE     ·     SYNTHETIC DATA ONLY";
+            controls.text = "CLICK A CHOICE OR PRESS 1 / 2 / 3     ·     ESC / TAB CLOSE     ·     SYNTHETIC DATA ONLY";
             controls.color = new Color(0.60f, 0.74f, 0.82f);
 
             panel.SetActive(false);

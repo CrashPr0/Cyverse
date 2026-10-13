@@ -129,6 +129,14 @@ namespace Cyverse.Interaction
             }
         }
 
+        /// <summary>How many crates belong to <paramref name="role"/> — its desk gets a bay for each.</summary>
+        private static int CratesFor(Level1IamContent.CrateDef[] defs, string role)
+        {
+            int n = 0;
+            foreach (var d in defs) if (d.role == role) n++;
+            return n;
+        }
+
         private static bool IsRole(Level1IamContent.CrateDef[] defs, string zoneName)
         {
             foreach (var d in defs) if (d.role == zoneName) return true;
@@ -144,7 +152,7 @@ namespace Cyverse.Interaction
             int already = 0;
             foreach (Transform child in zone.transform)
                 if (child.name.StartsWith("Delivered_")) already++;
-            TriageProps.FileCrate(zone.transform, def.id, already, accent);
+            TriageProps.FileCrate(zone.transform, def.id, already, CratesFor(defs, zone.zoneName), accent);
 
             delivered++;
             ScoreSystem.Add(pointsPerCrate);
@@ -206,7 +214,8 @@ namespace Cyverse.Interaction
             }
 
             foreach (var (role, pos) in pedestals)
-                TriageProps.DressRoleDesk(DropZone.Build(pos, role, accent).gameObject, role, accent);
+                TriageProps.DressRoleDesk(DropZone.Build(pos, role, accent).gameObject, role, accent,
+                    CratesFor(crates, role));
 
             // Crates and pedestals exist now, so the shared wiring path can
             // find and hook them — the same one a saved scene goes through.

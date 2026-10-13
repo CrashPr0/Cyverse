@@ -334,14 +334,14 @@ namespace Cyverse.Level
         private string NextActionText()
         {
             if (IsCarryingSeizedDevice)
-                return "Evidence: carry the SEIZED DEVICE to the EVIDENCE LOCKER on the north wall, then press E  (Q puts it down)";
+                return "Evidence: carry the SEIZED DEVICE to the EVIDENCE LOCKER on the north wall, then press E  (E anywhere else puts it down)";
             if (Carryable.Carried != null)
             {
                 if (playbook != null && !playbook.IsComplete)
                     return playbook.IsExpectedCard(Carryable.Carried)
-                        ? $"Carry {Carryable.Carried.itemName} to STEP {playbook.NextSlot}  (Q puts it down)"
-                        : $"Next is {playbook.NextStep}, not {Carryable.Carried.itemName} — press Q to put it down";
-                return $"Carrying {Carryable.Carried.itemName}  (Q puts it down)";
+                        ? $"Carry {Carryable.Carried.itemName} to STEP {playbook.NextSlot}  (E anywhere else puts it down)"
+                        : $"Next is {playbook.NextStep}, not {Carryable.Carried.itemName} — press E away from the steps to put it down";
+                return $"Carrying {Carryable.Carried.itemName}  (E away from a slot puts it down)";
             }
             if (EvidencePending)
                 return "Evidence: pick up the SEIZED DEVICE at WS-03 and lock it in the EVIDENCE LOCKER (north wall)";
@@ -367,7 +367,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Watch:
-                    SetObjective("Objective: Watch the defense briefing  (E to play, ←/→ to scrub)");
+                    SetObjective($"Objective: Watch the defense briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
                     HudUI.Instance.SetProgress(0, Mathf.Max(1, TotalSteps), "▶");
                     break;
                 case Phase.Tasks:

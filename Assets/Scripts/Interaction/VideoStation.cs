@@ -280,16 +280,15 @@ namespace Cyverse.Interaction
 
         void Update()
         {
-            // Scrubbing: hold Left/Right near the screen (menus block via Busy
-            // elsewhere; scrub keys are harmless during dialogue).
+            // Scrubbing: hold the scrub keys near the screen (menus block via
+            // Busy elsewhere; scrub keys are harmless during dialogue). They
+            // are the arrows, or [ and ] while the arrows move the player.
             var cam = Camera.main;
             bool near = cam != null &&
                 (cam.transform.position - transform.position).sqrMagnitude < controlRange * controlRange;
             if (near && !Core.GameState.AnyMenuOpen)
             {
-                float scrub = 0f;
-                if (Input.GetKey(KeyCode.LeftArrow)) scrub -= 1f;
-                if (Input.GetKey(KeyCode.RightArrow)) scrub += 1f;
+                float scrub = Core.GameInput.ScrubAxis();
                 if (scrub != 0f)
                     GameplayActions.TryApply(this,
                         GameplayAction.Scrub(scrub * scrubSecondsPerSecond * Time.deltaTime));
@@ -351,6 +350,9 @@ namespace Cyverse.Interaction
                 bool showControls = controlsRevealed || playing || HasCompletedOnce;
                 if (controlsText.gameObject.activeSelf != showControls)
                     controlsText.gameObject.SetActive(showControls);
+                // The scrub keys follow the movement-keys setting.
+                string controls = $"E play/pause  ·  {Core.GameInput.ScrubLabel} scrub";
+                if (showControls && controlsText.text != controls) controlsText.text = controls;
             }
 
             if (barFill != null)

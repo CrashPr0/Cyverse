@@ -329,9 +329,9 @@ namespace Cyverse.Level
                 return "Follow the marker to the ENROLLMENT kiosk — press E to create your ID badge";
 
             if (CarryingToken)
-                return "Carry the token to the TOKEN SLOT by the vault — press E to insert it  (Q puts it down)";
+                return "Carry the token to the TOKEN SLOT by the vault — press E to insert it  (E away from the slot puts it down)";
             if (Carryable.Carried != null)
-                return $"Carrying {Carryable.Carried.itemName} — press E on the role that should have access  (Q puts it down)";
+                return $"Carrying {Carryable.Carried.itemName} — press E on the role that should have access  (E away from a role puts it down)";
 
             if (gauntlet != null && !gauntlet.IsComplete && NeedsMfaBriefing)
                 return "MFA Vault: first talk to the MFA SPECIALIST by the vault — press E";
@@ -363,7 +363,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Watch:
-                    SetObjective("Objective: Watch the security briefing  (E to play, ←/→ to scrub)");
+                    SetObjective($"Objective: Watch the security briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
                     HudUI.Instance.SetProgress(0, Mathf.Max(1, TotalSteps), "▶");
                     break;
                 case Phase.Tasks:

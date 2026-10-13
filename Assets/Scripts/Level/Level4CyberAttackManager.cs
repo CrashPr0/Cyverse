@@ -285,7 +285,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Briefing:
-                    HudUI.Instance.ShowObjective("Objective: Watch the controlled attack briefing  (E to play, ←/→ to scrub)");
+                    HudUI.Instance.ShowObjective($"Objective: Watch the controlled attack briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 4 COMPLETE — exit to the Hub");
