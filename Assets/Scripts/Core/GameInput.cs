@@ -23,18 +23,18 @@ namespace Cyverse.Core
         /// <summary>How the cancel key is written in on-screen hints.</summary>
         public const string CancelLabel = "ESC / TAB";
 
-        /// <summary>Briefing-screen scrub keys: the arrows, or [ and ] while
-        /// the arrows move the player.</summary>
-        public static float ScrubAxis()
+        /// <summary>Briefing-screen scrubbing: the left/right arrows. While
+        /// the arrows also move the player, they scrub only while the player
+        /// is looking at the screen (<paramref name="watching"/>) — and stop
+        /// strafing then (see FirstPersonController).</summary>
+        public static float ScrubAxis(bool watching)
         {
-            bool arrowsMove = Cyverse.Settings.AccessibilitySettings.ArrowKeysMove;
-            KeyCode back = arrowsMove ? KeyCode.LeftBracket : KeyCode.LeftArrow;
-            KeyCode ahead = arrowsMove ? KeyCode.RightBracket : KeyCode.RightArrow;
-            return (Input.GetKey(ahead) ? 1f : 0f) - (Input.GetKey(back) ? 1f : 0f);
+            bool arrowsScrub = watching || !Cyverse.Settings.AccessibilitySettings.ArrowKeysMove;
+            if (!arrowsScrub) return 0f;
+            return (Input.GetKey(KeyCode.RightArrow) ? 1f : 0f) - (Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f);
         }
 
         /// <summary>How the scrub keys are written in on-screen hints.</summary>
-        public static string ScrubLabel =>
-            Cyverse.Settings.AccessibilitySettings.ArrowKeysMove ? "[ / ]" : "←/→";
+        public const string ScrubLabel = "←/→";
     }
 }

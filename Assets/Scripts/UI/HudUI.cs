@@ -41,6 +41,7 @@ namespace Cyverse.UI
         private RectTransform crosshairRect;
         private Image crosshairImage;
         private float crosshairScale = 1f;
+        private float crosshairHiddenUntil;
 
         // Interaction prompt
         private CanvasGroup interactGroup;
@@ -145,6 +146,7 @@ namespace Cyverse.UI
             crosshairRect.localScale = Vector3.one * crosshairScale;
 
             Color targetColor = interactActive ? Accent : new Color(1f, 1f, 1f, 0.75f);
+            if (Time.unscaledTime < crosshairHiddenUntil) targetColor.a = 0f;
             crosshairImage.color = Color.Lerp(crosshairImage.color, targetColor, k);
 
             // Interaction badge fades + pops in, with a gentle pulse while active.
@@ -192,6 +194,11 @@ namespace Cyverse.UI
                 ringFill.fillAmount = ringDisplayed;
             }
         }
+
+        /// <summary>Hide the crosshair for this frame (and a beat after), e.g.
+        /// while the player reads the briefing screen. Call every frame it
+        /// should stay hidden.</summary>
+        public void SuppressCrosshair() => crosshairHiddenUntil = Time.unscaledTime + 0.15f;
 
         /// <summary>Quick crosshair "kick" when the player activates something.</summary>
         public void PulseCrosshair()

@@ -17,6 +17,9 @@ namespace Cyverse.Level
         private const float Cell = 0.5f, Extent = 19.75f;
         private static readonly int Size = Mathf.CeilToInt(Extent * 2f / Cell);
         private const float ShowAfterNewObjective = 4f;
+        // The trail is the first hint: it comes up after the objective has
+        // been out of sight this long; the drone follows much later.
+        private const float ShowAfterHidden = 12f;
         private const float TrailLength = 9f;
         private static readonly Color Guide = new Color(0.90f, 0.66f, 0.14f);
 
@@ -88,7 +91,8 @@ namespace Cyverse.Level
             bool menuUp = Core.GameState.Busy && !Core.GameState.DialogueActive;
             GuideDrone drone = GuideDrone.Instance;
             bool want = target != null && cam != null && !menuUp &&
-                        ((drone != null && drone.IsPointing) || Time.time - targetChangedAt < ShowAfterNewObjective);
+                        ((drone != null && drone.MarkerHiddenFor > ShowAfterHidden) ||
+                         Time.time - targetChangedAt < ShowAfterNewObjective);
             strength = Mathf.MoveTowards(strength, want ? 1f : 0f, Time.deltaTime * 2.5f);
             if (strength <= 0f || target == null || cam == null) return;
 

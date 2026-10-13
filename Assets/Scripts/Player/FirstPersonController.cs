@@ -87,12 +87,13 @@ namespace Cyverse.Player
         {
             // WASD, plus the arrow keys unless the player turned that off in
             // settings. Read key by key, not through the "Horizontal" /
-            // "Vertical" axes, so the setting is respected; the one walk-up
-            // station that used arrows (briefing scrubbing) moves to [ and ]
-            // while arrows move. Full-screen panels pause movement (Busy).
+            // "Vertical" axes, so the setting is respected. While the player
+            // looks at a briefing screen, left/right arrows scrub it instead
+            // of strafing away from it. Full-screen panels pause movement (Busy).
             bool arrows = AccessibilitySettings.ArrowKeysMove;
-            bool right = Input.GetKey(KeyCode.D) || (arrows && Input.GetKey(KeyCode.RightArrow));
-            bool left = Input.GetKey(KeyCode.A) || (arrows && Input.GetKey(KeyCode.LeftArrow));
+            bool arrowsStrafe = arrows && !Interaction.VideoStation.BeingWatched;
+            bool right = Input.GetKey(KeyCode.D) || (arrowsStrafe && Input.GetKey(KeyCode.RightArrow));
+            bool left = Input.GetKey(KeyCode.A) || (arrowsStrafe && Input.GetKey(KeyCode.LeftArrow));
             bool forward = Input.GetKey(KeyCode.W) || (arrows && Input.GetKey(KeyCode.UpArrow));
             bool back = Input.GetKey(KeyCode.S) || (arrows && Input.GetKey(KeyCode.DownArrow));
             float h = (right ? 1f : 0f) - (left ? 1f : 0f);

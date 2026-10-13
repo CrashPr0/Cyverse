@@ -48,6 +48,13 @@ namespace Cyverse.Interaction
         public float scrubSecondsPerSecond = 8f;
         public float controlRange = 7f;
 
+        private static int lookedAtFrame = -10;
+
+        /// <summary>True while the player is looking at a briefing screen in
+        /// range: the left/right arrows scrub it instead of moving the player,
+        /// and the crosshair steps aside so it doesn't sit on the slides.</summary>
+        public static bool BeingWatched => Time.frameCount - lookedAtFrame <= 1;
+
         /// <summary>Fires once, the first time playback reaches the end.</summary>
         public event Action FirstCompleted;
         public bool HasCompletedOnce { get; private set; }
@@ -286,9 +293,15 @@ namespace Cyverse.Interaction
             var cam = Camera.main;
             bool near = cam != null &&
                 (cam.transform.position - transform.position).sqrMagnitude < controlRange * controlRange;
+            bool watching = near && !Core.GameState.AnyMenuOpen && LookedAt(cam);
+            if (watching)
+            {
+                lookedAtFrame = Time.frameCount;
+                if (HudUI.Instance != null) HudUI.Instance.SuppressCrosshair();
+            }
             if (near && !Core.GameState.AnyMenuOpen)
             {
-                float scrub = Core.GameInput.ScrubAxis();
+                float scrub = Core.GameInput.ScrubAxis(watching);
                 if (scrub != 0f)
                     GameplayActions.TryApply(this,
                         GameplayAction.Scrub(scrub * scrubSecondsPerSecond * Time.deltaTime));
@@ -306,6 +319,15 @@ namespace Cyverse.Interaction
             }
 
             RefreshScreen();
+        }
+
+        /// <summary>The view ray lands on this station (its screen or the aim
+        /// volume around it).</summary>
+        private bool LookedAt(Camera cam)
+        {
+            if (!Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, controlRange))
+                return false;
+            return hit.collider.transform.IsChildOf(transform);
         }
 
         private void Seek(float to)

@@ -45,8 +45,10 @@ namespace Cyverse.Interaction
         /// derive their placement from this transform.</summary>
         public void Place(Vector3 boardPosition, float yawDegrees)
         {
-            if (steps == null) steps = Level2Content.PlaybookSteps();
-            if (why == null) why = Level2Content.PlaybookWhy();
+            // Entering Play from this scene in the editor can hand back the
+            // private arrays as empty rather than null.
+            if (steps == null || steps.Length == 0) steps = Level2Content.PlaybookSteps();
+            if (why == null || why.Length == 0) why = Level2Content.PlaybookWhy();
             transform.SetPositionAndRotation(boardPosition, Quaternion.Euler(0f, yawDegrees, 0f));
             ApplyReadableLayout();
         }

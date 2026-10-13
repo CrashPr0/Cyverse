@@ -20,10 +20,15 @@ namespace Cyverse.Level
 
         // Hover spot in camera space: ahead, toward the side to turn, a little high.
         private const float Ahead = 1.35f, Side = 0.72f, Lift = 0.14f;
-        // The marker must be out of sight this long before the drone comes in,
-        // and back in sight this long before it leaves, so it doesn't flicker
-        // as the player sweeps the view.
-        private const float ShowAfter = 0.5f, HideAfter = 0.7f;
+        // The marker must be out of sight this long before the drone comes in
+        // (it's a last resort for a player who has lost the objective, not a
+        // constant companion — the floor trail is the gentler first hint),
+        // and back in sight this long before it leaves.
+        public const float ShowAfter = 30f;
+        private const float HideAfter = 0.7f;
+
+        /// <summary>How long the objective marker has been out of sight.</summary>
+        public float MarkerHiddenFor => hiddenFor;
         private static readonly Color Guide = new Color(0.90f, 0.66f, 0.14f);
 
         private Transform body, pointer, bladesL, bladesR;
