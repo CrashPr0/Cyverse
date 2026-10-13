@@ -24,6 +24,8 @@ namespace Cyverse.Interaction
         public bool IsComplete { get; private set; }
 
         public int pointsPerStep = 50;
+        /// <summary>Glow colour for the board, docks and cards.</summary>
+        public Color accent = Level2SceneFactory.SocRed;
 
         private string[] steps;
         private string[] why;
@@ -77,6 +79,9 @@ namespace Cyverse.Interaction
         {
             card.Consume();
             placed++;
+            Transform seated = zone.transform.Find("Dock/SeatedCard");
+            if (seated != null) seated.gameObject.SetActive(true);
+            RefreshDockLamps();
 
             ScoreSystem.Add(pointsPerStep);
             if (Sfx.Instance != null) Sfx.Instance.PlayStreak(placed);
@@ -85,7 +90,7 @@ namespace Cyverse.Interaction
             // Replace the placeholder instead of stacking another label on
             // top of it. The completed sequence stays readable at a glance.
             SetSlotLabel(zone, $"{slot + 1}. {steps[slot]}",
-                new Color(0.30f, 1f, 0.55f), 0.018f);
+                new Color(0.30f, 1f, 0.55f), 0.022f);
 
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast($"STEP {slot + 1}: {steps[slot]}  +{pointsPerStep}  ·  {why[slot]}",
@@ -117,7 +122,7 @@ namespace Cyverse.Interaction
         {
             foreach (TextMesh label in zone.GetComponentsInChildren<TextMesh>(true))
             {
-                if (!label.text.StartsWith("STEP ")) continue;
+                if (!label.text.StartsWith("STEP ") || label.transform.parent != zone.transform) continue;
                 label.text = text;
                 label.color = color;
                 label.characterSize = size;
@@ -139,6 +144,7 @@ namespace Cyverse.Interaction
             root.transform.SetPositionAndRotation(boardPos, Quaternion.Euler(0f, yawDegrees, 0f));
 
             var station = root.AddComponent<PlaybookStation>();
+            station.accent = accent;
             station.steps = Level2Content.PlaybookSteps();
             station.why = Level2Content.PlaybookWhy();
 
@@ -329,15 +335,84 @@ namespace Cyverse.Interaction
                             new Vector3(CenteredOffset(i, shuffled.Length, CardSpacing), 0.9f, 0f)),
                         rack.transform.rotation);
                     card.transform.localScale = Vector3.one;
-                    foreach (TextMesh label in card.GetComponentsInChildren<TextMesh>(true))
-                    {
-                        label.transform.localPosition = new Vector3(
-                            0f, 0.68f, label.transform.localPosition.z);
-                        FitLabelToWidth(label, rack.transform.right,
-                            CardSpacing * 0.78f, 0.018f);
-                    }
                     break;
                 }
+            }
+
+            DressModels(zones, rack);
+        }
+
+        // ---- Models -----------------------------------------------------------
+
+        private Material lampPending, lampNext, lampFilled;
+
+        /// <summary>Board, docks, cards and rack in the Level 1 style (see
+        /// PlaybookProps). Safe to call again: each part is dressed once.</summary>
+        private void DressModels(System.Collections.Generic.List<DropZone> zones, GameObject rack)
+        {
+            float width = Mathf.Max(1, zones.Count) * SlotSpacing + 0.6f;
+            PlaybookProps.BuildBoard(transform, width, accent);
+            Transform backboard = transform.Find("Backboard");
+            if (backboard != null && backboard.GetComponent<Renderer>() != null)
+                backboard.GetComponent<Renderer>().enabled = false;
+            Transform title = transform.Find("Sign_IR_PLAYBOOK");
+            if (title != null && title.localScale.x < 0.11f) title.localScale = Vector3.one * 0.13f;
+
+            for (int i = 0; i < zones.Count && i < steps.Length; i++)
+            {
+                DropZone zone = zones[i];
+                PlaybookProps.DressDock(zone.gameObject, i + 1, steps[i], accent);
+                PlaybookProps.BuildStepPanel(zone.transform, i == zones.Count - 1, accent);
+                // The step label is mounted on its wall panel rather than
+                // floating over the dock, where it crossed the card names.
+                foreach (TextMesh label in zone.GetComponentsInChildren<TextMesh>(true))
+                {
+                    if (label.transform.parent != zone.transform) continue;
+                    foreach (Billboard b in label.GetComponents<Billboard>()) Destroy(b);
+                    label.transform.localPosition = new Vector3(0f, 1.82f, 0.56f);
+                    label.transform.localRotation = Quaternion.identity;
+                    WorldTextLayoutIntent.Configure(label.gameObject, WorldTextLayoutIntent.Mode.Mounted);
+                    if (label.text.StartsWith("STEP ")) FitLabelToWidth(label, zone.transform.right, 1.6f, 0.024f);
+                }
+                // A slot filled before this ran (a rewired scene) shows its card.
+                Transform seated = zone.transform.Find("Dock/SeatedCard");
+                if (seated != null) seated.gameObject.SetActive(i < placed);
+            }
+
+            foreach (Carryable card in FindObjectsOfType<Carryable>())
+            {
+                if (card.transform.parent != null) continue;
+                foreach (string step in steps)
+                    if (card.id == PlaybookId(step)) { PlaybookProps.DressCard(card, step, accent); break; }
+            }
+
+            if (rack != null)
+            {
+                var bays = new float[steps.Length];
+                for (int i = 0; i < bays.Length; i++) bays[i] = CenteredOffset(i, bays.Length, CardSpacing);
+                PlaybookProps.DressRack(rack, 10.8f, bays, accent);
+            }
+            RefreshDockLamps();
+        }
+
+        /// <summary>Filled docks glow green, the next one in the accent colour,
+        /// the rest stay dim — so "work left to right" is visible at a glance.</summary>
+        private void RefreshDockLamps()
+        {
+            if (lampPending == null)
+            {
+                lampPending = BuildKit.MakeEmissive(new Color(0.3f, 0.32f, 0.38f), 0.4f);
+                lampNext = BuildKit.MakeEmissive(accent, 2.2f);
+                lampFilled = BuildKit.MakeEmissive(PlaybookProps.Filled, 1.8f);
+            }
+            foreach (DropZone zone in FindObjectsOfType<DropZone>())
+            {
+                if (!zone.zoneName.StartsWith("STEP ")) continue;
+                Transform lamp = zone.transform.Find("Dock/DockLamp");
+                if (lamp == null) continue;
+                int slot = StepNumber(zone) - 1;
+                lamp.GetComponent<Renderer>().sharedMaterial =
+                    slot < placed ? lampFilled : slot == placed ? lampNext : lampPending;
             }
         }
 
