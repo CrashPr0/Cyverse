@@ -49,6 +49,20 @@ namespace Cyverse.Level
 
         void Update()
         {
+            // The level writes its completion flags synchronously as it
+            // completes, so check them on the first frame the Complete phase
+            // shows — not on the throttled sampler, which could reach it after
+            // the save has legitimately been reset (e.g. by the next test).
+            if (!completionChecked && manager != null &&
+                manager.CurrentPhase == Level1IamManager.Phase.Complete)
+            {
+                completionChecked = true;
+                if (!GameState.LevelComplete || !LevelProgress.IsCompleted(1))
+                    Debug.LogError("[END FLOW] Complete phase did not persist all completion flags.");
+                if (ResultsScreen.Instance == null)
+                    Debug.LogError("[END FLOW] Complete phase has no ResultsScreen instance.");
+            }
+
             if (Time.unscaledTime < nextSample) return;
             nextSample = Time.unscaledTime + 0.25f;
             Sample(force: false);
@@ -89,17 +103,6 @@ namespace Cyverse.Level
 
             if (manager.CurrentPhase != Level1IamManager.Phase.Watch && taskDoor != null && taskDoor.IsLocked)
                 Debug.LogWarning("[END FLOW] Briefing phase ended but the task-room door is still locked.", taskDoor);
-            // Checked once, as the level completes. Afterwards the save belongs
-            // to whoever runs next — a test resetting progress while this scene
-            // is still unloading is not a Level 1 failure.
-            if (manager.CurrentPhase == Level1IamManager.Phase.Complete && !completionChecked)
-            {
-                completionChecked = true;
-                if (!GameState.LevelComplete || !LevelProgress.IsCompleted(1))
-                    Debug.LogError("[END FLOW] Complete phase did not persist all completion flags.");
-                if (ResultsScreen.Instance == null)
-                    Debug.LogError("[END FLOW] Complete phase has no ResultsScreen instance.");
-            }
         }
     }
 }
