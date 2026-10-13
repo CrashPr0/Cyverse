@@ -23,6 +23,7 @@ namespace Cyverse.Level
         private LockedDoor taskDoor;
         private string lastSnapshot;
         private float nextSample;
+        private bool completionChecked;
 
         public static void Install(GameObject host)
         {
@@ -88,8 +89,12 @@ namespace Cyverse.Level
 
             if (manager.CurrentPhase != Level1IamManager.Phase.Watch && taskDoor != null && taskDoor.IsLocked)
                 Debug.LogWarning("[END FLOW] Briefing phase ended but the task-room door is still locked.", taskDoor);
-            if (manager.CurrentPhase == Level1IamManager.Phase.Complete)
+            // Checked once, as the level completes. Afterwards the save belongs
+            // to whoever runs next — a test resetting progress while this scene
+            // is still unloading is not a Level 1 failure.
+            if (manager.CurrentPhase == Level1IamManager.Phase.Complete && !completionChecked)
             {
+                completionChecked = true;
                 if (!GameState.LevelComplete || !LevelProgress.IsCompleted(1))
                     Debug.LogError("[END FLOW] Complete phase did not persist all completion flags.");
                 if (ResultsScreen.Instance == null)
