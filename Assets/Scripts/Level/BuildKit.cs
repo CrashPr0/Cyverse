@@ -462,13 +462,23 @@ namespace Cyverse.Level
 
             // Holo chrome: a glowing underline and a soft glow halo behind the
             // glyphs, so signs read as projected holograms rather than bare text.
+            // Both are children of the scaled text, so they are sized in its
+            // local units from the glyphs' actual bounds — world sizes here
+            // shrank the underline into a strike through the middle of the word.
+            float s = tmp.rectTransform.localScale.x;
+            tmp.ForceMeshUpdate();
+            Bounds glyphs = tmp.textBounds;
+            if (glyphs.size.x <= 0f || glyphs.size.y <= 0f)
+                glyphs = new Bounds(Vector3.zero, new Vector3(w / s, h / s * 0.5f, 0f));
 
             var underline = GameObject.CreatePrimitive(PrimitiveType.Cube);
             underline.name = "Underline";
             StripCollider(underline);
             underline.transform.SetParent(go.transform, false);
-            underline.transform.localPosition = new Vector3(0f, -h * 0.75f, 0.005f);
-            underline.transform.localScale = new Vector3(w, h * 0.06f, 0.01f);
+            underline.transform.localPosition = new Vector3(glyphs.center.x,
+                glyphs.min.y - glyphs.size.y * 0.22f, 0.005f / s);
+            underline.transform.localScale = new Vector3(glyphs.size.x * 1.04f,
+                Mathf.Max(glyphs.size.y * 0.07f, 0.002f / s), 0.01f / s);
             underline.GetComponent<Renderer>().sharedMaterial = MakeEmissive(color, 2f);
 
             Shader glowShader = Shader.Find("Cyverse/GlowSprite");
@@ -478,8 +488,8 @@ namespace Cyverse.Level
                 halo.name = "Halo";
                 StripCollider(halo);
                 halo.transform.SetParent(go.transform, false);
-                halo.transform.localPosition = new Vector3(0f, 0f, 0.03f);
-                halo.transform.localScale = new Vector3(w * 1.5f, h * 2.6f, 1f);
+                halo.transform.localPosition = new Vector3(glyphs.center.x, glyphs.center.y, 0.03f / s);
+                halo.transform.localScale = new Vector3(glyphs.size.x * 1.5f, glyphs.size.y * 2.6f, 1f);
                 var haloMat = new Material(glowShader);
                 Color hc = color;
                 hc.a = 0.30f;

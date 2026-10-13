@@ -325,6 +325,68 @@ namespace Cyverse.Level
             return Finish(mesh.name, verts, tris);
         }
 
+        /// <summary>A flat-shaded <paramref name="sides"/>-sided prism along Y,
+        /// radius <paramref name="r0"/> at <paramref name="y0"/> tapering to
+        /// <paramref name="r1"/> at <paramref name="y1"/>: the blocky stand-in
+        /// for a cylinder (bosses, lenses, hinge barrels).</summary>
+        public static Mesh Prism(int sides, float r0, float r1, float y0, float y1,
+            string name = "Prism", float phaseDeg = 0f)
+        {
+            var verts = new List<Vector3>();
+            var tris = new List<int>();
+            Vector3 low = new Vector3(0f, y0, 0f), high = new Vector3(0f, y1, 0f);
+            for (int i = 0; i < sides; i++)
+            {
+                Vector3 a = PolygonPoint(sides, i, r0, y0, phaseDeg), b = PolygonPoint(sides, i + 1, r0, y0, phaseDeg);
+                Vector3 c = PolygonPoint(sides, i, r1, y1, phaseDeg), d = PolygonPoint(sides, i + 1, r1, y1, phaseDeg);
+                AddQuad(verts, tris, a, b, c, d);
+                int n = verts.Count;
+                verts.Add(low); verts.Add(b); verts.Add(a);
+                verts.Add(high); verts.Add(c); verts.Add(d);
+                tris.Add(n); tris.Add(n + 1); tris.Add(n + 2);
+                tris.Add(n + 3); tris.Add(n + 4); tris.Add(n + 5);
+            }
+            return Finish(name, verts, tris);
+        }
+
+        /// <summary>A flat-shaded polygonal ring along Y (a washer): rims,
+        /// wheel hoops and lens bezels.</summary>
+        public static Mesh Annulus(int sides, float innerRadius, float outerRadius, float y0, float y1,
+            string name = "Annulus", float phaseDeg = 0f)
+        {
+            var verts = new List<Vector3>();
+            var tris = new List<int>();
+            for (int i = 0; i < sides; i++)
+            {
+                Vector3 oa = PolygonPoint(sides, i, outerRadius, y0, phaseDeg), ob = PolygonPoint(sides, i + 1, outerRadius, y0, phaseDeg);
+                Vector3 oc = PolygonPoint(sides, i, outerRadius, y1, phaseDeg), od = PolygonPoint(sides, i + 1, outerRadius, y1, phaseDeg);
+                Vector3 ia = PolygonPoint(sides, i, innerRadius, y0, phaseDeg), ib = PolygonPoint(sides, i + 1, innerRadius, y0, phaseDeg);
+                Vector3 ic = PolygonPoint(sides, i, innerRadius, y1, phaseDeg), id = PolygonPoint(sides, i + 1, innerRadius, y1, phaseDeg);
+                AddQuad(verts, tris, oa, ob, oc, od);       // outer wall, facing out
+                AddQuad(verts, tris, ib, ia, id, ic);       // inner wall, facing in
+                AddQuad(verts, tris, ic, oc, id, od);       // top face
+                AddQuad(verts, tris, ia, ib, oa, ob);       // bottom face
+            }
+            return Finish(name, verts, tris);
+        }
+
+        // Clockwise seen from above, the same direction Chamfered rings run,
+        // so AddQuad's winding faces outward.
+        private static Vector3 PolygonPoint(int sides, int i, float r, float y, float phaseDeg)
+        {
+            float a = (phaseDeg - 360f * i / sides) * Mathf.Deg2Rad;
+            return new Vector3(Mathf.Cos(a) * r, y, Mathf.Sin(a) * r);
+        }
+
+        // a, b along the lower edge; c, d above them (BevelBlock's winding).
+        private static void AddQuad(List<Vector3> verts, List<int> tris, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        {
+            int i = verts.Count;
+            verts.Add(a); verts.Add(b); verts.Add(c); verts.Add(d);
+            tris.Add(i); tris.Add(i + 1); tris.Add(i + 2);
+            tris.Add(i + 1); tris.Add(i + 3); tris.Add(i + 2);
+        }
+
         private static Mesh Finish(string name, List<Vector3> verts, List<int> tris)
         {
             var mesh = new Mesh { name = name };

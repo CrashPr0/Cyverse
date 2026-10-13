@@ -12,13 +12,14 @@ namespace Cyverse.Interaction
     /// <summary>
     /// Task 2 — AUTHENTICATION: the MFA Vault. Three factors must be cleared,
     /// each a different mechanic so the taxonomy is *felt*, not memorised:
-    ///   KNOW — read the daily OTP from the Spartan Authenticator phone; it
-    ///          types into the terminal automatically (MfaFactor → TypingChallenge)
+    ///   KNOW — read the daily OTP on the Spartan Authenticator phone and
+    ///          type it into the terminal (MfaFactor → TypingChallenge)
     ///   HAVE — fetch the security token from its rack and slot it (Carryable
     ///          → DropZone; the walk across the room IS the lesson)
-    ///   ARE  — biometric pad scan (MfaFactor)
-    /// Indicator lights fill as factors clear; all three slide the vault
-    /// panel open. Factor order is free — like real MFA.
+    ///   ARE  — biometric scanner (MfaFactor)
+    /// Each verified factor draws its own locking bar and lights its lamp;
+    /// with all three drawn the wheel turns and the door swings open. Factor
+    /// order is free — like real MFA.
     /// </summary>
     public class MfaGauntlet : MonoBehaviour
     {
@@ -42,8 +43,11 @@ namespace Cyverse.Interaction
         /// <summary>True once the token has been slotted (the "have" factor).</summary>
         public bool TokenDelivered => cleared[1];
         private Renderer[] lights;
+        private Transform[] lockBars;
         private Material litMat;
         private Transform vaultPanel;
+        private TextMesh statusLabel;
+        private Light chamberLight;
         private GameObject legacyPasscodeMemo;
 
         // ---- Wiring ----------------------------------------------------------
@@ -58,14 +62,30 @@ namespace Cyverse.Interaction
             Func<string> gateMessageProvider = null)
         {
             if (vaultPanel == null) vaultPanel = transform.Find("VaultPanel");
-            if (litMat == null) litMat = BuildKit.MakeEmissive(new Color(0.30f, 1f, 0.45f), 2.4f);
+            if (litMat == null) litMat = BuildKit.MakeEmissive(MfaProps.Verified, 1.6f);
             HideLegacyPasscodeMemo();
             if (lights == null) lights = new Renderer[3];
+            if (lockBars == null) lockBars = new Transform[3];
             for (int i = 0; i < 3; i++)
             {
-                if (lights[i] != null) continue;
-                var lamp = transform.Find("FactorLight_" + i);
-                if (lamp != null) lights[i] = lamp.GetComponent<Renderer>();
+                if (lights[i] == null)
+                {
+                    var lamp = transform.Find("FactorLight_" + i);
+                    if (lamp != null) lights[i] = lamp.GetComponent<Renderer>();
+                }
+                if (lockBars[i] == null && vaultPanel != null) lockBars[i] = vaultPanel.Find("LockBar_" + i);
+            }
+            // Absent from the older saved visual-pass vault; everything that
+            // uses these checks for null.
+            if (statusLabel == null)
+            {
+                var status = transform.Find("VaultStatus");
+                if (status != null) statusLabel = status.GetComponent<TextMesh>();
+            }
+            if (chamberLight == null)
+            {
+                var light = transform.Find("VaultChamber/ChamberLight");
+                if (light != null) chamberLight = light.GetComponent<Light>();
             }
 
             foreach (var factor in FindObjectsOfType<MfaFactor>())
@@ -93,6 +113,7 @@ namespace Cyverse.Interaction
                 slot.onAccepted = item =>
                 {
                     item.Consume();
+                    ShowSeatedToken(slot.transform);
                     BurstFX.SpawnAbove(slot.transform, accent, 20, minimumHeight: 1.2f);
                     FactorCleared(1);
                 };
@@ -112,9 +133,16 @@ namespace Cyverse.Interaction
 
             if (lights != null && lights[index] != null && litMat != null)
                 lights[index].sharedMaterial = litMat;
+            if (lockBars != null && lockBars[index] != null)
+                StartCoroutine(RetractBar(lockBars[index]));
 
             int n = 0;
             foreach (bool c in cleared) if (c) n++;
+            if (statusLabel != null)
+            {
+                statusLabel.text = MfaProps.StatusText(n);
+                if (n == 3) statusLabel.color = MfaProps.Verified;
+            }
 
             ScoreSystem.Add(factorPoints);
             if (Sfx.Instance != null) Sfx.Instance.PlayStreak(n);
@@ -132,19 +160,9 @@ namespace Cyverse.Interaction
 
             if (vaultPanel != null)
             {
-                Vector3 from = vaultPanel.localPosition;
-                Vector3 to = from + Vector3.down * 2.4f;
-                if (AccessibilitySettings.ReduceMotion)
-                    vaultPanel.localPosition = to;
-                else
-                {
-                    for (float t = 0f; t < 1.1f; t += Time.deltaTime)
-                    {
-                        vaultPanel.localPosition = Vector3.Lerp(from, to, Mathf.SmoothStep(0f, 1f, t / 1.1f));
-                        yield return null;
-                    }
-                    vaultPanel.localPosition = to;
-                }
+                Transform wheel = vaultPanel.Find("Wheel");
+                if (wheel != null) yield return SwingDoor(wheel);
+                else yield return SlidePanel();
             }
 
             ScoreSystem.Add(completionPoints);
@@ -155,6 +173,76 @@ namespace Cyverse.Interaction
                     new Color(0.90f, 0.66f, 0.14f));
 
             Completed?.Invoke();
+        }
+
+        // Each factor draws one bolt back into the door.
+        private IEnumerator RetractBar(Transform bar)
+        {
+            Vector3 from = bar.localPosition;
+            Vector3 to = from + Vector3.right * MfaProps.LockBarTravel;
+            float duration = AccessibilitySettings.ReduceMotion ? 0f : 0.35f;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                bar.localPosition = Vector3.Lerp(from, to, Mathf.SmoothStep(0f, 1f, t / duration));
+                yield return null;
+            }
+            bar.localPosition = to;
+        }
+
+        // The wheel turns, then the door swings out on its hinge and the
+        // chamber behind it lights up.
+        private IEnumerator SwingDoor(Transform wheel)
+        {
+            Quaternion shut = vaultPanel.localRotation;
+            Quaternion open = shut * Quaternion.Euler(0f, MfaProps.DoorSwingDegrees, 0f);
+            const float chamberIntensity = 1.6f;
+            if (AccessibilitySettings.ReduceMotion)
+            {
+                vaultPanel.localRotation = open;
+                if (chamberLight != null) chamberLight.intensity = chamberIntensity;
+                yield break;
+            }
+
+            Quaternion wheelStart = wheel.localRotation;
+            for (float t = 0f; t < 0.9f; t += Time.deltaTime)
+            {
+                wheel.localRotation = wheelStart * Quaternion.Euler(0f, 0f, -200f * Mathf.SmoothStep(0f, 1f, t / 0.9f));
+                yield return null;
+            }
+            for (float t = 0f; t < 1.6f; t += Time.deltaTime)
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t / 1.6f);
+                vaultPanel.localRotation = Quaternion.Slerp(shut, open, k);
+                if (chamberLight != null) chamberLight.intensity = chamberIntensity * k;
+                yield return null;
+            }
+            vaultPanel.localRotation = open;
+            if (chamberLight != null) chamberLight.intensity = chamberIntensity;
+        }
+
+        // The older saved visual-pass vault: a plain panel that sinks into the floor.
+        private IEnumerator SlidePanel()
+        {
+            Vector3 from = vaultPanel.localPosition;
+            Vector3 to = from + Vector3.down * 2.4f;
+            if (!AccessibilitySettings.ReduceMotion)
+            {
+                for (float t = 0f; t < 1.1f; t += Time.deltaTime)
+                {
+                    vaultPanel.localPosition = Vector3.Lerp(from, to, Mathf.SmoothStep(0f, 1f, t / 1.1f));
+                    yield return null;
+                }
+            }
+            vaultPanel.localPosition = to;
+        }
+
+        // The token stays visible in the reader, and the reader's rim turns green.
+        private void ShowSeatedToken(Transform slot)
+        {
+            Transform seated = slot.Find("ReaderHead/SeatedToken");
+            if (seated != null) seated.gameObject.SetActive(true);
+            Transform rim = slot.Find("ReaderHead/ReaderRim");
+            if (rim != null && litMat != null) rim.GetComponent<Renderer>().sharedMaterial = litMat;
         }
 
         // ---- Construction ----------------------------------------------------
@@ -169,26 +257,10 @@ namespace Cyverse.Interaction
             root.transform.position = vaultPos;
             root.transform.rotation = Quaternion.Euler(0f, vaultRotY, 0f);
 
-            var frameMat = BuildKit.MakeStandard(new Color(0.08f, 0.09f, 0.13f), 0.55f, 0.35f);
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Frame_L", root.transform,
-                new Vector3(-1.3f, 1.7f, 0f), Vector3.zero, new Vector3(0.35f, 3.4f, 0.5f), frameMat, collider: true);
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Frame_R", root.transform,
-                new Vector3(1.3f, 1.7f, 0f), Vector3.zero, new Vector3(0.35f, 3.4f, 0.5f), frameMat, collider: true);
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Lintel", root.transform,
-                new Vector3(0f, 3.55f, 0f), Vector3.zero, new Vector3(2.95f, 0.35f, 0.5f), frameMat, collider: true);
-
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "VaultPanel", root.transform,
-                new Vector3(0f, 1.7f, 0.05f), Vector3.zero, new Vector3(2.25f, 3.3f, 0.18f),
-                BuildKit.MakeStandard(new Color(0.13f, 0.14f, 0.19f), 0.7f, 0.6f), collider: true);
-
+            // Each factor's lamp glows amber while its bar is locked.
+            var lockedMat = BuildKit.MakeEmissive(new Color(1f, 0.55f, 0.12f), 1.1f);
+            MfaProps.BuildVault(root.transform, accent, lockedMat);
             var gauntlet = root.AddComponent<MfaGauntlet>();
-            var offMat = BuildKit.MakeStandard(new Color(0.16f, 0.18f, 0.24f), 0.4f, 0.2f);
-            for (int i = 0; i < 3; i++)
-            {
-                BuildKit.SpawnLocal(PrimitiveType.Sphere, "FactorLight_" + i, root.transform,
-                    new Vector3((i - 1) * 0.55f, 3.55f, -0.3f), Vector3.zero,
-                    new Vector3(0.22f, 0.22f, 0.22f), offMat, collider: false);
-            }
 
             BuildKit.MakeSign(root.transform, vaultPos + new Vector3(0f, 4.3f, 0f), "MFA VAULT", accent, 0.032f);
 
@@ -213,18 +285,19 @@ namespace Cyverse.Interaction
             // challenge falls back to its old screen-space HUD panel.
             DiegeticPhone.Build(terminalPos + new Vector3(-0.9f, 0f, -0.2f), 0f, accent);
 
-            // ARE — biometric pad.
+            // ARE — biometric scanner.
             MfaFactor.Build(padPos, 0f, MfaFactor.Kind.Biometric, gauntlet, accent);
 
             // HAVE — token on a rack across the room, slotted by the vault.
             var rack = new GameObject("TokenRack");
             rack.transform.position = tokenRackPos;
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "RackTop", rack.transform,
-                new Vector3(0f, 0.5f, 0f), Vector3.zero, new Vector3(0.8f, 1.0f, 0.8f),
-                BuildKit.MakeStandard(new Color(0.09f, 0.10f, 0.14f), 0.5f, 0.4f), collider: true);
+            MfaProps.BuildTokenCharger(rack.transform, accent);
             BuildKit.MakeLabel(rack.transform, new Vector3(0f, 1.9f, 0f), "TOKEN CHARGER", accent, 0.024f, billboard: true);
             Carryable.Build(tokenRackPos + Vector3.up * 1.0f, "SECURITY TOKEN", "mfa_token", accent, token: true);
-            DropZone.Build(slotPos, "TOKEN SLOT", accent);
+            // The reader faces into the room, the same way as the vault.
+            DropZone slot = DropZone.Build(slotPos, "TOKEN SLOT", accent);
+            slot.transform.rotation = Quaternion.Euler(0f, vaultRotY, 0f);
+            MfaProps.DressTokenReader(slot.gameObject, accent);
 
             // Factors, token and slot exist now, so the shared wiring path can
             // find and hook them — the same one a saved scene goes through.
@@ -245,12 +318,7 @@ namespace Cyverse.Interaction
             var memo = new GameObject("PhoneOtpReminder");
             memo.transform.position = pos;
 
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Post", memo.transform,
-                new Vector3(0f, 0.8f, 0f), Vector3.zero, new Vector3(0.08f, 1.6f, 0.08f),
-                BuildKit.MakeStandard(new Color(0.08f, 0.09f, 0.13f), 0.5f, 0.4f), collider: false);
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Plaque", memo.transform,
-                new Vector3(0f, 1.85f, 0.03f), Vector3.zero, new Vector3(1.9f, 0.8f, 0.06f),
-                BuildKit.MakeStandard(new Color(0.05f, 0.055f, 0.08f), 0.5f, 0.4f), collider: false);
+            MfaProps.BuildSignStand(memo.transform, new Vector3(0f, 1.85f, 0.03f), new Vector2(1.9f, 0.8f), accent);
             BuildKit.MakeLabel(memo.transform, new Vector3(0f, 1.85f, -0.01f),
                 "DAILY OTP\n<size=30>CHECK YOUR PHONE</size>\n<size=22>code rotates every 24h</size>",
                 accent, 0.020f);

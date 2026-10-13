@@ -6,8 +6,8 @@ namespace Cyverse.Forensics
     /// <summary>
     /// The one chain-of-custody record the seized device carries from the SOC to
     /// the lab, laid out like a real intake form: an item block (item #,
-    /// description, serial), then a custody table where every handoff is a row
-    /// of Date/Time, Released By, Received By and Reason.
+    /// description, serial, location collected), then a custody table where
+    /// every handoff is a row of Date/Time, Released By, Received By and Reason.
     ///
     /// The SOC panel shows entry 1 (the client releases the device to the SOC
     /// analyst). The lab's form repeats entry 1 and the player writes entry 2
@@ -26,6 +26,8 @@ namespace Cyverse.Forensics
         public const string LabRole = "Digital Forensics";
         public const string CollectionReason = "Incident investigation";
         public const string TransferReason = "For analysis";
+        public const string ItemDescription = "Mobile phone";
+        public const string ClientSite = "Client office";
 
         public static string Client => ClientName + " / " + ClientRole;
         public static string SocAnalyst => SocAnalystName + " / " + SocRole;
@@ -44,8 +46,11 @@ namespace Cyverse.Forensics
             return $"IR-{year}-{Stable(Computer(record)) % 9000 + 1000}";
         }
 
-        public static string ItemDescription(SocEvidenceRecord record) =>
-            $"Mobile phone seized at {Computer(record)}";
+        // Where the item was collected: the desk of the workstation the alert
+        // flagged. It is recorded once, in the item block; the rows only track
+        // who held it after.
+        public static string Location(SocEvidenceRecord record) =>
+            $"{ClientSite}, desk at workstation {Computer(record)}";
 
         public static string Serial(SocEvidenceRecord record)
         {

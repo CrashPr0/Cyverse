@@ -331,8 +331,9 @@ namespace Cyverse.Interaction
                 "A record of every time evidence changes hands: WHO released it, WHO received it, WHEN, and WHY. " +
                 "Every handoff gets its own row, even inside one department, or the evidence may not hold up in court.\n\n" +
                 $"<size=88%>{Key}CASE #{EndKey} {CustodyLog.CaseNumber(pendingEvidence)}" +
-                $"      {Key}CLIENT ITEM {CustodyLog.ItemNumber}{EndKey} {CustodyLog.ItemDescription(pendingEvidence)}" +
+                $"      {Key}CLIENT ITEM {CustodyLog.ItemNumber}{EndKey} {CustodyLog.ItemDescription}" +
                 $"      {Key}SERIAL{EndKey} {CustodyLog.Serial(pendingEvidence)}\n" +
+                $"{Key}LOCATION{EndKey} {CustodyLog.Location(pendingEvidence)}\n" +
                 $"{Key}ALERT{EndKey} {pendingEvidence.alertTitle}  ·  {pendingEvidence.time}  ·  user {pendingEvidence.user}  ·  " +
                 $"{pendingEvidence.verificationResult}</size>\n\n" +
                 "<b>CHAIN OF CUSTODY</b>\n" +

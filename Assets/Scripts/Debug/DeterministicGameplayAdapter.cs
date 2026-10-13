@@ -105,15 +105,7 @@ namespace Cyverse.Testing
                 if (challenge == null || !challenge.IsOpen)
                     yield break;
 
-                // The Level 1 phone OTP enters itself. Wait for that normal
-                // player-facing flow before checking the factor result. Keep
-                // the manual path for older scenes that still show a plain
-                // typing card.
-                float entryDeadline = Time.realtimeSinceStartup + 4f;
-                while (challenge.IsOpen && challenge.IsAutoTyping &&
-                       Time.realtimeSinceStartup < entryDeadline)
-                    yield return null;
-
+                // Type the code from the phone, as a player does.
                 if (challenge.IsOpen &&
                     (!GameplayActions.TryApply(challenge, GameplayAction.ClearText(), actor) ||
                      !GameplayActions.TryApply(challenge, GameplayAction.Append(factor.passcode), actor) ||

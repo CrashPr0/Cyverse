@@ -149,7 +149,7 @@ namespace Cyverse.Testing
             {
                 int round = audit.Solved + 1;
                 yield return Show("E", "Open audit round " + round, actionPause);
-                yield return Show("↓  ↑", "Select anomalous log entry", 0.8f);
+                yield return Show("← → ↑ ↓", "Select anomalous log entry", 0.8f);
                 yield return Show("E", "Flag highlighted anomaly", actionPause);
                 int correctRow = Level1IamContent.AuditRounds()[audit.Solved].anomaly;
                 DeterministicGameplayAdapter.SolveAuditRound(audit, correctRow, gameObject);

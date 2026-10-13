@@ -8,7 +8,7 @@ namespace Cyverse.Interaction
 {
     /// <summary>
     /// Task 3 — AUTHORIZATION: Data Triage. Labelled data crates sit on an
-    /// intake table; role pedestals stand nearby. Carry each crate to the role
+    /// intake desk; each role has a desk with an inbox nearby. Carry each crate to the role
     /// that should have access. Wrong pedestal = denied with a least-privilege
     /// explanation (no punishment beyond the buzz — the crate stays in hand);
     /// right pedestal = points and the reason WHY. All delivered = complete.
@@ -19,6 +19,18 @@ namespace Cyverse.Interaction
         public bool IsComplete { get; private set; }
 
         public int pointsPerCrate = 60;
+        /// <summary>Glow colour for the crates filed into role inboxes.</summary>
+        public Color accent = BuildKit.AccentCyan;
+
+        // Crate slots on the intake desk, two rows so long names never draw
+        // through one another, with a clear pickup aisle round the desk.
+        private static readonly Vector3[] CrateSlots =
+        {
+            new Vector3(-0.95f, 0.9f, -0.38f),
+            new Vector3( 0.95f, 0.9f, -0.38f),
+            new Vector3(-0.95f, 0.9f,  0.38f),
+            new Vector3( 0.95f, 0.9f,  0.38f),
+        };
 
         private Level1IamContent.CrateDef[] defs;
         private int delivered;
@@ -67,6 +79,8 @@ namespace Cyverse.Interaction
         /// re-applied when a saved visual-pass scene loads.</summary>
         private void NormalizeLayout()
         {
+            // The older saved visual-pass scene has a plain table; the built
+            // station has the intake desk instead.
             Transform table = transform.Find("Table");
             if (table != null) table.localScale = new Vector3(3.8f, 0.9f, 1.8f);
             Transform trim = transform.Find("TableTrim");
@@ -76,28 +90,23 @@ namespace Cyverse.Interaction
                 trim.localScale = new Vector3(3.8f, 0.04f, 0.02f);
             }
 
-            // Two rows keep long classifications from drawing through one
-            // another while leaving a clear pickup aisle around the table.
-            Vector3[] crateSlots =
-            {
-                new Vector3(-0.95f, 0.9f, -0.38f),
-                new Vector3( 0.95f, 0.9f, -0.38f),
-                new Vector3(-0.95f, 0.9f,  0.38f),
-                new Vector3( 0.95f, 0.9f,  0.38f),
-            };
             int slot = 0;
             foreach (var def in defs)
             {
                 Carryable item = null;
                 foreach (var candidate in FindObjectsOfType<Carryable>())
                     if (candidate.id == def.id) { item = candidate; break; }
-                if (item == null || slot >= crateSlots.Length) continue;
-                item.transform.position = transform.TransformPoint(crateSlots[slot++]);
+                if (item == null || slot >= CrateSlots.Length) continue;
+                // Each crate's name rides at its own height, so no two names
+                // can draw through each other from the front, the side or a
+                // diagonal. All stay below eye level, under the role busts.
+                float labelHeight = 0.56f + slot * 0.09f;
+                item.transform.position = transform.TransformPoint(CrateSlots[slot++]);
                 TextMesh label = item.GetComponentInChildren<TextMesh>(true);
                 if (label != null)
                 {
                     label.characterSize = 0.016f;
-                    label.transform.localPosition = new Vector3(0f, 0.76f, 0f);
+                    label.transform.localPosition = new Vector3(0f, labelHeight, 0f);
                 }
             }
 
@@ -130,14 +139,12 @@ namespace Cyverse.Interaction
         {
             item.Consume();
 
-            // A small filled marker records the delivery; a pedestal that
-            // takes several crates (HR gets two) stacks them.
+            // The crate is filed in the role's inbox; a role that takes
+            // several crates (HR gets two) stacks them.
             int already = 0;
             foreach (Transform child in zone.transform)
                 if (child.name.StartsWith("Delivered_")) already++;
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Delivered_" + def.id, zone.transform,
-                new Vector3(0f, 1.15f + already * 0.26f, 0f), Vector3.zero, new Vector3(0.34f, 0.24f, 0.34f),
-                BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.16f), 0.55f, 0.4f), collider: false);
+            TriageProps.FileCrate(zone.transform, def.id, already, accent);
 
             delivered++;
             ScoreSystem.Add(pointsPerCrate);
@@ -176,14 +183,10 @@ namespace Cyverse.Interaction
             root.transform.position = tablePos;
 
             var station = root.AddComponent<SortingStation>();
+            station.accent = accent;
 
-            // Intake table; Configure arranges the crates in a readable 2x2.
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Table", root.transform,
-                new Vector3(0f, 0.45f, 0f), Vector3.zero, new Vector3(3.8f, 0.9f, 1.8f),
-                BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.16f), 0.55f, 0.4f), collider: true);
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "TableTrim", root.transform,
-                new Vector3(0f, 0.92f, -0.91f), Vector3.zero, new Vector3(3.8f, 0.04f, 0.02f),
-                BuildKit.MakeEmissive(accent, 1.4f), collider: false);
+            // Intake desk; Configure arranges the crates in its 2x2 bays.
+            TriageProps.BuildIntakeDesk(root.transform, accent, CrateSlots);
             BuildKit.MakeSign(root.transform, tablePos + new Vector3(0f, 3.8f, 0f), "DATA TRIAGE", accent, 0.032f);
 
             var glow = new GameObject("TriageLight");
@@ -197,12 +200,13 @@ namespace Cyverse.Interaction
 
             for (int i = 0; i < crates.Length; i++)
             {
-                Carryable.Build(tablePos + Vector3.up * 0.9f,
+                Carryable crate = Carryable.Build(tablePos + Vector3.up * 0.9f,
                     crates[i].label, crates[i].id, accent);
+                TriageProps.DressCrate(crate.gameObject, crates[i].id, accent);
             }
 
             foreach (var (role, pos) in pedestals)
-                DropZone.Build(pos, role, accent);
+                TriageProps.DressRoleDesk(DropZone.Build(pos, role, accent).gameObject, role, accent);
 
             // Crates and pedestals exist now, so the shared wiring path can
             // find and hook them — the same one a saved scene goes through.

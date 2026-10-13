@@ -211,8 +211,8 @@ namespace Cyverse.Interaction
 
         // ---- Construction ----------------------------------------------------
 
-        /// <summary>A labelled data crate (or, with token=true, a small security
-        /// token puck) sitting at the given position.</summary>
+        /// <summary>A labelled data crate (or, with token=true, a security
+        /// token key fob) sitting at the given position.</summary>
         public static Carryable Build(Vector3 pos, string itemName, string id, Color accent,
             bool token = false)
         {
@@ -222,11 +222,7 @@ namespace Cyverse.Interaction
             var bodyMat = BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.16f), 0.55f, 0.4f);
             if (token)
             {
-                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Puck", root.transform,
-                    new Vector3(0f, 0.10f, 0f), Vector3.zero, new Vector3(0.26f, 0.09f, 0.26f), bodyMat, collider: true);
-                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Core", root.transform,
-                    new Vector3(0f, 0.20f, 0f), Vector3.zero, new Vector3(0.10f, 0.02f, 0.10f),
-                    BuildKit.MakeEmissive(accent, 2.2f), collider: false);
+                MfaProps.BuildTokenFob(root.transform, "Fob", Vector3.zero, accent, solid: true);
             }
             else
             {

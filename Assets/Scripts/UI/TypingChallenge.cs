@@ -15,8 +15,8 @@ namespace Cyverse.UI
     /// via ModalSession, refuses to open over another menu, and suppresses the
     /// transition frame so its Esc cannot leak into settings.
     /// Case-insensitive comparison; Enter submits, Esc steps away (failure).
-    /// The phone OTP variant animates a fake authenticator phone into view and
-    /// types its four-digit code into the terminal automatically.
+    /// The phone OTP variant shows today's code on the authenticator phone and
+    /// the player types it in: digits only, up to the code's length.
     /// </summary>
     public class TypingChallenge : MonoBehaviour, IGameplayActionTarget
     {
@@ -27,18 +27,17 @@ namespace Cyverse.UI
         private GameObject card;
         private Text headerText, bodyText, inputLine, feedbackText;
         private Text phoneHeaderText, phoneCodeText, phoneStatusText;
-        private RectTransform bodyRect, phoneRect;
+        private RectTransform bodyRect, feedbackRect, phoneRect;
         private GameObject phonePanel;
         private Cyverse.Interaction.DiegeticPhone diegetic;
         private string answer, typed = "";
         private Action<bool> onDone;
         private bool open, closing;
-        private bool autoTyping;
-        private Coroutine autoTypeRoutine;
+        private bool phoneMode;
+        private Coroutine phoneSlideRoutine;
         private ModalSession.Lease modal;
 
         public bool IsOpen => open;
-        public bool IsAutoTyping => autoTyping;
 
         void Awake()
         {
@@ -53,10 +52,10 @@ namespace Cyverse.UI
             ShowInternal(header, body, expectedAnswer, done, phone: false);
         }
 
-        /// <summary>Show a phone-delivered OTP. The fake phone displays the
-        /// generated code and enters it into the terminal on the player's
-        /// behalf, so the interaction reads as "something you have" becoming
-        /// a short-lived code they know.</summary>
+        /// <summary>Show a phone-delivered OTP: the authenticator phone
+        /// displays the generated code and the player types it into the
+        /// terminal, so "something you have" becomes a short-lived code they
+        /// know.</summary>
         public void ShowPhoneOtp(string header, string body, string expectedAnswer,
             Action<bool> done)
         {
@@ -79,7 +78,7 @@ namespace Cyverse.UI
             typed = "";
             open = true;
             closing = false;
-            autoTyping = false;
+            phoneMode = phone;
 
             headerText.text = header;
             bodyText.text = body;
@@ -87,28 +86,27 @@ namespace Cyverse.UI
             bodyRect.offsetMax = phone
                 ? new Vector2(-280f, -76f)
                 : new Vector2(-46f, -76f);
+            // Keep the prompt line clear of the phone panel in the corner.
+            feedbackRect.sizeDelta = new Vector2(phone ? -310f : -60f, 60f);
+            feedbackRect.anchoredPosition = new Vector2(phone ? -125f : 0f, 14f);
             card.SetActive(true);
             if (phone)
             {
+                feedbackText.text = "<color=#8FB8CC>TYPE THE CODE FROM YOUR PHONE\nENTER submit   ·   ESC step away</color>";
+                // The card can cover the in-world phone, so its own phone
+                // panel always shows the code too; the in-world phone lights up
+                // with it as well.
+                phonePanel.SetActive(true);
+                phoneCodeText.text = expectedAnswer;
+                phoneStatusText.text = "<color=#8FB8CC>DAILY OTP  ·  SPARTAN</color>";
+                phoneRect.anchoredPosition = new Vector2(-38f, -330f);
+                phoneSlideRoutine = StartCoroutine(SlideInPhone());
                 diegetic = Cyverse.Interaction.DiegeticPhone.Active;
-                feedbackText.text = "<color=#8FB8CC>PHONE OTP  ·  ENTERING AUTOMATICALLY   ·   ESC cancel</color>";
                 if (diegetic != null)
                 {
-                    // In-world phone: drive the RenderTexture screen; the HUD
-                    // corner panel stays hidden.
-                    phonePanel.SetActive(false);
                     diegetic.ShowCode(expectedAnswer);
                     diegetic.SetStatus("<color=#8FB8CC>DAILY OTP  ·  SPARTAN</color>");
                 }
-                else
-                {
-                    // Fallback (levels without a diegetic phone): old HUD panel.
-                    phonePanel.SetActive(true);
-                    phoneCodeText.text = expectedAnswer;
-                    phoneStatusText.text = "<color=#8FB8CC>DAILY OTP  ·  SPARTAN</color>";
-                    phoneRect.anchoredPosition = new Vector2(-38f, -330f);
-                }
-                autoTypeRoutine = StartCoroutine(AutoTypePhoneCode());
             }
             else
             {
@@ -126,8 +124,6 @@ namespace Cyverse.UI
                 GameplayActions.TryApply(this, GameplayAction.Cancel(), gameObject);
                 return;
             }
-
-            if (autoTyping) return;
 
             foreach (char c in Input.inputString)
             {
@@ -151,7 +147,6 @@ namespace Cyverse.UI
         public bool TryApply(GameplayAction action, GameObject actor)
         {
             if (!open || closing) return false;
-            if (autoTyping && action.Kind != GameplayActionKind.Cancel) return false;
 
             switch (action.Kind)
             {
@@ -180,10 +175,13 @@ namespace Cyverse.UI
 
         private void Append(string value)
         {
-            if (string.IsNullOrEmpty(value) || typed.Length >= maxLength) return;
+            if (string.IsNullOrEmpty(value)) return;
+            // An OTP is digits only, and no longer than the code itself.
+            int limit = phoneMode ? answer.Trim().Length : maxLength;
             foreach (char c in value)
             {
-                if (char.IsControl(c) || typed.Length >= maxLength) continue;
+                if (char.IsControl(c) || typed.Length >= limit) continue;
+                if (phoneMode && !char.IsDigit(c)) continue;
                 typed += c;
             }
             RefreshInput();
@@ -195,6 +193,7 @@ namespace Cyverse.UI
             if (correct)
             {
                 feedbackText.text = "<color=#4CE087><b>VERIFIED</b></color>";
+                if (phoneMode) SetPhoneStatus("<color=#4CE087>CODE ACCEPTED</color>");
                 if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
                 closing = true;
                 StartCoroutine(CloseSoon());
@@ -203,7 +202,9 @@ namespace Cyverse.UI
             {
                 typed = "";
                 RefreshInput();
-                feedbackText.text = "<color=#FF8866><b>NOT RECOGNIZED</b></color>   Copy it exactly, including symbols.";
+                feedbackText.text = phoneMode
+                    ? "<color=#FF8866><b>CODE DOESN'T MATCH</b></color>   Check the code on your phone and type it again."
+                    : "<color=#FF8866><b>NOT RECOGNIZED</b></color>   Copy it exactly, including symbols.";
                 if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
             }
         }
@@ -216,18 +217,20 @@ namespace Cyverse.UI
 
         private void Close(bool success)
         {
-            if (autoTypeRoutine != null)
+            if (phoneSlideRoutine != null)
             {
-                StopCoroutine(autoTypeRoutine);
-                autoTypeRoutine = null;
+                StopCoroutine(phoneSlideRoutine);
+                phoneSlideRoutine = null;
             }
-            autoTyping = false;
+            phoneMode = false;
             open = false;
             closing = false;
             card.SetActive(false);
             phonePanel.SetActive(false);
             if (diegetic != null) { diegetic.Hide(); diegetic = null; }
             bodyRect.offsetMax = new Vector2(-46f, -76f);
+            feedbackRect.sizeDelta = new Vector2(-60f, 60f);
+            feedbackRect.anchoredPosition = new Vector2(0f, 14f);
             modal?.Close();
             modal = null;
             var cb = onDone;
@@ -246,53 +249,26 @@ namespace Cyverse.UI
             inputLine.text = $">  <color=#5BC8FF>{typed}{(blink ? "_" : " ")}</color>";
         }
 
-        private IEnumerator AutoTypePhoneCode()
+        // The card's phone panel slides up into its corner.
+        private IEnumerator SlideInPhone()
         {
-            autoTyping = true;
-            bool useDiegetic = diegetic != null;
-
-            if (useDiegetic)
+            Vector2 hidden = phoneRect.anchoredPosition;
+            Vector2 shown = new Vector2(-38f, -64f);
+            float duration = AccessibilitySettings.ReduceMotion ? 0f : 0.45f;
+            for (float elapsed = 0f; elapsed < duration; elapsed += Time.unscaledDeltaTime)
             {
-                // In-world phone: no corner slide-in; hold for the same beat so
-                // the timing matches the old animation.
-                float appear = AccessibilitySettings.ReduceMotion ? 0.05f : 0.45f;
-                yield return new WaitForSecondsRealtime(appear);
+                phoneRect.anchoredPosition = Vector2.Lerp(hidden, shown,
+                    Mathf.SmoothStep(0f, 1f, elapsed / duration));
+                yield return null;
             }
-            else
-            {
-                Vector2 hidden = phoneRect.anchoredPosition;
-                Vector2 shown = new Vector2(-38f, -64f);
-                float duration = AccessibilitySettings.ReduceMotion ? 0.05f : 0.45f;
-                for (float elapsed = 0f; elapsed < duration; elapsed += Time.unscaledDeltaTime)
-                {
-                    float progress = Mathf.Clamp01(elapsed / duration);
-                    phoneRect.anchoredPosition = Vector2.Lerp(hidden, shown,
-                        Mathf.SmoothStep(0f, 1f, progress));
-                    yield return null;
-                }
-                phoneRect.anchoredPosition = shown;
-            }
+            phoneRect.anchoredPosition = shown;
+            phoneSlideRoutine = null;
+        }
 
-            float pause = AccessibilitySettings.ReduceMotion ? 0.08f : 0.35f;
-            yield return new WaitForSecondsRealtime(pause);
-
-            typed = string.Empty;
-            RefreshInput();
-            if (useDiegetic) diegetic.SetStatus("<color=#4CE087>ENTERING CODE…</color>");
-            else phoneStatusText.text = "<color=#4CE087>ENTERING CODE…</color>";
-            float perDigit = AccessibilitySettings.ReduceMotion ? 0.04f : 0.18f;
-            foreach (char digit in answer.Trim())
-            {
-                typed += digit;
-                RefreshInput();
-                yield return new WaitForSecondsRealtime(perDigit);
-            }
-
-            if (useDiegetic) diegetic.SetStatus("<color=#4CE087>CODE ACCEPTED BY DEVICE</color>");
-            else phoneStatusText.text = "<color=#4CE087>CODE ACCEPTED BY DEVICE</color>";
-            autoTyping = false;
-            autoTypeRoutine = null;
-            Submit();
+        private void SetPhoneStatus(string richText)
+        {
+            phoneStatusText.text = richText;
+            if (diegetic != null) diegetic.SetStatus(richText);
         }
 
         void LateUpdate()
@@ -334,9 +310,9 @@ namespace Cyverse.UI
             irt.sizeDelta = new Vector2(-92, 46); irt.anchoredPosition = new Vector2(0, 84);
 
             feedbackText = MakeText(card.transform, "Feedback", 22, TextAnchor.MiddleCenter);
-            var frt = feedbackText.rectTransform;
-            frt.anchorMin = new Vector2(0, 0); frt.anchorMax = new Vector2(1, 0); frt.pivot = new Vector2(0.5f, 0);
-            frt.sizeDelta = new Vector2(-60, 60); frt.anchoredPosition = new Vector2(0, 14);
+            feedbackRect = feedbackText.rectTransform;
+            feedbackRect.anchorMin = new Vector2(0, 0); feedbackRect.anchorMax = new Vector2(1, 0); feedbackRect.pivot = new Vector2(0.5f, 0);
+            feedbackRect.sizeDelta = new Vector2(-60, 60); feedbackRect.anchoredPosition = new Vector2(0, 14);
 
             BuildPhonePanel();
 

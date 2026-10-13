@@ -336,11 +336,11 @@ namespace Cyverse.Level
             if (gauntlet != null && !gauntlet.IsComplete && NeedsMfaBriefing)
                 return "MFA Vault: first talk to the MFA SPECIALIST by the vault — press E";
             if (gauntlet != null && !gauntlet.IsComplete)
-                return $"MFA Vault: verify all three factors  ({gauntlet.ClearedCount}/3) — passcode terminal, token, biometric pad";
+                return $"MFA Vault: verify all three factors  ({gauntlet.ClearedCount}/3) — passcode terminal, token, biometric scanner";
             if (sorting != null && !sorting.IsComplete)
                 return $"Data Triage: press E to pick up a crate, then E on the role that should have access  ({sorting.Delivered}/{sorting.Total})";
             if (audit != null && !audit.IsComplete)
-                return $"Audit Hunt: press E to open the log, ↑/↓ to select, E to flag the anomaly  ({audit.Solved}/{audit.Rounds})";
+                return $"Audit Hunt: press E to open the log full screen, arrow keys to move, E to flag the anomaly  ({audit.Solved}/{audit.Rounds})";
 
             return $"Complete the training tasks  ({TasksDone}/{TotalTasks})";
         }

@@ -28,11 +28,12 @@ namespace Cyverse.Interaction
 
         private bool cleared, busy;
         private Light scanLight;
+        private Transform scanBar;
 
         public bool CanInteract => !cleared;
         public string Prompt => kind == Kind.Knowledge
             ? "Passcode terminal — something you KNOW"
-            : "Biometric pad — something you ARE";
+            : "Biometric scanner — something you ARE";
 
         void Awake()
         {
@@ -46,6 +47,9 @@ namespace Cyverse.Interaction
             if (kind != Kind.Knowledge) return;
 
             Transform body = BuildKit.AlignKioskScreen(transform, "ScreenBody", "Screen");
+            // The code boxes and hint are only on the rebuilt kiosk.
+            BuildKit.PlaceOnKioskScreen(transform.Find("CodeSlots"), body, new Vector2(0f, -0.01f), 0.02f);
+            BuildKit.PlaceOnKioskScreen(transform.Find("ScreenHint"), body, new Vector2(0f, -0.125f), 0.022f);
             Transform label = transform.Find("Label_PASSCODE");
             if (label == null) return;
 
@@ -55,7 +59,7 @@ namespace Cyverse.Interaction
                 if (Application.isPlaying) Destroy(billboard);
                 else DestroyImmediate(billboard);
             }
-            BuildKit.PlaceOnKioskScreen(label, body, Vector2.zero, 0.024f);
+            BuildKit.PlaceOnKioskScreen(label, body, new Vector2(0f, 0.115f), 0.024f);
         }
 
         public void Interact(GameObject interactor)
@@ -76,7 +80,7 @@ namespace Cyverse.Interaction
                 busy = true;
                 TypingChallenge.Instance.ShowPhoneOtp(
                     "SOMETHING YOU KNOW",
-                    "Your Spartan Authenticator has the daily verification code. Watch it enter automatically.",
+                    "Your Spartan Authenticator phone shows today's verification code. Type it in, then press ENTER.",
                     passcode,
                     ok => { busy = false; if (ok) Clear(); });
             }
@@ -93,13 +97,23 @@ namespace Cyverse.Interaction
                 HudUI.Instance.ShowToast("SCANNING — hold still…", new Color(0.55f, 0.85f, 1f));
 
             float duration = AccessibilitySettings.ReduceMotion ? 0.2f : 1.5f;
+            Vector3 barRest = scanBar != null ? scanBar.localPosition : Vector3.zero;
+            if (scanBar != null) scanBar.gameObject.SetActive(true);
             for (float t = 0f; t < duration; t += Time.deltaTime)
             {
                 if (scanLight != null)
                     scanLight.intensity = 1.5f + Mathf.PingPong(t * 6f, 2.2f);
+                // The bar sweeps the palm plate, front edge to back and back.
+                if (scanBar != null)
+                    scanBar.localPosition = barRest + Vector3.forward * (0.26f * Mathf.PingPong(t * 2.2f, 1f));
                 yield return null;
             }
             if (scanLight != null) scanLight.intensity = 1.2f;
+            if (scanBar != null)
+            {
+                scanBar.localPosition = barRest;
+                scanBar.gameObject.SetActive(false);
+            }
 
             busy = false;
             Clear();
@@ -121,28 +135,29 @@ namespace Cyverse.Interaction
             root.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
 
             var bodyMat = BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.16f), 0.55f, 0.4f);
+            Transform scanBar = null;
             if (kind == Kind.Knowledge)
             {
-                BuildKit.SpawnLocal(PrimitiveType.Cube, "Stand", root.transform,
-                    new Vector3(0f, 0.55f, 0f), Vector3.zero, new Vector3(0.5f, 1.1f, 0.4f), bodyMat, collider: true);
+                MfaProps.BuildPasscodeKiosk(root.transform, accent);
                 BuildKit.SpawnLocal(PrimitiveType.Cube, "ScreenBody", root.transform,
                     new Vector3(0f, 1.3f, 0.02f), new Vector3(35f, 0f, 0f), new Vector3(0.75f, 0.5f, 0.05f), bodyMat, collider: true);
                 BuildKit.SpawnLocal(PrimitiveType.Quad, "Screen", root.transform,
                     new Vector3(0f, 1.280f, -0.009f), new Vector3(35f, 0f, 0f), new Vector3(0.66f, 0.42f, 1f),
                     BuildKit.MakeHologram(accent), collider: false);
                 BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.3f, -0.08f),
-                    "PASSCODE", new Color(0.95f, 0.98f, 1f), 0.026f);
+                    "PASSCODE", new Color(0.95f, 0.98f, 1f), 0.012f);
+                MfaProps.BuildCodeSlots(root.transform, accent);
+                TextMesh hint = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.2f, -0.08f),
+                    "CODE FROM YOUR PHONE", new Color(0.70f, 0.82f, 0.90f), 0.0055f, style: FontStyle.Normal);
+                hint.gameObject.name = "ScreenHint";
             }
             else
             {
+                // The player stands on the pad and faces the scanner behind it.
                 BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Pad", root.transform,
-                    new Vector3(0f, 0.04f, 0f), Vector3.zero, new Vector3(0.9f, 0.04f, 0.9f),
+                    new Vector3(0f, 0.02f, -0.1f), Vector3.zero, new Vector3(0.85f, 0.02f, 0.85f),
                     BuildKit.MakeHologram(accent), collider: true);
-                BuildKit.SpawnLocal(PrimitiveType.Cube, "Pillar", root.transform,
-                    new Vector3(0.7f, 0.8f, 0f), Vector3.zero, new Vector3(0.18f, 1.6f, 0.18f), bodyMat, collider: true);
-                BuildKit.SpawnLocal(PrimitiveType.Sphere, "Eye", root.transform,
-                    new Vector3(0.7f, 1.7f, 0f), Vector3.zero, new Vector3(0.16f, 0.16f, 0.16f),
-                    BuildKit.MakeEmissive(accent, 2f), collider: false);
+                scanBar = MfaProps.BuildBioScanner(root.transform, new Vector3(0f, 0f, 0.5f), accent);
                 BuildKit.MakeLabel(root.transform, new Vector3(0f, 2.0f, 0f), "BIOMETRIC", accent, 0.026f, billboard: true);
             }
 
@@ -153,6 +168,7 @@ namespace Cyverse.Interaction
             var factor = root.AddComponent<MfaFactor>();
             factor.kind = kind;
             factor.gauntlet = gauntlet;
+            factor.scanBar = scanBar;
             factor.NormalizeScreen();
 
             var glow = new GameObject("FactorLight");

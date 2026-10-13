@@ -134,7 +134,7 @@ namespace Cyverse.Forensics
         // ITEM # | DATE / TIME | RELEASED BY | RECEIVED BY | REASON.
         private static readonly float[] ColX = { 0.025f, 0.115f, 0.265f, 0.515f, 0.765f, 0.975f };
         private const int ColItem = 0, ColDate = 1, ColReleased = 2, ColReceived = 3, ColReason = 4;
-        private const float TableTop = -296f;
+        private const float TableTop = -320f;
         private const float Entry1Top = TableTop - 40f;
         private const float Entry2Top = Entry1Top - 92f;
         private static readonly Color Ink = new Color(0.62f, 0.80f, 1f);
@@ -225,12 +225,13 @@ namespace Cyverse.Forensics
             outline.effectColor = new Color(Green.r, Green.g, Green.b, 0.35f);
             outline.effectDistance = new Vector2(1f, -1f);
             SetRect(block.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(1f, 1f),
-                new Vector2(32f, -172f), new Vector2(-64f, 76f), new Vector2(0f, 1f));
+                new Vector2(32f, -172f), new Vector2(-64f, 100f), new Vector2(0f, 1f));
 
             TMP_Text text = MakeText("ItemDetails", block.transform, 19, TextAlignmentOptions.MidlineLeft);
             text.text =
-                $"<color=#8CC7D1><b>CLIENT ITEM {CustodyLog.ItemNumber}</b></color>     Description: {CustodyLog.ItemDescription(evidence)}\n" +
-                $"<color=#8CC7D1>Serial #</color>  {CustodyLog.Serial(evidence)}        <color=#8CC7D1>Packaging</color>  sealed, tamper-evident evidence bag";
+                $"<color=#8CC7D1><b>CLIENT ITEM {CustodyLog.ItemNumber}</b></color>     Description: {CustodyLog.ItemDescription}\n" +
+                $"<color=#8CC7D1>Serial #</color>  {CustodyLog.Serial(evidence)}        <color=#8CC7D1>Packaging</color>  sealed, tamper-evident evidence bag\n" +
+                $"<color=#8CC7D1>Location</color>  {CustodyLog.Location(evidence)}";
             text.rectTransform.anchorMin = Vector2.zero;
             text.rectTransform.anchorMax = Vector2.one;
             text.rectTransform.offsetMin = new Vector2(16f, 6f);

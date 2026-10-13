@@ -179,7 +179,7 @@ namespace Cyverse.Interaction
                 tileIcons[i].Add(icon);
                 BuildIcon(i, tile, icon);
 
-                tileText[i].Add(BuildKit.MakeLabel(tile, new Vector3(0.045f, 0.022f, -0.004f), "SOMETHING YOU",
+                tileText[i].Add(BuildKit.MakeLabel(tile, new Vector3(0.045f, 0.036f, -0.004f), "SOMETHING YOU",
                     Color.white, 0.0032f));
                 tileText[i].Add(BuildKit.MakeLabel(tile, new Vector3(0.045f, -0.016f, -0.004f), words[i],
                     Color.white, 0.0075f));

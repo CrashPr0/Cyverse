@@ -23,10 +23,10 @@ namespace Cyverse.Interaction
     /// deliberately because Cyverse ships to WebGL.
     ///
     /// TypingChallenge drives it: ShowCode() lights the screen with the OTP,
-    /// SetStatus() updates the status line during the auto-type animation, and
-    /// Hide() darkens/hides it when the challenge closes. Display only — there
-    /// is no in-world tap interaction; the terminal still receives the
-    /// auto-typed code exactly as before.
+    /// SetStatus() updates the status line (e.g. once the typed code is
+    /// accepted), and Hide() darkens/hides it when the challenge closes.
+    /// Display only — there is no in-world tap interaction; the player types
+    /// the code into the terminal.
     /// </summary>
     public class DiegeticPhone : MonoBehaviour
     {
@@ -92,9 +92,7 @@ namespace Cyverse.Interaction
 
             // A short pedestal / dock so the phone sits at a readable height
             // rather than lying on the floor.
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Dock", transform,
-                new Vector3(0f, 0.5f, 0f), Vector3.zero, new Vector3(0.32f, 1.0f, 0.28f),
-                BuildKit.MakeStandard(new Color(0.08f, 0.09f, 0.13f), 0.5f, 0.4f), collider: true);
+            MfaProps.BuildPhoneDock(transform);
 
             // The phone body stands UPRIGHT on its dock, facing the player who
             // approaches from -Z. The screen quad below renders on its local -Z
@@ -130,11 +128,11 @@ namespace Cyverse.Interaction
             screenGlow.range = 1.6f;
             screenGlow.intensity = 0f; // lit only while showing a code
 
-            // This dock sits immediately beside the passcode terminal. Keep
-            // its caption on a lower, smaller row so the two billboard labels
-            // cannot collapse into one unreadable word cloud.
-            BuildKit.MakeLabel(transform, new Vector3(0f, 1.48f, 0f),
-                "AUTHENTICATOR", accent, 0.015f, billboard: true);
+            // This dock sits immediately beside the passcode terminal, so its
+            // caption is a nameplate on the dock's front rather than a floating
+            // label: up close a floating one swelled across the vault behind.
+            BuildKit.MakeLabel(transform, new Vector3(0f, 0.86f, -0.15f),
+                "AUTHENTICATOR", accent, 0.0075f);
         }
 
         /// <summary>The offscreen render pipeline: a world-space Canvas holding
@@ -350,7 +348,7 @@ namespace Cyverse.Interaction
             RenderNow();
         }
 
-        /// <summary>Update the big code readout (used while auto-typing).</summary>
+        /// <summary>Update the big code readout.</summary>
         public void SetCode(string code)
         {
             if (!built || codeText == null) return;
