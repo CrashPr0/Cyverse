@@ -16,6 +16,19 @@ namespace Cyverse.Audio
         private AudioSource stepSrc;  // separate source so pitch jitter never bends UI sounds
         private AudioSource comboSrc; // separate source so streak pitch-ramp never bends confirm/click
         private AudioClip footstep, click, confirm, deny;
+        private AudioClip[] stepClips;
+        private string stepScene;
+        private int lastStep = -1;
+
+        /// <summary>Footstep clips live in Resources/Audio/Footsteps/Default
+        /// (any number, any names). A sibling folder named after a scene, e.g.
+        /// Footsteps/Level2_CyberDefense, replaces them in that level. With
+        /// no clips at all the built-in synthesized step plays. See the
+        /// README in Resources/Audio/Footsteps.</summary>
+        public const string FootstepFolder = "Audio/Footsteps";
+
+        /// <summary>Overall footstep loudness, before the SFX volume setting.</summary>
+        public float footstepVolume = 0.65f;
 
         void Awake()
         {
@@ -47,9 +60,33 @@ namespace Cyverse.Audio
         public void PlayFootstep()
         {
             if (stepSrc == null) return;
-            // Pitch/volume jitter keeps repeated steps from sounding robotic.
-            stepSrc.pitch = Random.Range(0.86f, 1.14f);
-            stepSrc.PlayOneShot(footstep, Vol * Random.Range(0.55f, 0.75f));
+            AudioClip[] clips = FootstepClips();
+            AudioClip clip = footstep;
+            if (clips.Length > 0)
+            {
+                // Random, but never the same recording twice in a row.
+                int i = Random.Range(0, clips.Length);
+                if (clips.Length > 1 && i == lastStep) i = (i + 1 + Random.Range(0, clips.Length - 1)) % clips.Length;
+                lastStep = i;
+                clip = clips[i];
+            }
+            // Light pitch/volume jitter keeps repeats from sounding robotic;
+            // recorded clips get less, since they already vary.
+            float spread = clips.Length > 0 ? 0.05f : 0.14f;
+            stepSrc.pitch = Random.Range(1f - spread, 1f + spread);
+            stepSrc.PlayOneShot(clip, Vol * footstepVolume * Random.Range(0.85f, 1.15f));
+        }
+
+        /// <summary>The clips for the current scene, loaded once per scene.</summary>
+        private AudioClip[] FootstepClips()
+        {
+            string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (stepClips != null && stepScene == scene) return stepClips;
+            stepScene = scene;
+            lastStep = -1;
+            AudioClip[] perLevel = Resources.LoadAll<AudioClip>(FootstepFolder + "/" + scene);
+            stepClips = perLevel.Length > 0 ? perLevel : Resources.LoadAll<AudioClip>(FootstepFolder + "/Default");
+            return stepClips;
         }
         public void PlayClick() { if (src != null) src.PlayOneShot(click, Vol); }
         public void PlayConfirm() { if (src != null) src.PlayOneShot(confirm, Vol); }
