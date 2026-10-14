@@ -53,6 +53,7 @@ Shader "Cyverse/Hologram"
             float _GridDensity, _GridWidth, _BarSpeed, _BarSize, _Alpha;
             float _BarStrength, _GridStrength, _ScanStrength;
             float _CyMotion; // global: 1 = animate, 0 = Reduce Motion
+            float _CyGlowDim; // global: 0 = full glow, 1 = none (BuildKit.GlowLevel)
 
             v2f vert (appdata v)
             {
@@ -85,6 +86,7 @@ Shader "Cyverse/Hologram"
 
                 float intensity = (0.18 + rim * 1.4 + grid * 0.5 + scan * 0.18 + bar * 0.9) * flicker;
                 fixed4 col = _Color * intensity;
+                col.rgb *= 1.0 - _CyGlowDim;
                 col.a = saturate((_Alpha + rim + grid * 0.25 + bar * 0.5) * flicker);
 
                 // Soft falloff at the UV borders so panels read as projected

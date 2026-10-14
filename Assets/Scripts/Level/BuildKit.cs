@@ -713,12 +713,30 @@ namespace Cyverse.Level
             return m;
         }
 
+        /// <summary>
+        /// How strongly everything glows, in every level: emissive props,
+        /// signs, trim and ceiling panels (Standard emission), holograms, glow
+        /// sprites and the floor grid. 1 = as authored. Playtesters found full
+        /// strength loud, so it ships a notch down; this is the one dial.
+        /// Materials saved into scenes are brought to the same level when the
+        /// scene loads (VisualDirector), so old and new props match.
+        /// </summary>
+        public static float GlowLevel = 0.7f;
+
+        /// <summary>Name given to emissive materials already at GlowLevel, so
+        /// the load-time pass never dims one twice.</summary>
+        public const string GlowMaterialName = "CyGlow";
+
+        /// <summary>Publishes GlowLevel to the shaders that read it.</summary>
+        public static void ApplyGlowLevel() =>
+            Shader.SetGlobalFloat("_CyGlowDim", 1f - Mathf.Clamp01(GlowLevel));
+
         public static Material MakeEmissive(Color c, float strength)
         {
-            var m = new Material(Shader.Find("Standard"));
+            var m = new Material(Shader.Find("Standard")) { name = GlowMaterialName };
             m.color = c;
             m.EnableKeyword("_EMISSION");
-            m.SetColor("_EmissionColor", c * strength);
+            m.SetColor("_EmissionColor", c * strength * GlowLevel);
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             return m;
         }

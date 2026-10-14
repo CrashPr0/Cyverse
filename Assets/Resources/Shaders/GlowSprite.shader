@@ -38,6 +38,7 @@ Shader "Cyverse/GlowSprite"
 
             fixed4 _Color;
             float _Intensity;
+            float _CyGlowDim; // global: 0 = full glow, 1 = none (BuildKit.GlowLevel)
 
             v2f vert (appdata v)
             {
@@ -55,7 +56,7 @@ Shader "Cyverse/GlowSprite"
                 a = a * a * a; // cubic falloff: bright core, soft skirt
 
                 fixed4 col = _Color * i.color;
-                col.rgb *= _Intensity;
+                col.rgb *= _Intensity * (1.0 - _CyGlowDim);
                 col.a *= a;
                 return col;
             }

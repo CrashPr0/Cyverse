@@ -32,6 +32,7 @@ Shader "Cyverse/GridFloor"
         };
 
         fixed4 _BaseColor, _LineColor;
+        float _CyGlowDim; // global: 0 = full glow, 1 = none (BuildKit.GlowLevel)
         float _GridScale, _LineWidth, _MinorEmission, _Smoothness, _Metallic;
         float _Emission, _FadeDistance, _PulseStrength, _PulseSpeed;
         float _CyMotion; // global: 1 = animate, 0 = Reduce Motion
@@ -78,7 +79,7 @@ Shader "Cyverse/GridFloor"
             o.Albedo = _BaseColor.rgb;
             o.Metallic = _Metallic;
             o.Smoothness = _Smoothness;
-            o.Emission = _LineColor.rgb * emit * _Emission;
+            o.Emission = _LineColor.rgb * emit * _Emission * (1.0 - _CyGlowDim);
         }
         ENDCG
     }

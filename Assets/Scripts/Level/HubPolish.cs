@@ -269,19 +269,43 @@ namespace Cyverse.Level
                 MeshPart("PadRim", dress, CharacterMesh.Annulus(8, 0.9f, 1.0f, 0.035f, 0.045f, "PadRim", 22.5f),
                     Vector3.zero, Vector3.zero, BuildKit.MakeEmissive(accent, 1.5f));
                 MeshPart("PadArrow", dress, chevron, new Vector3(0f, 0.04f, 0.1f), Vector3.zero,
-                    BuildKit.MakeEmissive(accent, 1.8f), scale: new Vector3(1.6f, 1f, 1.6f));
+                    BuildKit.MakeEmissive(accent, 1.1f), scale: new Vector3(1.4f, 1f, 1.4f));
 
+                // A short, quiet lead-in: the three dashes nearest the door
+                // become small chevrons; the far two (which reach the lounges)
+                // are dropped, and any chevron landing on furniture is skipped.
                 for (int k = 0; k < 5; k++)
                 {
                     Transform dash = root.transform.Find($"GuideDash_{level}_{k}");
                     if (dash == null) continue;
                     if (dash.GetComponent<Renderer>() != null) dash.GetComponent<Renderer>().enabled = false;
-                    var c = MeshPart("Chevron_" + level + "_" + k, root.transform, chevron,
-                        new Vector3(dash.position.x, 0.02f, dash.position.z), Vector3.zero,
-                        BuildKit.MakeEmissive(accent, 1.2f - k * 0.15f));
+                    Vector3 at = new Vector3(dash.position.x, 0.02f, dash.position.z);
+                    if (k >= 3 || OnFurniture(at)) continue;
+                    var c = MeshPart("Chevron_" + level + "_" + k, root.transform, chevron, at, Vector3.zero,
+                        BuildKit.MakeEmissive(accent, 0.75f - k * 0.18f), scale: new Vector3(0.75f, 1f, 0.75f));
                     c.rotation = face;
                 }
             }
+        }
+
+        /// <summary>True when a floor point sits under the lounges' couches,
+        /// tables or rugs.</summary>
+        private static bool OnFurniture(Vector3 floorPoint)
+        {
+            GameObject furnishings = GameObject.Find("Furnishings");
+            if (furnishings == null) return false;
+            foreach (Transform group in furnishings.transform)
+            {
+                if (!group.name.StartsWith("Lounge") && !group.name.StartsWith("Seat")) continue;
+                foreach (Renderer r in group.GetComponentsInChildren<Renderer>())
+                {
+                    Bounds b = r.bounds;
+                    b.Expand(new Vector3(0.6f, 0f, 0.6f));
+                    if (floorPoint.x > b.min.x && floorPoint.x < b.max.x && floorPoint.z > b.min.z && floorPoint.z < b.max.z)
+                        return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>A flat "^" pointing along +Z, about 0.6 m wide.</summary>

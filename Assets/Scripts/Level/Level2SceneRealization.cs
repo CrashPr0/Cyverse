@@ -20,6 +20,21 @@ namespace Cyverse.Level
             public HubDoor exitDoor;
         }
 
+        /// <summary>The saved scene has a potted plant on the spot where step 1's
+        /// dock now stands; it goes into the corner behind the server racks.</summary>
+        private static void ClearPlaybookCorner()
+        {
+            GameObject furnishings = GameObject.Find("Furnishings");
+            if (furnishings == null) return;
+            foreach (Transform child in furnishings.transform)
+            {
+                if (!child.name.StartsWith("Plant")) continue;
+                Vector3 p = child.position;
+                if (p.x > 16f && p.z > 16.5f && p.z < 18.5f)
+                    child.position = new Vector3(18.85f, p.y, 18.85f);
+            }
+        }
+
         public static Bindings Realize(GameObject host)
         {
             SiemConsole siem = Object.FindObjectOfType<SiemConsole>();
@@ -47,9 +62,10 @@ namespace Cyverse.Level
             PlaybookStation playbook = Object.FindObjectOfType<PlaybookStation>();
             if (playbook != null)
             {
-                playbook.Place(new Vector3(17f, 0f, 12f), 90f);
+                playbook.Place(PlaybookStation.SocBoardPosition, 90f);
                 playbook.Configure();
             }
+            ClearPlaybookCorner();
 
             LevelSceneLookup.HideTextObjectsNamed("Sign_ENDPOINTS");
 

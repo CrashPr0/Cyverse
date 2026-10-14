@@ -32,6 +32,11 @@ namespace Cyverse.Interaction
         private int placed;
 
         private const float SlotSpacing = 2.25f;
+
+        /// <summary>Where the board stands on the SOC's east wall: centred on
+        /// the open stretch between the divider (z ≈ 2.3) and the north wall
+        /// (z ≈ 19.5), so neither end is pressed against a wall.</summary>
+        public static readonly Vector3 SocBoardPosition = new Vector3(17f, 0f, 10.9f);
         private const float CardSpacing = 1.85f;
 
         public int Placed => placed;

@@ -97,8 +97,8 @@ namespace Cyverse.Level
             // wall. Its readable side faces west into the SOC, leaving the
             // entrance's direct sightline open.
             PlaybookStation.Build(
-                boardPos: new Vector3(17f, 0f, 12f),
-                rackPos: new Vector3(12f, 0f, 12f),
+                boardPos: PlaybookStation.SocBoardPosition,
+                rackPos: PlaybookStation.SocBoardPosition + new Vector3(-5f, 0f, 0f),
                 accent: SocRed, gate: null, gateMessage: null,
                 yawDegrees: 90f);
 

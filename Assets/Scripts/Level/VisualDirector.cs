@@ -32,12 +32,80 @@ namespace Cyverse.Level
 
         void Start()
         {
+            BuildKit.ApplyGlowLevel();
+            ToneSavedGlow();
             ApplyAtmosphere();
             EnsureRoomLighting();
             AttachLightGlows();
             BuildDust();
             BuildVignette();
             AnimateSigns();
+        }
+
+        /// <summary>Emissive materials saved into a scene were made at full
+        /// strength; bring them to BuildKit.GlowLevel like the ones built at
+        /// runtime. Scene materials are edited in place (a play session's
+        /// edits are discarded with the scene); material assets get a dimmed
+        /// copy, so the project's .mat files never change.</summary>
+        private static void ToneSavedGlow()
+        {
+            var copies = new System.Collections.Generic.Dictionary<Material, Material>();
+            Material ceiling = null;
+            foreach (Renderer r in FindObjectsOfType<Renderer>(true))
+            {
+                // Saved scenes made the ceiling bars far hotter than the room
+                // shell builds them (pure white, clipping); they streak across
+                // every view. Use the shell's own diffuser look everywhere.
+                if (r.name.StartsWith("CeilingPanel_"))
+                {
+                    if (ceiling == null)
+                    {
+                        Color diffuser = new Color(0.62f, 0.72f, 0.86f);
+                        ceiling = BuildKit.MakeEmissive(diffuser, 0.78f);
+                        ceiling.color = diffuser * 0.55f;
+                    }
+                    r.sharedMaterial = ceiling;
+                    continue;
+                }
+
+                Material[] mats = r.sharedMaterials;
+                bool swapped = false;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    Material m = mats[i];
+                    if (m == null || m.name == BuildKit.GlowMaterialName || !m.HasProperty("_EmissionColor") ||
+                        !m.IsKeywordEnabled("_EMISSION"))
+                        continue;
+                    if (IsAsset(m))
+                    {
+                        if (!copies.TryGetValue(m, out Material copy))
+                        {
+                            copy = new Material(m);
+                            Dim(copy);
+                            copies[m] = copy;
+                        }
+                        mats[i] = copy;
+                        swapped = true;
+                    }
+                    else Dim(m);
+                }
+                if (swapped) r.sharedMaterials = mats;
+            }
+        }
+
+        private static void Dim(Material m)
+        {
+            m.SetColor("_EmissionColor", m.GetColor("_EmissionColor") * BuildKit.GlowLevel);
+            m.name = BuildKit.GlowMaterialName;
+        }
+
+        private static bool IsAsset(Material m)
+        {
+#if UNITY_EDITOR
+            return UnityEditor.AssetDatabase.Contains(m);
+#else
+            return false; // in a build, edits never reach the files
+#endif
         }
 
         /// <summary>Scenes saved before ceiling fixtures existed have a solid
