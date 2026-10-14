@@ -80,6 +80,10 @@ namespace Cyverse.Level
             if (FindObjectOfType<SecurityPlusKiosk>() == null)
                 SecurityPlusKiosk.Build(new Vector3(0f, 0f, 16.5f), 0f, new Color(0.62f, 0.45f, 0.95f));
 
+            // Orientation art pass (Level 0 is a saved scene; this restyles it
+            // at load without touching the file).
+            Level0Polish.Apply(gameObject);
+
             stations.AddRange(FindObjectsOfType<StationSetup>());
             scanner = FindObjectOfType<FaceScanner>();
             if (scanner != null) scanner.Completed += CompleteLevel;

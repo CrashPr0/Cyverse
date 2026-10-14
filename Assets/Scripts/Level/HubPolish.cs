@@ -30,8 +30,8 @@ namespace Cyverse.Level
 
         private void Run()
         {
-            Concierge();
-            Core();
+            Concierge(Gold, "Concierge", "Sign_INFORMATION");
+            Core(Gold, "Sign_CYVERSE_HUB");
             Dais();
             foreach (HubDoor door in FindObjectsOfType<HubDoor>()) Door(door);
             MissionBoardStand();
@@ -44,7 +44,9 @@ namespace Cyverse.Level
 
         // ---- Concierge --------------------------------------------------------
 
-        private static void Concierge()
+        /// <summary>Turns the scene's GuardNPC into a blocky service robot in
+        /// <paramref name="accent"/>, talking as <paramref name="speaker"/>.</summary>
+        internal static void Concierge(Color accent, string speaker, string signName)
         {
             GuardNPC guard = FindObjectOfType<GuardNPC>();
             if (guard == null || guard.transform.Find("ConciergeRobot") != null) return;
@@ -53,18 +55,21 @@ namespace Cyverse.Level
 
             var robot = new GameObject("ConciergeRobot").transform;
             robot.SetParent(guard.transform, false);
-            ProceduralRobot.Rig rig = ProceduralRobot.Build(robot, Gold);
-            robot.gameObject.AddComponent<RobotIdle>().Bind(rig, "Concierge");
+            ProceduralRobot.Rig rig = ProceduralRobot.Build(robot, accent);
+            robot.gameObject.AddComponent<RobotIdle>().Bind(rig, speaker);
 
             // The sign floats above the robot's antenna, not its old cap.
-            Transform sign = guard.transform.Find("Sign_INFORMATION");
+            Transform sign = guard.transform.Find(signName);
             if (sign != null) sign.localPosition = new Vector3(0f, 2.25f, 0f);
         }
 
         // ---- Holo core --------------------------------------------------------
 
-        private static void Core()
+        /// <summary>Replaces BuildKit's holo column with a faceted crystal over
+        /// an octagonal plinth, orbit rings and a segmented ceiling ring.</summary>
+        internal static void Core(Color accent, string signName, float ceilingY = 4.8f)
         {
+            Color Gold = accent; // local: tints every part below
             GameObject core = GameObject.Find("HoloCore");
             GameObject ring = GameObject.Find("HoloCoreRing");
             if (core == null || GameObject.Find("HubCore") != null) return;
@@ -74,7 +79,7 @@ namespace Cyverse.Level
 
             // The big glow quad behind the hub sign read as a yellow disc
             // hanging from the ceiling; the sign keeps its plate and underline.
-            GameObject sign = GameObject.Find("Sign_CYVERSE_HUB");
+            GameObject sign = GameObject.Find(signName);
             if (sign != null)
             {
                 Transform halo = sign.transform.Find("Halo");
@@ -104,7 +109,7 @@ namespace Cyverse.Level
             var spin = new GameObject("Crystal").transform;
             spin.SetParent(root, false);
             spin.localPosition = new Vector3(0f, 2.55f, 0f);
-            Material crystal = BuildKit.MakeEmissive(new Color(1f, 0.78f, 0.32f), 1.3f);
+            Material crystal = BuildKit.MakeEmissive(Color.Lerp(accent, Color.white, 0.3f), 1.3f);
             MeshPart("CrystalTop", spin, CharacterMesh.Prism(8, 0.55f, 0.02f, 0f, 0.95f, "CrystalTop", 22.5f), Vector3.zero, Vector3.zero, crystal);
             MeshPart("CrystalBottom", spin, CharacterMesh.Prism(8, 0.02f, 0.55f, -0.7f, 0f, "CrystalBottom", 22.5f), Vector3.zero, Vector3.zero, crystal);
             spin.gameObject.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 14f, 0f);
@@ -112,7 +117,7 @@ namespace Cyverse.Level
             // Ceiling ring: segments in a circle above the core.
             var ceiling = new GameObject("CeilingRing").transform;
             ceiling.SetParent(root, false);
-            ceiling.localPosition = new Vector3(0f, 4.8f, 0f);
+            ceiling.localPosition = new Vector3(0f, ceilingY, 0f);
             var ringParts = new List<CombineInstance>();
             Mesh ceilingSeg = CharacterMesh.BevelBlock(-0.025f, 0.025f, new Vector2(0.26f, 0.05f), new Vector2(0.26f, 0.05f), 0.012f, 0f, "CeilingSeg");
             for (int i = 0; i < 24; i++)
@@ -173,7 +178,7 @@ namespace Cyverse.Level
 
         // ---- Doors ------------------------------------------------------------
 
-        private static void Door(HubDoor door)
+        internal static void Door(HubDoor door)
         {
             Transform t = door.transform;
             if (t.Find("DoorDress") != null) return;
@@ -403,7 +408,7 @@ namespace Cyverse.Level
 
         /// <summary>The realistic quad drones become small blocky service
         /// drones (same hover and patrol; their rotors keep spinning).</summary>
-        private static void AmbientDrones()
+        internal static void AmbientDrones()
         {
             foreach (Hoverer drone in FindObjectsOfType<Hoverer>())
             {
@@ -461,7 +466,7 @@ namespace Cyverse.Level
             }
         }
 
-        private static void Hide(GameObject go)
+        internal static void Hide(GameObject go)
         {
             foreach (Renderer r in go.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
         }

@@ -72,6 +72,13 @@ namespace Cyverse.Level
             TextColor = c;
         }
 
+        /// <summary>Bob around the sign's current position. Call after moving
+        /// a sign at runtime, or the bob keeps returning it to where it was.</summary>
+        public void Rebase()
+        {
+            basePos = transform.localPosition;
+        }
+
         private void ScheduleGlitch()
         {
             nextGlitch = Time.time + Random.Range(4f, 9f);

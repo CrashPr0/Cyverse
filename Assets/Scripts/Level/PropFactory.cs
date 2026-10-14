@@ -319,7 +319,7 @@ namespace Cyverse.Level
             Child(desk, PrimitiveType.Cube, "MonBody", new Vector3(1.05f, 1.35f, -0.7f), new Vector3(0, -35f, 0),
                 new Vector3(0.5f, 0.32f, 0.04f), RackDark, collider: false);
 
-            BuildKit.MakeSign(desk, new Vector3(0, 1.9f, 0), "RECEPTION",
+            BuildKit.MakeSign(desk, desk.TransformPoint(new Vector3(0, 1.9f, 0)), "RECEPTION",
                 new Color(0.7f, 0.9f, 1f), 0.028f);
         }
 
