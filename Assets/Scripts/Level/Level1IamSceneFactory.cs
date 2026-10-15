@@ -16,7 +16,7 @@ namespace Cyverse.Level
     /// </summary>
     public static class Level1IamSceneFactory
     {
-        public static readonly Color IamBlue = new Color(0.25f, 0.65f, 1f);
+        public static Color IamBlue => Palette.Accent("Level1");
 
         public static void BuildAll()
         {

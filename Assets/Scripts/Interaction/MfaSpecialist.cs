@@ -45,7 +45,7 @@ namespace Cyverse.Interaction
         private const float FaceRange = 7f;
         private static readonly Vector3 HologramPos = new Vector3(0.58f, 1.22f, 0.18f);
 
-        private static readonly Color IamBlue = new Color(0.30f, 0.62f, 1f);
+        private static Color IamBlue => Palette.Tint("Level1", new Color(0.30f, 0.62f, 1f));
 
         private ProceduralRobot.Rig rig;
         private List<DialogueLine> lines;

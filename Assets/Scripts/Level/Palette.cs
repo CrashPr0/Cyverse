@@ -13,6 +13,10 @@ namespace Cyverse.Level
     ///
     /// A missing file falls back to the colour the code asks for, so nothing
     /// breaks if one is deleted.
+    ///
+    /// Each room's accent (the colour of its trim, floor grid, signs and
+    /// station glows) is a palette file too, Accent&lt;Room&gt;; see Accent,
+    /// Tint and AccentRecolor.
     /// </summary>
     public static class Palette
     {
@@ -34,6 +38,89 @@ namespace Cyverse.Level
             (new Color(0.58f, 0.61f, 0.68f), "Chrome"),
             (new Color(0.13f, 0.14f, 0.19f), "CaseBody"),
         };
+
+        // ---- Room accents ----------------------------------------------------
+
+        /// <summary>Each room's accent as the code was written with it. The
+        /// AccentHub ... AccentLevel4 files start at these values.</summary>
+        private static readonly Dictionary<string, Color> AccentDefaults = new Dictionary<string, Color>
+        {
+            { "Hub", new Color(0.90f, 0.66f, 0.14f) },
+            { "Orientation", new Color(0.25f, 0.80f, 1.00f) },
+            { "Level1", new Color(0.25f, 0.65f, 1.00f) },
+            { "Level2", new Color(0.95f, 0.42f, 0.32f) },
+            { "Level3", new Color(0.30f, 1.00f, 0.55f) },
+            { "Level4", new Color(1.00f, 0.42f, 0.25f) },
+        };
+
+        /// <summary>A room's accent: the Albedo colour of its Accent file
+        /// (Hub, Orientation, Level1 ... Level4).</summary>
+        public static Color Accent(string room)
+        {
+            Color fallback = AccentDefaults.TryGetValue(room, out Color d) ? d : BuildKit.AccentCyan;
+            Material file = Load("Accent" + room);
+            if (file == null || !file.HasProperty("_Color")) return fallback;
+            Color c = file.color;
+            c.a = 1f;
+            return c;
+        }
+
+        /// <summary>True when the room's accent file differs from the colour the
+        /// code was written with (so its props need shifting).</summary>
+        public static bool AccentChanged(string room)
+        {
+            if (!AccentDefaults.TryGetValue(room, out Color d)) return false;
+            Color c = Accent(room);
+            return Mathf.Abs(c.r - d.r) + Mathf.Abs(c.g - d.g) + Mathf.Abs(c.b - d.b) > 0.004f;
+        }
+
+        /// <summary>A colour written for the room's original accent (a dimmer
+        /// floor-line shade, a nearby glow), moved the way the accent moved: its
+        /// hue turns by the same amount, and its saturation and brightness scale
+        /// the same way, so shades keep their relation to the accent. Unchanged
+        /// while the accent file is at its original colour.</summary>
+        public static Color Tint(string room, Color c)
+        {
+            if (!AccentDefaults.TryGetValue(room, out Color d) || !AccentChanged(room)) return c;
+            Color.RGBToHSV(d, out float dh, out float ds, out float dv);
+            Color.RGBToHSV(Accent(room), out float nh, out float ns, out float nv);
+            Color.RGBToHSV(c, out float h, out float s, out float v);
+            h = Mathf.Repeat(nh + (h - dh), 1f);
+            s = Mathf.Clamp01(ds > 0.001f ? s * ns / ds : ns);
+            v = dv > 0.001f ? v * nv / dv : v;
+            Color result = Color.HSVToRGB(h, s, v, true);
+            result.a = c.a;
+            return result;
+        }
+
+        /// <summary>True for a colour that reads as the room's original accent or
+        /// a shade of it: within 6 degrees of its hue and similar saturation.</summary>
+        public static bool IsAccentShade(string room, Color c)
+        {
+            if (!AccentDefaults.TryGetValue(room, out Color d)) return false;
+            Color.RGBToHSV(c, out float h, out float s, out float v);
+            if (v < 0.03f || s < 0.3f) return false;
+            Color.RGBToHSV(d, out float dh, out float ds, out _);
+            float hueGap = Mathf.Abs(Mathf.DeltaAngle(h * 360f, dh * 360f));
+            return hueGap <= 6f && Mathf.Abs(s - ds) <= 0.25f;
+        }
+
+        /// <summary>The accent room a scene belongs to, or null.</summary>
+        public static string RoomForScene(string sceneName)
+        {
+            switch (Core.SceneCatalog.Preferred(sceneName))
+            {
+                case "Hub": return "Hub";
+                case "Level0": return "Orientation";
+                case "Level1_IAM": return "Level1";
+                case "Level2_CyberDefense": return "Level2";
+                case "Level3_Forensics": return "Level3";
+                case "Level4_CyberAttack": return "Level4";
+                default: return null;
+            }
+        }
+
+        // ---- Finishes ----------------------------------------------------------
 
         /// <summary>The finish for a colour BlockKit.Mat is asked for, or null.</summary>
         public static string FinishFor(Color colour)

@@ -14,7 +14,7 @@ namespace Cyverse.Level
     /// </summary>
     public static class Level2SceneFactory
     {
-        public static readonly Color SocRed = new Color(0.95f, 0.42f, 0.32f);
+        public static Color SocRed => Palette.Accent("Level2");
 
         public static void BuildAll()
         {

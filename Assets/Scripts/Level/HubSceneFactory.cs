@@ -19,7 +19,7 @@ namespace Cyverse.Level
     /// </summary>
     public static class HubSceneFactory
     {
-        public static readonly Color HubGold = new Color(0.90f, 0.66f, 0.14f);
+        public static Color HubGold => Palette.Accent("Hub");
         public static readonly Color SjsuBlue = new Color(0.00f, 0.33f, 0.64f);
 
         // One source of truth for the level doors; wayfinding and the mission

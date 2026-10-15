@@ -24,8 +24,17 @@ namespace Cyverse.Interaction
         public bool IsComplete { get; private set; }
 
         public int pointsPerStep = 50;
-        /// <summary>Glow colour for the board, docks and cards.</summary>
-        public Color accent = Level2SceneFactory.SocRed;
+        /// <summary>Glow colour for the board, docks and cards. Left at the
+        /// SOC's original coral, it follows the Level 2 accent file (read in
+        /// Awake: a field initializer may not load it).</summary>
+        public Color accent = OriginalAccent;
+
+        private static readonly Color OriginalAccent = new Color(0.95f, 0.42f, 0.32f);
+
+        void Awake()
+        {
+            if (accent == OriginalAccent) accent = Level2SceneFactory.SocRed;
+        }
 
         private string[] steps;
         private string[] why;

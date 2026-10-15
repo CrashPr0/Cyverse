@@ -18,7 +18,7 @@ namespace Cyverse.Level
         public int[] levels;          // parallel to statusTexts; 0 = Orientation
         public bool[] inDevelopment;  // parallel to statusTexts
 
-        private static readonly Color Gold = new Color(0.90f, 0.66f, 0.14f);
+        private static Color Gold => Palette.Accent("Hub");
         private static readonly Color Ready = new Color(0.30f, 1f, 0.45f);
         private static readonly Color Locked = new Color(0.95f, 0.40f, 0.30f);
         private static readonly Color Dev = new Color(0.55f, 0.60f, 0.68f);

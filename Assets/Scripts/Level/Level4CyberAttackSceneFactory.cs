@@ -11,7 +11,7 @@ namespace Cyverse.Level
     /// </summary>
     public static class Level4CyberAttackSceneFactory
     {
-        public static readonly Color AttackOrange = new Color(1f, 0.42f, 0.25f);
+        public static Color AttackOrange => Palette.Accent("Level4");
         public static readonly Color AttackRed = new Color(0.76f, 0.12f, 0.14f);
         public const float AttackRoomHeight = 7.2f;
 

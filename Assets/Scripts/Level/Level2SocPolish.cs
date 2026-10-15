@@ -36,7 +36,7 @@ namespace Cyverse.Level
             ApplyAtmosphere();
             BuildKit.ToneGridFloor(
                 new Color(0.035f, 0.025f, 0.030f),
-                new Color(0.46f, 0.11f, 0.08f));
+                Palette.Tint("Level2", new Color(0.46f, 0.11f, 0.08f)));
             ToneCeilingAndFixtures();
             PolishWorkstations();
             BuildDecor();
@@ -148,9 +148,9 @@ namespace Cyverse.Level
             AddFillLight(root, "SOC_WorkstationFill", new Vector3(-15.8f, 3.6f, 9f),
                 new Color(0.36f, 0.66f, 1f), 0.72f, 10f);
             AddFillLight(root, "SOC_CommandFill", new Vector3(-10.5f, 3.6f, 7f),
-                new Color(1f, 0.38f, 0.28f), 0.62f, 9f);
+                Palette.Tint("Level2", new Color(1f, 0.38f, 0.28f)), 0.62f, 9f);
             AddFillLight(root, "SOC_ResponseFill", new Vector3(0f, 3.7f, 13.5f),
-                new Color(1f, 0.46f, 0.34f), 0.55f, 10f);
+                Palette.Tint("Level2", new Color(1f, 0.46f, 0.34f)), 0.55f, 10f);
         }
 
         private void BuildMountedHeader(Transform root)
@@ -227,7 +227,7 @@ namespace Cyverse.Level
         private Material AccentMaterial()
         {
             if (accentMaterial == null)
-                accentMaterial = BuildKit.MakeEmissive(new Color(0.95f, 0.32f, 0.24f), 1.35f);
+                accentMaterial = BuildKit.MakeEmissive(Palette.Tint("Level2", new Color(0.95f, 0.32f, 0.24f)), 1.35f);
             return accentMaterial;
         }
 

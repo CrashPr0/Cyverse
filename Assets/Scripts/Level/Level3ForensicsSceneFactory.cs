@@ -13,7 +13,7 @@ namespace Cyverse.Level
     /// </summary>
     public static class Level3ForensicsSceneFactory
     {
-        public static readonly Color ForensicGreen = new Color(0.30f, 1f, 0.55f);
+        public static Color ForensicGreen => Palette.Accent("Level3");
 
         public static void BuildAll()
         {

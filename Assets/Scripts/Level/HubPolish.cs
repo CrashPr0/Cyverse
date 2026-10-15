@@ -17,7 +17,7 @@ namespace Cyverse.Level
     /// </summary>
     public class HubPolish : MonoBehaviour
     {
-        private static readonly Color Gold = new Color(0.90f, 0.66f, 0.14f);
+        private static Color Gold => Palette.Accent("Hub");
         private static readonly Color Body = new Color(0.075f, 0.085f, 0.115f);
         private static readonly Color Trim = new Color(0.17f, 0.19f, 0.25f);
         private static readonly Color Chrome = new Color(0.58f, 0.61f, 0.68f);

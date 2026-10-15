@@ -47,5 +47,25 @@ If a file is deleted, the game falls back to the original colour in code.
 | AttackDeskBody / AttackDeskTrim / AttackDeskRecess | Level 4 workstation desks and monitors |
 | AttackBoard / AttackBoardFrame | Level 4 hanging station boards and room header |
 
-Level accent colours (the cyan, blue, coral, green and orange glows) are set
-per level in code and are not in this folder yet.
+## Room accents
+
+Each room's signature colour has its own file. Changing one recolours that
+room's wall trim, floor grid lines, signs, station glows and kiosk lights,
+including the parts saved in the scene files (the Hub, Orientation and Level 2
+rooms). Shades keep their relation: a dimmer floor line stays dimmer than the
+trim. Only Albedo matters in these files.
+
+| File | Room | Starts as |
+|---|---|---|
+| AccentHub | Hub | gold |
+| AccentOrientation | Orientation (Level 0) | cyan |
+| AccentLevel1 | Level 1, Identity & Access | blue |
+| AccentLevel2 | Level 2, Cyber Defense | coral |
+| AccentLevel3 | Level 3, Digital Forensics | green |
+| AccentLevel4 | Level 4, Cyber Attack | orange |
+
+Room accents are read when a level loads, so after changing one, stop and press
+Play again (or enter the level again) to see it. Colours that carry meaning
+stay as they are in every room: gold for score and the guide trail, green for
+done, red and orange for warnings. The Hub's door frames keep their own
+colours, as do the four Level 4 station colours.

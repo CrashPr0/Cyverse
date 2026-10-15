@@ -48,7 +48,7 @@ namespace Cyverse.Level
             ApplyAtmosphere();
             BuildKit.ToneGridFloor(
                 new Color(0.020f, 0.035f, 0.028f),
-                new Color(0.08f, 0.38f, 0.20f));
+                Palette.Tint("Level3", new Color(0.08f, 0.38f, 0.20f)));
             ToneFixtures();
             BuildLab();
             BindProgress();
@@ -126,7 +126,7 @@ namespace Cyverse.Level
         {
             CreateWorldText(root, "DF_WorkflowHeader", new Vector3(0f, 4.05f, 19.18f),
                 "ACQUIRE   ›   ANALYZE   ›   CORRELATE   ›   REPORT",
-                new Color(0.72f, 1f, 0.82f), 0.055f, 120f, 34f);
+                Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.055f, 120f, 34f);
             SpawnCube("DF_HeaderRail", root, new Vector3(0f, 3.62f, 19.28f),
                 new Vector3(17f, 0.045f, 0.055f), GreenMaterial());
         }
@@ -188,7 +188,7 @@ namespace Cyverse.Level
             SpawnCube("DF_ReportHeaderPanel", root, new Vector3(9.2f, 2.38f, 11.10f),
                 new Vector3(3.35f, 0.50f, 0.04f), PanelMaterial());
             CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.38f, 11.02f),
-                "04  FORENSIC REPORT", new Color(0.72f, 1f, 0.82f), 0.045f, 52f, 28f);
+                "04  FORENSIC REPORT", Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.045f, 52f, 28f);
             // Evidence acquisition now happens at the Investigation Desk, so the
             // report monitor is free to carry the casework status again. 1.75 cm
             // proud of the screen face (z 11.0775) to stay out of its depth.
@@ -212,7 +212,7 @@ namespace Cyverse.Level
             AddFillLight(root, "DF_IntakeFill", new Vector3(-11.5f, 3.2f, 8f),
                 new Color(0.42f, 0.72f, 1f), 0.58f, 8f);
             AddFillLight(root, "DF_AnalysisFill", new Vector3(0f, 3.5f, 10f),
-                new Color(0.30f, 1f, 0.55f), 0.68f, 10f);
+                Palette.Tint("Level3", new Color(0.30f, 1f, 0.55f)), 0.68f, 10f);
             AddFillLight(root, "DF_ReportFill", new Vector3(9.2f, 3.2f, 10.5f),
                 new Color(0.88f, 0.68f, 0.28f), 0.52f, 8f);
         }
@@ -255,7 +255,7 @@ namespace Cyverse.Level
             if (heading == null) return;
 
             heading.text = content;
-            heading.color = new Color(0.72f, 1f, 0.82f);
+            heading.color = Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f));
             heading.enableAutoSizing = true;
             heading.fontSizeMin = 18f;
             heading.fontSizeMax = 38f;
@@ -417,7 +417,7 @@ namespace Cyverse.Level
         private Material FloorMaterial()
         {
             if (floorMaterial != null) return floorMaterial;
-            floorMaterial = BuildKit.MakeGridFloor(new Color(0.12f, 0.52f, 0.28f), new Color(0.034f, 0.062f, 0.048f));
+            floorMaterial = BuildKit.MakeGridFloor(Palette.Tint("Level3", new Color(0.12f, 0.52f, 0.28f)), new Color(0.034f, 0.062f, 0.048f));
             if (floorMaterial.shader != null && floorMaterial.shader.name == "Cyverse/GridFloor")
             {
                 floorMaterial.SetFloat("_GridScale", 4f);
@@ -435,7 +435,7 @@ namespace Cyverse.Level
         private Material GreenMaterial()
         {
             if (greenMaterial == null)
-                greenMaterial = BuildKit.MakeEmissive(new Color(0.24f, 0.92f, 0.50f), 0.85f);
+                greenMaterial = BuildKit.MakeEmissive(Palette.Tint("Level3", new Color(0.24f, 0.92f, 0.50f)), 0.85f);
             return greenMaterial;
         }
 

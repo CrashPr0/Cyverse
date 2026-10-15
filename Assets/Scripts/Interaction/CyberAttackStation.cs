@@ -34,7 +34,7 @@ namespace Cyverse.Interaction
         private int openedFrame = -1;
         private ModalSession.Lease modal;
 
-        private static readonly Color Accent = new Color(1f, 0.42f, 0.25f);
+        private static Color Accent => Palette.Accent("Level4");
         private static readonly Color SafeGreen = new Color(0.30f, 1f, 0.55f);
         private static readonly Color Gold = new Color(0.90f, 0.66f, 0.14f);
 

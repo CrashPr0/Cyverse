@@ -19,7 +19,7 @@ namespace Cyverse.Level
     /// </summary>
     public class Level0Polish : MonoBehaviour
     {
-        private static readonly Color Cyan = BuildKit.AccentCyan;
+        private static Color Cyan => Palette.Accent("Orientation");
         private static readonly Color Body = new Color(0.075f, 0.085f, 0.115f);
         private static readonly Color Trim = new Color(0.17f, 0.19f, 0.25f);
         private static readonly Color Recess = new Color(0.035f, 0.04f, 0.06f);
@@ -37,7 +37,7 @@ namespace Cyverse.Level
         private void Run()
         {
             // Same quiet grid the other levels use, in the orientation's cyan.
-            BuildKit.ToneGridFloor(new Color(0.035f, 0.045f, 0.07f), new Color(0.14f, 0.38f, 0.58f));
+            BuildKit.ToneGridFloor(new Color(0.035f, 0.045f, 0.07f), Palette.Tint("Orientation", new Color(0.14f, 0.38f, 0.58f)));
 
             foreach (StationSetup station in FindObjectsOfType<StationSetup>()) Station(station.gameObject);
             Scanner();
