@@ -375,8 +375,11 @@ namespace Cyverse.Tests
             return name.Contains("DUSTMOTE") || name.Contains("LIGHTGLOW") ||
                    name == "GLOW" || name.StartsWith("GLOW ") ||
                    name.Contains("LAMP_CEILING") || name == "PLANE" ||
-                   name.StartsWith("PLANE ") || name == "CEILINGSLAB" ||
-                   name.StartsWith("CEILINGPANEL_") || name.StartsWith("WALL_");
+                   name.StartsWith("PLANE ") || name.StartsWith("WALL_") ||
+                   // The ceiling and what hangs from it (light bars, their
+                   // housings, sign and cable-tray rods) sit at the room's own
+                   // ceiling height, which in some rooms is above the limit.
+                   name.StartsWith("CEILING");
         }
 
     }

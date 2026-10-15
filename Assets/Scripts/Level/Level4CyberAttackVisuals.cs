@@ -38,6 +38,7 @@ namespace Cyverse.Level
         private bool applied;
         private Transform visualRoot;
         private Material panelMaterial;
+        private Material frameMaterial;
         private Material amberMaterial;
         private Material roseMaterial;
         private Material cyanMaterial;
@@ -181,8 +182,8 @@ namespace Cyverse.Level
             // Use the new upper wall band and stand the whole assembly clear
             // of the wall/columns. The previous header shared depth with the
             // centre structural column, so the words appeared embedded in it.
-            SpawnCube("L4_HeaderPanel", visualRoot, new Vector3(0f, 5.55f, 18.78f),
-                new Vector3(15.5f, 1.35f, 0.12f), PanelMaterial());
+            FramedPanel("L4_HeaderPanel", new Vector3(0f, 5.55f, 18.78f), Quaternion.identity,
+                new Vector3(15.5f, 1.35f, 0.12f));
             CreateWorldText("L4_Header", new Vector3(0f, 5.76f, 18.69f),
                 "CYBER ATTACK  //  OFFENSIVE LAB", new Color(0.90f, 0.94f, 1f),
                 0.070f, 170f, 44f, Quaternion.identity);
@@ -266,9 +267,8 @@ namespace Cyverse.Level
             // collider. The raised, compact plate keeps the title readable
             // while preserving a clear sightline to the screen.
             Vector3 boardCenter = anchor + forward * 1.28f + Vector3.up * 3.35f;
-            GameObject board = SpawnCube("L4_StationBoard_" + spec.key, visualRoot,
-                boardCenter, new Vector3(ZoneWidth - 0.42f, 1.90f, 0.11f), PanelMaterial());
-            board.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+            FramedPanel("L4_StationBoard_" + spec.key, boardCenter, Quaternion.LookRotation(forward, Vector3.up),
+                new Vector3(ZoneWidth - 0.42f, 1.90f, 0.11f));
 
             SpawnCube("L4_StationRail_" + spec.key, visualRoot,
                 boardCenter - forward * 0.075f + Vector3.down * 0.77f,
@@ -418,6 +418,31 @@ namespace Cyverse.Level
             GameObject beam = SpawnCube(name, parent, (from + to) * 0.5f,
                 new Vector3(0.05f, 0.020f, delta.magnitude), material);
             beam.transform.rotation = Quaternion.LookRotation(delta.normalized, Vector3.up);
+        }
+
+        /// <summary>A chamfered panel with a raised trim frame round its readable
+        /// (-Z) face, in place of a bare box, matching the other levels' boards.</summary>
+        private void FramedPanel(string name, Vector3 center, Quaternion rotation, Vector3 size)
+        {
+            var root = new GameObject(name).transform;
+            root.SetParent(visualRoot, false);
+            root.SetPositionAndRotation(center, rotation);
+            BlockKit.Slab("Body", root, Vector3.zero, size, 0.03f, PanelMaterial());
+            float hx = size.x * 0.5f, hy = size.y * 0.5f, z = -size.z * 0.5f - 0.006f;
+            const float bar = 0.07f;
+            BlockKit.Batch("Frame", root, FrameMaterial(), new List<CombineInstance>
+            {
+                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(-hx + bar * 0.5f, 0f, z), Vector3.zero, new Vector3(bar, size.y, 0.012f)),
+                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(hx - bar * 0.5f, 0f, z), Vector3.zero, new Vector3(bar, size.y, 0.012f)),
+                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, hy - bar * 0.5f, z), Vector3.zero, new Vector3(size.x, bar, 0.012f)),
+                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, -hy + bar * 0.5f, z), Vector3.zero, new Vector3(size.x, bar, 0.012f)),
+            });
+        }
+
+        private Material FrameMaterial()
+        {
+            if (frameMaterial == null) frameMaterial = BuildKit.MakeStandard(new Color(0.16f, 0.14f, 0.19f), 0.6f, 0.55f);
+            return frameMaterial;
         }
 
         private static GameObject SpawnCube(string name, Transform parent, Vector3 position,

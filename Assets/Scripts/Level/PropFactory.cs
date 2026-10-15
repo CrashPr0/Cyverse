@@ -29,7 +29,9 @@ namespace Cyverse.Level
 
         private static Material BodyDark => Mat("body", () => BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.15f), 0.55f, 0.35f));
         private static Material TopLight => Mat("top", () => BuildKit.MakeStandard(new Color(0.17f, 0.19f, 0.25f), 0.7f, 0.3f));
-        private static Material Wood => Mat("wood", () => BuildKit.MakeStandard(new Color(0.44f, 0.32f, 0.21f), 0.45f, 0.05f));
+        // Counter and table tops: slate trim, matching the other stations (a
+        // light wood stood out as the one warm, natural surface in the room).
+        private static Material Wood => Mat("wood", () => BuildKit.MakeStandard(new Color(0.17f, 0.19f, 0.25f), 0.6f, 0.5f));
         private static Material ChairDark => Mat("chair", () => BuildKit.MakeStandard(new Color(0.07f, 0.08f, 0.11f), 0.4f, 0.2f));
         private static Material Couch => Mat("couch", () => BuildKit.MakeStandard(new Color(0.14f, 0.17f, 0.24f), 0.15f, 0f));
         private static Material Cushion => Mat("cushion", () => BuildKit.MakeStandard(new Color(0.19f, 0.23f, 0.32f), 0.15f, 0f));

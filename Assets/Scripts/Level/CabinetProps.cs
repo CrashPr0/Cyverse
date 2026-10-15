@@ -249,14 +249,16 @@ namespace Cyverse.Level
             };
             for (float x = -half + 0.1f; x < half - 0.05f; x += 0.25f)
                 frame.Add(Piece(CubeMesh, new Vector3(x, y - 0.03f, 0f), Vector3.zero, new Vector3(0.025f, 0.012f, 2f * hz)));
+            var rods = new List<CombineInstance>();
             foreach (float x in new[] { -half + 0.15f, half - 0.15f })
             {
                 frame.Add(Piece(CubeMesh, new Vector3(x, y - 0.045f, 0f), Vector3.zero, new Vector3(0.04f, 0.02f, 2f * hz + 0.08f)));
                 for (int side = -1; side <= 1; side += 2)
-                    frame.Add(Piece(CubeMesh, new Vector3(x, (y + ceiling) * 0.5f, side * (hz + 0.03f)), Vector3.zero,
+                    rods.Add(Piece(CubeMesh, new Vector3(x, (y + ceiling) * 0.5f, side * (hz + 0.03f)), Vector3.zero,
                         new Vector3(0.014f, ceiling - y, 0.014f)));
             }
             Batch("TrayFrame", row, Trim, frame);
+            Batch("CeilingRods", row, Trim, rods); // hangers, up to however high the ceiling is
 
             Mesh drop = CharacterMesh.Prism(8, 0.035f, 0.035f, RackTop + 0.06f, y - 0.03f, "CableDrop", 22.5f);
             Mesh patchDrop = CharacterMesh.Prism(6, 0.016f, 0.016f, RackTop + 0.06f, y - 0.03f, "PatchDrop");
