@@ -76,7 +76,7 @@ namespace Cyverse.Level
                 {
                     Material m = mats[i];
                     if (m == null || m.name == BuildKit.GlowMaterialName || !m.HasProperty("_EmissionColor") ||
-                        !m.IsKeywordEnabled("_EMISSION"))
+                        !m.IsKeywordEnabled("_EMISSION") || Palette.Contains(m))
                         continue;
                     if (IsAsset(m))
                     {

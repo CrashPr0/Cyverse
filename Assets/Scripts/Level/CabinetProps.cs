@@ -33,39 +33,40 @@ namespace Cyverse.Level
         private static readonly Color PatchColor = new Color(0.10f, 0.25f, 0.55f);
         private static readonly Color NumberColor = new Color(0.06f, 0.08f, 0.11f);
 
-        // Shared across every cabinet and level, like PropFactory's palette.
-        private static readonly Dictionary<string, Material> cache = new Dictionary<string, Material>();
+        // Palette files (Resources/Palette), shared across every cabinet and level.
+        private static Material Body => Palette.Get("CabinetBody", BodyColor, 0.45f, 0.4f);
+        private static Material Trim => Mat(TrimColor, 0.55f, 0.6f);
+        private static Material Recess => Mat(RecessColor, 0.3f, 0.2f);
+        private static Material Blade => Palette.Get("ServerBlade", BladeColor, 0.55f, 0.55f);
+        private static Material Blank => Palette.Get("ServerBlank", BlankColor, 0.4f, 0.4f);
+        private static Material Door => Palette.Get("LockerDoor", DoorColor, 0.58f, 0.35f);
+        private static Material Plate => Palette.Get("LockerPlate", PlateColor, 0.6f, 0.5f);
+        private static Material Chrome => Mat(ChromeColor, 0.75f, 0.9f);
+        private static Material Accent => Palette.Glow("CabinetGlow", BuildKit.AccentCyan, 1.1f);
+        private static Material Cable => Palette.Get("Cable", CableColor, 0.35f, 0.1f);
+        private static Material Patch => Palette.Get("PatchCable", PatchColor, 0.4f, 0.1f);
+        private static Material LedGreen => Palette.Glow("LedGreen", Green, 1.5f);
+        private static Material LedCyan => Palette.Glow("LedCyan", Cyan, 1.5f);
+        private static Material LedAmber => Palette.Glow("LedAmber", Amber, 1.5f);
+        private static Material LedRed => Palette.Glow("LedRed", Red, 1.5f);
 
-        private static Material Cached(string key, System.Func<Material> make)
+        private static Material glass;
+
+        private static Material Glass
         {
-            if (cache.TryGetValue(key, out Material m) && m != null) return m;
-            return cache[key] = make();
+            get
+            {
+                if (glass != null) return glass;
+                Shader shader = Resources.Load<Shader>("Shaders/GlassPane");
+                if (shader == null) return null;
+                glass = new Material(shader);
+                glass.SetColor("_Color", new Color(0.30f, 0.45f, 0.58f));
+                glass.SetFloat("_Alpha", 0.10f);
+                glass.SetFloat("_ReflectionStrength", 0.10f);
+                glass.SetFloat("_EdgeOpacity", 0.12f);
+                return glass;
+            }
         }
-
-        private static Material Body => Cached("body", () => Mat(BodyColor, 0.45f, 0.4f));
-        private static Material Trim => Cached("trim", () => Mat(TrimColor, 0.55f, 0.6f));
-        private static Material Recess => Cached("recess", () => Mat(RecessColor, 0.3f, 0.2f));
-        private static Material Blade => Cached("blade", () => Mat(BladeColor, 0.55f, 0.55f));
-        private static Material Blank => Cached("blank", () => Mat(BlankColor, 0.4f, 0.4f));
-        private static Material Door => Cached("door", () => Mat(DoorColor, 0.58f, 0.35f));
-        private static Material Plate => Cached("plate", () => Mat(PlateColor, 0.6f, 0.5f));
-        private static Material Chrome => Cached("chrome", () => Mat(ChromeColor, 0.75f, 0.9f));
-        private static Material Accent => Cached("accent", () => BuildKit.MakeEmissive(BuildKit.AccentCyan, 1.1f));
-        private static Material Cable => Cached("cable", () => Mat(CableColor, 0.35f, 0.1f));
-        private static Material Patch => Cached("patch", () => Mat(PatchColor, 0.4f, 0.1f));
-        private static Material Led(string key, Color c) => Cached("led" + key, () => BuildKit.MakeEmissive(c, 1.5f));
-
-        private static Material Glass => Cached("glass", () =>
-        {
-            Shader shader = Resources.Load<Shader>("Shaders/GlassPane");
-            if (shader == null) return null;
-            var m = new Material(shader);
-            m.SetColor("_Color", new Color(0.30f, 0.45f, 0.58f));
-            m.SetFloat("_Alpha", 0.10f);
-            m.SetFloat("_ReflectionStrength", 0.10f);
-            m.SetFloat("_EdgeOpacity", 0.12f);
-            return m;
-        });
 
         /// <summary>A flat detail (drive bay, vent, LED) facing +Z.</summary>
         private static void Flat(List<CombineInstance> list, float x, float y, float z, float w, float h) =>
@@ -197,16 +198,15 @@ namespace Cyverse.Level
             if (blanks.Count > 0) Batch("Blanks", rack, Blank, blanks);
             Batch("ServerDetail", rack, Recess, recess);
             Batch("Chrome", rack, Chrome, chrome);
-            if (green.Count > 0) Batch("LedsGreen", rack, Led("g", Green), green);
-            if (cyan.Count > 0) Batch("LedsCyan", rack, Led("c", Cyan), cyan);
-            if (amber.Count > 0) Batch("LedsAmber", rack, Led("a", Amber), amber);
+            if (green.Count > 0) Batch("LedsGreen", rack, LedGreen, green);
+            if (cyan.Count > 0) Batch("LedsCyan", rack, LedCyan, cyan);
+            if (amber.Count > 0) Batch("LedsAmber", rack, LedAmber, amber);
 
             var blinking = new List<Renderer>();
-            Color[] activityColors = { Green, Cyan, Green };
             for (int i = 0; i < activity.Length; i++)
             {
                 if (activity[i].Count == 0) continue;
-                blinking.Add(Batch("LedsActivity" + i, rack, Led(i == 1 ? "c" : "g", activityColors[i]), activity[i])
+                blinking.Add(Batch("LedsActivity" + i, rack, i == 1 ? LedCyan : LedGreen, activity[i])
                     .GetComponent<Renderer>());
             }
             rack.gameObject.AddComponent<RackLights>().sets = blinking.ToArray();
@@ -342,8 +342,8 @@ namespace Cyverse.Level
             Batch("Plates", bank, Plate, plates);
             Batch("Chrome", bank, Chrome, chrome);
             Batch("Readers", bank, Trim, readers);
-            Batch("LampsLocked", bank, Led("r", Red), red);
-            Batch("LampsOpen", bank, Led("g", Green), green);
+            Batch("LampsLocked", bank, LedRed, red);
+            Batch("LampsOpen", bank, LedGreen, green);
 
             // Lockers usually stand along a wall the ceiling lights miss. A
             // per-vertex fill washes their doors without taking one of the

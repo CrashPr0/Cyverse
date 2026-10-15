@@ -11,8 +11,14 @@ namespace Cyverse.Level
     /// </summary>
     public static class BlockKit
     {
-        public static Material Mat(Color c, float smoothness, float metallic) =>
-            BuildKit.MakeStandard(c, smoothness, metallic);
+        /// <summary>A plain finish. The house body, trim, recess and chrome
+        /// colours come from their shared palette file (see Palette), so an
+        /// artist can recolour them; any other colour gets its own material.</summary>
+        public static Material Mat(Color c, float smoothness, float metallic)
+        {
+            string finish = Palette.FinishFor(c);
+            return finish != null ? Palette.Get(finish, c, smoothness, metallic) : BuildKit.MakeStandard(c, smoothness, metallic);
+        }
 
         /// <summary>A flat-shaded bevelled block (see CharacterMesh.BevelBlock).</summary>
         public static Transform Block(string name, Transform parent, Vector3 pos, Vector3 euler, float y0, float y1,

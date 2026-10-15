@@ -12,9 +12,10 @@ namespace Cyverse.Level
     /// the three review stations, a scanner booth, a stand for the Security+
     /// kiosk, a robot guard, the crystal centrepiece and a dressed exit door.
     /// Old primitives are hidden with their colliders left in place, so the
-    /// stations, scanner and kiosk play exactly as before. Also fixes two
-    /// layout bugs in the saved scene: the RECEPTION label floating in the
-    /// middle of the room, and the Security+ kiosk hidden behind the centrepiece.
+    /// stations, scanner and kiosk play exactly as before. Also moves the
+    /// Security+ kiosk out from behind the centrepiece. (The RECEPTION label,
+    /// saved at the room's origin here and in Level 2, is fixed for every
+    /// level by LevelCohesion.)
     /// </summary>
     public class Level0Polish : MonoBehaviour
     {
@@ -46,7 +47,6 @@ namespace Cyverse.Level
             LiftCoreSign();
             foreach (HubDoor door in FindObjectsOfType<HubDoor>()) HubPolish.Door(door);
             HubPolish.AmbientDrones();
-            ReceptionLabel();
         }
 
         // ---- Review stations ----------------------------------------------------
@@ -197,28 +197,6 @@ namespace Cyverse.Level
         {
             SignFX fx = sign.GetComponent<SignFX>();
             if (fx != null) fx.Rebase();
-        }
-
-        /// <summary>The saved scene's RECEPTION label was placed at the room's
-        /// origin, floating in front of the stations; put it over its desk.</summary>
-        private static void ReceptionLabel()
-        {
-            GameObject furnishings = GameObject.Find("Furnishings");
-            if (furnishings == null) return;
-            Transform reception = furnishings.transform.Find("Reception");
-            if (reception == null) return;
-            Vector3 above = reception.TransformPoint(new Vector3(0f, 2.1f, 0f));
-            foreach (TMPro.TextMeshPro tmp in reception.GetComponentsInChildren<TMPro.TextMeshPro>(true))
-            {
-                tmp.transform.position = above;
-                Rebase(tmp.transform);
-            }
-            foreach (TextMesh tm in reception.GetComponentsInChildren<TextMesh>(true))
-            {
-                if (tm.text != "RECEPTION") continue;
-                tm.transform.position = above;
-                Rebase(tm.transform);
-            }
         }
 
         private static void HideRenderer(Transform t)

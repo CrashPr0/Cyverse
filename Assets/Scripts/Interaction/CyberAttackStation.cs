@@ -351,9 +351,9 @@ namespace Cyverse.Interaction
         /// made the four monitors the loudest thing in the level).</summary>
         private static void BuildDeskAndMonitor(Transform root, Color accent)
         {
-            Material body = BlockKit.Mat(new Color(0.10f, 0.075f, 0.09f), 0.5f, 0.42f);
-            Material trim = BlockKit.Mat(new Color(0.20f, 0.16f, 0.19f), 0.58f, 0.55f);
-            Material recess = BlockKit.Mat(new Color(0.045f, 0.035f, 0.055f), 0.4f, 0.3f);
+            Material body = Palette.Get("AttackDeskBody", new Color(0.10f, 0.075f, 0.09f), 0.5f, 0.42f);
+            Material trim = Palette.Get("AttackDeskTrim", new Color(0.20f, 0.16f, 0.19f), 0.58f, 0.55f);
+            Material recess = Palette.Get("AttackDeskRecess", new Color(0.045f, 0.035f, 0.055f), 0.4f, 0.3f);
             Material glow = BuildKit.MakeEmissive(accent, 1.0f);
 
             BlockKit.Block("DeskKick", root, new Vector3(0f, 0f, 0.05f), Vector3.zero, 0f, 0.08f,

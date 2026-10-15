@@ -42,6 +42,7 @@ namespace Cyverse.Level
             DressAlertConsole();
             CeilingFixtures();
             foreach (HubDoor door in FindObjectsOfType<HubDoor>()) HubPolish.Door(door);
+            ReceptionSigns();
             MountStationSigns();
             FurniturePalette();
         }
@@ -232,8 +233,8 @@ namespace Cyverse.Level
         /// on it.</summary>
         private static void CeilingFixtures()
         {
-            Material housing = Mat(new Color(0.11f, 0.12f, 0.16f), 0.5f, 0.5f);
-            Material divider = Mat(new Color(0.06f, 0.065f, 0.085f), 0.4f, 0.3f);
+            Material housing = Palette.Get("CeilingHousing", new Color(0.11f, 0.12f, 0.16f), 0.5f, 0.5f);
+            Material divider = Palette.Get("CeilingDivider", new Color(0.06f, 0.065f, 0.085f), 0.4f, 0.3f);
             foreach (Renderer r in FindObjectsOfType<Renderer>())
             {
                 Transform panel = r.transform;
@@ -293,6 +294,25 @@ namespace Cyverse.Level
             if (layout != null) layout.RefreshNow();
         }
 
+        /// <summary>The reception counter's sign stands over the counter,
+        /// facing the visitors' side (local +Z, where its lit edge is; staff sit
+        /// on the -Z side). Some saved scenes left it at the room's origin, in
+        /// the doorway between the lobby and the task room.</summary>
+        private static void ReceptionSigns()
+        {
+            foreach (Transform reception in FindObjectsOfType<Transform>())
+            {
+                if (reception.name != "Reception") continue;
+                Transform sign = null;
+                foreach (Transform child in reception)
+                    if (child.name.StartsWith("Sign_RECEPTION")) { sign = child; break; }
+                if (sign == null) continue;
+                sign.position = reception.TransformPoint(new Vector3(0f, 1.75f, 0.05f));
+                foreach (SignFX fx in sign.GetComponents<SignFX>()) fx.Rebase();
+                Mount(sign, reception, -reception.forward);
+            }
+        }
+
         private static bool IsCharacter(Transform owner) =>
             owner.GetComponentInParent<GuardNPC>() != null || owner.GetComponentInParent<MfaSpecialist>() != null ||
             owner.GetComponentInChildren<RobotIdle>() != null;
@@ -314,7 +334,12 @@ namespace Cyverse.Level
                 if (chrome.transform != sign && chrome.name != "Halo") chrome.enabled = true;
         }
 
-        private static void Mount(Transform sign, Transform owner)
+        private static void Mount(Transform sign, Transform owner) => Mount(sign, owner, owner.forward);
+
+        /// <summary>Mounts the sign on a plate, its text read by someone looking
+        /// along <paramref name="facing"/> (stations face their local -Z, so by
+        /// default that is the owner's forward).</summary>
+        private static void Mount(Transform sign, Transform owner, Vector3 facing)
         {
             MarkMounted(sign);
             // The plate's lit edge replaces the underline, which on some saved
@@ -322,8 +347,6 @@ namespace Cyverse.Level
             Transform underline = sign.Find("Underline");
             if (underline != null) underline.gameObject.SetActive(false);
 
-            // Text reads from its local -Z side; station fronts face local -Z.
-            Vector3 facing = owner.forward;
             facing.y = 0f;
             if (facing.sqrMagnitude < 0.01f) facing = Vector3.forward;
             sign.rotation = Quaternion.LookRotation(facing.normalized, Vector3.up);
@@ -418,10 +441,10 @@ namespace Cyverse.Level
         {
             var finishes = new Dictionary<Finish, Material>
             {
-                { Finish.Body, Mat(BodyColor, 0.35f, 0.3f) },
-                { Finish.Recess, Mat(RecessColor, 0.4f, 0.2f) },
-                { Finish.Trim, Mat(TrimColor, 0.55f, 0.5f) },
-                { Finish.Gunmetal, Mat(GunmetalColor, 0.62f, 0.85f) },
+                { Finish.Body, Palette.Get("FurnitureFabric", BodyColor, 0.35f, 0.3f) },
+                { Finish.Recess, Palette.Get("FurnitureDark", RecessColor, 0.4f, 0.2f) },
+                { Finish.Trim, Palette.Get("FurnitureTop", TrimColor, 0.55f, 0.5f) },
+                { Finish.Gunmetal, Palette.Get("FurnitureMetal", GunmetalColor, 0.62f, 0.85f) },
             };
             foreach (Renderer r in FindObjectsOfType<Renderer>(true))
             {

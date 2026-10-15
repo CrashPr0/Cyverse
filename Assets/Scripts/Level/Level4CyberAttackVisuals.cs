@@ -441,7 +441,7 @@ namespace Cyverse.Level
 
         private Material FrameMaterial()
         {
-            if (frameMaterial == null) frameMaterial = BuildKit.MakeStandard(new Color(0.16f, 0.14f, 0.19f), 0.6f, 0.55f);
+            if (frameMaterial == null) frameMaterial = Palette.Get("AttackBoardFrame", new Color(0.16f, 0.14f, 0.19f), 0.6f, 0.55f);
             return frameMaterial;
         }
 
@@ -454,7 +454,7 @@ namespace Cyverse.Level
         private Material PanelMaterial()
         {
             if (panelMaterial == null)
-                panelMaterial = BuildKit.MakeStandard(new Color(0.055f, 0.062f, 0.095f), 0.66f, 0.52f);
+                panelMaterial = Palette.Get("AttackBoard", new Color(0.055f, 0.062f, 0.095f), 0.66f, 0.52f);
             return panelMaterial;
         }
 
