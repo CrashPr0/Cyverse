@@ -343,24 +343,40 @@ namespace Cyverse.Level
             Slab("Plate", plate, Vector3.zero, new Vector3(w + 0.36f, h + 0.2f, 0.05f), 0.02f, Mat(BodyColor, 0.45f, 0.4f));
             Box("PlateEdge", plate, new Vector3(0f, (h + 0.2f) * 0.5f - 0.02f, -0.027f), new Vector3(w + 0.16f, 0.012f, 0.006f),
                 BuildKit.MakeEmissive(colour, 1.1f));
-            HangIfFree(plate, w + 0.36f, h + 0.2f);
+            Support(plate, w + 0.36f, h + 0.2f);
         }
 
         /// <summary>A plate with nothing behind it (no wall, board or housing
-        /// within half a metre) hangs from the ceiling on two thin rods
-        /// instead of floating.</summary>
-        private static void HangIfFree(Transform plate, float width, float height)
+        /// within half a metre) needs something to hold it up. A low sign over
+        /// a counter or kiosk stands on two short posts from that surface; a
+        /// sign up near the ceiling hangs from it on two thin rods.</summary>
+        private static void Support(Transform plate, float width, float height)
         {
             if (Physics.Raycast(plate.position, plate.forward, 0.6f, ~0, QueryTriggerInteraction.Ignore)) return;
+            Material metal = Mat(TrimColor, 0.55f, 0.6f);
+            float bottom = plate.position.y - height * 0.5f, top = plate.position.y + height * 0.5f;
+            float postX = Mathf.Min(width * 0.5f - 0.15f, 0.6f);
+
+            if (Physics.Raycast(new Vector3(plate.position.x, bottom - 0.02f, plate.position.z), Vector3.down,
+                    out RaycastHit below, 1.5f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                float length = bottom - below.point.y;
+                var posts = new List<CombineInstance>();
+                for (int side = -1; side <= 1; side += 2)
+                    posts.Add(Piece(CubeMesh, new Vector3(side * postX, -height * 0.5f - length * 0.5f, 0.01f),
+                        Vector3.zero, new Vector3(0.03f, length, 0.03f)));
+                Batch("SignPosts", plate, metal, posts);
+                return;
+            }
+
             Renderer slab = GameObject.Find("CeilingSlab") != null ? GameObject.Find("CeilingSlab").GetComponent<Renderer>() : null;
             float ceiling = slab != null ? slab.bounds.min.y : 5f;
-            float top = plate.position.y + height * 0.5f;
             if (ceiling - top < 0.1f) return;
             var rods = new List<CombineInstance>();
             for (int side = -1; side <= 1; side += 2)
                 rods.Add(Piece(CubeMesh, new Vector3(side * (width * 0.5f - 0.15f), height * 0.5f + (ceiling - top) * 0.5f, 0.01f),
                     Vector3.zero, new Vector3(0.014f, ceiling - top, 0.014f)));
-            Batch("CeilingRods", plate, Mat(TrimColor, 0.55f, 0.6f), rods);
+            Batch("CeilingRods", plate, metal, rods);
         }
 
         private static Color SignColour(Transform sign)
