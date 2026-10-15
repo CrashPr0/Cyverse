@@ -159,7 +159,7 @@ namespace Cyverse.Interaction
             BuildKit.MakeSign(root.transform, root.transform.TransformPoint(new Vector3(0f, 3.1f, 0f)),
                 "IR PLAYBOOK", accent, 0.032f);
             BuildKit.MakeLabel(root.transform, new Vector3(0f, 2.5f, 0.3f),
-                "TAKE A CARD FROM THE RACK, THEN PLACE IT ON THE NEXT NUMBERED SLOT",
+                "TAKE A CARD FROM THE RACK, THEN PLACE IT ON THE NEXT STEP",
                 new Color(0.60f, 0.72f, 0.85f), 0.017f, billboard: false);
             var guide = BuildKit.MakeLabel(root.transform, new Vector3(0f, 2.18f, 0.3f),
                 "1  PREPARATION   >   2  DETECTION   >   3  CONTAINMENT\n" +
@@ -265,7 +265,7 @@ namespace Cyverse.Interaction
             if (instruction != null)
             {
                 instruction.gameObject.name = "PlaybookInstruction";
-                instruction.text = "TAKE A CARD FROM THE RACK\nPLACE IT ON THE NEXT NUMBERED SLOT";
+                instruction.text = "TAKE A CARD FROM THE RACK\nPLACE IT ON THE NEXT STEP";
                 instruction.characterSize = 0.032f;
                 instruction.transform.localPosition = new Vector3(0f, 2.98f, 0.3f);
                 Billboard billboard = instruction.GetComponent<Billboard>();

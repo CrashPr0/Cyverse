@@ -20,6 +20,10 @@ namespace Cyverse.Interaction
         private const int RowCount = 6;
         private const float RowHeight = 70f;
         private const float TableTop = -186f;
+        // Tall enough for the title, brief, table, a two-line feedback note
+        // and the key row, and no taller: a screen-height card left a large
+        // empty band above the keys.
+        private const float CardHeight = 772f;
         // Column edges as fractions of the card width.
         private static readonly float[] ColX = { 0.03f, 0.075f, 0.175f, 0.40f, 0.575f, 0.97f };
         private static readonly string[] Headings = { "#", "TIME", "ACCOUNT", "ACTION", "RESOURCE / LOCATION" };
@@ -158,11 +162,13 @@ namespace Cyverse.Interaction
             card = new GameObject("Card", typeof(RectTransform), typeof(Image));
             card.transform.SetParent(screen.transform, false);
             var rt = card.GetComponent<RectTransform>();
-            // Clear of the objective bar above and the task list to the left.
-            rt.anchorMin = new Vector2(0.11f, 0.07f);
+            // Clear of the objective bar above and the task list to the left;
+            // hangs from the top at a fixed height that fits its content.
+            rt.anchorMin = new Vector2(0.11f, 0.88f);
             rt.anchorMax = new Vector2(0.89f, 0.88f);
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(0f, CardHeight);
             HudUI.StylePanel(card, new Color(0.012f, 0.03f, 0.05f, 0.985f), accent);
 
             Text title = MakeText("Title", card.transform, 34, TextAnchor.MiddleLeft);
@@ -228,7 +234,8 @@ namespace Cyverse.Interaction
             screen.SetActive(false);
         }
 
-        /// <summary>Key caps along the bottom: how to move, flag and close.</summary>
+        /// <summary>Key caps along the bottom: how to move, flag and close.
+        /// One cap each; Enter (flag) and Tab (close) still work unlisted.</summary>
         private void BuildControls()
         {
             var bar = new GameObject("Controls", typeof(RectTransform), typeof(HorizontalLayoutGroup));
@@ -247,15 +254,13 @@ namespace Cyverse.Interaction
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
 
-            Key(bar.transform, "↑"); Key(bar.transform, "↓");
-            Word(bar.transform, "or", Muted, 30f);
-            Key(bar.transform, "←"); Key(bar.transform, "→");
+            Key(bar.transform, "↑ ↓ ← →");
             Word(bar.transform, "MOVE", Ink, 90f);
-            Spacer(bar.transform, 34f);
-            Key(bar.transform, "E"); Word(bar.transform, "or", Muted, 30f); Key(bar.transform, "ENTER");
-            Word(bar.transform, "FLAG ENTRY", Ink, 150f);
-            Spacer(bar.transform, 34f);
-            Key(bar.transform, "ESC"); Word(bar.transform, "or", Muted, 30f); Key(bar.transform, "TAB");
+            Spacer(bar.transform, 48f);
+            Key(bar.transform, "E");
+            Word(bar.transform, "FLAG", Ink, 80f);
+            Spacer(bar.transform, 48f);
+            Key(bar.transform, "ESC");
             Word(bar.transform, "CLOSE", Ink, 90f);
         }
 

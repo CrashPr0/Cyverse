@@ -324,9 +324,12 @@ namespace Cyverse.Interaction
             BuildKit.SpawnLocal(PrimitiveType.Cube, "MonitorBody", root.transform,
                 new Vector3(0f, 1.72f, 0.15f), new Vector3(-8f, 0f, 0f),
                 new Vector3(2.6f, 1.55f, 0.12f), panel, true);
+            // A dark display tinted with the station colour, carrying its name
+            // in large type. A solid emissive slab made the four monitors the
+            // loudest thing in the level while their names were unreadable.
             BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", root.transform,
                 new Vector3(0f, 1.72f, 0.075f), new Vector3(-8f, 0f, 0f),
-                new Vector3(2.38f, 1.28f, 1f), BuildKit.MakeEmissive(accent, 0.68f), false);
+                new Vector3(2.38f, 1.28f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, accent, 0.55f)), false);
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Keyboard", root.transform,
                 new Vector3(0f, 1.02f, -0.32f), Vector3.zero,
                 new Vector3(0.95f, 0.035f, 0.34f), body, false);
@@ -365,7 +368,7 @@ namespace Cyverse.Interaction
             TextMeshPro tmp = go.GetComponent<TextMeshPro>();
             tmp.text = text;
             tmp.font = TMP_Settings.defaultFontAsset;
-            tmp.fontSize = 0.32f;
+            tmp.fontSize = 1.1f;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = color;
             tmp.enableWordWrapping = false;

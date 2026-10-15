@@ -37,7 +37,9 @@ namespace Cyverse.Level
         [SerializeField] private float rescanInterval = 2f;
         [SerializeField] private float overlapPaddingPixels = 10f;
         [SerializeField] private float viewportSafePaddingPixels = 18f;
-        [SerializeField, Range(0.05f, 0.5f)] private float obscuredAlpha = 0.08f;
+        // A sign crossed by other text fades out completely: a faint 8% copy
+        // read as ghost words hanging around the room.
+        [SerializeField, Range(0f, 0.5f)] private float obscuredAlpha = 0f;
         [SerializeField] private float fadeSpeed = 8f;
 
         private readonly List<Entry> entries = new List<Entry>();

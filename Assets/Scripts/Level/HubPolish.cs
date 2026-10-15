@@ -38,8 +38,20 @@ namespace Cyverse.Level
             Wayfinding();
             Banners();
             AmbientDrones();
+            StillFloor();
             // The lounges (couches and rugs) are left as they are: they are
             // being reworked separately in the saved scene.
+        }
+
+        /// <summary>The Hub floor keeps its gold grid and gloss but loses the
+        /// ring that pulsed outward from the centre every few seconds (the
+        /// other levels' floors already have it off). The material is
+        /// instanced, so the saved scene's floor is never edited.</summary>
+        private static void StillFloor()
+        {
+            Renderer floor = GameObject.Find("Floor") != null ? GameObject.Find("Floor").GetComponent<Renderer>() : null;
+            if (floor == null || floor.sharedMaterial == null || !floor.sharedMaterial.HasProperty("_PulseStrength")) return;
+            floor.material.SetFloat("_PulseStrength", 0f);
         }
 
         // ---- Concierge --------------------------------------------------------
@@ -66,8 +78,10 @@ namespace Cyverse.Level
         // ---- Holo core --------------------------------------------------------
 
         /// <summary>Replaces BuildKit's holo column with a faceted crystal over
-        /// an octagonal plinth, orbit rings and a segmented ceiling ring.</summary>
-        internal static void Core(Color accent, string signName, float ceilingY = 4.8f)
+        /// an octagonal plinth, circled by one ring of segments. (A second,
+        /// tilted ring and a segmented ring on the ceiling were cut: stacked
+        /// round the sign they read as a sunburst.)</summary>
+        internal static void Core(Color accent, string signName)
         {
             Color Gold = accent; // local: tints every part below
             GameObject core = GameObject.Find("HoloCore");
@@ -105,7 +119,7 @@ namespace Cyverse.Level
             MeshPart("Emitter", root, CharacterMesh.Annulus(8, 0.32f, 0.5f, 0.42f, 0.47f, "Emitter", 22.5f), Vector3.zero, Vector3.zero, gold);
 
             // A faceted crystal (two eight-sided pyramids) turning slowly,
-            // with three tilted rings of segments orbiting it.
+            // with a ring of segments orbiting it.
             var spin = new GameObject("Crystal").transform;
             spin.SetParent(root, false);
             spin.localPosition = new Vector3(0f, 2.55f, 0f);
@@ -114,45 +128,21 @@ namespace Cyverse.Level
             MeshPart("CrystalBottom", spin, CharacterMesh.Prism(8, 0.02f, 0.55f, -0.7f, 0f, "CrystalBottom", 22.5f), Vector3.zero, Vector3.zero, crystal);
             spin.gameObject.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 14f, 0f);
 
-            // Ceiling ring: segments in a circle above the core.
-            var ceiling = new GameObject("CeilingRing").transform;
-            ceiling.SetParent(root, false);
-            ceiling.localPosition = new Vector3(0f, ceilingY, 0f);
-            var ringParts = new List<CombineInstance>();
-            Mesh ceilingSeg = CharacterMesh.BevelBlock(-0.025f, 0.025f, new Vector2(0.26f, 0.05f), new Vector2(0.26f, 0.05f), 0.012f, 0f, "CeilingSeg");
-            for (int i = 0; i < 24; i++)
-            {
-                float a = i * 15f;
-                ringParts.Add(Piece(ceilingSeg, Quaternion.Euler(0f, a, 0f) * new Vector3(0f, 0f, 4f), new Vector3(0f, a + 90f, 0f), Vector3.one));
-            }
-            Batch("CeilingRingMesh", ceiling, BuildKit.MakeEmissive(Gold, 0.7f), ringParts);
-            ceiling.gameObject.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 6f, 0f);
-
             Mesh segment = CharacterMesh.BevelBlock(-0.02f, 0.02f, new Vector2(0.11f, 0.03f), new Vector2(0.11f, 0.03f), 0.01f, 0f, "OrbitSegment");
-            Material dimGold = BuildKit.MakeEmissive(Gold, 0.9f);
-            float[] tilts = { 0f, 24f };
-            for (int r = 0; r < tilts.Length; r++)
+            var orbit = new GameObject("Orbit").transform;
+            orbit.SetParent(root, false);
+            orbit.localPosition = new Vector3(0f, 2.55f, 0f);
+            var parts = new List<CombineInstance>();
+            const int count = 20;
+            for (int i = 0; i < count; i++)
             {
-                var orbit = new GameObject("Orbit_" + r).transform;
-                orbit.SetParent(root, false);
-                orbit.localPosition = new Vector3(0f, 2.55f, 0f);
-                orbit.localRotation = Quaternion.Euler(tilts[r], r * 40f, 0f);
-                var parts = new List<CombineInstance>();
-                const int count = 20;
-                float radius = 1.0f + r * 0.22f;
-                for (int i = 0; i < count; i++)
-                {
-                    if (i % 5 == 4) continue; // gaps, so the ring reads as turning
-                    float a = i * 360f / count;
-                    Quaternion q = Quaternion.Euler(0f, a, 0f);
-                    parts.Add(Piece(segment, q * new Vector3(0f, 0f, radius), new Vector3(0f, a, 0f), Vector3.one));
-                }
-                Batch("OrbitMesh", orbit, r == 0 ? gold : dimGold, parts);
-                var spinner = new GameObject("Spin").transform; // turn about the ring's own axis
-                spinner.SetParent(orbit, false);
-                orbit.GetChild(0).SetParent(spinner, false);
-                spinner.gameObject.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, r % 2 == 0 ? 10f : -16f, 0f);
+                if (i % 5 == 4) continue; // gaps, so the ring reads as turning
+                float a = i * 360f / count;
+                Quaternion q = Quaternion.Euler(0f, a, 0f);
+                parts.Add(Piece(segment, q * new Vector3(0f, 0f, 1.0f), new Vector3(0f, a, 0f), Vector3.one));
             }
+            Batch("OrbitMesh", orbit, gold, parts);
+            orbit.gameObject.AddComponent<Rotator>().degreesPerSecond = new Vector3(0f, 10f, 0f);
         }
 
         /// <summary>The round two-step dais under the core becomes octagonal
@@ -239,7 +229,8 @@ namespace Cyverse.Level
 
         /// <summary>Each door's spinning hologram disc and its dashes become
         /// an octagonal landing pad with a lit rim and chevrons on the floor
-        /// pointing to the door, in the level's colour.</summary>
+        /// leading to it, in the level's colour. The pad carries no arrow of
+        /// its own: the chevrons already point the way.</summary>
         private static void Wayfinding()
         {
             GameObject root = GameObject.Find("Wayfinding");
@@ -273,8 +264,6 @@ namespace Cyverse.Level
                     Vector3.zero, Vector3.zero, Mat(new Color(0.05f, 0.055f, 0.075f), 0.6f, 0.45f));
                 MeshPart("PadRim", dress, CharacterMesh.Annulus(8, 0.9f, 1.0f, 0.035f, 0.045f, "PadRim", 22.5f),
                     Vector3.zero, Vector3.zero, BuildKit.MakeEmissive(accent, 1.5f));
-                MeshPart("PadArrow", dress, chevron, new Vector3(0f, 0.04f, 0.1f), Vector3.zero,
-                    BuildKit.MakeEmissive(accent, 1.1f), scale: new Vector3(1.4f, 1f, 1.4f));
 
                 // A short, quiet lead-in: the three dashes nearest the door
                 // become small chevrons; the far two (which reach the lounges)

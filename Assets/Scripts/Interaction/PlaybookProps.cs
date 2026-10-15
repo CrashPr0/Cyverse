@@ -70,8 +70,8 @@ namespace Cyverse.Interaction
 
         // ---- Docks --------------------------------------------------------------
 
-        /// <summary>Restyles a STEP drop zone as a dock: a stand with the step
-        /// number on its front, a shelf with a lit card outline, a hidden
+        /// <summary>Restyles a STEP drop zone as a dock: a stand (the step's
+        /// number is on its wall panel), a shelf with a lit card outline, a hidden
         /// binder (SeatedCard) shown once the right card is placed, and a lamp
         /// (DockLamp) PlaybookStation colours by state. Replaces the generic
         /// pedestal and its collider.</summary>
@@ -99,9 +99,6 @@ namespace Cyverse.Interaction
             }
             Batch("CardOutline", dock, BuildKit.MakeEmissive(accent, 1.1f), outline);
 
-            TextMesh number = BuildKit.MakeLabel(dock, new Vector3(0f, 0.5f, -0.195f), stepNumber.ToString(),
-                IconColor, 0.05f);
-            number.gameObject.name = "DockNumber";
             Slab("DockLamp", dock, new Vector3(0f, 0.74f, -0.19f), new Vector3(0.26f, 0.05f, 0.02f), 0.01f,
                 BuildKit.MakeEmissive(new Color(0.3f, 0.32f, 0.38f), 0.4f));
 

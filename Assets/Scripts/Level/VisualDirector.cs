@@ -40,6 +40,7 @@ namespace Cyverse.Level
             BuildDust();
             BuildVignette();
             AnimateSigns();
+            LightingDirector.Ensure(gameObject); // after the vignette, which it may hide
         }
 
         /// <summary>Emissive materials saved into a scene were made at full

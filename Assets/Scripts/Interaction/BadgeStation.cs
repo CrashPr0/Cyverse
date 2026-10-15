@@ -30,6 +30,8 @@ namespace Cyverse.Interaction
 
         private TextMesh screenText;
         private Transform scanBar;
+        private Transform badgeCard;
+        private TextMesh caption;
         private bool scanning;
 
         public bool CanInteract => !IsEnrolled;
@@ -44,9 +46,13 @@ namespace Cyverse.Interaction
 
         void OnValidate() => NormalizeScreen();
 
+        /// <summary>The screen's tilt: upright enough that the kiosk reads as
+        /// a terminal rather than a lectern, still facing up at the player.</summary>
+        private const float ScreenPitch = 22f;
+
         private void NormalizeScreen()
         {
-            Transform body = BuildKit.AlignKioskScreen(transform, "PanelBody", "PanelScreen");
+            Transform body = BuildKit.AlignKioskScreen(transform, "PanelBody", "PanelScreen", ScreenPitch);
             if (scanBar == null)
             {
                 Transform panel = transform.Find("PanelScreen");
@@ -97,8 +103,8 @@ namespace Cyverse.Interaction
             IsEnrolled = true;
             scanning = false;
 
-            if (screenText != null)
-                screenText.text = $"ID: {PlayerIdentity.Callsign}\nCLEARANCE: EMPLOYEE";
+            ShowIssuedBadge();
+            if (badgeCard != null) StartCoroutine(IssueCard());
 
             ScoreSystem.Add(points);
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
@@ -115,6 +121,40 @@ namespace Cyverse.Interaction
             Completed?.Invoke();
         }
 
+        /// <summary>The issued ID on the screen: the callsign as large as the
+        /// screen allows (callsigns run to 12 characters) over a clearance
+        /// line sized to fit, and the caption turns to ENROLLED.</summary>
+        private void ShowIssuedBadge()
+        {
+            if (caption != null)
+            {
+                caption.text = "ENROLLED";
+                caption.color = MfaProps.Verified;
+            }
+            if (screenText == null) return;
+            const float width = 0.54f, perChar = 4.2f; // HUD font: about 4.2 x characterSize per capital
+            string callsign = PlayerIdentity.Callsign;
+            screenText.characterSize = Mathf.Min(0.02f, width / (Mathf.Max(callsign.Length, 1) * perChar));
+            const string clearance = "CLEARANCE: EMPLOYEE";
+            int small = Mathf.FloorToInt(screenText.fontSize *
+                Mathf.Min(1f, width / (clearance.Length * perChar * screenText.characterSize)));
+            screenText.text = $"{callsign}\n<size={small}>{clearance}</size>";
+        }
+
+        /// <summary>The new badge slides half out of the printer slot.</summary>
+        private IEnumerator IssueCard()
+        {
+            badgeCard.gameObject.SetActive(true);
+            float duration = AccessibilitySettings.ReduceMotion ? 0f : 0.7f;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                badgeCard.localPosition = Vector3.Lerp(EnrollmentProps.CardHidden, EnrollmentProps.CardIssued,
+                    Mathf.SmoothStep(0f, 1f, t / duration));
+                yield return null;
+            }
+            badgeCard.localPosition = EnrollmentProps.CardIssued;
+        }
+
         // ---- Construction ----------------------------------------------------
 
         public static BadgeStation Build(Vector3 pos, float rotY, Color accent)
@@ -124,14 +164,12 @@ namespace Cyverse.Interaction
             root.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
 
             var bodyMat = BuildKit.MakeStandard(new Color(0.10f, 0.11f, 0.16f), 0.55f, 0.4f);
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Pillar", root.transform,
-                new Vector3(0f, 0.65f, 0.1f), Vector3.zero, new Vector3(0.55f, 1.3f, 0.35f), bodyMat, collider: true);
 
             // Positive pitch exposes the screen surface to a standing player.
             BuildKit.SpawnLocal(PrimitiveType.Cube, "PanelBody", root.transform,
-                new Vector3(0f, 1.55f, 0f), new Vector3(35f, 0f, 0f), new Vector3(0.9f, 1.0f, 0.06f), bodyMat, collider: true);
+                new Vector3(0f, 1.5f, 0f), new Vector3(ScreenPitch, 0f, 0f), new Vector3(0.74f, 0.8f, 0.06f), bodyMat, collider: true);
             var panel = BuildKit.SpawnLocal(PrimitiveType.Quad, "PanelScreen", root.transform,
-                new Vector3(0f, 1.526f, -0.034f), new Vector3(35f, 0f, 0f), new Vector3(0.8f, 0.88f, 1f),
+                new Vector3(0f, 1.5f, -0.042f), new Vector3(ScreenPitch, 0f, 0f), new Vector3(0.64f, 0.7f, 1f),
                 BuildKit.MakeHologram(accent), collider: false);
 
             var bar = BuildKit.SpawnLocal(PrimitiveType.Cube, "ScanBar", panel.transform,
@@ -140,11 +178,14 @@ namespace Cyverse.Interaction
 
             var station = root.AddComponent<BadgeStation>();
             station.scanBar = bar.transform;
-            station.screenText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.55f, -0.12f),
-                "ENROLL\n[E]", new Color(0.95f, 0.98f, 1f), 0.028f);
+            station.screenText = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.5f, -0.12f),
+                "ENROLL\n[E]", new Color(0.95f, 0.98f, 1f), 0.022f);
             station.NormalizeScreen();
-
-            BuildKit.MakeSign(root.transform, pos + new Vector3(0f, 2.6f, 0f), "ENROLLMENT", accent, 0.032f);
+            Transform body = root.transform.Find("PanelBody");
+            station.badgeCard = EnrollmentProps.BuildKiosk(root.transform, body, panel.transform, accent);
+            station.caption = BuildKit.MakeLabel(root.transform, Vector3.zero, "IDENTITY ENROLLMENT",
+                new Color(0.62f, 0.78f, 0.90f), 0.0065f, style: FontStyle.Normal);
+            BuildKit.PlaceOnKioskScreen(station.caption.transform, body, new Vector2(0f, 0.29f), 0.02f);
 
             var glow = new GameObject("KioskLight");
             glow.transform.SetParent(root.transform, false);

@@ -7,6 +7,11 @@ Shader "Cyverse/GlassPane"
         _Alpha ("Glass Opacity", Range(0, 0.3)) = 0.075
         _ReflectionStrength ("Reflection Strength", Range(0, 0.5)) = 0.24
         _EdgeOpacity ("Beveled Edge", Range(0, 0.5)) = 0.28
+        // Shift and repeat the reflection ribbons, so a row of panes shows one
+        // streak running across them instead of the same streak on each.
+        // A period of 0 leaves them unrepeated.
+        _RibbonOffset ("Ribbon Offset", Float) = 0
+        _RibbonPeriod ("Ribbon Period", Float) = 0
     }
     SubShader
     {
@@ -38,7 +43,7 @@ Shader "Cyverse/GlassPane"
             };
 
             fixed4 _Color;
-            float _Alpha, _ReflectionStrength, _EdgeOpacity;
+            float _Alpha, _ReflectionStrength, _EdgeOpacity, _RibbonOffset, _RibbonPeriod;
 
             v2f vert(appdata v)
             {
@@ -59,7 +64,9 @@ Shader "Cyverse/GlassPane"
 
                 // Two soft, stationary reflection ribbons make the surface
                 // readable as glass without obscuring the adjoining room.
-                float diagonal = i.uv.x + i.uv.y * 0.58;
+                float diagonal = i.uv.x + i.uv.y * 0.58 + _RibbonOffset;
+                if (_RibbonPeriod > 0.0)
+                    diagonal = frac(diagonal / _RibbonPeriod) * _RibbonPeriod;
                 float ribbon = smoothstep(0.55, 0.62, diagonal)
                     * (1.0 - smoothstep(0.76, 0.84, diagonal));
                 float fineRibbon = smoothstep(0.89, 0.90, diagonal)

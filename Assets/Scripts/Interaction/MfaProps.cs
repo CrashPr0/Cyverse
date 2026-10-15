@@ -326,19 +326,7 @@ namespace Cyverse.Interaction
             Slab("PlateBody", head, new Vector3(0f, 0.04f, 0f), new Vector3(0.46f, 0.08f, 0.38f), 0.03f, trim, solid: true);
             Slab("PalmGlass", head, new Vector3(0f, 0.083f, 0f), new Vector3(0.36f, 0.006f, 0.30f), 0.003f, BuildKit.MakeHologram(accent));
 
-            // A stylised right hand, palm down with the fingers pointing away
-            // from the player (+Z), so it reads as "put your hand here".
-            var hand = new List<CombineInstance>
-            {
-                Piece(CubeMesh, new Vector3(0f, 0.088f, -0.055f), Vector3.zero, new Vector3(0.11f, 0.003f, 0.10f)),
-                Piece(CubeMesh, new Vector3(-0.085f, 0.088f, -0.05f), new Vector3(0f, -35f, 0f), new Vector3(0.022f, 0.003f, 0.07f)),
-            };
-            float[] fingerX = { -0.042f, -0.014f, 0.014f, 0.042f };   // index to little finger
-            float[] fingerLen = { 0.08f, 0.09f, 0.085f, 0.065f };
-            for (int f = 0; f < 4; f++)
-                hand.Add(Piece(CubeMesh, new Vector3(fingerX[f], 0.088f, 0.0f + fingerLen[f] * 0.5f), Vector3.zero,
-                    new Vector3(0.02f, 0.003f, fingerLen[f])));
-            Batch("PalmPrint", head, BuildKit.MakeEmissive(accent, 1.3f), hand);
+            Batch("PalmPrint", head, BuildKit.MakeEmissive(accent, 1.3f), HandPrint(new Vector3(0f, 0.088f, -0.055f)));
 
             Transform scanBar = Box("ScanBar", head, new Vector3(0f, 0.09f, -0.13f), new Vector3(0.36f, 0.004f, 0.012f),
                 BuildKit.MakeEmissive(new Color(0.65f, 0.95f, 1f), 3f));
@@ -350,6 +338,25 @@ namespace Cyverse.Interaction
             MeshPart("IrisLens", root, CharacterMesh.Prism(8, 0.035f, 0.03f, 0f, 0.02f, "IrisLens", 22.5f),
                 new Vector3(0f, 1.55f, 0.10f), new Vector3(-90f, 0f, 0f), BuildKit.MakeEmissive(accent, 2.6f));
             return scanBar;
+        }
+
+        /// <summary>A stylised right hand lying palm down, palm centred on
+        /// <paramref name="palm"/>, fingers pointing away from the player (+Z),
+        /// so it reads as "put your hand here".</summary>
+        public static List<CombineInstance> HandPrint(Vector3 palm)
+        {
+            var hand = new List<CombineInstance>
+            {
+                Piece(CubeMesh, palm, Vector3.zero, new Vector3(0.11f, 0.003f, 0.10f)),
+                // Thumb: its base overlaps the palm so the hand reads as one shape.
+                Piece(CubeMesh, palm + new Vector3(-0.072f, 0f, -0.005f), new Vector3(0f, -35f, 0f), new Vector3(0.024f, 0.003f, 0.08f)),
+            };
+            float[] fingerX = { -0.042f, -0.014f, 0.014f, 0.042f };   // index to little finger
+            float[] fingerLen = { 0.08f, 0.09f, 0.085f, 0.065f };
+            for (int f = 0; f < 4; f++)
+                hand.Add(Piece(CubeMesh, palm + new Vector3(fingerX[f], 0f, 0.055f + fingerLen[f] * 0.5f), Vector3.zero,
+                    new Vector3(0.02f, 0.003f, fingerLen[f])));
+            return hand;
         }
 
         /// <summary>The passcode kiosk's body: plinth, tapered stand and a

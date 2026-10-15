@@ -66,15 +66,15 @@ namespace Cyverse.Level
             // Reception, near the spawn approach.
             BuildReception(root.transform, new Vector3(5f, 0f, -12f), -30f);
 
-            // Server wall, flanking the core on the north side.
-            for (int i = 0; i < 4; i++)
-                BuildServerRack(root.transform, new Vector3(-6.5f + i * 1.2f, 0f, 18.5f), 180f);
-            BuildServerRack(root.transform, new Vector3(13.6f, 0f, 18.5f), 180f);
-            BuildServerRack(root.transform, new Vector3(14.8f, 0f, 18.5f), 180f);
+            // Server wall, flanking the core on the north side: cabinets
+            // bolted into rows under overhead cable trays.
+            BuildServerRow(root.transform, new Vector3(-4.7f, 0f, 18.5f), 4);
+            BuildServerRow(root.transform, new Vector3(14.2f, 0f, 18.5f), 2);
 
-            // Lockers along the south wall; crates in the south-east corner.
-            BuildLockerBank(root.transform, new Vector3(-6f, 0f, -19.15f), 0f);
-            BuildLockerBank(root.transform, new Vector3(-3.7f, 0f, -19.15f), 0f);
+            // Lockers along the south wall, two banks side by side; crates in
+            // the south-east corner.
+            BuildLockerBank(root.transform, new Vector3(-3.825f, 0f, -19.15f), 0f, firstNumber: 1);
+            BuildLockerBank(root.transform, new Vector3(-5.875f, 0f, -19.15f), 0f, firstNumber: 5);
             BuildCrates(root.transform, new Vector3(14.3f, 0f, -16.9f));
 
             // Greenery to soften the tech.
@@ -251,35 +251,34 @@ namespace Cyverse.Level
             ProceduralPlanter.Create(parent, localPos, worldYaw - parentYaw);
         }
 
+        /// <summary>A row of <paramref name="count"/> server cabinets side by
+        /// side, centred on <paramref name="center"/> with their fronts toward
+        /// -Z (a wall behind them to the north), under one cable tray.</summary>
+        public static void BuildServerRow(Transform parent, Vector3 center, int count)
+        {
+            for (int i = 0; i < count; i++)
+                BuildServerRack(parent, center + new Vector3((i - (count - 1) * 0.5f) * CabinetProps.RackPitch, 0f, 0f), 180f);
+            CabinetProps.CableTray(Group(parent, "ServerRow", center, 180f), count);
+        }
+
         public static void BuildServerRack(Transform parent, Vector3 localPos, float rotY)
         {
             if (PropLibrary.TrySpawn("ServerRack", parent, localPos, rotY) != null) return;
             var rack = Group(parent, "ServerRack", localPos, rotY);
-
-            Child(rack, PrimitiveType.Cube, "Body", new Vector3(0, 1.1f, 0), Vector3.zero,
-                new Vector3(0.85f, 2.2f, 0.7f), RackDark, collider: true);
-            Child(rack, PrimitiveType.Cube, "Door", new Vector3(0, 1.1f, 0.365f), Vector3.zero,
-                new Vector3(0.75f, 2.05f, 0.03f), BodyDark, collider: false);
-            for (int i = 0; i < 6; i++)
-                Child(rack, PrimitiveType.Cube, "Led" + i,
-                    new Vector3(0, 0.45f + i * 0.29f, 0.385f), Vector3.zero,
-                    new Vector3(0.42f, 0.025f, 0.015f), i % 2 == 0 ? LedGreen : LedCyan, collider: false);
+            CabinetProps.ServerRack(rack, Seed(localPos));
         }
 
-        public static void BuildLockerBank(Transform parent, Vector3 localPos, float rotY)
+        public static void BuildLockerBank(Transform parent, Vector3 localPos, float rotY, int firstNumber = 1)
         {
             if (PropLibrary.TrySpawn("LockerBank", parent, localPos, rotY) != null) return;
             var bank = Group(parent, "Lockers", localPos, rotY);
-
-            Child(bank, PrimitiveType.Cube, "Body", new Vector3(0, 0.95f, 0), Vector3.zero,
-                new Vector3(2.0f, 1.9f, 0.5f), BodyDark, collider: true);
-            foreach (float x in new[] { -0.5f, 0f, 0.5f })
-                Child(bank, PrimitiveType.Cube, "Seam", new Vector3(x, 0.95f, 0.255f), Vector3.zero,
-                    new Vector3(0.02f, 1.84f, 0.015f), RackDark, collider: false);
-            foreach (float x in new[] { -0.78f, -0.28f, 0.22f, 0.72f })
-                Child(bank, PrimitiveType.Cube, "Handle", new Vector3(x, 1.05f, 0.26f), Vector3.zero,
-                    new Vector3(0.05f, 0.14f, 0.03f), TopLight, collider: false);
+            CabinetProps.LockerBank(bank, Seed(localPos), firstNumber);
         }
+
+        /// <summary>A stable per-placement seed, so neighbouring cabinets
+        /// differ but each looks the same every time the room is built.</summary>
+        private static int Seed(Vector3 localPos) =>
+            Mathf.RoundToInt(localPos.x * 10f) * 7919 + Mathf.RoundToInt(localPos.z * 10f);
 
         public static void BuildCrates(Transform parent, Vector3 center)
         {

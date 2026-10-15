@@ -42,7 +42,7 @@ namespace Cyverse.Level
             Scanner();
             SecurityPlus();
             HubPolish.Concierge(new Color(0.95f, 0.75f, 0.25f), "Security Guard", "Sign_SECURITY");
-            HubPolish.Core(Cyan, "Sign_CYVERSE", ceilingY: 5.9f);
+            HubPolish.Core(Cyan, "Sign_CYVERSE");
             LiftCoreSign();
             foreach (HubDoor door in FindObjectsOfType<HubDoor>()) HubPolish.Door(door);
             HubPolish.AmbientDrones();

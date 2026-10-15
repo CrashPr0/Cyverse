@@ -7,6 +7,7 @@ using Cyverse.Core;
 using Cyverse.Level;
 using Cyverse.Settings;
 using Cyverse.UI;
+using static Cyverse.Level.BlockKit;
 
 namespace Cyverse.Interaction
 {
@@ -88,7 +89,7 @@ namespace Cyverse.Interaction
             {
                 active = true;
                 LoadRound();
-                panel.SetFeedback("<color=#8FB8CC>Use the arrow keys to move between entries.</color>");
+                panel.SetFeedback("");
             }
             else
             {
@@ -230,6 +231,7 @@ namespace Cyverse.Interaction
             var r = rounds[round];
             headerText.text = $"ACCESS AUDIT — ROUND {round + 1}/{rounds.Length}";
             if (highlight != null) highlight.gameObject.SetActive(true);
+            SetIdleRows(false);
             for (int i = 0; i < rowTexts.Length; i++)
             {
                 rowTexts[i].text = i < r.lines.Length ? r.lines[i] : "";
@@ -250,10 +252,15 @@ namespace Cyverse.Interaction
         private void PositionHighlight()
         {
             if (highlight == null) return;
-            highlight.localPosition = new Vector3(0f, RowY(cursor), 0.01f);
+            // Follow the row itself, so an adopted (saved) screen lines up too.
+            float y = rowTexts != null && cursor < rowTexts.Length && rowTexts[cursor] != null
+                ? rowTexts[cursor].transform.localPosition.y : RowY(cursor);
+            highlight.localPosition = new Vector3(0f, y, 0.01f);
         }
 
-        private static float RowY(int i) => 2.42f - i * 0.30f;
+        // Six rows between the header (2.78) and the hint (0.98), with clear
+        // space above the hint under the last row.
+        private static float RowY(int i) => 2.5f - i * 0.25f;
 
         // ---- Wiring ----------------------------------------------------------
 
@@ -271,6 +278,7 @@ namespace Cyverse.Interaction
             this.gate = gate;
             this.gateMessage = gateMessage;
             if (!ScreenIsWired() && !TryAdoptScreen()) BuildScreen(accent);
+            EnsureIdleRows();
             if (!active && !IsComplete) ShowIdleScreen();
         }
 
@@ -283,6 +291,33 @@ namespace Cyverse.Interaction
             rowTexts[0].text = "REVIEW IDENTITY  ·  PRIVILEGE  ·  TIME  ·  LOCATION";
             rowTexts[0].color = new Color(0.62f, 0.74f, 0.88f);
             if (highlight != null) highlight.gameObject.SetActive(false);
+            SetIdleRows(true);
+        }
+
+        /// <summary>Greyed placeholder entries under the idle board's legend,
+        /// so at rest it reads as a log waiting to be opened rather than an
+        /// empty screen. Hidden as soon as a round loads.</summary>
+        private void EnsureIdleRows()
+        {
+            if (transform.Find("IdleRows") != null) return;
+            var rng = new System.Random(7);
+            float[] columnX = { -1.75f, -1.2f, -0.35f, 0.35f };
+            float[] minWidth = { 0.30f, 0.40f, 0.30f, 0.55f };
+            var bars = new List<CombineInstance>();
+            for (int row = 1; row < RowCount; row++)
+                for (int c = 0; c < columnX.Length; c++)
+                {
+                    float w = minWidth[c] + (float)rng.NextDouble() * 0.25f;
+                    bars.Add(Piece(QuadMesh, new Vector3(columnX[c] + w * 0.5f, RowY(row), -0.03f), Vector3.zero,
+                        new Vector3(w, 0.045f, 1f)));
+                }
+            Batch("IdleRows", transform, BuildKit.MakeEmissive(new Color(0.30f, 0.42f, 0.55f), 0.45f), bars);
+        }
+
+        private void SetIdleRows(bool visible)
+        {
+            Transform idle = transform.Find("IdleRows");
+            if (idle != null) idle.gameObject.SetActive(visible);
         }
 
         private bool ScreenIsWired()
@@ -361,6 +396,33 @@ namespace Cyverse.Interaction
             highlight = hl.transform;
         }
 
+        /// <summary>The board's housing, in the chamfered style of the Level 1
+        /// stations: a panel with a bezel round the screen and a lit top edge,
+        /// standing on two short legs with feet. Front toward -Z.</summary>
+        private static void BuildFrame(Transform root, Color accent)
+        {
+            Material body = Mat(new Color(0.075f, 0.085f, 0.115f), 0.45f, 0.4f);
+            Material trim = Mat(new Color(0.17f, 0.19f, 0.25f), 0.55f, 0.6f);
+            Slab("Panel", root, new Vector3(0f, 1.95f, 0.1f), new Vector3(3.9f, 2.3f, 0.1f), 0.03f, body, solid: true);
+            Batch("Bezel", root, trim, new List<CombineInstance>
+            {
+                Piece(CubeMesh, new Vector3(-1.9f, 1.95f, 0.025f), Vector3.zero, new Vector3(0.1f, 2.3f, 0.03f)),
+                Piece(CubeMesh, new Vector3(1.9f, 1.95f, 0.025f), Vector3.zero, new Vector3(0.1f, 2.3f, 0.03f)),
+                Piece(CubeMesh, new Vector3(0f, 3.05f, 0.025f), Vector3.zero, new Vector3(3.7f, 0.1f, 0.03f)),
+                Piece(CubeMesh, new Vector3(0f, 0.85f, 0.025f), Vector3.zero, new Vector3(3.7f, 0.1f, 0.03f)),
+            });
+            Box("TopGlow", root, new Vector3(0f, 3.05f, 0.007f), new Vector3(3.2f, 0.012f, 0.006f),
+                BuildKit.MakeEmissive(accent, 1.1f));
+            for (int side = -1; side <= 1; side += 2)
+            {
+                string s = side < 0 ? "L" : "R";
+                Block("Post_" + s, root, new Vector3(side * 1.55f, 0f, 0.1f), Vector3.zero, 0.05f, 0.9f,
+                    new Vector2(0.07f, 0.07f), new Vector2(0.06f, 0.06f), 0.02f, body, solid: true);
+                Slab("Foot_" + s, root, new Vector3(side * 1.55f, 0.025f, 0.1f), new Vector3(0.26f, 0.05f, 0.5f),
+                    0.015f, trim, solid: true);
+            }
+        }
+
         private static void SafeDestroy(GameObject go)
         {
             if (Application.isPlaying) Destroy(go);
@@ -376,21 +438,15 @@ namespace Cyverse.Interaction
             root.transform.position = pos;
             root.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
 
-            var frameMat = BuildKit.MakeStandard(new Color(0.08f, 0.09f, 0.13f), 0.55f, 0.35f);
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Post_L", root.transform,
-                new Vector3(-1.85f, 1.6f, 0.08f), Vector3.zero, new Vector3(0.12f, 3.2f, 0.12f), frameMat, collider: true);
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Post_R", root.transform,
-                new Vector3(1.85f, 1.6f, 0.08f), Vector3.zero, new Vector3(0.12f, 3.2f, 0.12f), frameMat, collider: true);
-            BuildKit.SpawnLocal(PrimitiveType.Cube, "Panel", root.transform,
-                new Vector3(0f, 1.95f, 0.08f), Vector3.zero, new Vector3(3.9f, 2.3f, 0.08f), frameMat, collider: true);
+            BuildFrame(root.transform, accent);
             BuildKit.SpawnLocal(PrimitiveType.Quad, "Surface", root.transform,
                 new Vector3(0f, 1.95f, 0.02f), Vector3.zero, new Vector3(3.75f, 2.15f, 1f),
                 BuildKit.MakeHologram(new Color(0.10f, 0.16f, 0.24f)), collider: false);
 
             var station = root.AddComponent<AuditStation>();
             station.Configure(rounds, accent, gate, gateMessage);
-
-            BuildKit.MakeSign(root.transform, pos + new Vector3(0f, 3.6f, 0f), "AUDIT", accent, 0.032f);
+            // No floating "AUDIT" sign: the board's own header names it, and
+            // the sign only ever showed as a faded copy behind the board.
 
             var glow = new GameObject("AuditLight");
             glow.transform.SetParent(root.transform, false);

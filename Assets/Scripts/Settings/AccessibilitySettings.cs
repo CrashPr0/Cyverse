@@ -41,7 +41,7 @@ namespace Cyverse.Settings
         {
             "Master Volume", "Voice Volume", "Voiceover (TTS)", "SFX Volume",
             "Caption Size", "Look Sensitivity", "Field of View", "Reduce Motion",
-            "Move With"
+            "Move With", "Graphics"
         };
         private int selected;
 
@@ -133,11 +133,23 @@ namespace Cyverse.Settings
                 case 6: FieldOfView = Mathf.Clamp(FieldOfView + 5f * dir, 50f, 100f); break;
                 case 7: ReduceMotion = !ReduceMotion; break;
                 case 8: ArrowKeysMove = !ArrowKeysMove; break;
+                case 9: CycleGraphics(dir); break;
             }
             Apply();
             Save();
             Refresh();
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+        }
+
+        /// <summary>Auto → High → Balanced → Performance → Auto (Left/Right
+        /// walk the same loop in opposite directions).</summary>
+        private static void CycleGraphics(int dir)
+        {
+            // Positions on the loop: 0 Auto, 1 High, 2 Balanced, 3 Performance.
+            int at = Level.LightingDirector.Chosen ? 3 - (int)Level.LightingDirector.Current : 0;
+            at = (at + (dir >= 0 ? 1 : 3)) % 4;
+            if (at == 0) Level.LightingDirector.ChooseAuto();
+            else Level.LightingDirector.Choose((Level.LightingDirector.Tier)(3 - at));
         }
 
         private static float Step01(float v) => Mathf.Clamp01(Mathf.Round(v * 10f) / 10f);
@@ -182,6 +194,10 @@ namespace Cyverse.Settings
                 case 6: return $"{Mathf.RoundToInt(FieldOfView)}°";
                 case 7: return ReduceMotion ? "On" : "Off";
                 case 8: return ArrowKeysMove ? "WASD + Arrow Keys" : "WASD only";
+                case 9:
+                    return Level.LightingDirector.Chosen
+                        ? Level.LightingDirector.Current.ToString()
+                        : $"Auto ({Level.LightingDirector.Current})";
                 default: return string.Empty;
             }
         }
@@ -237,7 +253,7 @@ namespace Cyverse.Settings
             crt.anchorMin = new Vector2(0.5f, 0.5f);
             crt.anchorMax = new Vector2(0.5f, 0.5f);
             crt.pivot = new Vector2(0.5f, 0.5f);
-            crt.sizeDelta = new Vector2(760, 700);
+            crt.sizeDelta = new Vector2(760, 760);
             HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.95f), HudUI.Accent);
 
             // Header.
@@ -265,7 +281,7 @@ namespace Cyverse.Settings
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(0, -30);
-            rt.sizeDelta = new Vector2(660, 580);
+            rt.sizeDelta = new Vector2(660, 640);
 
             menuText = txtGo.AddComponent<Text>();
             menuText.font = HudUI.UIFont;

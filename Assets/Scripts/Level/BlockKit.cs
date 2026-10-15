@@ -101,21 +101,20 @@ namespace Cyverse.Level
             }
         }
 
-        private static Mesh cubeMesh;
+        private static Mesh cubeMesh, quadMesh;
 
         /// <summary>Unity's unit cube, borrowed from a throwaway primitive.</summary>
-        public static Mesh CubeMesh
+        public static Mesh CubeMesh => cubeMesh != null ? cubeMesh : (cubeMesh = PrimitiveMesh(PrimitiveType.Cube));
+
+        /// <summary>Unity's unit quad (facing -Z, with 0..1 UVs), for glass panes.</summary>
+        public static Mesh QuadMesh => quadMesh != null ? quadMesh : (quadMesh = PrimitiveMesh(PrimitiveType.Quad));
+
+        private static Mesh PrimitiveMesh(PrimitiveType type)
         {
-            get
-            {
-                if (cubeMesh == null)
-                {
-                    GameObject probe = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    cubeMesh = probe.GetComponent<MeshFilter>().sharedMesh;
-                    Object.DestroyImmediate(probe);
-                }
-                return cubeMesh;
-            }
+            GameObject probe = GameObject.CreatePrimitive(type);
+            Mesh mesh = probe.GetComponent<MeshFilter>().sharedMesh;
+            Object.DestroyImmediate(probe);
+            return mesh;
         }
     }
 }
