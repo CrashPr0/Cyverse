@@ -64,6 +64,7 @@ namespace Cyverse.UI
         // Progress ring (top-left): endowed-progress onboarding tracker.
         private Image ringFill;
         private Text ringLabel;
+        private Text helpHint;
         private float ringDisplayed = 0.15f;
         private float ringTarget = 0.15f;
         private const float RingEndowedStart = 0.15f;
@@ -78,6 +79,7 @@ namespace Cyverse.UI
             BuildObjective();
             BuildScore();
             BuildProgressRing();
+            BuildHelpHint();
             BuildCaption();
             BuildInteractPrompt();
             BuildCrosshair();
@@ -186,6 +188,12 @@ namespace Cyverse.UI
                     objectiveOutline.effectColor = Color.Lerp(
                         new Color(Accent.r, Accent.g, Accent.b, 0.75f),
                         GuideGold, objectiveHighlight);
+            }
+
+            if (helpHint != null)
+            {
+                bool showHint = !GameState.AnyMenuOpen;
+                if (helpHint.gameObject.activeSelf != showHint) helpHint.gameObject.SetActive(showHint);
             }
 
             if (ringFill != null)
@@ -471,6 +479,23 @@ namespace Cyverse.UI
             scoreText.color = Accent;
             AddOutline(scoreText);
             scoreText.text = "SCORE  <b>0</b>";
+        }
+
+        // Quiet "H  Help" reminder (bottom-right) for the controls card; the key
+        // itself is handled by ControlsOverlay. Hidden while a menu owns the screen.
+        private void BuildHelpHint()
+        {
+            helpHint = CreateText("HelpHint", Canvas.transform, 18, TextAnchor.LowerRight);
+            var rt = helpHint.rectTransform;
+            rt.anchorMin = new Vector2(1f, 0f);
+            rt.anchorMax = new Vector2(1f, 0f);
+            rt.pivot = new Vector2(1f, 0f);
+            rt.anchoredPosition = new Vector2(-30, 22);
+            rt.sizeDelta = new Vector2(200, 30);
+            helpHint.color = new Color(0.6f, 0.85f, 1f, 0.55f);
+            AddOutline(helpHint);
+            helpHint.text = "<b>H</b>  Help";
+            helpHint.raycastTarget = false;
         }
 
         private void BuildProgressRing()

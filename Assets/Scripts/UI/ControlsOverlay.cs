@@ -7,9 +7,10 @@ namespace Cyverse.UI
 {
     /// <summary>
     /// A styled "controls" card shown at the start of the level. Fades out once
-    /// the player presses a movement key or after a timeout. By default it only
-    /// appears the first time (PlayerPrefs); set onlyFirstTime = false to show
-    /// it every session (useful for classroom / kiosk play).
+    /// the player presses a movement key or after a short timeout. By default it
+    /// only appears the first time (PlayerPrefs); set onlyFirstTime = false to
+    /// show it every session (useful for classroom / kiosk play). H / F1 bring
+    /// it back at any time (H, F1, Esc or Tab close it again).
     /// </summary>
     public class ControlsOverlay : MonoBehaviour
     {
@@ -17,26 +18,25 @@ namespace Cyverse.UI
         // kiosk play). Set true to only show it the first time on a machine.
         public bool onlyFirstTime = false;
         public float minDisplaySeconds = 3f;  // stays at least this long
-        public float autoHideSeconds = 14f;
+        public float autoHideSeconds = 6f;
 
         private CanvasGroup group;
         private Text dismissHint;
         private bool dismissing;
+        private bool open;       // card is up (hidden only while a menu owns the screen)
+        private bool summoned;   // opened by H / F1 rather than the level-start show
         private float elapsed;
         private Vector3 lastMouse;
 
         void Start()
         {
-            if (onlyFirstTime && PlayerPrefs.GetInt("cv_seen_controls", 0) == 1)
-            {
-                Destroy(this);
-                return;
-            }
+            bool seen = onlyFirstTime && PlayerPrefs.GetInt("cv_seen_controls", 0) == 1;
             PlayerPrefs.SetInt("cv_seen_controls", 1);
             PlayerPrefs.Save();
 
             Build();
             lastMouse = Input.mousePosition;
+            if (seen && group != null) Close(); // still reachable with H / F1
         }
 
         void Update()
@@ -48,13 +48,33 @@ namespace Cyverse.UI
             // quiz, results) owns the screen — it must never stack on top of
             // one — and all its timers freeze until the screen is free again.
             bool blocked = GameState.AnyMenuOpen;
-            if (group.gameObject.activeSelf == blocked)
-                group.gameObject.SetActive(!blocked);
+            bool show = open && !blocked;
+            if (group.gameObject.activeSelf != show)
+                group.gameObject.SetActive(show);
             if (blocked)
             {
                 lastMouse = Input.mousePosition; // menu mouse motion must not dismiss it
                 return;
             }
+
+            // Help key: bring the card back (not over another menu, nor on the
+            // frame a menu just closed) or close it again.
+            bool toggle = Input.GetKeyDown(KeyCode.H) || Input.GetKeyDown(KeyCode.F1);
+            if (Time.frameCount != GameState.MenuTransitionFrame)
+            {
+                if (!open && toggle) { Open(); return; }
+                if (open && summoned && (toggle || GameInput.CancelDown))
+                {
+                    // Claim the frame so the same Esc does not also open settings.
+                    GameState.MenuTransitionFrame = Time.frameCount;
+                    Close();
+                    return;
+                }
+                if (open && !summoned && toggle) { Close(); return; }
+            }
+            if (!open) return;
+
+            if (summoned) return; // stays up until the player closes it
 
             if (!dismissing)
             {
@@ -77,6 +97,9 @@ namespace Cyverse.UI
 
                 bool move = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) ||
                             Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D);
+                if (AccessibilitySettings.ArrowKeysMove)
+                    move |= Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.DownArrow) ||
+                            Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.RightArrow);
                 bool mouse = (Input.mousePosition - lastMouse).sqrMagnitude > 25f;
                 if (move || mouse || elapsed >= autoHideSeconds) dismissing = true;
             }
@@ -84,12 +107,30 @@ namespace Cyverse.UI
             {
                 float speed = AccessibilitySettings.ReduceMotion ? 100f : 2.5f;
                 group.alpha = Mathf.MoveTowards(group.alpha, 0f, speed * Time.unscaledDeltaTime);
-                if (group.alpha <= 0.001f)
-                {
-                    Destroy(group.gameObject);
-                    Destroy(this);
-                }
+                if (group.alpha <= 0.001f) Close();
             }
+        }
+
+        private void Open()
+        {
+            open = true;
+            summoned = true;
+            dismissing = false;
+            group.alpha = 1f;
+            if (dismissHint != null)
+            {
+                dismissHint.text = "Press H, F1 or Esc to close";
+                dismissHint.gameObject.SetActive(true);
+            }
+            group.gameObject.SetActive(true);
+        }
+
+        private void Close()
+        {
+            open = false;
+            summoned = false;
+            dismissing = false;
+            group.gameObject.SetActive(false);
         }
 
         private void Build()
@@ -103,9 +144,10 @@ namespace Cyverse.UI
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(0, 60);
-            rt.sizeDelta = new Vector2(560, 430);
+            rt.sizeDelta = new Vector2(560, 530);
             HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.92f), HudUI.Accent);
             group = card.GetComponent<CanvasGroup>();
+            open = true;
 
             // Header
             var header = MakeText(card.transform, "Header", "CONTROLS", 34, FontStyle.Bold,
@@ -114,13 +156,15 @@ namespace Cyverse.UI
             hrt.anchorMin = new Vector2(0, 1); hrt.anchorMax = new Vector2(1, 1); hrt.pivot = new Vector2(0.5f, 1);
             hrt.sizeDelta = new Vector2(0, 50); hrt.anchoredPosition = new Vector2(0, -22);
 
-            float y = 85f;
+            float y = 135f;
             AddRow(card.transform, y, "WASD", "Move"); y -= 50f;
+            AddRow(card.transform, y, "Shift", "Sprint"); y -= 50f;
             AddRow(card.transform, y, "Mouse", "Look around"); y -= 50f;
             AddRow(card.transform, y, "E", "Interact"); y -= 50f;
             AddRow(card.transform, y, "Space", "Advance dialogue"); y -= 50f;
             AddRow(card.transform, y, "G", "Glossary"); y -= 50f;
-            AddRow(card.transform, y, "Esc", "Settings");
+            AddRow(card.transform, y, "Esc", "Settings"); y -= 50f;
+            AddRow(card.transform, y, "H", "This help");
 
             dismissHint = MakeText(card.transform, "Footer", "Press a movement key to begin", 20,
                 FontStyle.Normal, new Color(0.6f, 0.85f, 1f, 0.9f), TextAnchor.LowerCenter);
