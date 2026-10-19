@@ -4,6 +4,7 @@ using UnityEngine.Video;
 using TMPro;
 using Cyverse.Audio;
 using Cyverse.Level;
+using Cyverse.Settings;
 using Cyverse.UI;
 
 namespace Cyverse.Interaction
@@ -72,6 +73,7 @@ namespace Cyverse.Interaction
         private bool controlsRevealed;
         private float time;    // slides mode clock
         private int lastSlide = -1;
+        private bool[] slideSpoken;   // slides already read aloud (first play only)
 
         void Awake()
         {
@@ -278,6 +280,7 @@ namespace Cyverse.Interaction
         private void SetPlaying(bool value)
         {
             playing = value;
+            if (!value) Speech.Cancel();
             if (useVideo && vp != null)
             {
                 if (value) vp.Play();
@@ -395,11 +398,26 @@ namespace Cyverse.Interaction
                 if (t < d || i == slides.Length - 1) { idx = i; break; }
                 t -= d;
             }
+            if (playing) SpeakSlide(idx);
             if (idx == lastSlide) return;
             lastSlide = idx;
 
             if (titleText != null) titleText.text = slides[idx].title;
             if (bodyText != null) bodyText.text = slides[idx].body;
+        }
+
+        // Slides have no recorded voice, so the browser reads each body aloud the
+        // first time it plays, as other unvoiced text is.
+        private void SpeakSlide(int idx)
+        {
+            if (HasCompletedOnce || !Speech.Available) return;
+            var settings = AccessibilitySettings.Instance;
+            if (settings != null && !settings.TtsEnabled) return;
+            if (slideSpoken == null || slideSpoken.Length != slides.Length) slideSpoken = new bool[slides.Length];
+            if (slideSpoken[idx] || string.IsNullOrEmpty(slides[idx].body)) return;
+            slideSpoken[idx] = true;
+            Speech.Speak(slides[idx].body, settings != null ? settings.VoiceRate : 1f, 1f,
+                settings != null ? settings.VoiceVolume : 1f);
         }
 
         // ---- Construction ----------------------------------------------------

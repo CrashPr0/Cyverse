@@ -39,6 +39,8 @@ namespace Cyverse.Settings
 
         /// <summary>Browser text-to-speech for unvoiced dialogue (WebGL builds).</summary>
         public bool TtsEnabled { get; private set; } = true;
+        /// <summary>Speed multiplier for browser text-to-speech (1 = normal).</summary>
+        public float VoiceRate { get; private set; } = 1f;
 
         // ---- Rows -------------------------------------------------------------
 
@@ -100,10 +102,13 @@ namespace Cyverse.Settings
                 () => VoiceVolume, f => VoiceVolume = f, Percent);
             Volume("Audio", "Sound Effects", "Footsteps, interface clicks and machine sounds.",
                 () => SfxVolume, f => SfxVolume = f, Percent);
-            Switch("Audio", "Voiceover", () => TtsEnabled
-                    ? "Reads dialogue that has no recorded voice aloud, using your browser's voice."
-                    : "Off: dialogue without a recorded voice is shown as text only.",
-                () => TtsEnabled, () => { TtsEnabled = !TtsEnabled; if (!TtsEnabled) Speech.Cancel(); });
+            Add(new Row
+            {
+                Section = "Audio", Label = "Voiceover", Kind = Kind.Choice,
+                Help = "Reads dialogue that has no recorded voice aloud with your browser's voice, at the speed you pick.",
+                Value = () => TtsEnabled ? VoiceRateLabel(VoiceRate) : "Off",
+                Step = CycleVoiceover,
+            });
 
             Add(new Row
             {
@@ -146,6 +151,21 @@ namespace Cyverse.Settings
         }
 
         private void Add(Row row) => rows.Add(row);
+
+        private static readonly float[] VoiceRates = { 0.75f, 1f, 1.25f, 1.5f };
+
+        private static string VoiceRateLabel(float r) => r + "x";
+
+        // Off, then each speed; stepping past either end wraps around.
+        private void CycleVoiceover(int dir)
+        {
+            int i = TtsEnabled ? Array.IndexOf(VoiceRates, VoiceRate) : -1;
+            if (TtsEnabled && i < 0) i = 1;
+            i = ((i + 1 + dir + VoiceRates.Length + 1) % (VoiceRates.Length + 1)) - 1;
+            TtsEnabled = i >= 0;
+            if (TtsEnabled) VoiceRate = VoiceRates[i];
+            else Speech.Cancel();
+        }
 
         private void Volume(string section, string label, string help, Func<float> get, Action<float> set,
             Func<float, string> format) =>
@@ -306,6 +326,7 @@ namespace Cyverse.Settings
             FieldOfView = 60f;
             ReduceMotion = false;
             TtsEnabled = true;
+            VoiceRate = 1f;
             ArrowKeysMove = true;
             InvertColors.Set(false);
             Level.LightingDirector.ChooseAuto();
@@ -331,6 +352,8 @@ namespace Cyverse.Settings
             FieldOfView = PlayerPrefs.GetFloat("cv_fov", 60f);
             ReduceMotion = PlayerPrefs.GetInt("cv_reducemotion", 0) == 1;
             TtsEnabled = PlayerPrefs.GetInt("cv_tts", 1) == 1;
+            VoiceRate = PlayerPrefs.GetFloat("cv_voicerate", 1f);
+            if (Array.IndexOf(VoiceRates, VoiceRate) < 0) VoiceRate = 1f;
             ArrowKeysMove = PlayerPrefs.GetInt("cv_arrowmove", 1) == 1;
         }
 
@@ -344,6 +367,7 @@ namespace Cyverse.Settings
             PlayerPrefs.SetFloat("cv_fov", FieldOfView);
             PlayerPrefs.SetInt("cv_reducemotion", ReduceMotion ? 1 : 0);
             PlayerPrefs.SetInt("cv_tts", TtsEnabled ? 1 : 0);
+            PlayerPrefs.SetFloat("cv_voicerate", VoiceRate);
             PlayerPrefs.SetInt("cv_arrowmove", ArrowKeysMove ? 1 : 0);
             PlayerPrefs.Save();
         }

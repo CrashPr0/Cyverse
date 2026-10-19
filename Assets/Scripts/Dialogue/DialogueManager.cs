@@ -140,7 +140,7 @@ namespace Cyverse.Dialogue
                              (AccessibilitySettings.Instance == null || AccessibilitySettings.Instance.TtsEnabled))
                     {
                         // No recorded clip — let the browser read the line aloud.
-                        Cyverse.Audio.Speech.Speak(body, 1f, PitchFor(line.speaker), voiceVol);
+                        Cyverse.Audio.Speech.Speak(body, AccessibilitySettings.Instance != null ? AccessibilitySettings.Instance.VoiceRate : 1f, PitchFor(line.speaker), voiceVol);
                         ttsPending = true;
                         usedTts = true;
                     }
