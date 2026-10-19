@@ -94,12 +94,12 @@ namespace Cyverse.Level
             BadgeStation.Build(new Vector3(-4.5f, 0f, 6f), 0f, IamBlue);
 
             // Task 2 — AUTHENTICATION: vault on the west wall; its token
-            // deliberately charges on the far (east) side of the room.
+            // charges on a rack against the same wall, a short walk south of the slot.
             MfaGauntlet.Build(
                 vaultPos: new Vector3(-16.5f, 0f, 12f), vaultRotY: -90f,
                 terminalPos: new Vector3(-13f, 0f, 8f),
                 padPos: new Vector3(-13f, 0f, 15f),
-                tokenRackPos: new Vector3(8f, 0f, 5f),
+                tokenRackPos: new Vector3(-15.9f, 0f, 5.6f),
                 slotPos: new Vector3(-15.2f, 0f, 9.2f),
                 accent: IamBlue,
                 passcode: Level1IamContent.DailyPasscode,

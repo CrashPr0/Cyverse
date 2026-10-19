@@ -288,9 +288,9 @@ namespace Cyverse.Interaction
             // ARE — biometric scanner.
             MfaFactor.Build(padPos, 0f, MfaFactor.Kind.Biometric, gauntlet, accent);
 
-            // HAVE — token on a rack across the room, slotted by the vault.
+            // HAVE — token on a rack along the west wall, a short carry from the vault's slot.
             var rack = new GameObject("TokenRack");
-            rack.transform.position = tokenRackPos;
+            rack.transform.SetPositionAndRotation(tokenRackPos, Quaternion.Euler(0f, vaultRotY, 0f));
             MfaProps.BuildTokenCharger(rack.transform, accent);
             BuildKit.MakeLabel(rack.transform, new Vector3(0f, 1.9f, 0f), "TOKEN CHARGER", accent, 0.024f, billboard: true);
             Carryable.Build(tokenRackPos + Vector3.up * 1.0f, "SECURITY TOKEN", "mfa_token", accent, token: true);
