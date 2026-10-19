@@ -481,16 +481,17 @@ namespace Cyverse.UI
             scoreText.text = "SCORE  <b>0</b>";
         }
 
-        // Quiet "H  Help" reminder (bottom-right) for the controls card; the key
+        // Quiet "H  Help" reminder (bottom-left; the evidence inventory takes the
+        // bottom-right) for the controls card; the key
         // itself is handled by ControlsOverlay. Hidden while a menu owns the screen.
         private void BuildHelpHint()
         {
-            helpHint = CreateText("HelpHint", Canvas.transform, 18, TextAnchor.LowerRight);
+            helpHint = CreateText("HelpHint", Canvas.transform, 18, TextAnchor.LowerLeft);
             var rt = helpHint.rectTransform;
-            rt.anchorMin = new Vector2(1f, 0f);
-            rt.anchorMax = new Vector2(1f, 0f);
-            rt.pivot = new Vector2(1f, 0f);
-            rt.anchoredPosition = new Vector2(-30, 22);
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(0f, 0f);
+            rt.pivot = new Vector2(0f, 0f);
+            rt.anchoredPosition = new Vector2(30, 22);
             rt.sizeDelta = new Vector2(200, 30);
             helpHint.color = new Color(0.6f, 0.85f, 1f, 0.55f);
             AddOutline(helpHint);

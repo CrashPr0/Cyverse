@@ -40,8 +40,18 @@ namespace Cyverse.UI
                 var go = new GameObject("TaskCelebration");
                 instance = go.AddComponent<TaskCelebration>();
             }
-            instance.pending.Enqueue(taskName);
+            instance.pending.Enqueue(Clean(taskName));
             if (!instance.playing) instance.StartCoroutine(instance.Run());
+        }
+
+        /// <summary>The task's name without the list's step number ("2. ") or
+        /// progress count ("(3/3)"), which read oddly on a finished task.</summary>
+        private static string Clean(string label)
+        {
+            if (string.IsNullOrEmpty(label)) return label;
+            string s = System.Text.RegularExpressions.Regex.Replace(label, @"^\s*\d+\.\s*", "");
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"\s*\(\d+\s*/\s*\d+[^)]*\)\s*$", "");
+            return s.Trim();
         }
 
         void OnDestroy() { if (instance == this) instance = null; }
