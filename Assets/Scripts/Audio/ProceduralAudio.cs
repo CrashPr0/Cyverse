@@ -59,6 +59,28 @@ namespace Cyverse.Audio
             return Make("sfx_confirm", data);
         }
 
+        /// <summary>Bright four-note rising arpeggio (C-E-G-C) for a completed
+        /// task; longer and sparklier than Confirm so the two stay distinct.</summary>
+        public static AudioClip TaskComplete()
+        {
+            int len = (int)(SR * 0.7f);
+            var data = new float[len];
+            float[] notes = { 523.25f, 659.25f, 783.99f, 1046.5f };
+            for (int n = 0; n < notes.Length; n++)
+            {
+                int start = (int)(SR * 0.09f * n);
+                for (int i = start; i < len; i++)
+                {
+                    float ti = (float)(i - start) / SR;
+                    float env = Mathf.Min(1f, ti * 400f) * Mathf.Exp(-ti * 5f);
+                    float tone = Mathf.Sin(2f * Mathf.PI * notes[n] * ti)
+                        + 0.3f * Mathf.Sin(4f * Mathf.PI * notes[n] * ti);
+                    data[i] += tone * env * 0.18f;
+                }
+            }
+            return Make("sfx_task_complete", data);
+        }
+
         /// <summary>Soft descending two-tone for a wrong answer (gentle, not punishing).</summary>
         public static AudioClip Deny()
         {

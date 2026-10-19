@@ -15,7 +15,7 @@ namespace Cyverse.Audio
         private AudioSource src;
         private AudioSource stepSrc;  // separate source so pitch jitter never bends UI sounds
         private AudioSource comboSrc; // separate source so streak pitch-ramp never bends confirm/click
-        private AudioClip footstep, click, confirm, deny;
+        private AudioClip footstep, click, confirm, deny, taskComplete;
         private AudioClip[] stepClips;
         private string stepScene;
         private int lastStep = -1;
@@ -51,6 +51,7 @@ namespace Cyverse.Audio
             click = ProceduralAudio.Click();
             confirm = ProceduralAudio.Confirm();
             deny = ProceduralAudio.Deny();
+            taskComplete = ProceduralAudio.TaskComplete();
         }
 
         private float Vol => AccessibilitySettings.Instance != null
@@ -90,6 +91,7 @@ namespace Cyverse.Audio
         }
         public void PlayClick() { if (src != null) src.PlayOneShot(click, Vol); }
         public void PlayConfirm() { if (src != null) src.PlayOneShot(confirm, Vol); }
+        public void PlayTaskComplete() { if (src != null) src.PlayOneShot(taskComplete, Vol); }
         public void PlayDeny() { if (src != null) src.PlayOneShot(deny, Vol); }
 
         /// <summary>Ascending confirm chime for answer streaks — each

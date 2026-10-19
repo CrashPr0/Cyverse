@@ -33,6 +33,7 @@ namespace Cyverse.UI
         private GameObject panel;
         private TMP_Text bodyText;
         private string header = "TASKS";
+        private List<bool> lastDone; // null until the first Show, which is only a baseline
 
         void Awake()
         {
@@ -55,6 +56,8 @@ namespace Cyverse.UI
             if (panel == null) Build();
             if (panel == null) return; // no HUD in this scene
 
+            DetectCompletions(tasks);
+
             var sb = new System.Text.StringBuilder();
             sb.Append($"<color=#5BC8FF><b>{header}</b></color>\n");
             foreach (var t in tasks)
@@ -69,6 +72,20 @@ namespace Cyverse.UI
             bodyText.text = sb.ToString();
             FitToContent(tasks.Count);
             panel.SetActive(!GameState.AnyMenuOpen);
+        }
+
+        /// <summary>The one place task completion is noticed: a row that was
+        /// not done on the previous Show and is now. The first Show (and any
+        /// change in list length) only sets the baseline, so restored
+        /// progress never celebrates.</summary>
+        private void DetectCompletions(List<Task> tasks)
+        {
+            if (lastDone != null && lastDone.Count == tasks.Count)
+                for (int i = 0; i < tasks.Count; i++)
+                    if (tasks[i].done && !lastDone[i]) TaskCelebration.Notify(tasks[i].label);
+
+            lastDone = new List<bool>(tasks.Count);
+            foreach (var t in tasks) lastDone.Add(t.done);
         }
 
         public void HidePanel()
