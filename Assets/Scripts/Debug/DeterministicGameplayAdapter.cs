@@ -144,7 +144,9 @@ namespace Cyverse.Testing
             if (quiz == null) yield break;
 
             float previousFeedback = quiz.feedbackSeconds;
+            bool previousSkip = quiz.skipReadDelay;
             quiz.feedbackSeconds = Mathf.Max(0f, feedbackSeconds);
+            quiz.skipReadDelay = true;
             if (!station.IsComplete)
                 GameplayActions.TryApply(station, GameplayAction.Interact(), actor);
 
@@ -152,19 +154,24 @@ namespace Cyverse.Testing
             while (!station.IsComplete && guard++ < 32)
             {
                 float deadline = Time.realtimeSinceStartup + 4f;
-                while (!station.IsComplete && !quiz.IsAwaitingInput &&
+                while (!station.IsComplete && !quiz.IsAwaitingInput && !quiz.IsShowingMessage &&
                        Time.realtimeSinceStartup < deadline)
                     yield return null;
 
                 if (station.IsComplete) break;
-                QuizQuestion question = quiz.CurrentQuestion;
-                if (!quiz.IsAwaitingInput || question == null) break;
-                if (!GameplayActions.TryApply(quiz,
-                    GameplayAction.Choose(question.correctIndex), actor)) break;
+                if (quiz.IsShowingMessage)
+                {
+                    GameplayActions.TryApply(quiz, GameplayAction.Choose(0), actor);
+                    yield return null;
+                    continue;
+                }
+                if (!quiz.IsAwaitingInput || quiz.CurrentQuestion == null) break;
+                if (!quiz.AnswerCorrectly(actor)) break;
                 yield return null;
             }
 
             quiz.feedbackSeconds = previousFeedback;
+            quiz.skipReadDelay = previousSkip;
         }
 
         public static bool CompleteCustodyForm(ChainOfCustodyForm form, GameObject actor = null)

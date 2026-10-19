@@ -24,6 +24,29 @@ namespace Cyverse.Quiz
             this.correctIndex = correctIndex;
             this.explanation = explanation;
         }
+
+        /// <summary>A copy with the options in random order and correctIndex
+        /// remapped, so the original (shared, authored) question is untouched.</summary>
+        public QuizQuestion Shuffled()
+        {
+            if (options == null || options.Length < 2) return this;
+            int n = options.Length;
+            int[] order = new int[n];
+            for (int i = 0; i < n; i++) order[i] = i;
+            for (int i = n - 1; i > 0; i--)
+            {
+                int j = UnityEngine.Random.Range(0, i + 1);
+                (order[i], order[j]) = (order[j], order[i]);
+            }
+            var shuffled = new string[n];
+            int correct = correctIndex;
+            for (int i = 0; i < n; i++)
+            {
+                shuffled[i] = options[order[i]];
+                if (order[i] == correctIndex) correct = i;
+            }
+            return new QuizQuestion(question, shuffled, correct, explanation);
+        }
     }
 
     /// <summary>
@@ -40,17 +63,26 @@ namespace Cyverse.Quiz
         public int wrongPoints = 25;
         public float feedbackSeconds = 2.2f;
 
+        /// <summary>Automated playthroughs set this so they need not wait out the read delay.</summary>
+        public bool skipReadDelay;
+
         private GameObject card;
         private Text bodyText;
         private Text feedbackText;
+        private Text headerText;
 
         private QuizQuestion current;
         private Action<bool> onAnswered;
         private bool awaitingInput;
+        private float acceptInputAt;
+        private Action onMessageDone;
+        private bool messageOpen;
         private ModalSession.Lease modal;
 
         public bool IsAwaitingInput => awaitingInput;
         public QuizQuestion CurrentQuestion => current;
+        public bool IsShowingMessage => messageOpen;
+        private bool ReadDelayOver => skipReadDelay || Time.unscaledTime >= acceptInputAt;
 
         void Awake()
         {
@@ -59,7 +91,7 @@ namespace Cyverse.Quiz
         }
 
         /// <summary>Show a question; the callback receives whether it was correct.</summary>
-        public void Ask(QuizQuestion q, Action<bool> answered)
+        public void Ask(QuizQuestion q, Action<bool> answered, float readDelay = 0f)
         {
             if (q == null) { answered?.Invoke(true); return; }
             if (card == null) Build();
@@ -72,15 +104,47 @@ namespace Cyverse.Quiz
             current = q;
             onAnswered = answered;
 
+            headerText.text = "KNOWLEDGE CHECK";
             bodyText.text = BodyFor(q, chosen: -1);
-            feedbackText.text = "<color=#8FB8CC>Press 1, 2 or 3 to answer</color>";
+            acceptInputAt = Time.unscaledTime + readDelay;
+            feedbackText.text = ReadDelayOver ? PromptText : ReadingText;
             card.SetActive(true);
             awaitingInput = true;
         }
 
+        private const string PromptText = "<color=#8FB8CC>Press 1, 2 or 3 to answer</color>";
+        private const string ReadingText = "<color=#8FB8CC>Read the question carefully...</color>";
+
+        /// <summary>Show a titled text card (e.g. exam results) until the player confirms.</summary>
+        public void ShowMessage(string header, string body, Action done)
+        {
+            if (card == null) Build();
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.Quiz, out modal))
+            {
+                done?.Invoke();
+                return;
+            }
+
+            headerText.text = header;
+            bodyText.text = body;
+            feedbackText.text = "<color=#8FB8CC>Press 1 or Enter to continue</color>";
+            onMessageDone = done;
+            card.SetActive(true);
+            messageOpen = true;
+        }
+
         void Update()
         {
-            if (!awaitingInput || GameState.MenuOpen || ModalSession.IsTransitionFrame) return;
+            if (GameState.MenuOpen || ModalSession.IsTransitionFrame) return;
+            if (messageOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1) ||
+                    Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+                    GameplayActions.TryApply(this, GameplayAction.Choose(0));
+                return;
+            }
+            if (!awaitingInput || !ReadDelayOver) return;
+            if (feedbackText.text == ReadingText) feedbackText.text = PromptText;
 
             int choice = -1;
             if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) choice = 0;
@@ -93,12 +157,39 @@ namespace Cyverse.Quiz
 
         public bool TryApply(GameplayAction action, GameObject actor)
         {
-            if (action.Kind != GameplayActionKind.Choose || !awaitingInput || current == null ||
+            if (action.Kind == GameplayActionKind.Choose && messageOpen)
+            {
+                CloseMessage();
+                return true;
+            }
+            if (action.Kind != GameplayActionKind.Choose || !awaitingInput || !ReadDelayOver || current == null ||
                 current.options == null || action.Index < 0 || action.Index >= current.options.Length)
                 return false;
 
             Answer(action.Index);
             return true;
+        }
+
+        /// <summary>Answers the current question correctly, ignoring the read delay. For automated playthroughs.</summary>
+        public bool AnswerCorrectly(GameObject actor = null)
+        {
+            if (current == null || !awaitingInput) return false;
+            bool previous = skipReadDelay;
+            skipReadDelay = true;
+            bool applied = GameplayActions.TryApply(this, GameplayAction.Choose(current.correctIndex), actor);
+            skipReadDelay = previous;
+            return applied;
+        }
+
+        private void CloseMessage()
+        {
+            messageOpen = false;
+            card.SetActive(false);
+            modal?.Close();
+            modal = null;
+            var cb = onMessageDone;
+            onMessageDone = null;
+            cb?.Invoke();
         }
 
         private void Answer(int choice)
@@ -186,6 +277,7 @@ namespace Cyverse.Quiz
             UI.HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.95f), UI.HudUI.Accent);
 
             var header = MakeText(card.transform, "Header", 32, TextAnchor.UpperCenter);
+            headerText = header;
             header.fontStyle = FontStyle.Bold;
             header.color = UI.HudUI.Accent;
             header.text = "KNOWLEDGE CHECK";

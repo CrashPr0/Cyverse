@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using Cyverse.Audio;
 using Cyverse.Level;
@@ -11,9 +13,9 @@ namespace Cyverse.Interaction
     /// The Certification Exam: the level's boss check. Locked until the
     /// manager activates it (all training tasks done), then one interaction
     /// chains the question bank through the QuizSystem — streaks and combo
-    /// multipliers apply, and educators keep a measurable assessment. The
-    /// level completes when the exam finishes, regardless of score (the score
-    /// itself is the differentiator).
+    /// multipliers apply, and educators keep a measurable assessment. Options
+    /// are shuffled on every attempt and the player must reach the pass mark;
+    /// missed questions are reviewed and retried until it is met.
     /// </summary>
     public class CertExamStation : MonoBehaviour, IInteractable
     {
@@ -23,6 +25,13 @@ namespace Cyverse.Interaction
         private QuizQuestion[] questions;
         private bool active, running;
         private int qIndex;
+        private List<QuizQuestion> round;
+        private List<QuizQuestion> missed;
+        private HashSet<QuizQuestion> passed;
+
+        private const float PassFraction = 0.8f;
+        private const float ReadDelaySeconds = 1f;
+        private const int MaxReviewed = 4;
         private Renderer screenRenderer;
         private TextMesh statusText;
 
@@ -98,18 +107,60 @@ namespace Cyverse.Interaction
             }
 
             running = true;
+            passed = new HashSet<QuizQuestion>();
+            BeginRound(questions == null ? new List<QuizQuestion>() : new List<QuizQuestion>(questions));
+        }
+
+        private int PassMark => Mathf.CeilToInt((questions != null ? questions.Length : 0) * PassFraction);
+
+        private void BeginRound(List<QuizQuestion> toAsk)
+        {
+            round = toAsk;
+            missed = new List<QuizQuestion>();
             qIndex = 0;
             AskNext();
         }
 
         private void AskNext()
         {
-            if (questions == null || qIndex >= questions.Length || Quiz.QuizSystem.Instance == null)
+            if (round == null || qIndex >= round.Count || Quiz.QuizSystem.Instance == null)
+            {
+                EndRound();
+                return;
+            }
+            // Ask a shuffled copy, but tally against the authored question.
+            QuizQuestion original = round[qIndex++];
+            QuizSystem.Instance.Ask(original.Shuffled(), correct =>
+            {
+                if (correct) passed.Add(original); else missed.Add(original);
+                AskNext();
+            }, ReadDelaySeconds);
+        }
+
+        private void EndRound()
+        {
+            if (Quiz.QuizSystem.Instance == null || passed.Count >= PassMark || missed.Count == 0)
             {
                 Finish();
                 return;
             }
-            QuizSystem.Instance.Ask(questions[qIndex++], _ => AskNext());
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Score: {passed.Count}/{questions.Length}   Pass mark: {PassMark}");
+            sb.AppendLine();
+            sb.AppendLine("<color=#FFB347>Missed:</color>");
+            for (int i = 0; i < missed.Count && i < MaxReviewed; i++)
+            {
+                sb.AppendLine($"- {missed[i].question}");
+                if (!string.IsNullOrEmpty(missed[i].explanation))
+                    sb.AppendLine($"  <color=#8FB8CC>{missed[i].explanation}</color>");
+            }
+            if (missed.Count > MaxReviewed) sb.AppendLine($"...and {missed.Count - MaxReviewed} more.");
+            sb.AppendLine();
+            sb.AppendLine("Retry the missed questions to reach the pass mark.");
+
+            var retry = missed;
+            QuizSystem.Instance.ShowMessage("EXAM NOT PASSED", sb.ToString(), () => BeginRound(retry));
         }
 
         private void Finish()
