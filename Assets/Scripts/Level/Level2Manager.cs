@@ -67,6 +67,8 @@ namespace Cyverse.Level
             playbook = scene.playbook;
             exam = scene.exam;
 
+            GatePlaybookCards();
+
             if (siem != null) siem.Completed += OnSiemCompleted;
             if (playbook != null) playbook.Completed += OnTaskCompleted;
             if (locker != null) locker.Sealed += OnEvidenceSealed;
@@ -126,6 +128,45 @@ namespace Cyverse.Level
             if (evidence == null || !evidence.IsSealed)
                 return "Lock the seized device in the evidence locker first — it is handed to the lab from there.";
             return "Finish the remaining SOC tasks (IR playbook, certification exam) before heading to the lab.";
+        }
+
+        // ---- Step order ----------------------------------------------------------
+        // 1 briefing, 2 SOC investigations, 3 evidence locker, 4 IR playbook, 5 exam.
+        // The briefing gates the SOC floor door, the locker has nothing to take until
+        // the alert resolves, and the exam only unlocks after every task; the playbook
+        // cards are the one station that needs an explicit gate.
+
+        private bool SocDone => siem == null || siem.IsComplete;
+        private bool EvidenceDone => locker == null || locker.IsSealed;
+
+        private bool PlaybookUnlocked() => SocDone && EvidenceDone;
+
+        private string PlaybookLockedMessage() =>
+            !SocDone ? "Finish the SOC investigations first — the IR playbook is step 4."
+                     : "Lock the seized device in the evidence locker first — the IR playbook is step 4.";
+
+        private void GatePlaybookCards()
+        {
+            if (playbook == null) return;
+            foreach (Carryable card in FindObjectsOfType<Carryable>())
+            {
+                if (!card.id.StartsWith("ir_")) continue;
+                card.gate = PlaybookUnlocked;
+                card.gateMessageProvider = PlaybookLockedMessage;
+            }
+        }
+
+        private int CurrentStep
+        {
+            get
+            {
+                if (CurrentPhase == Phase.Watch) return 1;
+                int step = 2;
+                if (siem != null) { if (!siem.IsComplete) return step; step++; }
+                if (locker != null) { if (!locker.IsSealed) return step; step++; }
+                if (playbook != null) { if (!playbook.IsComplete) return step; step++; }
+                return step;
+            }
         }
 
         private bool IsCarryingSeizedDevice =>
@@ -295,10 +336,11 @@ namespace Cyverse.Level
                 bestSqr = d; best = c.transform; bestLabel = label;
             }
 
+            // Only the current step, so the beacon never points at a gated station.
             if (siem != null && !siem.IsComplete) Consider(siem, "WORK THE ALERT QUEUE");
-            if (EvidencePending)
+            else if (EvidencePending)
                 Consider(seizedDevice != null ? (Component)seizedDevice : locker, "PICK UP THE SEIZED DEVICE");
-            if (playbook != null && !playbook.IsComplete) Consider(playbook, "ORDER THE PLAYBOOK");
+            else if (playbook != null && !playbook.IsComplete) Consider(playbook, "ORDER THE PLAYBOOK");
 
             action = bestLabel;
             return best;
@@ -311,21 +353,22 @@ namespace Cyverse.Level
 
             var tasks = new List<TaskListPanel.Task>();
             bool watched = CurrentPhase != Phase.Watch;
-            tasks.Add(new TaskListPanel.Task("Watch the briefing", watched, !watched));
+            int n = 1;
+            tasks.Add(new TaskListPanel.Task($"{n++}. Watch the briefing", watched, !watched));
 
             if (siem != null)
                 tasks.Add(new TaskListPanel.Task(
-                    $"SOC investigations  ({siem.CompletedScenarios}/{siem.ScenarioCount})",
+                    $"{n++}. SOC investigations  ({siem.CompletedScenarios}/{siem.ScenarioCount})",
                     siem.IsComplete, watched && !siem.IsComplete));
             if (locker != null)
-                tasks.Add(new TaskListPanel.Task("Lock the seized device in the evidence locker",
-                    locker.IsSealed, EvidencePending));
+                tasks.Add(new TaskListPanel.Task($"{n++}. Lock the seized device in the evidence locker",
+                    locker.IsSealed, SocDone && watched && !locker.IsSealed));
             if (playbook != null)
                 tasks.Add(new TaskListPanel.Task(
-                    $"IR playbook  ({playbook.Placed}/{playbook.Total} steps)",
-                    playbook.IsComplete, watched && !playbook.IsComplete));
+                    $"{n++}. IR playbook  ({playbook.Placed}/{playbook.Total} steps)",
+                    playbook.IsComplete, watched && PlaybookUnlocked() && !playbook.IsComplete));
             if (exam != null)
-                tasks.Add(new TaskListPanel.Task("Certification Exam",
+                tasks.Add(new TaskListPanel.Task($"{n++}. Certification Exam",
                     exam.IsComplete, CurrentPhase == Phase.Exam));
 
             list.Show(tasks);
@@ -333,22 +376,23 @@ namespace Cyverse.Level
 
         private string NextActionText()
         {
+            string step = $"Step {CurrentStep} of {TotalSteps + 1} — ";
             if (IsCarryingSeizedDevice)
-                return "Evidence: carry the SEIZED DEVICE to the EVIDENCE LOCKER on the north wall, then press E  (E anywhere else puts it down)";
+                return step + "Evidence: carry the SEIZED DEVICE to the EVIDENCE LOCKER on the north wall, then press E  (E anywhere else puts it down)";
             if (Carryable.Carried != null)
             {
                 if (playbook != null && !playbook.IsComplete)
-                    return playbook.IsExpectedCard(Carryable.Carried)
+                    return step + (playbook.IsExpectedCard(Carryable.Carried)
                         ? $"Carry {Carryable.Carried.itemName} to STEP {playbook.NextSlot}  (E anywhere else puts it down)"
-                        : $"Next is {playbook.NextStep}, not {Carryable.Carried.itemName} — press E away from the steps to put it down";
+                        : $"Next is {playbook.NextStep}, not {Carryable.Carried.itemName} — press E away from the steps to put it down");
                 return $"Carrying {Carryable.Carried.itemName}  (E away from a slot puts it down)";
             }
             if (EvidencePending)
-                return "Evidence: pick up the SEIZED DEVICE at WS-03 and lock it in the EVIDENCE LOCKER (north wall)";
+                return step + "Evidence: pick up the SEIZED DEVICE at WS-03 and lock it in the EVIDENCE LOCKER (north wall)";
             if (siem != null && !siem.IsComplete)
-                return $"SOC: review the Alert Board, flag a row, then verify its workstation  ({siem.ScenarioIndex}/{siem.ScenarioCount})";
+                return step + $"SOC: review the Alert Board, flag a row, then verify its workstation  ({siem.ScenarioIndex}/{siem.ScenarioCount})";
             if (playbook != null && !playbook.IsComplete)
-                return $"IR Playbook: pick up {playbook.NextStep} from the rack, then place it on STEP {playbook.NextSlot}  ({playbook.Placed}/{playbook.Total})";
+                return step + $"IR Playbook: pick up {playbook.NextStep} from the rack, then place it on STEP {playbook.NextSlot}  ({playbook.Placed}/{playbook.Total})";
             return $"Complete the defense tasks  ({TasksDone}/{TotalTasks})";
         }
 
@@ -367,7 +411,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Watch:
-                    SetObjective($"Objective: Watch the defense briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
+                    SetObjective($"Step 1 of {TotalSteps + 1} — Watch the defense briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
                     HudUI.Instance.SetProgress(0, Mathf.Max(1, TotalSteps), "▶");
                     break;
                 case Phase.Tasks:
@@ -375,7 +419,7 @@ namespace Cyverse.Level
                     HudUI.Instance.SetProgress(TasksDone, TotalSteps);
                     break;
                 case Phase.Exam:
-                    SetObjective("Objective: Pass the Certification Exam");
+                    SetObjective($"Step {CurrentStep} of {TotalSteps + 1} — Pass the Certification Exam");
                     HudUI.Instance.SetProgress(TotalTasks, TotalSteps);
                     break;
                 case Phase.Complete:
