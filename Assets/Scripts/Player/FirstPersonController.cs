@@ -15,7 +15,8 @@ namespace Cyverse.Player
     public class FirstPersonController : MonoBehaviour, IGameplayActionTarget
     {
         [Header("Movement")]
-        public float moveSpeed = 4.5f;
+        public float moveSpeed = 5.2f;
+        public float sprintMultiplier = 1.6f; // while Shift is held
         public float gravity = -9.81f;
 
         [Header("Look")]
@@ -99,8 +100,15 @@ namespace Cyverse.Player
             float h = (right ? 1f : 0f) - (left ? 1f : 0f);
             float v = (forward ? 1f : 0f) - (back ? 1f : 0f);
 
+            // Shift sprints. Busy (menus, dialogue) never reaches this method,
+            // and a disabled controller can't sprint either. Footsteps are
+            // timed by distance, so they quicken on their own.
+            bool sprint = controller != null && controller.enabled &&
+                          (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
+            float speed = sprint ? moveSpeed * sprintMultiplier : moveSpeed;
+
             Vector3 velocity = Vector3.ClampMagnitude(
-                transform.right * h + transform.forward * v, 1f) * moveSpeed;
+                transform.right * h + transform.forward * v, 1f) * speed;
             GameplayActions.TryApply(this,
                 GameplayAction.Move(velocity, Time.deltaTime), gameObject);
         }
