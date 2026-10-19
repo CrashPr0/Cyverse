@@ -159,6 +159,9 @@
       outline: none;
     }
 
+    .fs-group { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+    #fullscreen-hint { font-size: 0.75rem; }
+
     #warning-banner {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -187,7 +190,10 @@
 
   <footer>
     <div>CyberVerse Project · Cybersecurity education for foundational learners</div>
-    <button id="fullscreen-button" type="button">Fullscreen</button>
+    <div class="fs-group">
+      <span id="fullscreen-hint"></span>
+      <button id="fullscreen-button" type="button" aria-describedby="fullscreen-hint">Fullscreen</button>
+    </div>
   </footer>
 
   <div id="warning-banner"></div>
@@ -251,6 +257,29 @@
         // can SendMessage back into the game.
         window.unityInstance = unityInstance;
         loadingOverlay.style.display = "none";
+        // Fullscreen only happens when the player presses the button.
+        // Where the Keyboard Lock API exists (Chromium), Esc is captured
+        // while fullscreen so a quick press opens the game's menu; holding
+        // Esc still exits fullscreen, as the browser requires.
+        var kb = navigator.keyboard;
+        var canLockEsc = !!(kb && typeof kb.lock === "function" && typeof kb.unlock === "function");
+        document.querySelector("#fullscreen-hint").textContent = canLockEsc
+          ? "Hold Esc to exit full screen"
+          : "Esc exits full screen; Tab opens the game menu";
+        function syncEscLock() {
+          if (!canLockEsc) return;
+          var fs = document.fullscreenElement || document.webkitFullscreenElement;
+          try {
+            if (fs) {
+              var p = kb.lock(["Escape"]);
+              if (p && p.catch) p.catch(function() {});
+            } else {
+              kb.unlock();
+            }
+          } catch (e) {}
+        }
+        document.addEventListener("fullscreenchange", syncEscLock);
+        document.addEventListener("webkitfullscreenchange", syncEscLock);
         document.querySelector("#fullscreen-button").onclick = function() {
           unityInstance.SetFullscreen(1);
         };
