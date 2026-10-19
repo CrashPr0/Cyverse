@@ -15,9 +15,9 @@ namespace Cyverse.Level
         public static List<DialogueLine> Intro() => new List<DialogueLine>
         {
             new DialogueLine("SOC Lead",
-                "Welcome to the Security Operations Center. You've completed onboarding — now let's put I/AM and the CIA Triad to work defending this network."),
+                "Welcome to the Security Operations Center. You've completed onboarding — now let's put I/AM (who you are and what you can access) and the CIA Triad (keeping data secret, accurate, and available) to work defending this network."),
             new DialogueLine("SOC Lead",
-                "A SOC Analyst's job is Protection and Defense: watch for threats, understand how they're detected, and know how to respond when something gets through."),
+                "A SOC (Security Operations Center) Analyst's job is Protection and Defense: watch for threats, understand how they're detected, and know how to respond when something gets through."),
             new DialogueLine("SOC Lead",
                 "Walk up to a glowing station and press E to learn each concept. Press G any time for the glossary, Esc for settings."),
         };

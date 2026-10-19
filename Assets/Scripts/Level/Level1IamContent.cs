@@ -21,7 +21,7 @@ namespace Cyverse.Level
         public static VideoStation.Slide[] BriefingSlides() => new[]
         {
             new VideoStation.Slide("I / AM",
-                "Identification and Access Management: the security controls that verify who you are and decide what you can access. Four steps — Identification, Authentication, Authorization, Accountability.", 10f),
+                "I/AM is Identification and Access Management: the security controls that verify who you are and decide what you can access. Four steps — Identification, Authentication, Authorization, Accountability.", 10f),
             new VideoStation.Slide("IDENTIFICATION",
                 $"Claiming an identity — telling the system who you are. A username, email, or your employee ID ({PlayerIdentity.Callsign}) are identifiers.", 9f),
             new VideoStation.Slide("AUTHENTICATION",
@@ -71,7 +71,7 @@ namespace Cyverse.Level
             new DialogueLine("Authentication",
                 "Authentication proves you are who you claim to be: something you know (a password), something you have (a token or device), or something you are (a biometric)."),
             new DialogueLine("Authentication",
-                "Combining two different kinds is multi-factor authentication — far stronger than any single factor."),
+                "Combining two different kinds is multi-factor authentication (MFA), like a password plus a phone code — far stronger than any single factor."),
         };
 
         public static List<DialogueLine> Authorization() => new List<DialogueLine>

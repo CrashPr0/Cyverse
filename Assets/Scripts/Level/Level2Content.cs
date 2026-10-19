@@ -16,13 +16,13 @@ namespace Cyverse.Level
         public static VideoStation.Slide[] BriefingSlides() => new[]
         {
             new VideoStation.Slide("CYBER DEFENSE",
-                "Welcome to the Security Operations Center. Defenders do three things: they WATCH (SIEM), they CATCH what gets through (EDR), and they RESPOND in a disciplined order (Incident Response).", 10f),
+                "Welcome to the Security Operations Center. Defenders do three things: they WATCH (SIEM: the system that collects security alerts), they CATCH what gets through (EDR: antivirus-style software on each computer), and they RESPOND in a set order (Incident Response, or IR: the plan for handling an attack). SOC means the team doing this work.", 10f),
             new VideoStation.Slide("SIEM",
-                "A SIEM collects events from every system and raises alerts. The hard part isn't seeing alerts — it's volume. Most are noise. Miss the real one in the flood and the attacker wins. That's alert fatigue.", 11f),
+                "A SIEM (Security Information and Event Management) collects logs, the activity records, from every system and raises alerts. The hard part isn't seeing alerts — it's volume. Most are noise. Miss the real one in the flood and the attacker wins. That's alert fatigue.", 11f),
             new VideoStation.Slide("EDR",
-                "Endpoint Detection & Response watches what actually RUNS on machines. Malware hides behind normal-looking names — a PDF that's really an .exe, PowerShell running encoded commands. Find it, then isolate the endpoint.", 11f),
+                "EDR (Endpoint Detection & Response) watches what actually RUNS on each computer (an endpoint). Malware hides behind normal-looking names — a PDF that's really an .exe, PowerShell running encoded commands. Find it, then isolate the endpoint.", 11f),
             new VideoStation.Slide("INCIDENT RESPONSE",
-                "When something is real, you follow the playbook in ORDER: Preparation, Detection & Analysis, Containment, Eradication, Recovery, and Post-Incident review. Skipping steps destroys evidence or reinfects the network.", 12f),
+                "When something is real, you follow the playbook in ORDER: Preparation (get ready), Detection (spot and confirm it), Containment (stop it spreading), Eradication (remove it), Recovery (get back to normal), and Lessons Learned (review). Skipping steps destroys evidence or reinfects the network.", 12f),
             // Text-only intro to the chain-of-custody record the player confirms at
             // the end of the SIEM task. Digital Forensics repeats the form on
             // purpose (and explains why), so keep this one brief.
@@ -173,7 +173,7 @@ namespace Cyverse.Level
             new Alert("print-svc", "Printer PR-02 reported offline", false,
                 "An IT nuisance, not a security incident."),
             new Alert("net-flow", "Sustained outbound traffic to 45.133.7.22 (known C2)", true,
-                "Traffic to a known command-and-control address means an active foothold."),
+                "Traffic to a known command-and-control (C2) address, a server that remotely directs malware, means an active foothold."),
             new Alert("hr-portal", "User updated their profile photo", false,
                 "Normal user activity."),
             new Alert("edr-agent", "PowerShell launched with an encoded command on WS-14", true,
@@ -181,7 +181,7 @@ namespace Cyverse.Level
             new Alert("backup-svc", "Nightly backup job started on schedule", false,
                 "Expected automation."),
             new Alert("file-svc", "1,400 files renamed with .locked extension in /finance", true,
-                "Mass renaming to a new extension is ransomware encrypting files."),
+                "Mass renaming to a new extension is ransomware (malware that locks files for a ransom) encrypting files."),
             new Alert("wifi-ap", "Guest Wi-Fi access point rebooted", false,
                 "Infrastructure noise."),
         };
@@ -227,12 +227,12 @@ namespace Cyverse.Level
 
         public static string[] PlaybookWhy() => new[]
         {
-            "Tools, training and plans exist BEFORE the incident.",
-            "Confirm it's real and determine the scope.",
-            "Stop the spread first — isolate before you clean.",
-            "Now remove the malware and close the way in.",
-            "Restore service and verify the systems are clean.",
-            "Write it up so the same thing can't work twice.",
+            "Get ready first: tools, training and a plan, before any attack.",
+            "Spot the attack and check how big it is.",
+            "Stop it spreading: unplug or isolate the machine before cleaning.",
+            "Remove the malware and fix the hole it got in through.",
+            "Get systems back to normal and check they're clean.",
+            "Review what happened so the same attack can't work twice.",
         };
 
         // ---- Certification exam ------------------------------------------------
