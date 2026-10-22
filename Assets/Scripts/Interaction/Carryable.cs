@@ -28,6 +28,12 @@ namespace Cyverse.Interaction
         /// <summary>Runtime-only: overrides <see cref="gateMessage"/> when the
         /// reason depends on what is still missing.</summary>
         [System.NonSerialized] public System.Func<string> gateMessageProvider;
+        /// <summary>Runtime-only: when set, the item cannot be put down; only a
+        /// station that takes it can relieve the player of it. The text says where
+        /// it goes (evidence stays in custody until it is docked).</summary>
+        [System.NonSerialized] public string putDownBlockedMessage;
+
+        public bool CanPutDown => string.IsNullOrEmpty(putDownBlockedMessage);
 
         private static bool hintShown;
 
@@ -79,7 +85,7 @@ namespace Cyverse.Interaction
             transform.localScale = Vector3.one * 0.6f;
             SetLabelVisible(false);
 
-            if (!hintShown && HudUI.Instance != null)
+            if (CanPutDown && !hintShown && HudUI.Instance != null)
             {
                 hintShown = true;
                 HudUI.Instance.ShowToast(
@@ -93,6 +99,14 @@ namespace Cyverse.Interaction
         /// so their original height is not a valid rest height).</summary>
         public void PutDown()
         {
+            if (!CanPutDown)
+            {
+                if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast(putDownBlockedMessage, new Color(1f, 0.70f, 0.35f));
+                return;
+            }
+
             var cam = Camera.main;
             transform.SetParent(null, true);
             transform.rotation = Quaternion.identity;

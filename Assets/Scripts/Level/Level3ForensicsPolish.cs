@@ -200,19 +200,23 @@ namespace Cyverse.Level
                 FurnitureMaterial(), collider: true);
             BuildKit.EnsureAimCollider(reportDesk, 2.6f, 3.2f);
             reportDesk.AddComponent<ForensicsReportStation>();
-            SpawnCube("DF_ReportMonitor", root, new Vector3(9.2f, 1.52f, 11.15f),
+            // The monitor stands on a neck above the desk (its housing used to
+            // sink into the worktop); the heading panel rides above it.
+            GameObject reportMonitor = SpawnCube("DF_ReportMonitor", root, new Vector3(9.2f, 1.66f, 11.15f),
                 new Vector3(2.7f, 1.25f, 0.08f), PanelMaterial());
-            SpawnCube("DF_ReportScreen", root, new Vector3(9.2f, 1.52f, 11.09f),
+            SpawnCube("DF_ReportScreen", root, new Vector3(9.2f, 1.66f, 11.09f),
                 new Vector3(2.45f, 1.04f, 0.025f), BuildKit.MakeEmissive(new Color(0.04f, 0.18f, 0.11f), 0.72f));
-            SpawnCube("DF_ReportHeaderPanel", root, new Vector3(9.2f, 2.38f, 11.10f),
+            SpawnCube("DF_ReportHeaderPanel", root, new Vector3(9.2f, 2.60f, 11.10f),
                 new Vector3(3.35f, 0.50f, 0.04f), PanelMaterial());
-            CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.38f, 11.02f),
+            CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.60f, 11.02f),
                 "04  FORENSIC REPORT", Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.045f, 52f, 28f);
             // Evidence acquisition now happens at the Investigation Desk, so the
             // report monitor is free to carry the casework status again. 1.75 cm
             // proud of the screen face (z 11.0775) to stay out of its depth.
-            reportStatus = CreateWorldText(root, "DF_ReportStatus", new Vector3(9.2f, 1.52f, 11.06f),
+            reportStatus = CreateWorldText(root, "DF_ReportStatus", new Vector3(9.2f, 1.66f, 11.06f),
                 "CASEWORK  0 / 14  ·  REPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.040f, 58f, 30f);
+            ForensicsStationProps.DressReport(reportDesk.transform, reportMonitor.transform, root,
+                ForensicsStationProps.MakeFinish(FurnitureMaterial(), new Color(0.90f, 0.66f, 0.22f)));
         }
 
         private void BuildWorkflowPath(Transform root)
@@ -242,6 +246,9 @@ namespace Cyverse.Level
             ForensicsConsole found = FindObjectOfType<ForensicsConsole>();
             if (found == null) return;
             SetMaterial(found.transform.Find("Desk"), FurnitureMaterial());
+            ForensicsStationProps.Finish finish = ForensicsStationProps.MakeFinish(FurnitureMaterial(),
+                Palette.Tint("Level3", new Color(0.24f, 0.92f, 0.50f)));
+            ForensicsStationProps.DressAnalyze(found.transform, finish);
             foreach (Renderer renderer in found.GetComponentsInChildren<Renderer>(true))
                 if (renderer.name.StartsWith("MonBody_") || renderer.name.StartsWith("MonArm_"))
                     renderer.sharedMaterial = PanelMaterial();
@@ -258,6 +265,8 @@ namespace Cyverse.Level
                 new Vector3(0f, 3.10f, 9.58f));
 
             ChainOfCustodyStation intake = FindObjectOfType<ChainOfCustodyStation>();
+            if (intake != null)
+                ForensicsStationProps.DressIntake(intake.transform, finish);
             if (intake != null)
                 ConfigureStationHeading(intake.transform, "01  EVIDENCE INTAKE",
                     new Vector3(-11.5f, 2.30f, 7.18f));
