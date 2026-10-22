@@ -321,7 +321,7 @@ namespace Cyverse.Interaction
         {
             mode = PanelMode.ChainOfCustody;
             openedFrame = Time.frameCount;
-            headerText.text = "CHAIN OF CUSTODY FORM  ·  ENTRY 1";
+            headerText.text = "CHAIN OF CUSTODY FORM  ·  LEVEL 2  ·  ENTRY 1";
             // Short text-based intro to the form; the lab repeats this same
             // record and has the player write entry 2 (see CustodyLog).
             const string Key = "<color=#5BD9FF><b>";
