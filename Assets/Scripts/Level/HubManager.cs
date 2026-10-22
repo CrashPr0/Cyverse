@@ -21,6 +21,7 @@ namespace Cyverse.Level
             Instance = this;
 
             GameState.Reset();
+            HardMode.End(); // before the score reset, so the Hub never scores Hard
             ScoreSystem.Reset();
             Time.timeScale = 1f;
             Shader.SetGlobalFloat("_CyMotion", 1f);
@@ -37,6 +38,7 @@ namespace Cyverse.Level
                 cam.gameObject.AddComponent<FirstPersonHands>();
             if (Audio.AmbientHum.Instance == null) gameObject.AddComponent<Audio.AmbientHum>();
             if (GlossaryPanel.Instance == null) gameObject.AddComponent<GlossaryPanel>();
+            HardWing.Build(); // before HubPolish, which dresses its doors too
             HubPolish.Apply(gameObject);
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();

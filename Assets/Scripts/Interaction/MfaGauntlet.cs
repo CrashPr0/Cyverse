@@ -251,7 +251,8 @@ namespace Cyverse.Interaction
         /// positions; the vault's readable face points along local -Z.</summary>
         public static MfaGauntlet Build(Vector3 vaultPos, float vaultRotY,
             Vector3 terminalPos, Vector3 padPos, Vector3 tokenRackPos, Vector3 slotPos,
-            Color accent, string passcode, Func<bool> gate, string gateMessage)
+            Color accent, string passcode, Func<bool> gate, string gateMessage,
+            float? tokenRackRotY = null)
         {
             var root = new GameObject("MfaVault");
             root.transform.position = vaultPos;
@@ -290,7 +291,7 @@ namespace Cyverse.Interaction
 
             // HAVE — token on a rack along the west wall, a short carry from the vault's slot.
             var rack = new GameObject("TokenRack");
-            rack.transform.SetPositionAndRotation(tokenRackPos, Quaternion.Euler(0f, vaultRotY, 0f));
+            rack.transform.SetPositionAndRotation(tokenRackPos, Quaternion.Euler(0f, tokenRackRotY ?? vaultRotY, 0f));
             MfaProps.BuildTokenCharger(rack.transform, accent);
             BuildKit.MakeLabel(rack.transform, new Vector3(0f, 1.9f, 0f), "TOKEN CHARGER", accent, 0.024f, billboard: true);
             Carryable.Build(tokenRackPos + Vector3.up * 1.0f, "SECURITY TOKEN", "mfa_token", accent, token: true);

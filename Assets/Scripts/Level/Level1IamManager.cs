@@ -46,6 +46,11 @@ namespace Cyverse.Level
         private HubDoor exitDoor;
         private float startTime;
 
+        // Hard copy (entered from the Hub's Hard wing): see HardMode.
+        private bool hard;
+        private const float HardParSeconds = 420f;
+        private const int HardParBonus = 300;
+
         void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(this); return; }
@@ -57,6 +62,7 @@ namespace Cyverse.Level
         void Start()
         {
             startTime = Time.time;
+            hard = HardMode.IsActiveFor(1);
 
             LevelMissionRuntime.EnsureSharedRuntime(gameObject, showEvidenceInventory: false);
             if (TypingChallenge.Instance == null) gameObject.AddComponent<TypingChallenge>();
@@ -286,7 +292,7 @@ namespace Cyverse.Level
         private void UpdateTaskList()
         {
             var list = TaskListPanel.Ensure(gameObject);
-            list.SetHeader("I/AM TRAINING");
+            list.SetHeader(hard ? HardHeader() : "I/AM TRAINING");
 
             var tasks = new List<TaskListPanel.Task>();
             bool watched = CurrentPhase != Phase.Watch;
@@ -321,12 +327,25 @@ namespace Cyverse.Level
             list.Show(tasks);
         }
 
+        /// <summary>The Hard run's clock against par, in the checklist header.</summary>
+        private string HardHeader()
+        {
+            float t = (CurrentPhase == Phase.Complete ? completedAt : Time.time) - startTime;
+            string clock = $"{(int)t / 60}:{(int)t % 60:00}";
+            string colour = t <= HardParSeconds ? "#FFFFFF" : "#FF8866";
+            return $"I/AM HARD  ·  <color={colour}>{clock}</color> / par {(int)HardParSeconds / 60}:{(int)HardParSeconds % 60:00}";
+        }
+
+        private float completedAt;
+
         /// <summary>The single next action, written as an instruction with the
         /// key to press — the HUD line should never make the player guess.</summary>
         private string NextActionText()
         {
             if (badge != null && !badge.IsEnrolled)
-                return "Follow the marker to the ENROLLMENT kiosk — press E to create your ID badge";
+                return hard
+                    ? "Find the ENROLLMENT kiosk — press E to create your ID badge"
+                    : "Follow the marker to the ENROLLMENT kiosk — press E to create your ID badge";
 
             if (CarryingToken)
                 return "Carry the token to the TOKEN SLOT by the vault — press E to insert it  (E away from the slot puts it down)";
@@ -394,6 +413,14 @@ namespace Cyverse.Level
         private void CompleteLevel()
         {
             if (CurrentPhase == Phase.Complete) return;
+            completedAt = Time.time;
+            if (hard && completedAt - startTime <= HardParSeconds)
+            {
+                ScoreSystem.Add(HardParBonus);
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast($"UNDER PAR  ·  +{Mathf.RoundToInt(HardParBonus * HardMode.ScoreMultiplier)}",
+                        GuideGold);
+            }
             CurrentPhase = Phase.Complete;
 
             UpdateObjective();

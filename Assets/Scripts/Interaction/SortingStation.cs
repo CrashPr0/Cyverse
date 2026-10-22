@@ -33,6 +33,11 @@ namespace Cyverse.Interaction
         };
 
         private Level1IamContent.CrateDef[] defs;
+        // Where each crate sits on the intake desk; a Hard run sends a
+        // misfiled crate back here.
+        private readonly System.Collections.Generic.Dictionary<string, Vector3> intake =
+            new System.Collections.Generic.Dictionary<string, Vector3>();
+        private const int HardMisfilePenalty = 50;
         private int delivered;
         private int total;
 
@@ -102,6 +107,7 @@ namespace Cyverse.Interaction
                 // diagonal. All stay below eye level, under the role busts.
                 float labelHeight = 0.56f + slot * 0.09f;
                 item.transform.position = transform.TransformPoint(CrateSlots[slot++]);
+                intake[def.id] = item.transform.position;
                 TextMesh label = item.GetComponentInChildren<TextMesh>(true);
                 if (label != null)
                 {
@@ -175,10 +181,35 @@ namespace Cyverse.Interaction
         private void OnRejected(DropZone zone, Carryable item)
         {
             // DropZone already played the deny sound.
+            if (Cyverse.Core.HardMode.Active && intake.TryGetValue(item.id, out Vector3 home))
+            {
+                // Hard: a misfile costs points and the crate goes back to intake.
+                SendBackToIntake(item, home);
+                ScoreSystem.Add(-HardMisfilePenalty);
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast(
+                        $"DENIED  −{HardMisfilePenalty}  ·  {zone.zoneName} doesn't need {item.itemName}. Back to intake it goes.",
+                        new Color(1f, 0.55f, 0.4f));
+                return;
+            }
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast(
                     $"DENIED — {zone.zoneName} doesn't need {item.itemName}. Least privilege: access only for those who NEED it.",
                     new Color(1f, 0.55f, 0.4f));
+        }
+
+        /// <summary>Out of the player's hands and back onto its intake bay,
+        /// as Carryable.PutDown leaves an item (label shown, colliders on).</summary>
+        private static void SendBackToIntake(Carryable item, Vector3 home)
+        {
+            item.transform.SetParent(null, true);
+            item.transform.SetPositionAndRotation(home, Quaternion.identity);
+            item.transform.localScale = Vector3.one;
+            var label = item.GetComponentInChildren<TextMesh>(true);
+            if (label != null) label.gameObject.SetActive(true);
+            foreach (Collider c in item.GetComponentsInChildren<Collider>(true))
+                if (c != null) c.enabled = true;
+            if (Carryable.Carried == item) Carryable.ClearCarried();
         }
 
         // ---- Construction ----------------------------------------------------
