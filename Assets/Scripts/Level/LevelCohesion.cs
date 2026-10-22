@@ -215,7 +215,35 @@ namespace Cyverse.Level
                 for (int side = -1; side <= 1; side += 2)
                     Block(side < 0 ? "Post_L" : "Post_R", dress, new Vector3(p.x + side * (hx - 0.4f), 0f, p.z + 0.08f), Vector3.zero,
                         deskTop, p.y - hy, new Vector2(0.06f, 0.05f), new Vector2(0.05f, 0.04f), 0.015f, trim);
+                float deskBack = desk != null ? desk.localPosition.z + desk.localScale.z * 0.5f : p.z + 0.3f;
+                ScreenStand(dress, p, hx, hy, p.z + s.z * 0.5f + 0.05f, deskBack, body, trim);
             }
+        }
+
+        /// <summary>The screen is wider than the desk and only sat on two short
+        /// posts, so it read as floating. Two floor uprights behind the desk
+        /// carry it: each stands on a foot rail and holds the housing on two
+        /// arms, with a crossbar between them under the screen.</summary>
+        private static void ScreenStand(Transform dress, Vector3 p, float hx, float hy, float housingBack, float deskBack,
+            Material body, Material trim)
+        {
+            float z = deskBack + 0.1f, x = hx - 0.55f, top = p.y + hy - 0.08f;
+            var arms = new List<CombineInstance>();
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float ux = p.x + side * x;
+                string suffix = side < 0 ? "_L" : "_R";
+                Block("StandUpright" + suffix, dress, new Vector3(ux, 0f, z), Vector3.zero, 0.06f, top,
+                    new Vector2(0.09f, 0.07f), new Vector2(0.075f, 0.06f), 0.02f, body, solid: true);
+                Block("StandFoot" + suffix, dress, new Vector3(ux, 0f, z + 0.1f), Vector3.zero, 0f, 0.07f,
+                    new Vector2(0.14f, 0.42f), new Vector2(0.12f, 0.38f), 0.02f, trim);
+                float armLength = z - 0.07f - housingBack;
+                foreach (float y in new[] { p.y - hy * 0.55f, p.y + hy * 0.55f })
+                    arms.Add(Piece(CubeMesh, new Vector3(ux, y, housingBack + armLength * 0.5f), Vector3.zero,
+                        new Vector3(0.1f, 0.08f, armLength)));
+            }
+            arms.Add(Piece(CubeMesh, new Vector3(p.x, p.y - hy - 0.12f, z), Vector3.zero, new Vector3(2f * x, 0.1f, 0.08f)));
+            Batch("StandArms", dress, trim, arms);
         }
 
         private static void Hide(Transform t)
