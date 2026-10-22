@@ -39,6 +39,7 @@ namespace Cyverse.Interaction
         public bool IsAwaitingSelection => panelOpen && !transitioning && !IsComplete;
         public int SelectedRowIndex => cursor;
         private bool active, transitioning, panelOpen;
+        private bool firewallGame; // Hard: SessionWhack is running over the log
 
         private TextMesh headerText, hintText;
         private TextMesh[] rowTexts;
@@ -109,7 +110,7 @@ namespace Cyverse.Interaction
 
         void Update()
         {
-            if (!panelOpen || Time.frameCount == GameState.MenuTransitionFrame) return;
+            if (!panelOpen || firewallGame || Time.frameCount == GameState.MenuTransitionFrame) return;
 
             if (GameInput.CancelDown)
             {
@@ -162,6 +163,66 @@ namespace Cyverse.Interaction
             // on top of it.
             if (cursor == r.anomaly)
             {
+                if (HardMode.Active && IsIntruderLogin(r)) StartFirewallGame(r);
+                else ClearRound(r);
+            }
+            else
+            {
+                StartCoroutine(FlashRow(cursor));
+                if (panel != null)
+                    panel.SetFeedback($"<color=#FFB070><b>THAT ENTRY CHECKS OUT.</b></color>   Hint: {r.hint}");
+                if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
+            }
+        }
+
+        /// <summary>The flagged entry is somebody else signed in as a real
+        /// user (the impossible-travel round).</summary>
+        private static bool IsIntruderLogin(Level1IamContent.LogRound r) =>
+            r.lines[r.anomaly].Contains("  login  ");
+
+        /// <summary>Hard: flagging the bad login isn't the end of it — the
+        /// player has to kick the intruder's session out (SessionWhack) before
+        /// the round counts. Giving up closes the log with the round still open.</summary>
+        private void StartFirewallGame(Level1IamContent.LogRound r)
+        {
+            // "10:06  user  login  ·  Kyiv, UA"
+            string line = r.lines[r.anomaly];
+            string[] parts = line.Split(new[] { "  " }, StringSplitOptions.RemoveEmptyEntries);
+            string user = parts.Length > 1 ? parts[1].Trim() : "intruder";
+            int dot = line.IndexOf('·');
+            string origin = dot >= 0 ? line.Substring(dot + 1).Trim() : "unknown";
+
+            var coworkers = new List<string>();
+            for (int i = 0; i < r.lines.Length; i++)
+            {
+                string[] p = r.lines[i].Split(new[] { "  " }, StringSplitOptions.RemoveEmptyEntries);
+                if (p.Length > 1 && p[1].Trim() != user && !coworkers.Contains(p[1].Trim()))
+                    coworkers.Add(p[1].Trim());
+            }
+
+            firewallGame = true;
+            transitioning = true;
+            if (panel != null) panel.Hide();
+            SessionWhack.Play(user, origin, coworkers.ToArray(),
+                won: () =>
+                {
+                    firewallGame = false;
+                    transitioning = false;
+                    if (panel != null) panel.Show();
+                    ShowRoundOnPanel();
+                    ClearRound(r);
+                },
+                quit: () =>
+                {
+                    firewallGame = false;
+                    transitioning = false;
+                    CloseLog();
+                });
+        }
+
+        private void ClearRound(Level1IamContent.LogRound r)
+        {
+            {
                 rowTexts[cursor].color = GoodColor;
                 if (panel != null)
                 {
@@ -186,13 +247,6 @@ namespace Cyverse.Interaction
                 {
                     StartCoroutine(NextRoundSoon(r.why));
                 }
-            }
-            else
-            {
-                StartCoroutine(FlashRow(cursor));
-                if (panel != null)
-                    panel.SetFeedback($"<color=#FFB070><b>THAT ENTRY CHECKS OUT.</b></color>   Hint: {r.hint}");
-                if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
             }
         }
 

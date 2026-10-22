@@ -25,6 +25,12 @@ namespace Cyverse.Interaction
         public string displayName = "Level";
         public int levelIndex;
 
+        /// <summary>A door in the Hub's Hard wing: the Hard copy of this level
+        /// (-1 for every other door). Hard doors keep levelIndex at -1 so code
+        /// that looks a level's door up by index still finds the Normal one;
+        /// they open once the level is complete on Normal.</summary>
+        public int hardLevel = -1;
+
         /// <summary>Optional extra condition for Manual doors (runtime-only, like every
         /// delegate in a procedurally built door). While it returns false the door stays
         /// locked even if a level-wide "unlock every exit" pass calls SetUnlocked(true) —
@@ -39,14 +45,17 @@ namespace Cyverse.Interaction
         private TextMesh statusText;
 
         private bool InDevelopment => string.IsNullOrEmpty(sceneName);
+        private bool IsHard => hardLevel >= 0;
         private bool Unlocked => !InDevelopment &&
             (mode == Mode.Manual
                 ? manualUnlocked && (unlockGate == null || unlockGate())
+                : IsHard ? HardMode.IsUnlocked(hardLevel)
                 : LevelProgress.IsUnlocked(levelIndex));
 
         /// <summary>True when interacting would actually load the target scene.</summary>
         public bool IsOpen => Unlocked;
-        private bool Completed => mode == Mode.LevelGate && LevelProgress.IsCompleted(levelIndex);
+        private bool Completed => mode == Mode.LevelGate &&
+            (IsHard ? HardMode.IsCleared(hardLevel) : LevelProgress.IsCompleted(levelIndex));
 
         public string Prompt
         {
@@ -90,6 +99,8 @@ namespace Cyverse.Interaction
                     HudUI.Instance.ShowToast(
                         mode == Mode.Manual
                             ? (lockedMessage != null ? lockedMessage() : "Complete this level's task first.")
+                            : IsHard
+                                ? $"Finish Level {hardLevel} to unlock its Hard copy."
                             : levelIndex == 3 && LevelProgress.IsCompleted(2) && !SocProgress.HasAllDfKeys
                                 ? "Digital Forensics requires: " + SocProgress.MissingDfKeysText() + "."
                                 : $"Complete the previous level to unlock {displayName}.",
@@ -123,6 +134,10 @@ namespace Cyverse.Interaction
             if (Application.CanStreamedLevelBeLoaded(sceneName))
             {
                 loading = true;
+                // A Hard door starts a Hard run; any other door into a level
+                // ends one (the Hub clears it on load as well).
+                if (IsHard) HardMode.Begin(hardLevel);
+                else if (sceneName != "Hub") HardMode.End();
                 string target = sceneName; // capture: survives this object's death
                 if (ScreenFader.Instance != null)
                     ScreenFader.Instance.FadeToBlackThen(() => SceneManager.LoadScene(target));

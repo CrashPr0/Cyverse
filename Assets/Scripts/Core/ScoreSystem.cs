@@ -27,6 +27,8 @@ namespace Cyverse.Core
 
         public static void Add(int points)
         {
+            if (HardMode.Active && points > 0)
+                points = (int)Math.Round(points * HardMode.ScoreMultiplier);
             Score += points;
             Changed?.Invoke(Score, points);
             PlaytestMetrics.RecordScore(points, Score);

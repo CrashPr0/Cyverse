@@ -57,7 +57,23 @@ namespace Cyverse.Level
         {
             if (completion == null) return;
 
-            LevelProgress.MarkCompleted(completion.levelNumber);
+            int parScore = completion.parScore;
+            if (HardMode.Active)
+            {
+                // A Hard clear is recorded on its own; Normal progress (and the
+                // playthrough roster that listens to it) is left alone.
+                bool best = HardMode.MarkCleared(completion.levelNumber, ScoreSystem.Score);
+                completion.headerText = $"LEVEL {completion.levelNumber} HARD — COMPLETE";
+                completion.nextMissionText = best
+                    ? $"New Hard best: {ScoreSystem.Score}."
+                    : $"Hard best: {HardMode.BestScore(completion.levelNumber)}. Replay to beat it.";
+                parScore = Mathf.RoundToInt(parScore * HardMode.ScoreMultiplier);
+                completion.replaySuffix += " Hard";
+            }
+            else
+            {
+                LevelProgress.MarkCompleted(completion.levelNumber);
+            }
             GameState.LevelComplete = true;
             FirstPersonController.LockCursor(false);
             if (completion.exitDoor != null) completion.exitDoor.SetUnlocked(true);
@@ -83,7 +99,7 @@ namespace Cyverse.Level
                     completion.grantedLine,
                     completion.nextMissionText,
                     completion.replaySuffix,
-                    completion.parScore);
+                    parScore);
         }
 
         private static void Ensure<T>(GameObject host) where T : MonoBehaviour

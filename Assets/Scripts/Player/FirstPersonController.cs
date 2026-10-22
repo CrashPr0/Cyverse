@@ -103,8 +103,10 @@ namespace Cyverse.Player
             // Shift sprints. Busy (menus, dialogue) never reaches this method,
             // and a disabled controller can't sprint either. Footsteps are
             // timed by distance, so they quicken on their own.
+            // On a Hard run nothing can be sprinted with in hand.
             bool sprint = controller != null && controller.enabled &&
-                          (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
+                          (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) &&
+                          !(HardMode.Active && Carryable.Carried != null);
             float speed = sprint ? moveSpeed * sprintMultiplier : moveSpeed;
 
             Vector3 velocity = Vector3.ClampMagnitude(

@@ -70,6 +70,8 @@ namespace Cyverse.Level
         /// <summary>Aim the beacon at a target. Passing null hides it.</summary>
         public void PointAt(Transform newTarget, string action, Color color, float height = 2.9f)
         {
+            // Hard runs find their own way: no marker, so no trail or drone either.
+            if (Cyverse.Core.HardMode.Active) newTarget = null;
             bool placementChanged = target != newTarget || !Mathf.Approximately(heightOffset, height);
             target = newTarget;
             heightOffset = height;

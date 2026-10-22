@@ -95,15 +95,19 @@ namespace Cyverse.Level
 
             // Task 2 — AUTHENTICATION: vault on the west wall; its token
             // charges on a rack against the same wall, a short walk south of the slot.
+            // The Hard copy puts the rack back across the room (east side), so
+            // "something you have" is a carry you can't sprint.
+            bool hard = Cyverse.Core.HardMode.IsActiveFor(1);
             MfaGauntlet.Build(
                 vaultPos: new Vector3(-16.5f, 0f, 12f), vaultRotY: -90f,
                 terminalPos: new Vector3(-13f, 0f, 8f),
                 padPos: new Vector3(-13f, 0f, 15f),
-                tokenRackPos: new Vector3(-15.9f, 0f, 5.6f),
+                tokenRackPos: hard ? new Vector3(8f, 0f, 5f) : new Vector3(-15.9f, 0f, 5.6f),
                 slotPos: new Vector3(-15.2f, 0f, 9.2f),
                 accent: IamBlue,
                 passcode: Level1IamContent.DailyPasscode,
-                gate: badgeGate, gateMessage: gateMsg);
+                gate: badgeGate, gateMessage: gateMsg,
+                tokenRackRotY: hard ? 0f : (float?)null);
             // Her briefing introduces the three factors, so she stands in the
             // open on the walk from the badge kiosk to the vault, facing it.
             MfaSpecialist.Build(new Vector3(-9.8f, 0f, 6.2f), 98f, Level1IamContent.MfaBriefing);
