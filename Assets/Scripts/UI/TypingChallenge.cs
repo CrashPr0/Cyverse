@@ -26,7 +26,8 @@ namespace Cyverse.UI
 
         private GameObject card;
         private Text headerText, bodyText, inputLine, feedbackText;
-        private Text phoneHeaderText, phoneCodeText, phoneStatusText;
+        private Text phoneCodeText, phoneStatusText;
+        private PhoneScreenUi phoneUi;
         private RectTransform bodyRect, feedbackRect, phoneRect;
         private GameObject phonePanel;
         private Cyverse.Interaction.DiegeticPhone diegetic;
@@ -35,6 +36,8 @@ namespace Cyverse.UI
         private bool open, closing;
         private bool phoneMode;
         private Coroutine phoneSlideRoutine;
+        private static readonly Vector2 PhoneShown = new Vector2(28f, 0f);
+        private static readonly Vector2 PhoneHidden = new Vector2(28f, -620f);
         private ModalSession.Lease modal;
 
         public bool IsOpen => open;
@@ -83,12 +86,6 @@ namespace Cyverse.UI
             headerText.text = header;
             bodyText.text = body;
             feedbackText.text = "<color=#8FB8CC>ENTER submit   ·   ESC / TAB step away</color>";
-            bodyRect.offsetMax = phone
-                ? new Vector2(-280f, -76f)
-                : new Vector2(-46f, -76f);
-            // Keep the prompt line clear of the phone panel in the corner.
-            feedbackRect.sizeDelta = new Vector2(phone ? -310f : -60f, 60f);
-            feedbackRect.anchoredPosition = new Vector2(phone ? -125f : 0f, 14f);
             card.SetActive(true);
             if (phone)
             {
@@ -99,7 +96,8 @@ namespace Cyverse.UI
                 phonePanel.SetActive(true);
                 phoneCodeText.text = expectedAnswer;
                 phoneStatusText.text = "<color=#8FB8CC>DAILY OTP  ·  SPARTAN</color>";
-                phoneRect.anchoredPosition = new Vector2(-38f, -330f);
+                phoneUi.RefreshClock();
+                phoneRect.anchoredPosition = PhoneHidden;
                 phoneSlideRoutine = StartCoroutine(SlideInPhone());
                 diegetic = Cyverse.Interaction.DiegeticPhone.Active;
                 if (diegetic != null)
@@ -228,9 +226,6 @@ namespace Cyverse.UI
             card.SetActive(false);
             phonePanel.SetActive(false);
             if (diegetic != null) { diegetic.Hide(); diegetic = null; }
-            bodyRect.offsetMax = new Vector2(-46f, -76f);
-            feedbackRect.sizeDelta = new Vector2(-60f, 60f);
-            feedbackRect.anchoredPosition = new Vector2(0f, 14f);
             modal?.Close();
             modal = null;
             var cb = onDone;
@@ -249,11 +244,11 @@ namespace Cyverse.UI
             inputLine.text = $">  <color=#5BC8FF>{typed}{(blink ? "_" : " ")}</color>";
         }
 
-        // The card's phone panel slides up into its corner.
+        // The phone slides up into place beside the card.
         private IEnumerator SlideInPhone()
         {
             Vector2 hidden = phoneRect.anchoredPosition;
-            Vector2 shown = new Vector2(-38f, -64f);
+            Vector2 shown = PhoneShown;
             float duration = AccessibilitySettings.ReduceMotion ? 0f : 0.45f;
             for (float elapsed = 0f; elapsed < duration; elapsed += Time.unscaledDeltaTime)
             {
@@ -321,57 +316,17 @@ namespace Cyverse.UI
 
         private void BuildPhonePanel()
         {
-            phonePanel = new GameObject("SpartanAuthenticatorPhone", typeof(RectTransform), typeof(Image));
-            phonePanel.transform.SetParent(card.transform, false);
-            phoneRect = phonePanel.GetComponent<RectTransform>();
-            phoneRect.anchorMin = new Vector2(1f, 1f);
-            phoneRect.anchorMax = new Vector2(1f, 1f);
-            phoneRect.pivot = new Vector2(1f, 1f);
-            phoneRect.sizeDelta = new Vector2(218f, 286f);
-            phoneRect.anchoredPosition = new Vector2(-38f, -64f);
-            HudUI.StylePanel(phonePanel, new Color(0.015f, 0.025f, 0.045f, 1f),
-                new Color(0.25f, 0.80f, 1f));
-
-            phoneHeaderText = MakeText(phonePanel.transform, "PhoneHeader", 17, TextAnchor.MiddleCenter);
-            phoneHeaderText.fontStyle = FontStyle.Bold;
-            phoneHeaderText.color = new Color(0.70f, 0.86f, 0.96f);
-            var headerRect = phoneHeaderText.rectTransform;
-            headerRect.anchorMin = new Vector2(0f, 1f); headerRect.anchorMax = new Vector2(1f, 1f);
-            headerRect.pivot = new Vector2(0.5f, 1f);
-            headerRect.sizeDelta = new Vector2(-24f, 32f); headerRect.anchoredPosition = new Vector2(0f, -18f);
-            phoneHeaderText.text = "SPARTAN AUTHENTICATOR";
-
-            var screen = new GameObject("PhoneScreen", typeof(RectTransform), typeof(Image));
-            screen.transform.SetParent(phonePanel.transform, false);
-            var screenRect = screen.GetComponent<RectTransform>();
-            screenRect.anchorMin = new Vector2(0.5f, 0.5f); screenRect.anchorMax = new Vector2(0.5f, 0.5f);
-            screenRect.pivot = new Vector2(0.5f, 0.5f);
-            screenRect.sizeDelta = new Vector2(174f, 170f); screenRect.anchoredPosition = new Vector2(0f, -18f);
-            screen.GetComponent<Image>().color = new Color(0.02f, 0.10f, 0.14f, 1f);
-
-            var otpLabel = MakeText(screen.transform, "OtpLabel", 15, TextAnchor.MiddleCenter);
-            otpLabel.color = new Color(0.45f, 0.78f, 0.90f);
-            var otpLabelRect = otpLabel.rectTransform;
-            otpLabelRect.anchorMin = new Vector2(0f, 1f); otpLabelRect.anchorMax = new Vector2(1f, 1f);
-            otpLabelRect.pivot = new Vector2(0.5f, 1f);
-            otpLabelRect.sizeDelta = new Vector2(-12f, 28f); otpLabelRect.anchoredPosition = new Vector2(0f, -12f);
-            otpLabel.text = "DAILY VERIFICATION CODE";
-
-            phoneCodeText = MakeText(screen.transform, "OtpCode", 42, TextAnchor.MiddleCenter);
-            phoneCodeText.fontStyle = FontStyle.Bold;
-            phoneCodeText.color = new Color(0.30f, 1f, 0.45f);
-            var codeRect = phoneCodeText.rectTransform;
-            codeRect.anchorMin = new Vector2(0f, 0.5f); codeRect.anchorMax = new Vector2(1f, 0.5f);
-            codeRect.pivot = new Vector2(0.5f, 0.5f);
-            codeRect.sizeDelta = new Vector2(-10f, 58f); codeRect.anchoredPosition = Vector2.zero;
-            phoneCodeText.text = "----";
-
-            phoneStatusText = MakeText(phonePanel.transform, "PhoneStatus", 14, TextAnchor.MiddleCenter);
-            phoneStatusText.color = new Color(0.55f, 0.70f, 0.80f);
-            var statusRect = phoneStatusText.rectTransform;
-            statusRect.anchorMin = new Vector2(0f, 0f); statusRect.anchorMax = new Vector2(1f, 0f);
-            statusRect.pivot = new Vector2(0.5f, 0f);
-            statusRect.sizeDelta = new Vector2(-18f, 42f); statusRect.anchoredPosition = new Vector2(0f, 8f);
+            // The same device the in-world authenticator shows, standing just
+            // off the card's right edge so it never covers the card.
+            phoneRect = PhoneScreenUi.BuildDevice(card.transform, out phoneUi);
+            phonePanel = phoneRect.gameObject;
+            phonePanel.name = "SpartanAuthenticatorPhone";
+            phoneRect.anchorMin = new Vector2(1f, 0.5f);
+            phoneRect.anchorMax = new Vector2(1f, 0.5f);
+            phoneRect.pivot = new Vector2(0f, 0.5f);
+            phoneRect.anchoredPosition = PhoneShown;
+            phoneCodeText = phoneUi.Code;
+            phoneStatusText = phoneUi.Status;
 
             phonePanel.SetActive(false);
         }

@@ -50,7 +50,7 @@ namespace Cyverse.Interaction
         private static int phoneUiLayer = -1;
 
         private const int RtWidth = 256;
-        private const int RtHeight = 384;
+        private const int RtHeight = 512;
 
         private Camera uiCamera;
         private RenderTexture rt;
@@ -59,7 +59,8 @@ namespace Cyverse.Interaction
         private Renderer screenRenderer;
         private Light screenGlow;
 
-        private Text headerText, otpLabelText, codeText, statusText;
+        private Text codeText, statusText;
+        private PhoneScreenUi screenUi;
         private Color accent;
         private bool built;
 
@@ -88,7 +89,9 @@ namespace Cyverse.Interaction
         /// passcode terminal so the player reads it as a phone sitting there.</summary>
         private void BuildProp()
         {
-            var caseMat = BuildKit.MakeStandard(new Color(0.05f, 0.06f, 0.09f), 0.35f, 0.25f);
+            var caseMat = BuildKit.MakeStandard(PhoneScreenUi.CaseColor, 0.35f, 0.25f);
+            var rimMat = BuildKit.MakeStandard(new Color(0.20f, 0.23f, 0.30f), 0.75f, 0.55f);
+            var slotMat = BuildKit.MakeStandard(new Color(0.01f, 0.012f, 0.016f), 0.3f, 0.2f);
 
             // A short pedestal / dock so the phone sits at a readable height
             // rather than lying on the floor.
@@ -101,7 +104,9 @@ namespace Cyverse.Interaction
             // back and read as tilted/skewed. No pitch/roll — vertical device.
             var body = new GameObject("Body");
             body.transform.SetParent(transform, false);
-            body.transform.localPosition = new Vector3(0f, 1.12f, 0.02f);
+            // Its bottom edge rests just above the dock top (y=1.0) so the dock
+            // lip only covers the bezel, not the screen's app grid.
+            body.transform.localPosition = new Vector3(0f, 1.215f, 0.02f);
             body.transform.localRotation = Quaternion.identity;
 
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Shell", body.transform,
@@ -112,9 +117,23 @@ namespace Cyverse.Interaction
             // through an unlit material. Unity's Quad renders on its LOCAL -Z
             // face, so identity rotation already faces a viewer on -Z; a 180°
             // yaw (used before) backface-culled it away from the player.
+            // Metal side buttons and a lit rim give the slab the same edges as
+            // the card's phone; the RT screen supplies the speaker notch.
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "Rim", body.transform,
+                new Vector3(0f, 0f, 0.002f), Vector3.zero, new Vector3(0.206f, 0.406f, 0.02f), rimMat, collider: false);
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "VolumeUp", body.transform,
+                new Vector3(-0.104f, 0.10f, 0f), Vector3.zero, new Vector3(0.008f, 0.03f, 0.012f), rimMat, collider: false);
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "VolumeDown", body.transform,
+                new Vector3(-0.104f, 0.06f, 0f), Vector3.zero, new Vector3(0.008f, 0.03f, 0.012f), rimMat, collider: false);
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "Power", body.transform,
+                new Vector3(0.104f, 0.08f, 0f), Vector3.zero, new Vector3(0.008f, 0.045f, 0.012f), rimMat, collider: false);
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "CameraBump", body.transform,
+                new Vector3(-0.05f, 0.14f, 0.015f), Vector3.zero, new Vector3(0.06f, 0.06f, 0.006f), slotMat, collider: false);
+
+            // 1:2 to match the 200 x 400 screen layout, inset 1 cm per side.
             var screen = BuildKit.SpawnLocal(PrimitiveType.Quad, "Screen", body.transform,
                 new Vector3(0f, 0f, -0.014f), new Vector3(0f, 0f, 0f),
-                new Vector3(0.176f, 0.36f, 1f), null, collider: false);
+                new Vector3(0.18f, 0.36f, 1f), null, collider: false);
             screenRenderer = screen.GetComponent<Renderer>();
 
             // A dim point light so the screen appears to cast its own glow — the
@@ -141,7 +160,8 @@ namespace Cyverse.Interaction
         /// but translated to OffscreenOrigin so nothing else is in shot.</summary>
         private void BuildOffscreenUi()
         {
-            rt = new RenderTexture(RtWidth, RtHeight, 16, RenderTextureFormat.ARGB32)
+            // 24-bit depth carries the stencil the screen's rounded Mask needs.
+            rt = new RenderTexture(RtWidth, RtHeight, 24, RenderTextureFormat.ARGB32)
             {
                 name = "SpartanAuthenticatorRT",
                 filterMode = FilterMode.Bilinear,
@@ -184,9 +204,9 @@ namespace Cyverse.Interaction
             screenCanvas = canvasGo.GetComponent<Canvas>();
             screenCanvas.renderMode = RenderMode.WorldSpace;
             var canvasRt = (RectTransform)canvasGo.transform;
-            // 1 canvas unit == 1 world unit at scale 0.01; the RectTransform is
-            // 220 x 330 units -> 2.2 x 3.3 world units, matched by the camera.
-            canvasRt.sizeDelta = new Vector2(220f, 330f);
+            // 1 canvas unit == 0.01 world units; the RectTransform is the
+            // 200 x 400 phone screen -> 2 x 4 world units, matched by the camera.
+            canvasRt.sizeDelta = PhoneScreenUi.ScreenSize;
             canvasRt.localScale = Vector3.one * 0.01f;
 
             BuildScreenContents(canvasGo.transform);
@@ -204,13 +224,14 @@ namespace Cyverse.Interaction
             camGo.transform.localRotation = Quaternion.LookRotation(Vector3.forward, Vector3.up);
             uiCamera = camGo.GetComponent<Camera>();
             uiCamera.orthographic = true;
-            uiCamera.orthographicSize = 1.65f;      // half of the 3.3-unit canvas height
+            uiCamera.orthographicSize = PhoneScreenUi.ScreenSize.y * 0.005f; // half the canvas height
             uiCamera.aspect = (float)RtWidth / RtHeight;
             uiCamera.nearClipPlane = 0.1f;
             uiCamera.farClipPlane = 6f;             // brackets the canvas, excludes the world
             uiCamera.cullingMask = 1 << layer;      // renders ONLY the phone canvas
             uiCamera.clearFlags = CameraClearFlags.SolidColor;
-            uiCamera.backgroundColor = new Color(0.015f, 0.025f, 0.045f, 1f);
+            // The case colour shows in the screen's rounded corners.
+            uiCamera.backgroundColor = PhoneScreenUi.CaseColor;
             uiCamera.targetTexture = rt;
             uiCamera.allowHDR = false;
             uiCamera.allowMSAA = false;
@@ -271,69 +292,14 @@ namespace Cyverse.Interaction
                 main.cullingMask &= ~(1 << layer);
         }
 
-        /// <summary>The phone UI itself — the same header / OTP label / big code
-        /// / status line the old screen-space panel drew, now laid out on the
-        /// world-space canvas.</summary>
+        /// <summary>The phone UI itself: the shared Spartan Authenticator
+        /// screen (status bar, app title, code card, app grid), identical to
+        /// the passcode card's corner phone.</summary>
         private void BuildScreenContents(Transform canvas)
         {
-            var face = new GameObject("Face", typeof(RectTransform), typeof(Image));
-            face.transform.SetParent(canvas, false);
-            var faceRt = (RectTransform)face.transform;
-            faceRt.anchorMin = Vector2.zero; faceRt.anchorMax = Vector2.one;
-            faceRt.offsetMin = Vector2.zero; faceRt.offsetMax = Vector2.zero;
-            face.GetComponent<Image>().color = new Color(0.015f, 0.025f, 0.045f, 1f);
-
-            headerText = MakeText(canvas, "PhoneHeader", 20, TextAnchor.MiddleCenter);
-            headerText.fontStyle = FontStyle.Bold;
-            headerText.color = new Color(0.70f, 0.86f, 0.96f);
-            var hr = headerText.rectTransform;
-            hr.anchorMin = new Vector2(0f, 1f); hr.anchorMax = new Vector2(1f, 1f); hr.pivot = new Vector2(0.5f, 1f);
-            hr.sizeDelta = new Vector2(-16f, 40f); hr.anchoredPosition = new Vector2(0f, -14f);
-            headerText.text = "SPARTAN AUTHENTICATOR";
-
-            var screen = new GameObject("Screen", typeof(RectTransform), typeof(Image));
-            screen.transform.SetParent(canvas, false);
-            var sr = (RectTransform)screen.transform;
-            sr.anchorMin = new Vector2(0.5f, 0.5f); sr.anchorMax = new Vector2(0.5f, 0.5f); sr.pivot = new Vector2(0.5f, 0.5f);
-            sr.sizeDelta = new Vector2(196f, 210f); sr.anchoredPosition = new Vector2(0f, -6f);
-            screen.GetComponent<Image>().color = new Color(0.02f, 0.10f, 0.14f, 1f);
-
-            otpLabelText = MakeText(screen.transform, "OtpLabel", 16, TextAnchor.MiddleCenter);
-            otpLabelText.color = new Color(0.45f, 0.78f, 0.90f);
-            var lr = otpLabelText.rectTransform;
-            lr.anchorMin = new Vector2(0f, 1f); lr.anchorMax = new Vector2(1f, 1f); lr.pivot = new Vector2(0.5f, 1f);
-            lr.sizeDelta = new Vector2(-12f, 30f); lr.anchoredPosition = new Vector2(0f, -14f);
-            otpLabelText.text = "DAILY VERIFICATION CODE";
-
-            codeText = MakeText(screen.transform, "OtpCode", 52, TextAnchor.MiddleCenter);
-            codeText.fontStyle = FontStyle.Bold;
-            codeText.color = new Color(0.30f, 1f, 0.45f);
-            var cr = codeText.rectTransform;
-            cr.anchorMin = new Vector2(0f, 0.5f); cr.anchorMax = new Vector2(1f, 0.5f); cr.pivot = new Vector2(0.5f, 0.5f);
-            cr.sizeDelta = new Vector2(-10f, 72f); cr.anchoredPosition = Vector2.zero;
-            codeText.text = "----";
-
-            statusText = MakeText(canvas, "PhoneStatus", 15, TextAnchor.MiddleCenter);
-            statusText.color = new Color(0.55f, 0.70f, 0.80f);
-            var st = statusText.rectTransform;
-            st.anchorMin = new Vector2(0f, 0f); st.anchorMax = new Vector2(1f, 0f); st.pivot = new Vector2(0.5f, 0f);
-            st.sizeDelta = new Vector2(-14f, 48f); st.anchoredPosition = new Vector2(0f, 10f);
-            statusText.text = "";
-        }
-
-        private Text MakeText(Transform parent, string name, int size, TextAnchor anchor)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var t = go.AddComponent<Text>();
-            t.font = HudUI.UIFont != null ? HudUI.UIFont : HudUI.LoadFont();
-            t.fontSize = size;
-            t.alignment = anchor;
-            t.color = Color.white;
-            t.supportRichText = true;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            return t;
+            screenUi = PhoneScreenUi.Build((RectTransform)canvas);
+            codeText = screenUi.Code;
+            statusText = screenUi.Status;
         }
 
         // ---- Drive API (called by TypingChallenge) ---------------------------
@@ -343,6 +309,7 @@ namespace Cyverse.Interaction
         {
             if (!built) return;
             SetVisible(true);
+            screenUi?.RefreshClock();
             if (codeText != null) codeText.text = string.IsNullOrEmpty(code) ? "----" : code;
             if (screenGlow != null) screenGlow.intensity = 1.1f;
             RenderNow();
