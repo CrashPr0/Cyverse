@@ -133,7 +133,7 @@ namespace Cyverse.Level
         private void OnCustodyCompleted()
         {
             if (HudUI.Instance != null)
-                HudUI.Instance.ShowToast("Custody accepted — take the device to the Investigation Desk",
+                HudUI.Instance.ShowToast("Custody accepted — dock the device at the ANALYZE EVIDENCE desk",
                     new Color(0.30f, 1f, 0.55f));
             if (custodyStation != null)
                 BurstFX.SpawnAbove(custodyStation.transform, new Color(0.30f, 1f, 0.55f),
@@ -149,7 +149,7 @@ namespace Cyverse.Level
             {
                 CurrentPhase = Phase.Report;
                 if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("CASEWORK COMPLETE — submit the final report at the REPORT DESK",
+                    HudUI.Instance.ShowToast("CASEWORK COMPLETE — submit the final report at the FORENSIC REPORT desk",
                         new Color(0.90f, 0.66f, 0.14f));
             }
             else
@@ -185,24 +185,83 @@ namespace Cyverse.Level
                 CompleteLevel();
             }
 
-            // The locker is the only thing this level points at; the beacon hides itself
-            // up close and is cleared once the device is out.
             guidanceTimer += Time.deltaTime;
             if (guidanceTimer < 0.4f) return;
             guidanceTimer = 0f;
-            if (locker != null && !locker.DeviceRetrieved)
-            {
-                ObjectiveBeacon.Ensure().PointAt(locker.transform, "RETRIEVE THE DEVICE", GuideGold);
-                beaconShown = true;
-            }
-            else if (beaconShown)
-            {
-                ObjectiveBeacon.Ensure().Hide();
-                beaconShown = false;
-            }
+            UpdateGuidance();
         }
 
-        private bool beaconShown;
+        // Alpha2 players lost the thread after the locker: nothing pointed at the
+        // next station, and the objectives named desks the room signs don't. The
+        // beacon now walks every step, using the names on the station signs.
+        private void UpdateGuidance()
+        {
+            Transform t = null;
+            string action = "";
+            bool custodyComplete = custodyForm == null || custodyForm.IsComplete;
+
+            switch (CurrentPhase)
+            {
+                case Phase.Watch:
+                    if (!DeviceRetrieved) { t = locker.transform; action = "RETRIEVE THE DEVICE"; }
+                    else if (briefing != null) { t = briefing.transform; action = "WATCH THE BRIEFING"; }
+                    break;
+                case Phase.Investigate:
+                    if (!DeviceRetrieved) { t = locker.transform; action = "RETRIEVE THE DEVICE"; }
+                    else if (!custodyComplete && custodyStation != null)
+                    {
+                        t = custodyStation.transform; action = "LOG IT AT EVIDENCE INTAKE";
+                    }
+                    else if (console != null)
+                    {
+                        t = console.transform;
+                        action = AcquisitionPending ? "DOCK THE DEVICE" : "ANALYZE THE EVIDENCE";
+                    }
+                    break;
+                case Phase.Report:
+                    if (ReportStation != null) { t = ReportStation.transform; action = "SUBMIT THE REPORT"; }
+                    break;
+                case Phase.Complete:
+                    HubDoor door = NearestHubDoor();
+                    if (door != null) { t = door.transform; action = "RETURN TO THE HUB"; }
+                    break;
+            }
+
+            // Re-point only on a change; the docking prompt flips mid-step.
+            if (t == beaconTarget && action == beaconAction) return;
+            beaconTarget = t;
+            beaconAction = action;
+            if (t != null) ObjectiveBeacon.Ensure().PointAt(t, action, GuideGold);
+            else ObjectiveBeacon.Ensure().Hide();
+            UpdateObjective();
+        }
+
+        private Transform beaconTarget;
+        private string beaconAction;
+
+        // The lab has a Hub door at each end; the bound exit is the entrance by the
+        // locker, across the room from the report desk where the case closes.
+        private HubDoor NearestHubDoor()
+        {
+            Camera cam = Camera.main;
+            if (cam == null) return exitDoor;
+            HubDoor best = exitDoor;
+            float bestDist = float.MaxValue;
+            foreach (HubDoor door in FindObjectsOfType<HubDoor>())
+            {
+                float dist = (door.transform.position - cam.transform.position).sqrMagnitude;
+                if (dist < bestDist) { best = door; bestDist = dist; }
+            }
+            return best;
+        }
+
+        private static bool AcquisitionPending =>
+            PlugInStation.Instance != null && !PlugInStation.Instance.UploadStarted;
+
+        // Built by Level3ForensicsPolish after this manager starts, so look it up late.
+        private ForensicsReportStation reportStation;
+        private ForensicsReportStation ReportStation =>
+            reportStation != null ? reportStation : (reportStation = FindObjectOfType<ForensicsReportStation>());
 
         private void OnBriefingCompleted()
         {
@@ -246,13 +305,16 @@ namespace Cyverse.Level
                             "Objective: Retrieve the seized device from the EVIDENCE LOCKER  (south wall, by the entrance)");
                     else if (!custodyComplete)
                         HudUI.Instance.ShowObjective(
-                            $"Objective: Complete the chain-of-custody form at EVIDENCE INTAKE  ({custodyForm.SelectedCount}/{custodyForm.FieldCount} blanks)");
+                            $"Objective: Log the device at EVIDENCE INTAKE: fill in the chain-of-custody form  ({custodyForm.SelectedCount}/{custodyForm.FieldCount} blanks)");
+                    else if (AcquisitionPending)
+                        HudUI.Instance.ShowObjective(
+                            "Objective: Dock the device at the ANALYZE EVIDENCE desk to copy its data  (E at the desk)");
                     else
-                        HudUI.Instance.ShowObjective($"Objective: Solve {caseName} at the Investigation Desk  ({done}/{total})");
+                        HudUI.Instance.ShowObjective($"Objective: Solve {caseName} at the ANALYZE EVIDENCE terminal  ({done}/{total})");
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal);
                     break;
                 case Phase.Report:
-                    HudUI.Instance.ShowObjective("Objective: Submit the final forensic report at the REPORT DESK");
+                    HudUI.Instance.ShowObjective("Objective: Submit the final forensic report at the FORENSIC REPORT desk");
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal, "!");
                     break;
                 case Phase.Complete:
@@ -272,9 +334,9 @@ namespace Cyverse.Level
             {
                 new TaskListPanel.Task("Retrieve device from evidence locker", retrieved, !retrieved),
                 new TaskListPanel.Task("Watch analyst briefing", watched, retrieved && !watched),
-                new TaskListPanel.Task("Chain of custody  (4 fields)", custodyComplete,
+                new TaskListPanel.Task("Log device at evidence intake", custodyComplete,
                     watched && retrieved && !custodyComplete),
-                new TaskListPanel.Task($"Investigate cases  ({answered}/{total})",
+                new TaskListPanel.Task($"Analyze evidence  ({answered}/{total})",
                     answered >= total, watched && custodyComplete && answered < total),
                 new TaskListPanel.Task("Submit forensic report", ReportSubmitted,
                     CurrentPhase == Phase.Report && !ReportSubmitted),
@@ -296,7 +358,7 @@ namespace Cyverse.Level
             if (!ReportSubmitted)
             {
                 if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("Submit the final report at the REPORT DESK before closing the case.",
+                    HudUI.Instance.ShowToast("Submit the final report at the FORENSIC REPORT desk before closing the case.",
                         new Color(1f, 0.55f, 0.4f));
                 return;
             }

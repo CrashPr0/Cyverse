@@ -50,6 +50,7 @@ namespace Cyverse.Level
                 new Color(0.020f, 0.035f, 0.028f),
                 Palette.Tint("Level3", new Color(0.08f, 0.38f, 0.20f)));
             ToneFixtures();
+            MovePlanterOffIntake();
             BuildLab();
             BindProgress();
         }
@@ -104,6 +105,24 @@ namespace Cyverse.Level
                 light.range = 12f;
                 light.shadows = LightShadows.None;
                 light.renderMode = LightRenderMode.ForceVertex;
+            }
+        }
+
+        // The shared furnishing planter at (-8, 8) stands between the lab floor
+        // and Evidence Intake (-11.5, 8.15), half hiding the desk on approach.
+        // Tuck it beside the intake plinth on the wall side instead; runs before
+        // PlanterClearance (order 1000), which still checks the new spot.
+        private static void MovePlanterOffIntake()
+        {
+            GameObject furnishings = GameObject.Find("Furnishings");
+            if (furnishings == null) return;
+            foreach (Transform child in furnishings.transform)
+            {
+                if (child.name != "Plant") continue;
+                Vector3 p = child.position;
+                if (Mathf.Abs(p.x + 8f) > 0.1f || Mathf.Abs(p.z - 8f) > 0.1f) continue;
+                child.position = new Vector3(-14.2f, p.y, 8.2f);
+                return;
             }
         }
 
@@ -198,7 +217,8 @@ namespace Cyverse.Level
 
         private void BuildWorkflowPath(Transform root)
         {
-            // z = 7, not 8: the shared furnishing planter stands at (-8, 8).
+            // z = 7, not 8: the shared furnishing planter spot is (-8, 8) (this
+            // level moves it, but other rooms keep it there).
             SpawnOrthogonalPath("DF_Path_AcquireToAnalyze", root, new Vector3(-9.3f, InlayY, 7f),
                 new Vector3(-3.8f, InlayY, 9.2f), GreenMaterial());
             SpawnOrthogonalPath("DF_Path_AnalyzeToEvidence", root, new Vector3(-2.4f, InlayY, 12.5f),
