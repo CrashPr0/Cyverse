@@ -46,7 +46,7 @@ namespace Cyverse.Level
             Level4CyberAttackContent.ScenarioTimeLimitSeconds - ElapsedSeconds);
         public string LastFeedback { get; private set; } = string.Empty;
         public string MeterSummary =>
-            $"EXFILTRATION  {ExfiltrationPercent:00}%    ·    CAUGHT  {DetectionPercent:00}%" +
+            $"DATA STOLEN  {ExfiltrationPercent:00}%    ·    CAUGHT  {DetectionPercent:00}%" +
             (TimeExpired ? "    ·    OVERTIME" :
                 $"    ·    T-{Mathf.FloorToInt(TimeRemaining / 60f)}:{Mathf.FloorToInt(TimeRemaining % 60f):00}");
 
@@ -136,9 +136,9 @@ namespace Cyverse.Level
             {
                 TimeExpired = true;
                 DetectionPercent = Mathf.Clamp(DetectionPercent + Level4CyberAttackContent.TimeoutDetectionPenalty, 0, 100);
-                LastFeedback = "TIME EXPIRED — the defensive telemetry caught the simulation late. Finish the run to review the lesson.";
+                LastFeedback = "TIME EXPIRED — the defenders' monitoring caught the attack late. Finish the run to review the lesson.";
                 if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("TIME EXPIRED — defensive telemetry is catching up", AttackOrange);
+                    HudUI.Instance.ShowToast("TIME EXPIRED — the defenders are catching up", AttackOrange);
                 UpdateObjective();
             }
 
@@ -221,7 +221,7 @@ namespace Cyverse.Level
             if (station == null || HudUI.Instance == null) return;
             if (!ScenarioStarted)
             {
-                HudUI.Instance.ShowToast("Watch the controlled attack briefing before choosing a vector.", Gold);
+                HudUI.Instance.ShowToast("Watch the attack briefing before choosing a way in.", Gold);
                 return;
             }
             if (station.StationIndex > CurrentStationIndex)
@@ -245,7 +245,7 @@ namespace Cyverse.Level
                 WrongAttempts++;
                 DetectionPercent = Mathf.Clamp(DetectionPercent + scenario.detectionPenalty, 0, 100);
                 LastFeedback = $"SIMULATION DETECTED  +{scenario.detectionPenalty}% caught — {scenario.lesson}";
-                if (HudUI.Instance != null) HudUI.Instance.ShowToast("Choice detected — review the defensive control it bypassed.", AttackOrange);
+                if (HudUI.Instance != null) HudUI.Instance.ShowToast("Caught — read which defense spotted that choice.", AttackOrange);
                 UpdateObjective();
                 ProgressChanged?.Invoke();
                 return false;
@@ -316,7 +316,7 @@ namespace Cyverse.Level
                     status = "BRIEFING  ·  WATCH THE RULES OF ENGAGEMENT";
                     break;
                 case Phase.Complete:
-                    status = "EXFILTRATION COMPLETE  ·  REPORT READY";
+                    status = "ATTACK COMPLETE  ·  REPORT READY";
                     break;
                 default:
                     string stage = CurrentStationIndex < scenarios.Length
@@ -367,7 +367,7 @@ namespace Cyverse.Level
             string overtime = TimeExpired ? "  ·  TIME EXPIRED" : string.Empty;
             string result = $"SIMULATION COMPLETE — DATA STOLEN {ExfiltrationPercent}% / CAUGHT {DetectionPercent}%{overtime}";
             Level4ExfiltrationMeter.Report(ExfiltrationPercent / 100f,
-                DetectionPercent / 100f, "EXFILTRATION COMPLETE  ·  REPORT READY", true);
+                DetectionPercent / 100f, "ATTACK COMPLETE  ·  REPORT READY", true);
             LevelMissionRuntime.Complete(new LevelMissionRuntime.Completion
             {
                 levelNumber = 4,
