@@ -130,7 +130,12 @@ namespace Cyverse.Level
 
             float top = target.position.y;
             foreach (var renderer in target.GetComponentsInChildren<Renderer>(true))
-                if (renderer.enabled) top = Mathf.Max(top, renderer.bounds.max.y);
+            {
+                // VisualDirector's light halos reach up to the ceiling; counting
+                // them parked the Level 3 briefing marker above the ceiling panels.
+                if (!renderer.enabled || renderer.name == "LightGlow" || renderer.name.StartsWith("Pool_")) continue;
+                top = Mathf.Max(top, renderer.bounds.max.y);
+            }
             foreach (var collider in target.GetComponentsInChildren<Collider>(true))
                 if (collider.enabled) top = Mathf.Max(top, collider.bounds.max.y);
 

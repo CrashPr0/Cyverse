@@ -98,9 +98,9 @@ namespace Cyverse.Interaction
         public string Prompt => !CustodyReady
             ? "Complete the chain-of-custody form first"
             : AcquisitionPending
-                ? "Dock the evidence device — start the upload"
+                ? "Dock the evidence device"
             : AcquisitionRunning
-                ? "Imaging the evidence device — E to skip to the terminal"
+                ? "Imaging device — E to skip"
             : AllComplete
                 ? "Review the case logs"
                 : $"Work {(ActiveCase != null ? ActiveCase.title : "the case")} — Forensic Terminal";
@@ -186,6 +186,16 @@ namespace Cyverse.Interaction
             // (built below as "INVESTIGATION DESK", re-labelled by
             // Level3ForensicsPolish to "02 ANALYZE EVIDENCE"). Removed so the
             // centre monitor shows exactly one legible readout.
+
+            // Only the desk and the centre monitor are solid, so aiming at a
+            // side monitor (the dock prompt shows on the left one) or the gap
+            // above the desk missed the console and E put the carried device
+            // down instead of docking it. A trigger over the desktop and all
+            // three monitors catches the interact ray; movement ignores it.
+            var aim = root.AddComponent<BoxCollider>();
+            aim.isTrigger = true;
+            aim.center = new Vector3(0f, 1.5f, 0.05f);
+            aim.size = new Vector3(3.3f, 1.1f, 1.2f);
 
             BuildKit.SpawnLocal(PrimitiveType.Cube, "Keyboard", root.transform,
                 new Vector3(0f, 1.03f, -0.25f), Vector3.zero, new Vector3(0.7f, 0.03f, 0.22f),
