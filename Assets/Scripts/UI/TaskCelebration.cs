@@ -30,6 +30,13 @@ namespace Cyverse.UI
         private const float Hold = 2f;
         private const float FadeOut = 0.5f;
         private const float RestY = -116f; // just below the objective bar
+        private const float BannerHeight = 74f;
+
+        /// <summary>Vertical space the banner takes from the top-centre toast
+        /// slot while it is showing (0 when hidden). HudUI stacks toasts below it.</summary>
+        public static float ReservedHeight =>
+            instance != null && instance.group != null && instance.group.gameObject.activeSelf
+                ? BannerHeight + 8f : 0f;
 
         /// <summary>Called by TaskListPanel when a task becomes done.</summary>
         public static void Notify(string taskName)
@@ -84,6 +91,7 @@ namespace Cyverse.UI
             }
 
             group.gameObject.SetActive(true);
+            if (HudUI.Instance != null) HudUI.Instance.RelayoutToasts();
             float t = 0f;
             while (t < SlideIn)
             {
@@ -107,6 +115,7 @@ namespace Cyverse.UI
             }
             group.alpha = 0f;
             group.gameObject.SetActive(false);
+            if (HudUI.Instance != null) HudUI.Instance.RelayoutToasts();
         }
 
         private void Build()
@@ -121,7 +130,7 @@ namespace Cyverse.UI
             rect.anchorMax = new Vector2(0.5f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
             rect.anchoredPosition = new Vector2(0f, RestY);
-            rect.sizeDelta = new Vector2(520f, 74f);
+            rect.sizeDelta = new Vector2(520f, BannerHeight);
             HudUI.StylePanel(panel, new Color(0.02f, 0.06f, 0.05f, 0.85f), new Color(0.30f, 0.88f, 0.53f));
             panel.GetComponent<Image>().raycastTarget = false;
             group = panel.GetComponent<CanvasGroup>();

@@ -355,10 +355,16 @@ namespace Cyverse.UI
             StartCoroutine(ToastRoutine(t, color));
         }
 
+        /// <summary>Re-stack the active toasts, e.g. when the task-complete
+        /// banner appears or goes away.</summary>
+        public void RelayoutToasts() => CompactToastRows();
+
         private void CompactToastRows()
         {
             activeToasts.RemoveAll(toast => toast == null);
-            float y = ToastTopOffset;
+            // The task-complete banner shares this slot; stack toasts below it
+            // while it is up instead of drawing both over each other.
+            float y = ToastTopOffset - TaskCelebration.ReservedHeight;
             for (int i = 0; i < activeToasts.Count; i++)
             {
                 RectTransform rect = activeToasts[i].rectTransform;
