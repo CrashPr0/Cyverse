@@ -79,6 +79,13 @@ namespace Cyverse.Player
                     }
                 }
             }
+            else if (carried != null && !carried.CanPutDown)
+            {
+                // Evidence in custody has no "put down" prompt: only the station
+                // that takes it can. E still answers, naming where it goes.
+                HidePrompt();
+                if (actPressed) carried.PutDown();
+            }
             else if (carried != null)
             {
                 // Carrying, aimed at nothing that takes it: the same key sets

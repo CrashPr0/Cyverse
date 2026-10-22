@@ -215,6 +215,10 @@ namespace Cyverse.Interaction
             SetInsideDeviceVisible(false);
 
             retrievedDevice = BuildSeizedDevice(transform.TransformPoint(ShelfDevicePos));
+            // Chain of custody: once out of the locker the device is never set down
+            // loose. It stays in hand through Evidence Intake until it docks.
+            retrievedDevice.putDownBlockedMessage =
+                "Evidence stays in your custody — it can only be set down in the dock at the ANALYZE EVIDENCE desk.";
             retrievedDevice.Interact(interactor);
             if (Carryable.Carried != retrievedDevice)
             {
@@ -231,8 +235,9 @@ namespace Cyverse.Interaction
         /// <summary>
         /// Evidence Intake takes the device out of the player's hands when the dock
         /// animation starts (the phone seats from where the hands were). Removes the
-        /// retrieved device wherever it ended up — carried, or put down somewhere —
-        /// so there is never a second phone left over once the dock one appears.
+        /// retrieved device (it cannot be put down, but a run without a player camera
+        /// leaves it on the floor) so there is never a second phone left over once
+        /// the dock one appears.
         /// </summary>
         public static void ConsumeCarriedDevice()
         {
