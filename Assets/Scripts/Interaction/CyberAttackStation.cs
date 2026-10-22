@@ -312,6 +312,12 @@ namespace Cyverse.Interaction
             modal?.Close();
         }
 
+        // Monitor centre (station-local) and size. Behind the 0.7 m deep desk
+        // rather than over it, and smaller than the old 2.6 m panel.
+        private static readonly Vector3 MonitorCenter = new Vector3(0f, 1.68f, 0.85f);
+        private const float MonitorWidth = 2.0f;
+        private const float MonitorHeight = 1.2f;
+
         public static CyberAttackStation Build(Vector3 position, float yaw,
             Level4CyberAttackContent.StationKind kind, int index, Color accent)
         {
@@ -322,7 +328,7 @@ namespace Cyverse.Interaction
 
             BuildKit.MakeSign(root.transform, position + new Vector3(0f, 3.38f, 0f),
                 $"0{index + 1}  {Level4CyberAttackContent.DisplayName(kind).ToUpperInvariant()}", accent, 0.030f);
-            TextMeshPro label = BuildScreenLabel(root.transform, new Vector3(0f, 1.72f, 0.015f),
+            TextMeshPro label = BuildScreenLabel(root.transform, MonitorCenter + new Vector3(0f, 0f, -0.135f),
                 Level4CyberAttackContent.ShortLabel(kind), new Color(1f, 0.90f, 0.84f));
             label.gameObject.name = "StationScreenLabel";
 
@@ -346,7 +352,7 @@ namespace Cyverse.Interaction
 
         /// <summary>The workstation in the chamfered style of the other levels:
         /// a desk with a recessed kick, a trim top and a lit front edge, a
-        /// framed monitor on a neck and foot, and a keyboard. MonitorScreen is
+        /// framed monitor on a floor stand behind the desk, and a keyboard. MonitorScreen is
         /// a dark display tinted with the station colour (a solid emissive slab
         /// made the four monitors the loudest thing in the level).</summary>
         private static void BuildDeskAndMonitor(Transform root, Color accent)
@@ -367,27 +373,33 @@ namespace Cyverse.Interaction
                 BlockKit.Slab("DeskPanel_" + (i + 1), root, new Vector3(i * 1.0f, 0.47f, -0.677f),
                     new Vector3(0.88f, 0.5f, 0.02f), 0.008f, recess);
 
-            // Monitor: pitched back 8 degrees, screen surface at local z = -0.06.
+            // Monitor: on its own floor stand behind the desk so it reads as a
+            // screen across the desk rather than filling the view when the
+            // player walks up. Pitched back 8 degrees; screen surface at
+            // monitor-local z = -0.06. It must stay below the station board
+            // (bottom edge ~2.4 m, 1.28 m behind the root).
             var monitor = new GameObject("Monitor").transform;
             monitor.SetParent(root, false);
-            monitor.localPosition = new Vector3(0f, 1.72f, 0.15f);
+            monitor.localPosition = MonitorCenter;
             monitor.localRotation = Quaternion.Euler(-8f, 0f, 0f);
-            BlockKit.Slab("MonitorBody", monitor, Vector3.zero, new Vector3(2.6f, 1.55f, 0.12f), 0.04f, body, solid: true);
+            const float w = MonitorWidth, h = MonitorHeight;
+            BlockKit.Slab("MonitorBody", monitor, Vector3.zero, new Vector3(w, h, 0.12f), 0.04f, body, solid: true);
             BlockKit.Batch("MonitorBezel", monitor, trim, new List<CombineInstance>
             {
-                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(-1.25f, 0f, -0.062f), Vector3.zero, new Vector3(0.1f, 1.55f, 0.012f)),
-                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(1.25f, 0f, -0.062f), Vector3.zero, new Vector3(0.1f, 1.55f, 0.012f)),
-                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, 0.725f, -0.062f), Vector3.zero, new Vector3(2.6f, 0.1f, 0.012f)),
-                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, -0.725f, -0.062f), Vector3.zero, new Vector3(2.6f, 0.1f, 0.012f)),
+                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(-(w * 0.5f - 0.05f), 0f, -0.062f), Vector3.zero, new Vector3(0.1f, h, 0.012f)),
+                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(w * 0.5f - 0.05f, 0f, -0.062f), Vector3.zero, new Vector3(0.1f, h, 0.012f)),
+                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, h * 0.5f - 0.05f, -0.062f), Vector3.zero, new Vector3(w, 0.1f, 0.012f)),
+                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, -(h * 0.5f - 0.05f), -0.062f), Vector3.zero, new Vector3(w, 0.1f, 0.012f)),
             });
-            BlockKit.Box("MonitorGlow", monitor, new Vector3(0f, -0.775f, -0.05f), new Vector3(0.4f, 0.01f, 0.006f), glow);
-            BlockKit.Block("MonitorNeck", root, new Vector3(0f, 0f, 0.3f), Vector3.zero, 0.96f, 1.1f,
-                new Vector2(0.14f, 0.06f), new Vector2(0.12f, 0.05f), 0.02f, trim);
-            BlockKit.Slab("MonitorFoot", root, new Vector3(0f, 0.975f, 0.3f), new Vector3(0.6f, 0.03f, 0.3f), 0.01f, trim);
+            BlockKit.Box("MonitorGlow", monitor, new Vector3(0f, -(h * 0.5f + 0.05f), -0.05f), new Vector3(0.4f, 0.01f, 0.006f), glow);
+            float standZ = MonitorCenter.z + 0.1f;
+            BlockKit.Block("MonitorNeck", root, new Vector3(0f, 0f, standZ), Vector3.zero, 0.03f, MonitorCenter.y,
+                new Vector2(0.14f, 0.08f), new Vector2(0.12f, 0.06f), 0.02f, trim);
+            BlockKit.Slab("MonitorFoot", root, new Vector3(0f, 0.015f, standZ), new Vector3(0.7f, 0.03f, 0.4f), 0.01f, trim);
 
-            BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", root,
-                new Vector3(0f, 1.72f, 0.075f), new Vector3(-8f, 0f, 0f),
-                new Vector3(2.38f, 1.28f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, accent, 0.55f)), false);
+            BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", monitor,
+                new Vector3(0f, 0f, -0.075f), Vector3.zero,
+                new Vector3(w - 0.22f, h - 0.27f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, accent, 0.55f)), false);
             BlockKit.Slab("Keyboard", root, new Vector3(0f, 0.975f, -0.32f), new Vector3(0.95f, 0.03f, 0.34f), 0.01f, recess);
         }
 
