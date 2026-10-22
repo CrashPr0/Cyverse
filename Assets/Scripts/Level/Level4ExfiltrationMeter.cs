@@ -153,7 +153,7 @@ namespace Cyverse.Level
         public void SetComplete(bool complete)
         {
             if (statusText == null) return;
-            statusText.text = complete ? "EXFILTRATION COMPLETE  ·  REPORT READY" : statusText.text;
+            statusText.text = complete ? "ATTACK COMPLETE  ·  REPORT READY" : statusText.text;
             if (complete) titleText.color = new Color(0.35f, 1f, 0.55f);
         }
 
@@ -223,7 +223,7 @@ namespace Cyverse.Level
 
             titleText = CreateText("Title", panel.transform, 25f, TextAlignmentOptions.TopLeft,
                 new Vector2(24f, -16f), new Vector2(-24f, -47f), AlertAmber);
-            titleText.text = "EXFILTRATION  //  EXPOSURE";
+            titleText.text = "ATTACK  //  SCORECARD";
 
             dataLabel = CreateText("DataLabel", panel.transform, 16f, TextAlignmentOptions.MidlineLeft,
                 new Vector2(24f, -60f), new Vector2(180f, -83f), DataCyan);

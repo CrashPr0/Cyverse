@@ -141,6 +141,33 @@ namespace Cyverse.Level
             new GlossaryEntry("Recovery",
                 "Restoring affected systems to normal operation and verifying the threat is fully gone before returning to business as usual.",
                 StationSetup.Topic.INCIDENT),
+
+            // Level 4 (Cyber Attack) terms. Untagged so they read before the
+            // stations, which have no review step to unlock them.
+            new GlossaryEntry("Red Team",
+                "Security staff who play the attacker, with permission, to find weak spots before real attackers do.",
+                null),
+            new GlossaryEntry("Reconnaissance (Recon)",
+                "The first step of an attack: gathering public details about a target, such as staff names or exposed services.",
+                null),
+            new GlossaryEntry("Phishing",
+                "A trick message, usually email, that gets someone to click a link, open a file, or hand over a password.",
+                null),
+            new GlossaryEntry("Least Privilege",
+                "Giving each account only the access it needs for its job, so one stolen account can't reach everything.",
+                null),
+            new GlossaryEntry("Lateral Movement (Pivot)",
+                "Hopping from one hacked computer or account to others inside the same network.",
+                null),
+            new GlossaryEntry("Exfiltration",
+                "Copying stolen data out of an organization to a place the attacker controls.",
+                null),
+            new GlossaryEntry("Covering Tracks",
+                "Hiding or deleting signs of an attack. Logs nobody can edit make this much harder.",
+                null),
+            new GlossaryEntry("Rules of Engagement",
+                "The written limits on what a red team may test, so the exercise stays safe and approved.",
+                null),
         };
 
         public static string StationName(StationSetup.Topic topic)

@@ -299,7 +299,7 @@ namespace Cyverse.Level
             SpawnCube("L4_DataPulsePanel", visualRoot, origin + Vector3.up * 1.48f,
                 new Vector3(4.8f, 2.9f, 0.08f), PanelMaterial());
             CreateWorldText("L4_DataPulseTitle", origin + Vector3.up * 2.42f,
-                "TARGET DATA  //  EXFIL", new Color(1f, 0.72f, 0.42f),
+                "TARGET DATA  //  STEAL IT", new Color(1f, 0.72f, 0.42f),
                 0.034f, 48f, 22f, Quaternion.identity);
             CreateWorldText("L4_DataPulseBody", origin + Vector3.up * 1.58f,
                 "STEAL MORE  ·  GET CAUGHT LESS\nTHE METER IS THE SCORE",
