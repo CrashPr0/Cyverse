@@ -144,7 +144,7 @@ namespace Cyverse.Level
         {
             // A warm, after-hours game room: plum shadows and neon accents,
             // still dark enough that the machine screens lead the eye.
-            RenderSettings.ambientLight = new Color(0.27f, 0.24f, 0.30f);
+            RenderSettings.ambientLight = new Color(0.34f, 0.30f, 0.37f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Exponential;
             RenderSettings.fogColor = new Color(0.050f, 0.022f, 0.050f);

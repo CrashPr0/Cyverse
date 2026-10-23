@@ -327,8 +327,9 @@ namespace Cyverse.Level
                 BlockKit.Block("Upper", cab, new Vector3(0f, 0f, 0.08f), Vector3.zero, 1.0f, 2.0f,
                     new Vector2(0.5f, 0.34f), new Vector2(0.5f, 0.3f), 0.03f, CabinetBody);
                 BlockKit.Slab("Header", cab, new Vector3(0f, 2.06f, -0.12f), new Vector3(1.0f, 0.26f, 0.2f), 0.02f, Glow(c, 1.5f));
+                // A thin neon stripe down each side, not a lit panel.
                 foreach (float x in new[] { -0.505f, 0.505f })
-                    BlockKit.Box("SideArt", cab, new Vector3(x, 1.2f, 0f), new Vector3(0.012f, 1.6f, 0.5f), Glow(c, 0.7f));
+                    BlockKit.Box("SideArt", cab, new Vector3(x, 1.2f, -0.3f), new Vector3(0.012f, 1.6f, 0.04f), Glow(c, 0.9f));
 
                 BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Stick", cab, new Vector3(-0.2f, 1.12f, -0.47f),
                     Vector3.zero, new Vector3(0.03f, 0.06f, 0.03f), Chrome, false);
@@ -429,8 +430,8 @@ namespace Cyverse.Level
                     for (int k = 0; k < 5; k++)
                         items.Add(BlockKit.Piece(BlockKit.CubeMesh,
                             new Vector3(-0.48f + k * 0.18f, 0.66f + shelf * 0.25f, -0.44f),
-                            Vector3.zero, new Vector3(0.1f, 0.15f, 0.02f)));
-                BlockKit.Batch("Snacks", v, Glow(c, 0.8f), items);
+                            Vector3.zero, new Vector3(0.08f, 0.12f, 0.02f)));
+                BlockKit.Batch("Snacks", v, Glow(c, 0.4f), items);
                 BlockKit.Box("Keypad", v, new Vector3(0.45f, 1.25f, -0.43f), new Vector3(0.16f, 0.26f, 0.01f), CabinetTrim);
                 BlockKit.Box("Slot", v, new Vector3(-0.12f, 0.3f, -0.43f), new Vector3(0.8f, 0.2f, 0.01f),
                     i == 0 ? Glow(Teal, 1.6f) : DarkGlass);
