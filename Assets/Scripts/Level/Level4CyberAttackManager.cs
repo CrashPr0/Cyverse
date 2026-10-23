@@ -115,10 +115,14 @@ namespace Cyverse.Level
             activeElapsedSeconds = 0f;
             if (taskDoor != null) taskDoor.Unlock();
             if (HudUI.Instance != null)
-                HudUI.Instance.ShowToast("Briefing complete — the attack simulation is live",
+                HudUI.Instance.ShowToast("Briefing complete — the game machines are live",
                     SafeGreen);
-            if (taskDoor != null)
-                BurstFX.SpawnAbove(taskDoor.transform, SafeGreen, 30, minimumHeight: 2.5f);
+            // The open game room has no task door; the burst marks the
+            // GAME ROOM archway instead.
+            Transform gate = taskDoor != null ? taskDoor.transform
+                : GameObject.Find(Level4GameRoom.ArchName)?.transform;
+            if (gate != null)
+                BurstFX.SpawnAbove(gate, SafeGreen, 30, minimumHeight: 2.5f);
             UpdateObjective();
         }
 
@@ -344,7 +348,7 @@ namespace Cyverse.Level
         private void UpdateTaskList()
         {
             TaskListPanel list = TaskListPanel.Ensure(gameObject);
-            list.SetHeader("CYBER ATTACK  //  RED TEAM");
+            list.SetHeader("GAME ROOM  //  RED TEAM");
             bool active = CurrentPhase != Phase.Briefing;
             list.Show(new List<TaskListPanel.Task>
             {

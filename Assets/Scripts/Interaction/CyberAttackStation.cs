@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -31,6 +30,7 @@ namespace Cyverse.Interaction
         private TMP_Text meterText;
         private Button[] optionButtons;
         private bool open;
+        private bool screenLive;
         private int openedFrame = -1;
         private ModalSession.Lease modal;
 
@@ -107,6 +107,7 @@ namespace Cyverse.Interaction
 
         private void Update()
         {
+            if (!screenLive && manager != null && manager.ScenarioStarted) RefreshWorldLabel();
             if (!open || Time.frameCount == openedFrame) return;
             if (GameInput.CancelDown)
                 GameplayActions.TryApply(this, GameplayAction.Cancel());
@@ -173,11 +174,16 @@ namespace Cyverse.Interaction
 
         private void RefreshWorldLabel()
         {
+            // The machines are switched off until the briefing ends, which is
+            // what gates the game floor now that the room has no locked door.
+            screenLive = manager != null && manager.ScenarioStarted;
             TMP_Text[] labels = GetComponentsInChildren<TMP_Text>(true);
             foreach (TMP_Text label in labels)
             {
                 if (label.gameObject.name == "StationScreenLabel")
-                    label.text = Level4CyberAttackContent.ShortLabel(Kind);
+                    label.text = screenLive
+                        ? Level4CyberAttackContent.ShortLabel(Kind)
+                        : Level4CyberAttackContent.OutOfOrderLabel;
             }
         }
 
@@ -312,24 +318,20 @@ namespace Cyverse.Interaction
             modal?.Close();
         }
 
-        // Monitor centre (station-local) and size. Behind the 0.7 m deep desk
-        // rather than over it, and smaller than the old 2.6 m panel.
-        private static readonly Vector3 MonitorCenter = new Vector3(0f, 1.68f, 0.85f);
-        private const float MonitorWidth = 2.0f;
-        private const float MonitorHeight = 1.2f;
-
         public static CyberAttackStation Build(Vector3 position, float yaw,
             Level4CyberAttackContent.StationKind kind, int index, Color accent)
         {
             GameObject root = new GameObject("CyberAttackStation_" + (index + 1));
             root.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
 
-            BuildDeskAndMonitor(root.transform, accent);
+            // Each attack step is a game-room machine; its screen carries the
+            // station label (see Level4GameRoom).
+            Level4GameRoom.Screen screen = Level4GameRoom.BuildMachine(root.transform, kind, accent);
 
             BuildKit.MakeSign(root.transform, position + new Vector3(0f, 3.38f, 0f),
                 $"0{index + 1}  {Level4CyberAttackContent.DisplayName(kind).ToUpperInvariant()}", accent, 0.030f);
-            TextMeshPro label = BuildScreenLabel(root.transform, MonitorCenter + new Vector3(0f, 0f, -0.135f),
-                Level4CyberAttackContent.ShortLabel(kind), new Color(1f, 0.90f, 0.84f));
+            TextMeshPro label = BuildScreenLabel(root.transform, screen.center, screen.pitch, screen.size,
+                Level4CyberAttackContent.OutOfOrderLabel, new Color(1f, 0.90f, 0.84f));
             label.gameObject.name = "StationScreenLabel";
 
             GameObject glow = new GameObject("StationLight");
@@ -350,70 +352,21 @@ namespace Cyverse.Interaction
             return station;
         }
 
-        /// <summary>The workstation in the chamfered style of the other levels:
-        /// a desk with a recessed kick, a trim top and a lit front edge, a
-        /// framed monitor on a floor stand behind the desk, and a keyboard. MonitorScreen is
-        /// a dark display tinted with the station colour (a solid emissive slab
-        /// made the four monitors the loudest thing in the level).</summary>
-        private static void BuildDeskAndMonitor(Transform root, Color accent)
-        {
-            Material body = Palette.Get("AttackDeskBody", new Color(0.10f, 0.075f, 0.09f), 0.5f, 0.42f);
-            Material trim = Palette.Get("AttackDeskTrim", new Color(0.20f, 0.16f, 0.19f), 0.58f, 0.55f);
-            Material recess = Palette.Get("AttackDeskRecess", new Color(0.045f, 0.035f, 0.055f), 0.4f, 0.3f);
-            Material glow = BuildKit.MakeEmissive(accent, 1.0f);
-
-            BlockKit.Block("DeskKick", root, new Vector3(0f, 0f, 0.05f), Vector3.zero, 0f, 0.08f,
-                new Vector2(1.48f, 0.58f), new Vector2(1.48f, 0.58f), 0.02f, recess);
-            BlockKit.Block("Desk", root, Vector3.zero, Vector3.zero, 0.08f, 0.91f,
-                new Vector2(1.55f, 0.66f), new Vector2(1.575f, 0.675f), 0.05f, body, solid: true);
-            BlockKit.Block("DeskTop", root, Vector3.zero, Vector3.zero, 0.91f, 0.96f,
-                new Vector2(1.6f, 0.7f), new Vector2(1.6f, 0.7f), 0.02f, trim);
-            BlockKit.Box("DeskGlow", root, new Vector3(0f, 0.88f, -0.68f), new Vector3(2.8f, 0.012f, 0.006f), glow);
-            for (int i = -1; i <= 1; i++)
-                BlockKit.Slab("DeskPanel_" + (i + 1), root, new Vector3(i * 1.0f, 0.47f, -0.677f),
-                    new Vector3(0.88f, 0.5f, 0.02f), 0.008f, recess);
-
-            // Monitor: on its own floor stand behind the desk so it reads as a
-            // screen across the desk rather than filling the view when the
-            // player walks up. Pitched back 8 degrees; screen surface at
-            // monitor-local z = -0.06. It must stay below the station board
-            // (bottom edge ~2.4 m, 1.28 m behind the root).
-            var monitor = new GameObject("Monitor").transform;
-            monitor.SetParent(root, false);
-            monitor.localPosition = MonitorCenter;
-            monitor.localRotation = Quaternion.Euler(-8f, 0f, 0f);
-            const float w = MonitorWidth, h = MonitorHeight;
-            BlockKit.Slab("MonitorBody", monitor, Vector3.zero, new Vector3(w, h, 0.12f), 0.04f, body, solid: true);
-            BlockKit.Batch("MonitorBezel", monitor, trim, new List<CombineInstance>
-            {
-                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(-(w * 0.5f - 0.05f), 0f, -0.062f), Vector3.zero, new Vector3(0.1f, h, 0.012f)),
-                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(w * 0.5f - 0.05f, 0f, -0.062f), Vector3.zero, new Vector3(0.1f, h, 0.012f)),
-                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, h * 0.5f - 0.05f, -0.062f), Vector3.zero, new Vector3(w, 0.1f, 0.012f)),
-                BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, -(h * 0.5f - 0.05f), -0.062f), Vector3.zero, new Vector3(w, 0.1f, 0.012f)),
-            });
-            BlockKit.Box("MonitorGlow", monitor, new Vector3(0f, -(h * 0.5f + 0.05f), -0.05f), new Vector3(0.4f, 0.01f, 0.006f), glow);
-            float standZ = MonitorCenter.z + 0.1f;
-            BlockKit.Block("MonitorNeck", root, new Vector3(0f, 0f, standZ), Vector3.zero, 0.03f, MonitorCenter.y,
-                new Vector2(0.14f, 0.08f), new Vector2(0.12f, 0.06f), 0.02f, trim);
-            BlockKit.Slab("MonitorFoot", root, new Vector3(0f, 0.015f, standZ), new Vector3(0.7f, 0.03f, 0.4f), 0.01f, trim);
-
-            BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", monitor,
-                new Vector3(0f, 0f, -0.075f), Vector3.zero,
-                new Vector3(w - 0.22f, h - 0.27f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, accent, 0.55f)), false);
-            BlockKit.Slab("Keyboard", root, new Vector3(0f, 0.975f, -0.32f), new Vector3(0.95f, 0.03f, 0.34f), 0.01f, recess);
-        }
-
         private static TextMeshPro BuildScreenLabel(Transform parent, Vector3 localPosition,
-            string text, Color color)
+            float pitch, Vector2 screenSize, string text, Color color)
         {
             GameObject go = new GameObject("StationScreenLabel", typeof(TextMeshPro));
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPosition;
-            go.transform.localRotation = Quaternion.Euler(-8f, 0f, 0f);
+            go.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
             TextMeshPro tmp = go.GetComponent<TextMeshPro>();
             tmp.text = text;
             tmp.font = TMP_Settings.defaultFontAsset;
-            tmp.fontSize = 1.1f;
+            // Machine screens differ in shape, so fit the words to the glass.
+            tmp.rectTransform.sizeDelta = new Vector2(screenSize.x * 0.9f, screenSize.y * 0.85f);
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMin = 0.25f;
+            tmp.fontSizeMax = 1.1f;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = color;
             tmp.enableWordWrapping = false;
