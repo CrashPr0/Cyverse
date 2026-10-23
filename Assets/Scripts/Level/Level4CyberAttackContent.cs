@@ -56,8 +56,8 @@ namespace Cyverse.Level
 
         public static VideoStation.Slide[] BriefingSlides() => new[]
         {
-            new VideoStation.Slide("CYBER ATTACK  //  CONTROLLED SIMULATION",
-                "You play the red team: the attackers, inside a closed training lab. Every employee, computer and record here is fake. You pick ideas, not real hacking tools. The goal is to learn which defense would have stopped each step.", 10f),
+            new VideoStation.Slide("THE GAME ROOM  //  CONTROLLED SIMULATION",
+                "You play the red team: the attackers, loose in a fake tech company's employee game room. Each game machine is one attack step. Every employee, computer and record here is fake. Learn which defense would have stopped each step.", 10f),
             new VideoStation.Slide("THE ATTACK SURFACE",
                 "The attack surface is every possible way in. Attackers start with recon (reconnaissance): collecting public details to map a target. Sharing less online, training staff and watching public-facing services leave them less to find.", 11f),
             new VideoStation.Slide("ACCESS  →  PIVOT",
@@ -72,7 +72,7 @@ namespace Cyverse.Level
         {
             new StationScenario(
                 StationKind.BypassMfa,
-                "BYPASS MFA  //  INITIAL ACCESS",
+                "PHISH FRENZY  //  BYPASS MFA",
                 "Pick a pretend way in to the training company's accounts.",
                 "A test mailbox will accept one of three attempts. The rules allow only a sandboxed (walled-off) exercise with fake data. Which way in shows the risk while staying approved and on the record?",
                 new[]
@@ -88,7 +88,7 @@ namespace Cyverse.Level
                 12),
             new StationScenario(
                 StationKind.EscalatePrivileges,
-                "ESCALATE PRIVILEGES  //  LATERAL MOVEMENT",
+                "ACCESS GRABBER  //  ESCALATE PRIVILEGES",
                 "Move from the hacked test computer toward the fake finance vault.",
                 "From the hacked test computer you can reach three accounts. One was set up on purpose with more access than it needs. Which one exposes that mistake without leaving the simulation?",
                 new[]
@@ -104,7 +104,7 @@ namespace Cyverse.Level
                 16),
             new StationScenario(
                 StationKind.ExtractData,
-                "EXTRACT DATA  //  CONTROLLED TRANSFER",
+                "DATA VENDING  //  EXTRACT DATA",
                 "Copy only the small fake dataset through the watched lab channel.",
                 "The fake vault has activity monitoring on each computer and checks on data leaving the network. Which last step shows the risk while keeping the copy small and visible?",
                 new[]
@@ -120,7 +120,7 @@ namespace Cyverse.Level
                 20),
             new StationScenario(
                 StationKind.CoverTracks,
-                "COVER TRACKS  //  AUDIT TRAIL",
+                "HIGH SCORE LOG  //  COVER TRACKS",
                 "Try hiding your activity without wiping the evidence defenders need.",
                 "The training security team watches an activity timeline nobody can edit. Which step tests hiding your tracks while keeping it undoable and easy to review?",
                 new[]
@@ -148,16 +148,35 @@ namespace Cyverse.Level
             }
         }
 
-        public static string ShortLabel(StationKind kind)
+        /// <summary>What a machine's screen shows until the briefing ends.</summary>
+        public const string OutOfOrderLabel = "OUT OF ORDER";
+
+        /// <summary>The game-room machine each attack step is played on.</summary>
+        public static string MachineTitle(StationKind kind)
         {
             switch (kind)
             {
-                case StationKind.BypassMfa: return "BYPASS MFA";
-                case StationKind.EscalatePrivileges: return "ESCALATE PRIVILEGES";
-                case StationKind.ExtractData: return "EXTRACT DATA";
-                case StationKind.CoverTracks: return "COVER TRACKS";
-                default: return "SIMULATION";
+                case StationKind.BypassMfa: return "PHISH FRENZY";
+                case StationKind.EscalatePrivileges: return "ACCESS GRABBER";
+                case StationKind.ExtractData: return "DATA VENDING";
+                case StationKind.CoverTracks: return "HIGH SCORE LOG";
+                default: return "GAME ROOM";
             }
+        }
+
+        /// <summary>The live screen: the game's name over the attack step.</summary>
+        public static string ShortLabel(StationKind kind)
+        {
+            string step;
+            switch (kind)
+            {
+                case StationKind.BypassMfa: step = "BYPASS MFA"; break;
+                case StationKind.EscalatePrivileges: step = "ESCALATE PRIVILEGES"; break;
+                case StationKind.ExtractData: step = "EXTRACT DATA"; break;
+                case StationKind.CoverTracks: step = "COVER TRACKS"; break;
+                default: step = "SIMULATION"; break;
+            }
+            return MachineTitle(kind) + "\n<size=60%>" + step + "</size>";
         }
     }
 }

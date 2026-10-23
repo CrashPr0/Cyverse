@@ -4,10 +4,14 @@ using Cyverse.Interaction;
 namespace Cyverse.Level
 {
     /// <summary>
-    /// Procedural Level 4 scene. The south half is a short rules-of-engagement
-    /// briefing; the north half is a four-station cyber-attack simulation.
-    /// All displays and targets are generated at runtime, which keeps the
-    /// level functional in the WebGL build without scene-bound prefab wiring.
+    /// Procedural Level 4 scene: one open employee game room. The south end
+    /// is the snack bar, where the rules-of-engagement briefing plays; the
+    /// north end is the game floor, where the four attack steps are game
+    /// machines (see Level4GameRoom). A scrolling GAME ROOM sign on an
+    /// archway marks the way in. There is no dividing wall or locked door:
+    /// the machines read OUT OF ORDER until the briefing ends. All displays
+    /// and targets are generated at runtime, which keeps the level functional
+    /// in the WebGL build without scene-bound prefab wiring.
     /// </summary>
     public static class Level4CyberAttackSceneFactory
     {
@@ -27,8 +31,7 @@ namespace Cyverse.Level
             BuildKit.BuildCeilingPanels(AttackRoomHeight);
             BuildKit.BuildWallDetail(AttackOrange, AttackRoomHeight);
             BuildKit.BuildNeonTrim(AttackOrange);
-            PropFactory.BuildFurnishings();
-            BuildDivider();
+            Level4GameRoom.BuildRoom(AttackOrange);
             BuildBriefingRoom();
             BuildAttackFloor();
             GameObject player = BuildKit.BuildPlayer();
@@ -49,8 +52,9 @@ namespace Cyverse.Level
             if (material == null || material.shader == null ||
                 material.shader.name != "Cyverse/GridFloor") return;
 
-            material.SetColor("_BaseColor", new Color(0.014f, 0.017f, 0.027f, 1f));
-            material.SetColor("_LineColor", new Color(0.34f, 0.075f, 0.045f, 1f));
+            // A dark plum carpet with a faint magenta grid: game room, not lab.
+            material.SetColor("_BaseColor", new Color(0.030f, 0.016f, 0.036f, 1f));
+            material.SetColor("_LineColor", new Color(0.30f, 0.06f, 0.20f, 1f));
             material.SetFloat("_GridScale", 7.0f);
             material.SetFloat("_LineWidth", 0.012f);
             material.SetFloat("_MinorEmission", 0.025f);
@@ -68,30 +72,17 @@ namespace Cyverse.Level
             return systems;
         }
 
-        public static void BuildDivider()
-        {
-            Material material = BuildKit.MakeStandard(BuildKit.WallColor, 0.45f, 0.25f);
-            BuildKit.Spawn(PrimitiveType.Cube, "Divider_W", null,
-                new Vector3(-10.8f, AttackRoomHeight * 0.5f, 2f),
-                new Vector3(18.4f, AttackRoomHeight, 0.6f), material, true).isStatic = true;
-            BuildKit.Spawn(PrimitiveType.Cube, "Divider_E", null,
-                new Vector3(10.8f, AttackRoomHeight * 0.5f, 2f),
-                new Vector3(18.4f, AttackRoomHeight, 0.6f), material, true).isStatic = true;
-        }
-
         public static void BuildBriefingRoom()
         {
+            // The snack bar's TV (Level4GameRoom builds the bar around it).
             VideoStation.Build(new Vector3(0f, 0f, -6f), 0f,
                 Level4CyberAttackContent.BriefingSlides(), AttackOrange);
-
-            LockedDoor.Build(new Vector3(0f, 0f, 2f), 0f, 3f,
-                "ATTACK SIMULATION", "Watch the rules-of-engagement briefing to unlock the simulation floor.", AttackOrange);
 
             HubDoor spawnExit = HubDoor.Build(new Vector3(4f, 0f, -19.2f), 180f,
                 "Return to Hub", "Hub", 0, new Color(0.90f, 0.66f, 0.14f), HubDoor.Mode.Manual);
             spawnExit.SetUnlocked(true);
             BuildKit.MakeSign(null, new Vector3(-7.5f, 3.4f, -19.25f),
-                "LEVEL 4  //  RED TEAM LAB", AttackOrange, 0.032f);
+                "LEVEL 4  //  THE GAME ROOM", AttackOrange, 0.032f);
             BuildKit.MakeSign(null, new Vector3(7.5f, 3.4f, -19.25f),
                 "SYNTHETIC DATA  ·  NO LIVE SYSTEMS", new Color(0.70f, 0.85f, 0.92f), 0.020f);
         }

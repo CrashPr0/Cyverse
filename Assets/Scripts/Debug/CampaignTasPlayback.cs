@@ -380,16 +380,23 @@ namespace Cyverse.Testing
             { Fail("Level 4 briefing could not be completed through player actions."); yield break; }
             yield return null;
 
-            // The divider is solid except for the central doorway. Route to
-            // the shared inward-facing aisle first, then approach each screen
-            // from its clear side so the collision-aware TAS cannot cut
-            // through the divider, plants, or station bodies.
+            // The briefing TV stands in the middle of the snack bar. Walk
+            // round the bar's east end, then under the GAME ROOM archway to
+            // the shared inward-facing aisle, and approach each machine from
+            // its clear side so the collision-aware TAS cannot cut through
+            // the bar, plants, or machine bodies.
             float playerY = CurrentPlayerY();
+            yield return MovePlayerToPoint(new Vector3(7.6f, playerY, -9f),
+                new Vector3(7.6f, 1.4f, 0f), "D", "Walk round the snack bar");
+            if (!lastMoveSucceeded) yield break;
+            yield return MovePlayerToPoint(new Vector3(7.6f, playerY, 0f),
+                new Vector3(0f, 1.4f, 0f), "W", "Head for the game room archway");
+            if (!lastMoveSucceeded) yield break;
             yield return MovePlayerToPoint(new Vector3(0f, playerY, 0f),
-                new Vector3(0f, 1.4f, 4f), "W", "Approach the attack-lab doorway");
+                new Vector3(0f, 1.4f, 4f), "A", "Line up with the GAME ROOM archway");
             if (!lastMoveSucceeded) yield break;
             yield return MovePlayerToPoint(new Vector3(0f, playerY, 4.5f),
-                new Vector3(0f, 1.4f, 11f), "W", "Enter the controlled attack lab");
+                new Vector3(0f, 1.4f, 11f), "W", "Walk under the archway into the game room");
             if (!lastMoveSucceeded) yield break;
             yield return MovePlayerToPoint(new Vector3(0f, playerY, 11f),
                 new Vector3(-7.5f, 1.4f, 11f), "W", "Reach the central simulation aisle");

@@ -69,29 +69,29 @@ namespace Cyverse.Level
         {
             new StationSpec(
                 "bypass-mfa",
-                "01  BYPASS MFA",
-                "TEST THE ENTRY CONTROL  ·  SANDBOX ONLY",
+                "01  PHISH FRENZY",
+                "ARCADE  ·  BYPASS MFA",
                 new[] { "BypassMfa", "Bypass MFA", "InitialAccess", "Initial", "Phishing" },
                 new Vector3(-10.5f, 0f, 8f),
                 AttackCyan),
             new StationSpec(
                 "escalate-privileges",
-                "02  ESCALATE PRIVILEGES",
-                "TEST THE IDENTITY PIVOT  ·  LEAST PRIVILEGE",
+                "02  ACCESS GRABBER",
+                "CLAW MACHINE  ·  ESCALATE PRIVILEGES",
                 new[] { "EscalatePrivileges", "Escalate Privileges", "Lateral", "Privilege", "Escalation" },
                 new Vector3(10.5f, 0f, 8f),
                 AttackAmber),
             new StationSpec(
                 "extract-data",
-                "03  EXTRACT DATA",
-                "CAP THE TRANSFER  ·  MONITORED LAB CHANNEL",
+                "03  DATA VENDING",
+                "VENDING  ·  EXTRACT DATA",
                 new[] { "ExtractData", "Extract Data", "Exfil", "Exfiltration", "Data" },
                 new Vector3(-10.5f, 0f, 14f),
                 AttackRose),
             new StationSpec(
                 "cover-tracks",
-                "04  COVER TRACKS",
-                "TEST THE AUDIT TRAIL  ·  LEAVE EVIDENCE REVIEWABLE",
+                "04  HIGH SCORE LOG",
+                "PINBALL  ·  COVER TRACKS",
                 new[] { "CoverTracks", "Cover Tracks", "Persistence", "Tracks", "Audit" },
                 new Vector3(10.5f, 0f, 14f),
                 new Color(1.00f, 0.55f, 0.18f)),
@@ -142,19 +142,19 @@ namespace Cyverse.Level
 
         private void ApplyAtmosphere()
         {
-            // Warm hostile accent against a cool base keeps the room readable
-            // in a small WebGL canvas while preserving a cyber-attack mood.
-            RenderSettings.ambientLight = new Color(0.24f, 0.255f, 0.31f);
+            // A warm, after-hours game room: plum shadows and neon accents,
+            // still dark enough that the machine screens lead the eye.
+            RenderSettings.ambientLight = new Color(0.27f, 0.24f, 0.30f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Exponential;
-            RenderSettings.fogColor = new Color(0.045f, 0.022f, 0.028f);
+            RenderSettings.fogColor = new Color(0.050f, 0.022f, 0.050f);
             RenderSettings.fogDensity = 0.008f;
 
             Camera camera = Camera.main;
             if (camera != null)
             {
                 camera.clearFlags = CameraClearFlags.SolidColor;
-                camera.backgroundColor = new Color(0.018f, 0.012f, 0.022f);
+                camera.backgroundColor = new Color(0.022f, 0.012f, 0.028f);
             }
         }
 
@@ -167,7 +167,7 @@ namespace Cyverse.Level
             foreach (Light light in FindObjectsOfType<Light>())
             {
                 if (!light.name.StartsWith("CeilingLight_")) continue;
-                light.color = new Color(0.80f, 0.84f, 0.98f);
+                light.color = new Color(1.00f, 0.88f, 0.80f);
                 light.intensity = 0.88f;
                 light.range = 15f;
                 light.shadows = LightShadows.None;
@@ -185,13 +185,13 @@ namespace Cyverse.Level
             FramedPanel("L4_HeaderPanel", new Vector3(0f, 5.55f, 18.78f), Quaternion.identity,
                 new Vector3(15.5f, 1.35f, 0.12f));
             CreateWorldText("L4_Header", new Vector3(0f, 5.76f, 18.69f),
-                "CYBER ATTACK  //  OFFENSIVE LAB", new Color(0.90f, 0.94f, 1f),
+                "THE GAME ROOM", new Color(0.90f, 0.94f, 1f),
                 0.070f, 170f, 44f, Quaternion.identity);
             SpawnCube("L4_HeaderRail", visualRoot, new Vector3(0f, 4.96f, 18.68f),
                 new Vector3(15.5f, 0.045f, 0.05f), AmberMaterial());
 
             CreateWorldText("L4_HeaderSub", new Vector3(0f, 5.22f, 18.67f),
-                "CONTROLLED RED-TEAM SIMULATION", new Color(1f, 0.69f, 0.48f),
+                "RED TEAM vs BLUE TEAM  ·  CONTROLLED SIMULATION", new Color(1f, 0.69f, 0.48f),
                 0.045f, 160f, 26f, Quaternion.identity);
         }
 
@@ -299,7 +299,7 @@ namespace Cyverse.Level
             SpawnCube("L4_DataPulsePanel", visualRoot, origin + Vector3.up * 1.48f,
                 new Vector3(4.8f, 2.9f, 0.08f), PanelMaterial());
             CreateWorldText("L4_DataPulseTitle", origin + Vector3.up * 2.42f,
-                "TARGET DATA  //  STEAL IT", new Color(1f, 0.72f, 0.42f),
+                "SCOREBOARD  //  DATA STOLEN", new Color(1f, 0.72f, 0.42f),
                 0.034f, 48f, 22f, Quaternion.identity);
             CreateWorldText("L4_DataPulseBody", origin + Vector3.up * 1.58f,
                 "STEAL MORE  ·  GET CAUGHT LESS\nTHE METER IS THE SCORE",
