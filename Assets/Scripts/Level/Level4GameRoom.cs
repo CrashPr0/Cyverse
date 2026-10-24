@@ -128,6 +128,26 @@ namespace Cyverse.Level
             BlockKit.Slab("ArchBeam", arch, new Vector3(0f, beamY + 0.12f, 0f),
                 new Vector3(postX * 2f + 0.4f, 0.24f, 0.36f), 0.03f, CabinetTrim);
 
+            // The dividing wall: the snack bar on the south side, the game
+            // floor on the north, with the archway as the way through.
+            Material wall = Plain(BuildKit.WallColor);
+            Material strip = Glow(accent, 1.2f);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                string s = side < 0f ? "L" : "R";
+                const float inner = postX + 0.2f, outer = 19.5f, height = 7.2f;
+                float cx = side * (inner + outer) * 0.5f, w = outer - inner;
+                BlockKit.Slab("DividerWall_" + s, arch, new Vector3(cx, height * 0.5f, 0f),
+                    new Vector3(w, height, 0.3f), 0.02f, wall, solid: true);
+                foreach (float z in new[] { -0.17f, 0.17f })
+                {
+                    BlockKit.Box("DividerStrip_" + s, arch, new Vector3(cx, 3.4f, z), new Vector3(w, 0.08f, 0.02f), strip);
+                    BlockKit.Box("DividerTrim_" + s, arch, new Vector3(cx, 0.1f, z), new Vector3(w, 0.1f, 0.02f), Glow(accent, 2f));
+                }
+            }
+            BlockKit.Slab("DividerHeader", arch, new Vector3(0f, 6.85f, 0f),
+                new Vector3(postX * 2f + 0.4f, 0.7f, 0.3f), 0.02f, wall);
+
             LedMarquee.Build(arch, "GameRoomSign", arch.position + new Vector3(0f, beamY + 0.82f, 0f), 0f,
                 7.2f, 0.9f, "GAME ROOM", Color.Lerp(accent, Lemon, 0.25f), twoSided: true);
         }
