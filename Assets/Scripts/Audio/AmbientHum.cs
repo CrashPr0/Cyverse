@@ -4,9 +4,9 @@ using Cyverse.Core;
 namespace Cyverse.Audio
 {
     /// <summary>
-    /// Room tone: plays the procedurally generated facility hum on loop so the
-    /// space never sits in dead silence, plus an occasional soft, randomly
-    /// pitched "server blip" for texture. Volume rides the master channel
+    /// Room tone: plays the procedurally generated room tone (soft air noise
+    /// and a faint hum) on loop so the space never sits in dead silence, plus
+    /// an occasional quiet, low relay tick for texture. Volume rides the master channel
     /// (AudioListener), so the existing settings menu already controls it.
     /// </summary>
     public class AmbientHum : MonoBehaviour
@@ -36,7 +36,7 @@ namespace Cyverse.Audio
             blipSrc = gameObject.AddComponent<AudioSource>();
             blipSrc.playOnAwake = false;
             blipSrc.spatialBlend = 0f;
-            blip = ProceduralAudio.Click();
+            blip = ProceduralAudio.Tick();
             ScheduleBlip();
         }
 
@@ -46,8 +46,8 @@ namespace Cyverse.Audio
             ScheduleBlip();
             // Stay quiet while a pause-style menu is up.
             if (GameState.MenuOpen || GameState.GlossaryOpen) return;
-            blipSrc.pitch = Random.Range(0.55f, 1.4f);
-            blipSrc.PlayOneShot(blip, 0.06f);
+            blipSrc.pitch = Random.Range(0.85f, 1.1f);
+            blipSrc.PlayOneShot(blip, 0.05f);
         }
 
         private void ScheduleBlip()
