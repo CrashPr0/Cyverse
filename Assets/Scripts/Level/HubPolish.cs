@@ -214,6 +214,14 @@ namespace Cyverse.Level
                 Slab("SignPlate", dress, new Vector3(0f, 4.76f, -0.27f), new Vector3(3.3f, 0.62f, 0.08f), 0.02f, body);
                 Box("SignEdge", dress, new Vector3(0f, 5.06f, -0.315f), new Vector3(3.1f, 0.02f, 0.012f), glow);
             }
+
+            // Level 4 is the game room, so its doorway carries the same
+            // scrolling GAME ROOM LED sign as the archway inside. The name
+            // plate fills the wall above up to the ceiling, so the sign spans
+            // the top of the opening instead.
+            if (door.sceneName == "Level4_CyberAttack")
+                LedMarquee.Build(dress, "GameRoomSign", t.TransformPoint(new Vector3(0f, 3.55f, -0.45f)), t.eulerAngles.y,
+                    2.2f, 0.36f, "GAME ROOM", Color.Lerp(accent, Level4GameRoom.Lemon, 0.25f), twoSided: false);
         }
 
         /// <summary>The door's colour, read off its portal (set from its level).</summary>
