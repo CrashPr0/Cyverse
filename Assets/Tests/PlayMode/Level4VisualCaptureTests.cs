@@ -73,6 +73,24 @@ namespace Cyverse.Tests
             Assert.That(Capture(camera, Path.Combine(output,
                 "Level4_CyberAttack__inward-south-pair.png")), Is.True);
 
+            // The north-end decor bays behind the station rows.
+            (string name, Vector3 from, Vector3 to, float fov)[] decorViews =
+            {
+                ("north-end-wide", new Vector3(0f, 4.5f, 6f), new Vector3(0f, 1.0f, 19f), 90f),
+                ("north-west-decor", new Vector3(-4f, 1.7f, 13.5f), new Vector3(-14f, 1.4f, 18.5f), 60f),
+                ("north-centre-decor", new Vector3(0f, 1.7f, 12.5f), new Vector3(-3f, 1.3f, 19f), 60f),
+                ("north-east-decor", new Vector3(4f, 1.7f, 13.5f), new Vector3(14f, 1.2f, 18f), 60f),
+            };
+            foreach (var view in decorViews)
+            {
+                PositionPlayerView(camera, view.from, view.to);
+                camera.fieldOfView = view.fov;
+                yield return null;
+                RefreshWorldTextLayout();
+                Assert.That(Capture(camera, Path.Combine(output,
+                    "Level4_CyberAttack__" + view.name + ".png")), Is.True);
+            }
+
             for (int i = 1; i <= 4; i++)
             {
                 Transform station = GameObject.Find("CyberAttackStation_" + i)?.transform;
