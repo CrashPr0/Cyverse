@@ -93,7 +93,7 @@ namespace Cyverse.Level
 
             // Neon on the side walls, below the wall strip (y 3.4) and
             // between the columns.
-            WallNeon(root, "Neon_LevelUp", new Vector3(-19.45f, 2.6f, 10.5f), -90f,
+            WallNeon(root, "Neon_LevelUp", new Vector3(-19.45f, 2.6f, 4f), -90f,
                 "LEVEL UP", Lemon, 4.2f, new Vector2(2.6f, 0.5f));
             WallNeon(root, "Neon_NoRageQuit", new Vector3(19.45f, 2.6f, -4f), 90f,
                 "NO RAGE QUITTING", Magenta, 3.0f, new Vector2(3.4f, 0.42f));
@@ -471,7 +471,7 @@ namespace Cyverse.Level
                 BlockKit.Box("DeskLeg", t, new Vector3(x, 0.36f, 0f), new Vector3(0.06f, 0.72f, 0.7f), CabinetBody);
             BlockKit.Box("DeskGlow", t, new Vector3(0f, 0.71f, -0.41f), new Vector3(4.1f, 0.02f, 0.01f), Glow(Teal, 1.4f));
 
-            string[] screens = { "VICTORY", "RESPAWN 3", "GG" };
+            string[] screens = { "VICTORY", "RESPAWN", "GG" };
             Color[] colours = { Teal, Magenta, Lemon };
             var cans = new List<CombineInstance>();
             for (int i = 0; i < 3; i++)
@@ -483,7 +483,7 @@ namespace Cyverse.Level
                 BlockKit.Slab("MonitorPanel", t, new Vector3(x, 1.3f, 0.13f), new Vector3(0.8f, 0.46f, 0.04f), 0.01f, DarkGlass);
                 BuildKit.SpawnLocal(PrimitiveType.Quad, "LanScreen", t, new Vector3(x, 1.3f, 0.105f), Vector3.zero,
                     new Vector3(0.74f, 0.4f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, c, 0.45f)), false);
-                MakeText(t, "LanScreen_Text", new Vector3(x, 1.3f, 0.1f), screens[i], Color.Lerp(c, Color.white, 0.4f), 1.1f, 0.7f, 0.2f)
+                MakeText(t, "LanScreen_Text", new Vector3(x, 1.3f, 0.1f), screens[i], Color.Lerp(c, Color.white, 0.4f), 0.95f, 0.7f, 0.2f)
                     .fontStyle = FontStyles.Bold;
                 BlockKit.Box("Keyboard", t, new Vector3(x, 0.79f, -0.18f), new Vector3(0.46f, 0.02f, 0.15f), CabinetBody);
                 BlockKit.Box("KeyboardGlow", t, new Vector3(x, 0.801f, -0.18f), new Vector3(0.42f, 0.003f, 0.11f), Glow(c, 0.4f));
