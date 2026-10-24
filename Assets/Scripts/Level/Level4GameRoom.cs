@@ -690,53 +690,182 @@ namespace Cyverse.Level
             }
         }
 
-        /// <summary>Three arcade cabinets side by side; the middle one is the
-        /// station, the other two are attract-mode decoration.</summary>
+        private static Material glass;
+
+        /// <summary>Clear glass for machine fronts (the shared GlassPane
+        /// shader); null if the shader is missing, so panes are skipped.</summary>
+        private static Material Glass
+        {
+            get
+            {
+                if (glass != null) return glass;
+                Shader shader = Resources.Load<Shader>("Shaders/GlassPane");
+                if (shader == null) return null;
+                glass = new Material(shader);
+                glass.SetColor("_Color", new Color(0.55f, 0.65f, 0.85f));
+                glass.SetFloat("_Alpha", 0.08f);
+                glass.SetFloat("_ReflectionStrength", 0.18f);
+                glass.SetFloat("_EdgeOpacity", 0.15f);
+                return glass;
+            }
+        }
+
+        /// <summary>A glass pane (quad) readable from its local -Z.</summary>
+        private static void Pane(Transform parent, string name, Vector3 pos, float yaw, Vector2 size, float pitch = 0f)
+        {
+            if (Glass == null) return;
+            BlockKit.MeshPart(name, parent, BlockKit.QuadMesh, pos, new Vector3(pitch, yaw, 0f), Glass,
+                scale: new Vector3(size.x, size.y, 1f)).GetComponent<MeshRenderer>().shadowCastingMode =
+                UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        /// <summary>A backlit marquee: a dark frame, a softly lit panel and
+        /// the game's name in bold, all facing local -Z.</summary>
+        private static void Marquee(Transform parent, Vector3 center, Vector2 size, string title, Color colour, float fontSize)
+        {
+            BlockKit.Slab("MarqueeFrame", parent, center + new Vector3(0f, 0f, 0.02f),
+                new Vector3(size.x + 0.06f, size.y + 0.06f, 0.04f), 0.01f, CabinetTrim);
+            BlockKit.Box("MarqueeLight", parent, center, new Vector3(size.x, size.y, 0.01f),
+                Glow(Color.Lerp(colour, Color.black, 0.55f), 1.2f));
+            foreach (float y in new[] { -1f, 1f })
+                BlockKit.Box("MarqueeEdge", parent, center + new Vector3(0f, y * size.y * 0.5f, -0.008f),
+                    new Vector3(size.x, 0.012f, 0.01f), Glow(colour, 2f));
+            var text = MakeText(parent, "MarqueeText", center + new Vector3(0f, 0f, -0.012f), title,
+                Color.Lerp(colour, Color.white, 0.55f), fontSize, size.x * 0.94f, size.y * 0.9f);
+            text.fontStyle = FontStyles.Bold | FontStyles.Italic;
+            text.characterSpacing = 2f;
+            // Titles differ in length, so shrink a long one to fit the panel.
+            text.enableAutoSizing = true;
+            text.fontSizeMin = fontSize * 0.5f;
+            text.fontSizeMax = fontSize;
+        }
+
+        /// <summary>A coin door: a chrome plate with two lit coin slots.</summary>
+        private static void CoinDoor(Transform parent, Vector3 center, Vector2 size, Color slot)
+        {
+            BlockKit.Slab("CoinDoor", parent, center, new Vector3(size.x, size.y, 0.025f), 0.006f, Chrome);
+            foreach (float x in new[] { -0.25f, 0.25f })
+            {
+                Vector3 c = center + new Vector3(x * size.x, size.y * 0.18f, -0.016f);
+                BlockKit.Box("CoinSlot", parent, c, new Vector3(0.05f, 0.07f, 0.008f), Glow(slot, 2f));
+                BlockKit.Box("CoinReturn", parent, c + new Vector3(0f, -size.y * 0.42f, 0f),
+                    new Vector3(0.06f, 0.035f, 0.01f), DarkGlass);
+            }
+        }
+
+        /// <summary>A soft pool of colour on the carpet under a machine.</summary>
+        private static void UnderGlow(Transform parent, Vector3 center, Vector2 size, Color colour) =>
+            BlockKit.Box("UnderGlow", parent, center + new Vector3(0f, 0.004f, 0f),
+                new Vector3(size.x, 0.004f, size.y), Glow(Color.Lerp(colour, Color.black, 0.6f), 1f));
+
+        /// <summary>Three upright arcade cabinets side by side; the middle one
+        /// is the station, the other two run attract mode. Each has the
+        /// classic profile: kick plate, coin door, a sloped control panel, a
+        /// screen leaning back under a speaker grille, and a lit marquee.
+        /// The centre game is about MFA fatigue (push prompts until the
+        /// user taps Approve).</summary>
         private static Screen BuildArcadeRow(Transform station)
         {
             Screen screen = default;
             Color[] art = { Teal, Magenta, Violet };
+            string[] titles = { "PHISH FRENZY", "PUSH STORM", "TOKEN HEIST" };
             for (int i = -1; i <= 1; i++)
             {
                 var cab = new GameObject(i == 0 ? "ArcadeCabinet" : "ArcadeCabinet_" + (i < 0 ? "L" : "R")).transform;
                 cab.SetParent(station, false);
                 cab.localPosition = new Vector3(i * 1.25f, 0f, 0.35f);
                 Color c = art[i + 1];
+                Material side = Plain(Color.Lerp(new Color(0.05f, 0.04f, 0.08f), c, 0.22f));
+                Material molding = Glow(c, 1.6f);
 
                 BlockKit.Block("Base", cab, Vector3.zero, Vector3.zero, 0f, 1.0f,
-                    new Vector2(0.5f, 0.42f), new Vector2(0.5f, 0.42f), 0.03f, CabinetBody, solid: true);
+                    new Vector2(0.48f, 0.42f), new Vector2(0.48f, 0.42f), 0.02f, CabinetBody, solid: true);
                 BlockKit.Block("Deck", cab, new Vector3(0f, 0f, -0.42f), new Vector3(-12f, 0f, 0f), 0.94f, 1.06f,
-                    new Vector2(0.5f, 0.2f), new Vector2(0.5f, 0.2f), 0.02f, CabinetTrim);
-                BlockKit.Block("Upper", cab, new Vector3(0f, 0f, 0.08f), Vector3.zero, 1.0f, 2.0f,
-                    new Vector2(0.5f, 0.34f), new Vector2(0.5f, 0.3f), 0.03f, CabinetBody);
-                BlockKit.Slab("Header", cab, new Vector3(0f, 2.06f, -0.12f), new Vector3(1.0f, 0.26f, 0.2f), 0.02f, Glow(c, 1.5f));
-                // A thin neon stripe down each side, not a lit panel.
-                foreach (float x in new[] { -0.505f, 0.505f })
-                    BlockKit.Box("SideArt", cab, new Vector3(x, 1.2f, -0.3f), new Vector3(0.012f, 1.6f, 0.04f), Glow(c, 0.9f));
+                    new Vector2(0.47f, 0.2f), new Vector2(0.47f, 0.2f), 0.02f, CabinetTrim);
+                BlockKit.Block("Upper", cab, new Vector3(0f, 0f, 0.08f), Vector3.zero, 1.0f, 2.22f,
+                    new Vector2(0.48f, 0.34f), new Vector2(0.48f, 0.3f), 0.02f, CabinetBody);
 
-                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Stick", cab, new Vector3(-0.2f, 1.12f, -0.47f),
-                    Vector3.zero, new Vector3(0.03f, 0.06f, 0.03f), Chrome, false);
-                BuildKit.SpawnLocal(PrimitiveType.Sphere, "StickBall", cab, new Vector3(-0.2f, 1.2f, -0.47f),
-                    Vector3.zero, Vector3.one * 0.07f, Plain(new Color(0.85f, 0.1f, 0.15f)), false);
-                for (int b = 0; b < 3; b++)
-                    BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Button", cab, new Vector3(0.02f + b * 0.12f, 1.09f, -0.45f),
-                        new Vector3(-12f, 0f, 0f), new Vector3(0.06f, 0.012f, 0.06f), Glow(b == 0 ? Lemon : b == 1 ? Magenta : Teal, 1.2f), false);
+                // Side panels in the cabinet's art colour, proud of the body,
+                // traced along the front edge with glowing T-molding.
+                foreach (float sx in new[] { -0.5f, 0.5f })
+                {
+                    BlockKit.Slab("SideLower", cab, new Vector3(sx, 0.5f, 0f), new Vector3(0.04f, 1.0f, 0.86f), 0.01f, side);
+                    BlockKit.Slab("SideUpper", cab, new Vector3(sx, 1.62f, 0.08f), new Vector3(0.04f, 1.24f, 0.7f), 0.01f, side);
+                    BlockKit.MeshPart("SideDeck", cab, BlockKit.CubeMesh, new Vector3(sx, 1.03f, -0.36f),
+                        new Vector3(-38f, 0f, 0f), side, scale: new Vector3(0.04f, 0.05f, 0.24f));
+                    BlockKit.Box("Molding", cab, new Vector3(sx, 0.5f, -0.435f), new Vector3(0.05f, 0.96f, 0.012f), molding);
+                    BlockKit.Box("Molding", cab, new Vector3(sx, 1.66f, -0.275f), new Vector3(0.05f, 1.12f, 0.012f), molding);
+                    BlockKit.Box("Molding", cab, new Vector3(sx, 2.245f, 0.08f), new Vector3(0.05f, 0.012f, 0.7f), molding);
+                    // A big stripe of side art, readable from the aisle.
+                    BlockKit.MeshPart("SideArt", cab, BlockKit.CubeMesh, new Vector3(sx * 1.04f, 1.3f, 0.1f),
+                        new Vector3(-30f, 0f, 0f), Glow(c, 0.8f), scale: new Vector3(0.01f, 0.9f, 0.06f));
+                    BlockKit.MeshPart("SideArt", cab, BlockKit.CubeMesh, new Vector3(sx * 1.04f, 1.18f, 0.24f),
+                        new Vector3(-30f, 0f, 0f), Glow(Lemon, 0.8f), scale: new Vector3(0.01f, 0.7f, 0.03f));
+                }
 
-                // The screen leans back inside the cabinet's upper half.
+                BlockKit.Box("KickPlate", cab, new Vector3(0f, 0.07f, -0.425f), new Vector3(0.94f, 0.12f, 0.02f), Chrome);
+                CoinDoor(cab, new Vector3(0f, 0.52f, -0.43f), new Vector2(0.34f, 0.4f), new Color(1f, 0.25f, 0.2f));
+                UnderGlow(cab, new Vector3(0f, 0f, -0.2f), new Vector2(1.1f, 1.2f), c);
+
+                // Control panel: chrome lip, joystick, six buttons in two rows
+                // and a lit 1P START.
+                BlockKit.MeshPart("PanelLip", cab, BlockKit.CubeMesh, new Vector3(0f, 0.955f, -0.615f),
+                    new Vector3(-12f, 0f, 0f), Chrome, scale: new Vector3(0.94f, 0.03f, 0.02f));
+                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "StickBase", cab, new Vector3(-0.24f, 1.075f, -0.47f),
+                    new Vector3(-12f, 0f, 0f), new Vector3(0.09f, 0.008f, 0.09f), Chrome, false);
+                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Stick", cab, new Vector3(-0.24f, 1.12f, -0.47f),
+                    Vector3.zero, new Vector3(0.022f, 0.05f, 0.022f), Chrome, false);
+                BuildKit.SpawnLocal(PrimitiveType.Sphere, "StickBall", cab, new Vector3(-0.24f, 1.18f, -0.47f),
+                    Vector3.zero, Vector3.one * 0.075f, Plain(new Color(0.85f, 0.1f, 0.15f)), false);
+                Color[] buttons = { Lemon, Magenta, Teal };
+                for (int row = 0; row < 2; row++)
+                    for (int b = 0; b < 3; b++)
+                    {
+                        float z = -0.43f - row * 0.09f;
+                        BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Button", cab,
+                            new Vector3(0.0f + b * 0.11f + row * 0.03f, 1.085f + (z + 0.47f) * 0.21f, z),
+                            new Vector3(-12f, 0f, 0f), new Vector3(0.06f, 0.014f, 0.06f), Glow(buttons[b], 1.3f), false);
+                    }
+                BlockKit.MeshPart("StartButton", cab, BlockKit.CubeMesh, new Vector3(0.36f, 1.08f, -0.44f),
+                    new Vector3(-12f, 0f, 0f), Glow(Color.white, 1.4f), scale: new Vector3(0.06f, 0.012f, 0.035f));
+
+                // The screen leans back inside the cabinet's upper half, inside
+                // a black bezel with a thin glowing inner edge.
                 var bezel = new GameObject("Bezel").transform;
                 bezel.SetParent(cab, false);
                 bezel.localPosition = new Vector3(0f, 1.52f, -0.24f);
                 bezel.localRotation = Quaternion.Euler(10f, 0f, 0f); // leans back, arcade style
-                BlockKit.Slab("Frame", bezel, Vector3.zero, new Vector3(0.9f, 0.72f, 0.06f), 0.01f, DarkGlass);
+                BlockKit.Slab("Frame", bezel, Vector3.zero, new Vector3(0.92f, 0.74f, 0.06f), 0.01f, DarkGlass);
+                var edge = new List<CombineInstance>();
+                foreach (float y in new[] { -0.325f, 0.325f })
+                    edge.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, y, -0.032f), Vector3.zero, new Vector3(0.83f, 0.01f, 0.005f)));
+                foreach (float x in new[] { -0.415f, 0.415f })
+                    edge.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, 0f, -0.032f), Vector3.zero, new Vector3(0.01f, 0.66f, 0.005f)));
+                BlockKit.Batch("BezelEdge", bezel, Glow(c, 1.1f), edge);
                 BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", bezel, new Vector3(0f, 0f, -0.035f), Vector3.zero,
                     new Vector3(0.8f, 0.62f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, c, i == 0 ? 0.6f : 0.35f)), false);
+                Pane(bezel, "ScreenGlass", new Vector3(0f, 0f, -0.045f), 0f, new Vector2(0.86f, 0.68f));
                 if (i == 0) screen = new Screen { center = cab.localPosition + bezel.localPosition + new Vector3(0f, 0f, -0.07f), pitch = 10f, size = new Vector2(0.8f, 0.62f) };
+
+                // Speaker grille and marquee above the screen.
+                BlockKit.Slab("SpeakerPanel", cab, new Vector3(0f, 1.95f, -0.25f), new Vector3(0.92f, 0.12f, 0.04f), 0.01f, CabinetTrim);
+                var slats = new List<CombineInstance>();
+                for (int k = 0; k < 9; k++)
+                {
+                    float x = -0.38f + k * 0.095f;
+                    if (Mathf.Abs(x) < 0.12f) continue;
+                    slats.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, 1.95f, -0.272f), Vector3.zero, new Vector3(0.04f, 0.07f, 0.005f)));
+                }
+                BlockKit.Batch("SpeakerSlats", cab, DarkGlass, slats);
+                Marquee(cab, new Vector3(0f, 2.12f, -0.29f), new Vector2(0.9f, 0.18f), titles[i + 1], c, 1.05f);
             }
             return screen;
         }
 
         /// <summary>A claw machine whose prize pile is keycards; the gold one
-        /// has far more access than it needs, which is the lesson.</summary>
+        /// has far more access than it needs, which is the lesson. Glass on
+        /// three sides, chasing bulbs round the canopy, a coin box and a
+        /// prize chute with a flap.</summary>
         private static Screen BuildClawMachine(Transform station)
         {
             var m = new GameObject("ClawMachine").transform;
@@ -745,59 +874,116 @@ namespace Cyverse.Level
 
             BlockKit.Block("Base", m, Vector3.zero, Vector3.zero, 0f, 0.95f,
                 new Vector2(0.75f, 0.65f), new Vector2(0.75f, 0.65f), 0.03f, CabinetBody, solid: true);
+            BlockKit.Box("KickPlate", m, new Vector3(0f, 0.06f, -0.655f), new Vector3(1.44f, 0.1f, 0.02f), Chrome);
             BlockKit.Box("BaseGlow", m, new Vector3(0f, 0.93f, -0.66f), new Vector3(1.45f, 0.025f, 0.01f), Glow(Magenta, 1.8f));
-            // Open glass box: corner posts, a floor and the prize chute.
+            // Big lit stars on the base's sides.
+            foreach (float sx in new[] { -0.76f, 0.76f })
+                foreach (float a in new[] { 0f, 60f, 120f })
+                    BlockKit.MeshPart("SideStar", m, BlockKit.CubeMesh, new Vector3(sx, 0.5f, 0f),
+                        new Vector3(a, 0f, 0f), Glow(Lemon, 1.1f), scale: new Vector3(0.01f, 0.36f, 0.05f));
+            UnderGlow(m, Vector3.zero, new Vector2(1.7f, 1.5f), Magenta);
+
+            // The glass box: chrome posts with light strips, a floor, a lit
+            // back panel and three panes.
             foreach (float x in new[] { -0.72f, 0.72f })
                 foreach (float z in new[] { -0.62f, 0.62f })
+                {
                     BlockKit.Box("Post", m, new Vector3(x, 1.5f, z), new Vector3(0.05f, 1.1f, 0.05f), Chrome);
+                    if (z < 0f)
+                        BlockKit.Box("PostLight", m, new Vector3(x - Mathf.Sign(x) * 0.028f, 1.5f, z - 0.02f),
+                            new Vector3(0.008f, 1.04f, 0.01f), Glow(Teal, 1.6f));
+                }
             BlockKit.Box("Floor", m, new Vector3(0f, 0.96f, 0f), new Vector3(1.4f, 0.02f, 1.2f), Plain(new Color(0.18f, 0.08f, 0.26f)));
             BlockKit.Box("BackPanel", m, new Vector3(0f, 1.5f, 0.6f), new Vector3(1.4f, 1.08f, 0.02f), Glow(Violet, 0.35f));
-            BlockKit.Box("Chute", m, new Vector3(0.5f, 1.12f, -0.4f), new Vector3(0.3f, 0.3f, 0.3f), DarkGlass);
+            var dots = new List<CombineInstance>();
+            for (int k = 0; k < 7; k++)
+                for (int r = 0; r < 4; r++)
+                    dots.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(-0.6f + k * 0.2f, 1.15f + r * 0.24f, 0.585f),
+                        new Vector3(0f, 0f, 45f), new Vector3(0.03f, 0.03f, 0.005f)));
+            BlockKit.Batch("BackPattern", m, Glow(Magenta, 0.9f), dots);
+            Pane(m, "GlassFront", new Vector3(0f, 1.5f, -0.63f), 0f, new Vector2(1.42f, 1.08f));
+            Pane(m, "GlassLeft", new Vector3(-0.73f, 1.5f, 0f), 90f, new Vector2(1.22f, 1.08f));
+            Pane(m, "GlassRight", new Vector3(0.73f, 1.5f, 0f), -90f, new Vector2(1.22f, 1.08f));
 
-            var cards = new List<CombineInstance>();
+            // Prize chute in the front-right corner, with a flap below.
+            BlockKit.Box("Chute", m, new Vector3(0.5f, 1.12f, -0.4f), new Vector3(0.3f, 0.3f, 0.3f), DarkGlass);
+            BlockKit.Box("ChuteRim", m, new Vector3(0.5f, 1.275f, -0.4f), new Vector3(0.32f, 0.02f, 0.32f), Glow(Lemon, 1.4f));
+
+            // Keycards in three colours, lanyards and all, plus the gold one.
             var rnd = new System.Random(4);
-            for (int i = 0; i < 26; i++)
+            var piles = new[] { new List<CombineInstance>(), new List<CombineInstance>(), new List<CombineInstance>() };
+            for (int i = 0; i < 34; i++)
             {
-                float x = -0.55f + (float)rnd.NextDouble() * 0.85f;
+                float x = -0.6f + (float)rnd.NextDouble() * 0.9f;
                 float z = -0.45f + (float)rnd.NextDouble() * 0.95f;
                 float y = 0.99f + (float)rnd.NextDouble() * 0.16f;
-                cards.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, y, z),
+                piles[i % 3].Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, y, z),
                     new Vector3((float)rnd.NextDouble() * 50f - 25f, (float)rnd.NextDouble() * 180f, 0f),
                     new Vector3(0.16f, 0.01f, 0.1f)));
             }
-            BlockKit.Batch("Keycards", m, Plain(new Color(0.75f, 0.85f, 0.95f)), cards);
+            BlockKit.Batch("Keycards", m, Plain(new Color(0.85f, 0.9f, 0.97f)), piles[0]);
+            BlockKit.Batch("Keycards_Teal", m, Plain(new Color(0.25f, 0.7f, 0.75f)), piles[1]);
+            BlockKit.Batch("Keycards_Pink", m, Plain(new Color(0.85f, 0.35f, 0.6f)), piles[2]);
             BlockKit.Box("AdminKeycard", m, new Vector3(-0.15f, 1.17f, 0.05f), new Vector3(0.2f, 0.012f, 0.13f), Glow(Lemon, 1.8f));
+            BlockKit.Box("AdminStripe", m, new Vector3(-0.15f, 1.178f, 0.05f), new Vector3(0.2f, 0.004f, 0.03f), Plain(new Color(0.1f, 0.08f, 0.05f)));
 
-            // Gantry and claw, hovering over the gold card.
-            BlockKit.Box("Gantry", m, new Vector3(0f, 1.98f, 0.05f), new Vector3(1.4f, 0.04f, 0.06f), Chrome);
-            BlockKit.Box("Cable", m, new Vector3(-0.15f, 1.75f, 0.05f), new Vector3(0.012f, 0.44f, 0.012f), Chrome);
-            BlockKit.Box("ClawHub", m, new Vector3(-0.15f, 1.52f, 0.05f), new Vector3(0.1f, 0.08f, 0.1f), Chrome);
+            // Gantry rails, carriage and claw, hovering over the gold card.
+            foreach (float z in new[] { -0.55f, 0.55f })
+                BlockKit.Box("Rail", m, new Vector3(0f, 2.0f, z), new Vector3(1.4f, 0.03f, 0.03f), Chrome);
+            BlockKit.Box("Gantry", m, new Vector3(-0.15f, 1.98f, 0f), new Vector3(0.05f, 0.04f, 1.12f), Chrome);
+            BlockKit.Box("Carriage", m, new Vector3(-0.15f, 1.96f, 0.05f), new Vector3(0.12f, 0.06f, 0.12f), CabinetTrim);
+            BlockKit.Box("Cable", m, new Vector3(-0.15f, 1.72f, 0.05f), new Vector3(0.012f, 0.44f, 0.012f), Chrome);
+            BlockKit.Box("ClawHub", m, new Vector3(-0.15f, 1.5f, 0.05f), new Vector3(0.11f, 0.09f, 0.11f), Chrome);
             foreach (float a in new[] { 0f, 120f, 240f })
             {
                 Vector3 dir = Quaternion.Euler(0f, a, 0f) * Vector3.forward;
-                BlockKit.MeshPart("Prong", m, BlockKit.CubeMesh, new Vector3(-0.15f, 1.42f, 0.05f) + dir * 0.06f,
+                BlockKit.MeshPart("Prong", m, BlockKit.CubeMesh, new Vector3(-0.15f, 1.4f, 0.05f) + dir * 0.06f,
                     new Vector3(-25f, a, 0f), Chrome, scale: new Vector3(0.02f, 0.16f, 0.02f));
+                BlockKit.MeshPart("ProngTip", m, BlockKit.CubeMesh, new Vector3(-0.15f, 1.31f, 0.05f) + dir * 0.09f,
+                    new Vector3(25f, a, 0f), Chrome, scale: new Vector3(0.02f, 0.07f, 0.02f));
             }
-            BlockKit.Slab("Canopy", m, new Vector3(0f, 2.12f, 0f), new Vector3(1.55f, 0.24f, 1.35f), 0.03f, CabinetBody);
-            BlockKit.Box("CanopyGlow", m, new Vector3(0f, 2.12f, -0.68f), new Vector3(1.45f, 0.14f, 0.01f), Glow(Lemon, 1.4f));
+
+            // Canopy with a marquee and chasing bulbs round its front.
+            BlockKit.Slab("Canopy", m, new Vector3(0f, 2.2f, 0f), new Vector3(1.55f, 0.4f, 1.35f), 0.03f, CabinetBody);
+            Marquee(m, new Vector3(0f, 2.2f, -0.69f), new Vector2(1.2f, 0.24f), "GRAB-A-BADGE", Lemon, 1.4f);
+            var bulbs = new List<CombineInstance>();
+            for (int k = 0; k < 15; k++)
+            {
+                float x = -0.7f + k * 0.1f;
+                bulbs.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, 2.375f, -0.685f), new Vector3(0f, 0f, 45f), Vector3.one * 0.03f));
+                bulbs.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, 2.025f, -0.685f), new Vector3(0f, 0f, 45f), Vector3.one * 0.03f));
+            }
+            BlockKit.Batch("ChaseBulbs", m, Glow(new Color(1f, 0.9f, 0.7f), 2f), bulbs);
+
+            // Controls on the front of the deck: joystick, a big GRAB
+            // button and a coin box.
+            BlockKit.Slab("ControlDeck", m, new Vector3(-0.1f, 0.98f, -0.6f), new Vector3(0.7f, 0.04f, 0.14f), 0.01f, CabinetTrim);
+            BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Stick", m, new Vector3(-0.3f, 1.04f, -0.6f),
+                Vector3.zero, new Vector3(0.025f, 0.05f, 0.025f), Chrome, false);
+            BuildKit.SpawnLocal(PrimitiveType.Sphere, "StickBall", m, new Vector3(-0.3f, 1.1f, -0.6f),
+                Vector3.zero, Vector3.one * 0.075f, Plain(Lemon), false);
+            BuildKit.SpawnLocal(PrimitiveType.Cylinder, "GrabButton", m, new Vector3(0.05f, 1.01f, -0.6f),
+                Vector3.zero, new Vector3(0.1f, 0.02f, 0.1f), Glow(Magenta, 1.6f), false);
+            CoinDoor(m, new Vector3(0.45f, 0.18f, -0.665f), new Vector2(0.4f, 0.2f), Lemon);
 
             // The station screen sits on the front of the base, under the box.
             BlockKit.Slab("FrontPanel", m, new Vector3(0f, 0.62f, -0.66f), new Vector3(1.2f, 0.42f, 0.03f), 0.01f, DarkGlass);
             BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", m, new Vector3(0f, 0.62f, -0.68f), Vector3.zero,
                 new Vector3(1.1f, 0.34f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, Magenta, 0.5f)), false);
-            BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Stick", m, new Vector3(-0.3f, 1.0f, -0.6f),
-                Vector3.zero, new Vector3(0.03f, 0.06f, 0.03f), Chrome, false);
-            BuildKit.SpawnLocal(PrimitiveType.Sphere, "StickBall", m, new Vector3(-0.3f, 1.08f, -0.6f),
-                Vector3.zero, Vector3.one * 0.07f, Plain(Lemon), false);
             return new Screen { center = m.localPosition + new Vector3(0f, 0.62f, -0.7f), pitch = 0f, size = new Vector2(1.1f, 0.34f) };
         }
 
         /// <summary>Three vending machines; the middle one is the station.
-        /// Its glowing delivery slot is the "watched channel" the data leaves by.</summary>
+        /// Its glowing delivery slot is the "watched channel" the data leaves
+        /// by. Each has a chrome-framed glass window over lit shelves of
+        /// mixed snacks with price tags, a keypad column with a card reader,
+        /// and its brand on top.</summary>
         private static Screen BuildVendingWall(Transform station)
         {
             Screen screen = default;
             Color[] fronts = { Teal, Magenta, Lemon };
+            string[] brands = { "FIZZ", "BYTES", "SNAX" };
+            Color[] snackMix = { Magenta, Lemon, Teal, Violet, new Color(1f, 0.5f, 0.2f) };
             for (int i = -1; i <= 1; i++)
             {
                 var v = new GameObject(i == 0 ? "VendingMachine" : "VendingMachine_" + (i < 0 ? "L" : "R")).transform;
@@ -807,17 +993,67 @@ namespace Cyverse.Level
 
                 BlockKit.Block("Body", v, Vector3.zero, Vector3.zero, 0f, 2.1f,
                     new Vector2(0.6f, 0.42f), new Vector2(0.6f, 0.42f), 0.03f, CabinetBody, solid: true);
+                BlockKit.Box("TopLight", v, new Vector3(0f, 2.105f, -0.3f), new Vector3(1.1f, 0.01f, 0.2f), Glow(c, 0.8f));
+                foreach (float sx in new[] { -0.605f, 0.605f })
+                    BlockKit.Box("SideStripe", v, new Vector3(sx, 1.05f, -0.3f), new Vector3(0.012f, 1.9f, 0.05f), Glow(c, 1.1f));
+                BlockKit.Box("KickPlate", v, new Vector3(0f, 0.07f, -0.425f), new Vector3(1.16f, 0.12f, 0.02f), Chrome);
+                UnderGlow(v, new Vector3(0f, 0f, -0.3f), new Vector2(1.25f, 0.9f), c);
+
+                // Window: dark back, lit shelf lips, mixed snacks, price tags,
+                // a chrome frame and glass.
                 BlockKit.Box("Window", v, new Vector3(-0.12f, 1.2f, -0.425f), new Vector3(0.86f, 1.3f, 0.01f), DarkGlass);
-                var items = new List<CombineInstance>();
+                var lips = new List<CombineInstance>();
+                var tags = new List<CombineInstance>();
+                var snacks = new List<CombineInstance>[snackMix.Length];
+                for (int s = 0; s < snacks.Length; s++) snacks[s] = new List<CombineInstance>();
+                var rnd = new System.Random(20 + i);
                 for (int shelf = 0; shelf < 5; shelf++)
+                {
+                    float y = 0.62f + shelf * 0.25f;
+                    lips.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(-0.12f, y - 0.02f, -0.45f), Vector3.zero, new Vector3(0.82f, 0.012f, 0.02f)));
                     for (int k = 0; k < 5; k++)
-                        items.Add(BlockKit.Piece(BlockKit.CubeMesh,
-                            new Vector3(-0.48f + k * 0.18f, 0.66f + shelf * 0.25f, -0.44f),
-                            Vector3.zero, new Vector3(0.08f, 0.12f, 0.02f)));
-                BlockKit.Batch("Snacks", v, Glow(c, 0.4f), items);
-                BlockKit.Box("Keypad", v, new Vector3(0.45f, 1.25f, -0.43f), new Vector3(0.16f, 0.26f, 0.01f), CabinetTrim);
-                BlockKit.Box("Slot", v, new Vector3(-0.12f, 0.3f, -0.43f), new Vector3(0.8f, 0.2f, 0.01f),
+                    {
+                        float x = -0.48f + k * 0.18f;
+                        float h = 0.1f + (float)rnd.NextDouble() * 0.06f;
+                        int kind = (shelf + k * 2 + i + 1) % snackMix.Length;
+                        // Two items deep, slightly offset, so rows read as stock.
+                        snacks[kind].Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, y + h * 0.5f, -0.44f), Vector3.zero, new Vector3(0.11f, h, 0.025f)));
+                        snacks[kind].Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x + 0.01f, y + h * 0.5f, -0.4f), Vector3.zero, new Vector3(0.11f, h, 0.025f)));
+                        tags.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, y - 0.045f, -0.452f), Vector3.zero, new Vector3(0.05f, 0.025f, 0.004f)));
+                    }
+                }
+                BlockKit.Batch("ShelfLips", v, Glow(c, 1.2f), lips);
+                BlockKit.Batch("PriceTags", v, Paper, tags);
+                for (int s = 0; s < snacks.Length; s++)
+                    if (snacks[s].Count > 0)
+                        BlockKit.Batch("Snacks_" + s, v, Glow(Color.Lerp(snackMix[s], Color.white, 0.15f), 0.55f), snacks[s]);
+                var frame = new List<CombineInstance>();
+                foreach (float y in new[] { 0.54f, 1.86f })
+                    frame.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(-0.12f, y, -0.44f), Vector3.zero, new Vector3(0.92f, 0.035f, 0.03f)));
+                foreach (float x in new[] { -0.565f, 0.325f })
+                    frame.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, 1.2f, -0.44f), Vector3.zero, new Vector3(0.035f, 1.35f, 0.03f)));
+                BlockKit.Batch("WindowFrame", v, Chrome, frame);
+                Pane(v, "WindowGlass", new Vector3(-0.12f, 1.2f, -0.462f), 0f, new Vector2(0.86f, 1.3f));
+
+                // Keypad column: brand, display, keys, card reader, coins.
+                BlockKit.Box("Keypad", v, new Vector3(0.45f, 1.2f, -0.43f), new Vector3(0.2f, 1.3f, 0.01f), CabinetTrim);
+                MakeText(v, "Brand", new Vector3(0.45f, 1.72f, -0.44f), brands[i + 1], c, 0.9f, 0.2f, 0.2f).fontStyle = FontStyles.Bold;
+                BlockKit.Box("Display", v, new Vector3(0.45f, 1.5f, -0.438f), new Vector3(0.15f, 0.06f, 0.005f), Glow(new Color(0.3f, 1f, 0.5f), 1.2f));
+                var keys = new List<CombineInstance>();
+                for (int r = 0; r < 4; r++)
+                    for (int k = 0; k < 3; k++)
+                        keys.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0.405f + k * 0.045f, 1.4f - r * 0.05f, -0.438f), Vector3.zero, new Vector3(0.035f, 0.035f, 0.008f)));
+                BlockKit.Batch("Keys", v, Chrome, keys);
+                BlockKit.Box("CardReader", v, new Vector3(0.45f, 1.05f, -0.445f), new Vector3(0.13f, 0.14f, 0.03f), DarkGlass);
+                BlockKit.Box("CardLed", v, new Vector3(0.45f, 1.1f, -0.462f), new Vector3(0.06f, 0.012f, 0.005f), Glow(new Color(0.3f, 1f, 0.5f), 2f));
+                BlockKit.Box("CoinSlot", v, new Vector3(0.45f, 0.88f, -0.44f), new Vector3(0.02f, 0.06f, 0.01f), Glow(Lemon, 1.5f));
+                BlockKit.Box("CoinReturn", v, new Vector3(0.45f, 0.7f, -0.44f), new Vector3(0.1f, 0.06f, 0.015f), Chrome);
+
+                // Delivery flap, chrome framed; the station's is lit.
+                BlockKit.Box("SlotFrame", v, new Vector3(-0.12f, 0.3f, -0.428f), new Vector3(0.86f, 0.26f, 0.012f), Chrome);
+                BlockKit.Box("Slot", v, new Vector3(-0.12f, 0.3f, -0.436f), new Vector3(0.8f, 0.2f, 0.01f),
                     i == 0 ? Glow(Teal, 1.6f) : DarkGlass);
+                MakeText(v, "PushLabel", new Vector3(-0.12f, 0.3f, -0.444f), "PUSH", i == 0 ? new Color(0.05f, 0.2f, 0.2f) : new Color(0.5f, 0.5f, 0.55f), 0.7f, 0.4f, 0.12f);
 
                 // A lit header across the top carries the station's screen.
                 BlockKit.Slab("Header", v, new Vector3(0f, 2.0f, -0.43f), new Vector3(1.16f, 0.32f, 0.03f), 0.01f, DarkGlass);
@@ -829,40 +1065,97 @@ namespace Cyverse.Level
         }
 
         /// <summary>A pinball table with its backbox and, beside it, the high
-        /// score board: wiping the board is the "cover tracks" temptation.</summary>
+        /// score board: wiping the board is the "cover tracks" temptation.
+        /// The table has chrome rails and lockdown bar, a plunger, a coin
+        /// door, slingshots, lit inserts and glass over the playfield.</summary>
         private static Screen BuildPinball(Transform station)
         {
             var p = new GameObject("Pinball").transform;
             p.SetParent(station, false);
             p.localPosition = new Vector3(0f, 0f, 0.1f);
+            // Playfield height at local z (the table rises 5° toward the back).
+            float Field(float z) => 0.995f + z * 0.087f;
 
-            foreach (float x in new[] { -0.3f, 0.3f })
+            foreach (float x in new[] { -0.32f, 0.32f })
                 foreach (float z in new[] { -0.6f, 0.6f })
-                    BlockKit.Box("Leg", p, new Vector3(x, 0.4f, z), new Vector3(0.06f, z < 0f ? 0.78f : 0.88f, 0.06f), Chrome);
-            BlockKit.Block("Cabinet", p, new Vector3(0f, 0.86f, 0f), new Vector3(-5f, 0f, 0f), -0.06f, 0.12f,
+                {
+                    float h = z < 0f ? 0.72f : 0.82f;
+                    BlockKit.Box("Leg", p, new Vector3(x, h * 0.5f, z), new Vector3(0.07f, h, 0.07f), Chrome);
+                    BlockKit.Box("LegFoot", p, new Vector3(x, 0.015f, z), new Vector3(0.12f, 0.03f, 0.12f), Chrome);
+                    BlockKit.Box("LegBolt", p, new Vector3(x, h - 0.06f, z - 0.04f), new Vector3(0.05f, 0.05f, 0.01f), CabinetTrim);
+                }
+            BlockKit.Block("Cabinet", p, new Vector3(0f, 0.86f, 0f), new Vector3(-5f, 0f, 0f), -0.24f, 0.12f,
                 new Vector2(0.37f, 0.7f), new Vector2(0.37f, 0.7f), 0.02f, CabinetBody, solid: true);
+            foreach (float sx in new[] { -0.375f, 0.375f })
+            {
+                BlockKit.MeshPart("SideArt", p, BlockKit.CubeMesh, new Vector3(sx, 0.82f, 0f), new Vector3(-5f, 0f, 0f),
+                    Glow(Magenta, 1f), scale: new Vector3(0.01f, 0.03f, 1.3f));
+                BlockKit.MeshPart("SideRail", p, BlockKit.CubeMesh, new Vector3(sx, Field(0f) + 0.03f, 0f), new Vector3(-5f, 0f, 0f),
+                    Chrome, scale: new Vector3(0.04f, 0.05f, 1.42f));
+            }
+            BlockKit.Box("LockdownBar", p, new Vector3(0f, Field(-0.7f) + 0.03f, -0.71f), new Vector3(0.8f, 0.04f, 0.08f), Chrome);
+            CoinDoor(p, new Vector3(0f, 0.72f, -0.725f), new Vector2(0.32f, 0.2f), new Color(1f, 0.25f, 0.2f));
+            BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Plunger", p, new Vector3(0.3f, 0.92f, -0.76f),
+                new Vector3(90f, 0f, 0f), new Vector3(0.025f, 0.06f, 0.025f), Chrome, false);
+            BuildKit.SpawnLocal(PrimitiveType.Sphere, "PlungerKnob", p, new Vector3(0.3f, 0.92f, -0.83f),
+                Vector3.zero, Vector3.one * 0.05f, Plain(new Color(0.85f, 0.1f, 0.15f)), false);
+            UnderGlow(p, new Vector3(0f, 0f, 0f), new Vector2(0.9f, 1.6f), Violet);
+
             BuildKit.SpawnLocal(PrimitiveType.Quad, "Playfield", p, new Vector3(0f, 0.995f, 0f),
                 new Vector3(85f, 0f, 0f), new Vector3(0.66f, 1.32f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, Violet, 0.6f)), false);
-            foreach (var bump in new[] { new Vector3(-0.14f, 1.03f, 0.3f), new Vector3(0.14f, 1.03f, 0.3f), new Vector3(0f, 1.04f, 0.45f) })
-                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Bumper", p, bump, Vector3.zero,
-                    new Vector3(0.1f, 0.03f, 0.1f), Glow(Magenta, 1.6f), false);
-            BlockKit.Box("FlipperL", p, new Vector3(-0.1f, 0.96f, -0.5f), new Vector3(0.14f, 0.025f, 0.03f), Glow(Lemon, 1.2f));
-            BlockKit.Box("FlipperR", p, new Vector3(0.1f, 0.96f, -0.5f), new Vector3(0.14f, 0.025f, 0.03f), Glow(Lemon, 1.2f));
+            foreach (var bump in new[] { new Vector3(-0.14f, 0f, 0.3f), new Vector3(0.14f, 0f, 0.3f), new Vector3(0f, 0f, 0.45f) })
+            {
+                Vector3 b = new Vector3(bump.x, Field(bump.z), bump.z);
+                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "BumperBase", p, b + new Vector3(0f, 0.015f, 0f), Vector3.zero,
+                    new Vector3(0.12f, 0.015f, 0.12f), Plain(Color.white), false);
+                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Bumper", p, b + new Vector3(0f, 0.045f, 0f), Vector3.zero,
+                    new Vector3(0.09f, 0.02f, 0.09f), Glow(Magenta, 1.6f), false);
+            }
+            foreach (float s in new[] { -1f, 1f })
+            {
+                BlockKit.MeshPart("Flipper", p, BlockKit.CubeMesh, new Vector3(s * 0.09f, Field(-0.5f) + 0.02f, -0.5f),
+                    new Vector3(-5f, -s * 25f, 0f), Glow(Lemon, 1.2f), scale: new Vector3(0.14f, 0.025f, 0.03f));
+                BlockKit.MeshPart("Slingshot", p, BlockKit.CubeMesh, new Vector3(s * 0.19f, Field(-0.33f) + 0.02f, -0.33f),
+                    new Vector3(-5f, s * 20f, 0f), Glow(Teal, 1.4f), scale: new Vector3(0.025f, 0.035f, 0.2f));
+                BlockKit.MeshPart("InlaneGuide", p, BlockKit.CubeMesh, new Vector3(s * 0.27f, Field(-0.42f) + 0.02f, -0.42f),
+                    new Vector3(-5f, s * 10f, 0f), Chrome, scale: new Vector3(0.012f, 0.03f, 0.22f));
+            }
+            var inserts = new List<CombineInstance>();
+            for (int k = 0; k < 5; k++)
+            {
+                float z = -0.18f + k * 0.08f;
+                inserts.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(0f, Field(z) + 0.003f, z), new Vector3(-5f, 45f, 0f), new Vector3(0.035f, 0.004f, 0.035f)));
+                foreach (float s in new[] { -1f, 1f })
+                    inserts.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(s * (0.1f + k * 0.03f), Field(z) + 0.003f, z), new Vector3(-5f, 45f, 0f), new Vector3(0.025f, 0.004f, 0.025f)));
+            }
+            BlockKit.Batch("Inserts", p, Glow(Lemon, 1.4f), inserts);
+            Pane(p, "PlayfieldGlass", new Vector3(0f, Field(0f) + 0.07f, 0f), 0f, new Vector2(0.7f, 1.38f), 85f);
 
-            // Backbox: the station screen.
+            // Backbox on a neck: the station screen, framed with light, and a
+            // topper with the game's name.
+            BlockKit.Block("Neck", p, new Vector3(0f, 0f, 0.66f), Vector3.zero, 0.9f, 1.05f,
+                new Vector2(0.3f, 0.08f), new Vector2(0.3f, 0.08f), 0.01f, CabinetTrim);
             BlockKit.Block("Backbox", p, new Vector3(0f, 0f, 0.66f), Vector3.zero, 1.0f, 1.95f,
                 new Vector2(0.4f, 0.09f), new Vector2(0.4f, 0.09f), 0.02f, CabinetBody);
+            foreach (float sx in new[] { -0.405f, 0.405f })
+                BlockKit.Box("BackboxTrim", p, new Vector3(sx, 1.475f, 0.58f), new Vector3(0.012f, 0.92f, 0.02f), Glow(Teal, 1.4f));
+            BlockKit.Box("ScreenSurround", p, new Vector3(0f, 1.52f, 0.568f), new Vector3(0.76f, 0.7f, 0.004f), Glow(Violet, 0.8f));
             BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", p, new Vector3(0f, 1.52f, 0.565f), Vector3.zero,
                 new Vector3(0.72f, 0.66f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, Teal, 0.55f)), false);
+            BlockKit.Slab("Topper", p, new Vector3(0f, 2.08f, 0.66f), new Vector3(0.82f, 0.26f, 0.16f), 0.02f, CabinetBody);
+            Marquee(p, new Vector3(0f, 2.08f, 0.57f), new Vector2(0.74f, 0.18f), "ROOT ACCESS", Magenta, 1.05f);
 
             // High-score board on a stand beside the table.
             var board = new GameObject("HighScoreBoard").transform;
             board.SetParent(station, false);
             board.localPosition = new Vector3(1.55f, 0f, 0.55f);
+            BlockKit.Block("StandFoot", board, Vector3.zero, Vector3.zero, 0f, 0.04f,
+                new Vector2(0.25f, 0.2f), new Vector2(0.24f, 0.19f), 0.01f, Chrome);
             BlockKit.Block("Stand", board, Vector3.zero, Vector3.zero, 0f, 1.1f,
                 new Vector2(0.06f, 0.06f), new Vector2(0.05f, 0.05f), 0.01f, Chrome);
             BlockKit.Slab("Panel", board, new Vector3(0f, 1.6f, 0f), new Vector3(1.0f, 1.0f, 0.08f), 0.02f, DarkGlass);
             BlockKit.Box("PanelGlow", board, new Vector3(0f, 2.1f, -0.045f), new Vector3(0.95f, 0.025f, 0.01f), Glow(Teal, 1.6f));
+            BlockKit.Box("PanelGlowLow", board, new Vector3(0f, 1.1f, -0.045f), new Vector3(0.95f, 0.025f, 0.01f), Glow(Teal, 1.6f));
             MakeText(board, "HighScore_Text", new Vector3(0f, 1.6f, -0.05f),
                 "HIGH SCORES\n1  ACE   98,410\n2  JLEE  87,200\n3  MO    64,050\n4  KAI   51,990",
                 Teal, 0.9f, 0.9f, 0.9f);
