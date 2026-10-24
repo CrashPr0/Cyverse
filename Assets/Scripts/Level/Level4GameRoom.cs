@@ -733,7 +733,11 @@ namespace Cyverse.Level
             var text = MakeText(parent, "MarqueeText", center + new Vector3(0f, 0f, -0.012f), title,
                 Color.Lerp(colour, Color.white, 0.55f), fontSize, size.x * 0.94f, size.y * 0.9f);
             text.fontStyle = FontStyles.Bold | FontStyles.Italic;
-            text.characterSpacing = 4f;
+            text.characterSpacing = 2f;
+            // Titles differ in length, so shrink a long one to fit the panel.
+            text.enableAutoSizing = true;
+            text.fontSizeMin = fontSize * 0.5f;
+            text.fontSizeMax = fontSize;
         }
 
         /// <summary>A coin door: a chrome plate with two lit coin slots.</summary>
