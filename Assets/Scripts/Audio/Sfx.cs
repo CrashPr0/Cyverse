@@ -15,7 +15,9 @@ namespace Cyverse.Audio
         private AudioSource src;
         private AudioSource stepSrc;  // separate source so pitch jitter never bends UI sounds
         private AudioSource comboSrc; // separate source so streak pitch-ramp never bends confirm/click
-        private AudioClip footstep, click, confirm, deny, taskComplete;
+        private AudioClip click, confirm, deny, taskComplete;
+        private AudioClip[] footsteps;
+        private int lastSynthStep = -1;
         private AudioClip[] stepClips;
         private string stepScene;
         private int lastStep = -1;
@@ -47,7 +49,8 @@ namespace Cyverse.Audio
             comboSrc.playOnAwake = false;
             comboSrc.spatialBlend = 0f;
 
-            footstep = ProceduralAudio.Footstep();
+            footsteps = new AudioClip[4];
+            for (int i = 0; i < footsteps.Length; i++) footsteps[i] = ProceduralAudio.Footstep(i);
             click = ProceduralAudio.Click();
             confirm = ProceduralAudio.Confirm();
             deny = ProceduralAudio.Deny();
@@ -62,20 +65,22 @@ namespace Cyverse.Audio
         {
             if (stepSrc == null) return;
             AudioClip[] clips = FootstepClips();
-            AudioClip clip = footstep;
-            if (clips.Length > 0)
-            {
-                // Random, but never the same recording twice in a row.
-                int i = Random.Range(0, clips.Length);
-                if (clips.Length > 1 && i == lastStep) i = (i + 1 + Random.Range(0, clips.Length - 1)) % clips.Length;
-                lastStep = i;
-                clip = clips[i];
-            }
+            AudioClip clip = clips.Length > 0
+                ? clips[NextIndex(clips.Length, ref lastStep)]
+                : footsteps[NextIndex(footsteps.Length, ref lastSynthStep)];
             // Light pitch/volume jitter keeps repeats from sounding robotic;
             // recorded clips get less, since they already vary.
-            float spread = clips.Length > 0 ? 0.05f : 0.14f;
+            float spread = clips.Length > 0 ? 0.05f : 0.08f;
             stepSrc.pitch = Random.Range(1f - spread, 1f + spread);
             stepSrc.PlayOneShot(clip, Vol * footstepVolume * Random.Range(0.85f, 1.15f));
+        }
+
+        /// <summary>A random index, never the same one twice in a row.</summary>
+        private static int NextIndex(int count, ref int last)
+        {
+            int i = Random.Range(0, count);
+            if (count > 1 && i == last) i = (i + 1 + Random.Range(0, count - 1)) % count;
+            return last = i;
         }
 
         /// <summary>The clips for the current scene, loaded once per scene.</summary>
@@ -89,18 +94,27 @@ namespace Cyverse.Audio
             stepClips = perLevel.Length > 0 ? perLevel : Resources.LoadAll<AudioClip>(FootstepFolder + "/Default");
             return stepClips;
         }
-        public void PlayClick() { if (src != null) src.PlayOneShot(click, Vol); }
-        public void PlayConfirm() { if (src != null) src.PlayOneShot(confirm, Vol); }
-        public void PlayTaskComplete() { if (src != null) src.PlayOneShot(taskComplete, Vol); }
-        public void PlayDeny() { if (src != null) src.PlayOneShot(deny, Vol); }
+        // Mix levels, relative to each other: the frequent UI tap sits
+        // under the feedback sounds, and the task fanfare is the loudest.
+        private const float ClickGain = 0.7f, ConfirmGain = 0.85f, DenyGain = 0.8f, TaskGain = 0.95f;
+
+        public void PlayClick() { if (src != null) src.PlayOneShot(click, Vol * ClickGain); }
+        public void PlayConfirm() { if (src != null) src.PlayOneShot(confirm, Vol * ConfirmGain); }
+        public void PlayTaskComplete() { if (src != null) src.PlayOneShot(taskComplete, Vol * TaskGain); }
+        public void PlayDeny() { if (src != null) src.PlayOneShot(deny, Vol * DenyGain); }
+
+        // Streak steps climb a major scale (semitones 0, 2, 4, 5, 7), so a
+        // long streak tops out a fifth up rather than squealing.
+        private static readonly int[] StreakSemitones = { 0, 2, 4, 5, 7 };
 
         /// <summary>Ascending confirm chime for answer streaks — each
-        /// consecutive correct answer (up to level 5) rings a touch higher.</summary>
+        /// consecutive correct answer (up to level 5) rings a step higher.</summary>
         public void PlayStreak(int level)
         {
             if (comboSrc == null) return;
-            comboSrc.pitch = 1f + Mathf.Clamp(level - 1, 0, 4) * 0.12f;
-            comboSrc.PlayOneShot(confirm, Vol);
+            int step = StreakSemitones[Mathf.Clamp(level - 1, 0, StreakSemitones.Length - 1)];
+            comboSrc.pitch = Mathf.Pow(2f, step / 12f);
+            comboSrc.PlayOneShot(confirm, Vol * ConfirmGain);
         }
     }
 }

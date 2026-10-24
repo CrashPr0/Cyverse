@@ -58,7 +58,7 @@ namespace Cyverse.Dialogue
             switch (speaker)
             {
                 case "Security Guard": return 0.85f; // lower, authoritative
-                case "System": return 1.15f;         // brighter, synthetic
+                case "System": return 1.05f;         // a touch brighter, not shrill
                 default: return 1.0f;
             }
         }
