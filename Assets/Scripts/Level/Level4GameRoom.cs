@@ -178,11 +178,101 @@ namespace Cyverse.Level
                         new Vector2(0.06f, 0.06f), new Vector2(0.05f, 0.05f), 0.01f, Chrome);
                     BlockKit.Slab($"StoolSeat_{s}{k}", bar, stool + Vector3.up * 0.74f,
                         new Vector3(0.42f, 0.08f, 0.42f), 0.03f, Plain(side < 0f ? Magenta * 0.7f : Teal * 0.6f));
+                    BlockKit.Box($"StoolFootRing_{s}{k}", bar, stool + Vector3.up * 0.28f, new Vector3(0.3f, 0.02f, 0.3f), Chrome);
                 }
-            }
 
-            BuildKit.MakeSign(bar, tvPosition + new Vector3(-4.7f, 2.9f, 0.95f), "SNACK BAR", Lemon, 0.026f);
-            BuildKit.MakeSign(bar, tvPosition + new Vector3(4.7f, 2.9f, 0.95f), "FREE DRINKS", Teal, 0.026f);
+                BuildCounterDress(bar, x, side < 0f ? Magenta : Teal);
+                BuildCanopy(bar, x, s, side < 0f ? "SNACK BAR" : "FREE DRINKS", side < 0f ? Lemon : Teal);
+                if (side < 0f) BuildSnackCounterTop(bar, x);
+                else BuildCoffeeCounterTop(bar, x);
+            }
+        }
+
+        /// <summary>Wood slats and a lit kick plate on the counter front, and
+        /// a chrome lip on the top, so the counters read as built joinery.</summary>
+        private static void BuildCounterDress(Transform bar, float x, Color accent)
+        {
+            var slats = new List<CombineInstance>();
+            for (int i = 0; i < 11; i++)
+                slats.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x - 1.35f + i * 0.27f, 0.52f, -0.415f),
+                    Vector3.zero, new Vector3(0.2f, 0.72f, 0.02f)));
+            BlockKit.Batch("CounterSlats", bar, Counter, slats);
+            BlockKit.Box("KickGlow", bar, new Vector3(x, 0.07f, -0.405f), new Vector3(2.9f, 0.025f, 0.01f), Glow(accent, 0.9f));
+            BlockKit.Box("CounterLip", bar, new Vector3(x, 1.06f, -0.5f), new Vector3(3.05f, 0.025f, 0.02f), Chrome);
+        }
+
+        /// <summary>A canopy over the counter on two posts, carrying a neon
+        /// name sign and three warm pendant lamps.</summary>
+        private static void BuildCanopy(Transform bar, float x, string s, string title, Color colour)
+        {
+            foreach (float px in new[] { -1.45f, 1.45f })
+                BlockKit.Box("CanopyPost_" + s, bar, new Vector3(x + px, 1.45f, 1.45f), new Vector3(0.08f, 2.9f, 0.08f), CabinetTrim);
+            BlockKit.Slab("Canopy_" + s, bar, new Vector3(x, 2.95f, 0.4f), new Vector3(3.3f, 0.1f, 2.1f), 0.02f, CabinetBody);
+            BlockKit.Box("CanopyEdge_" + s, bar, new Vector3(x, 2.89f, -0.65f), new Vector3(3.3f, 0.02f, 0.02f), Glow(colour, 1.2f));
+            WallNeon(bar, "Neon_" + s, new Vector3(x, 3.32f, -0.6f), 0f, title, colour, 2.4f, new Vector2(2.4f, 0.32f));
+
+            Color warm = new Color(1f, 0.78f, 0.5f);
+            for (int k = -1; k <= 1; k++)
+            {
+                Vector3 at = new Vector3(x + k * 1.0f, 0f, -0.15f);
+                BlockKit.Box("PendantCord", bar, at + new Vector3(0f, 2.62f, 0f), new Vector3(0.012f, 0.56f, 0.012f), CabinetTrim);
+                BlockKit.Block("PendantShade", bar, at + new Vector3(0f, 2.18f, 0f), Vector3.zero, 0f, 0.18f,
+                    new Vector2(0.16f, 0.16f), new Vector2(0.05f, 0.05f), 0.01f, CabinetTrim);
+                var bulb = BuildKit.SpawnLocal(PrimitiveType.Sphere, "PendantBulb", bar, at + new Vector3(0f, 2.17f, 0f),
+                    Vector3.zero, Vector3.one * 0.11f, Glow(warm, 1.8f), false);
+                bulb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+        }
+
+        /// <summary>Chip baskets and a fruit bowl on the snack counter.</summary>
+        private static void BuildSnackCounterTop(Transform bar, float x)
+        {
+            Color[] bagColours = { Magenta, Lemon, Teal, Violet };
+            var rnd = new System.Random(11);
+            for (int b = 0; b < 2; b++)
+            {
+                Vector3 c = new Vector3(x - 1.0f + b * 0.75f, 1.06f, -0.05f);
+                BlockKit.Block("ChipBasket", bar, c, Vector3.zero, 0f, 0.12f,
+                    new Vector2(0.24f, 0.16f), new Vector2(0.27f, 0.19f), 0.01f, Cork);
+                var bags = new List<CombineInstance>();
+                for (int i = 0; i < 5; i++)
+                    bags.Add(BlockKit.Piece(BlockKit.CubeMesh,
+                        c + new Vector3(-0.18f + i * 0.09f, 0.17f, (float)rnd.NextDouble() * 0.06f - 0.03f),
+                        new Vector3(-15f + (float)rnd.NextDouble() * 10f, 0f, (float)rnd.NextDouble() * 16f - 8f),
+                        new Vector3(0.08f, 0.2f, 0.03f)));
+                BlockKit.Batch("ChipBags", bar, Plain(bagColours[b * 2] * 0.85f), bags);
+            }
+            Vector3 bowl = new Vector3(x + 0.85f, 1.06f, 0f);
+            BlockKit.Block("FruitBowl", bar, bowl, Vector3.zero, 0f, 0.1f,
+                new Vector2(0.12f, 0.12f), new Vector2(0.2f, 0.2f), 0.01f, Plain(new Color(0.9f, 0.9f, 0.88f)));
+            Color[] fruit = { new Color(0.85f, 0.15f, 0.12f), new Color(0.95f, 0.6f, 0.1f), new Color(0.5f, 0.75f, 0.2f), new Color(0.95f, 0.85f, 0.2f) };
+            for (int i = 0; i < 5; i++)
+            {
+                float a = i * 72f * Mathf.Deg2Rad;
+                var f = BuildKit.SpawnLocal(PrimitiveType.Sphere, "Fruit", bar,
+                    bowl + new Vector3(Mathf.Cos(a) * 0.08f, 0.14f + (i == 0 ? 0.05f : 0f), Mathf.Sin(a) * 0.08f),
+                    Vector3.zero, Vector3.one * 0.09f, Plain(fruit[i % fruit.Length]), false);
+                f.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+        }
+
+        /// <summary>A coffee machine, cups and a napkin box on the drinks counter.</summary>
+        private static void BuildCoffeeCounterTop(Transform bar, float x)
+        {
+            Vector3 m = new Vector3(x - 0.8f, 1.06f, 0.05f);
+            BlockKit.Slab("CoffeeMachine", bar, m + new Vector3(0f, 0.24f, 0f), new Vector3(0.38f, 0.48f, 0.34f), 0.03f, Chrome);
+            BlockKit.Slab("CoffeeMachineFace", bar, m + new Vector3(0f, 0.3f, -0.17f), new Vector3(0.3f, 0.2f, 0.01f), 0.005f, DarkGlass);
+            BlockKit.Box("CoffeeMachineLed", bar, m + new Vector3(0.09f, 0.36f, -0.178f), new Vector3(0.05f, 0.03f, 0.004f), Glow(Teal, 1.6f));
+            BlockKit.Box("DripTray", bar, m + new Vector3(0f, 0.02f, -0.12f), new Vector3(0.24f, 0.03f, 0.14f), CabinetTrim);
+            for (int i = 0; i < 2; i++)
+                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "CupStack", bar, new Vector3(x - 0.2f + i * 0.14f, 1.2f, -0.05f),
+                    Vector3.zero, new Vector3(0.08f, 0.14f, 0.08f), Plain(new Color(0.95f, 0.93f, 0.88f)), false);
+            BlockKit.Slab("NapkinBox", bar, new Vector3(x + 0.35f, 1.12f, -0.05f), new Vector3(0.16f, 0.12f, 0.12f), 0.01f, Plain(Teal * 0.6f));
+            BlockKit.Slab("SyrupRack", bar, new Vector3(x + 0.9f, 1.09f, 0.1f), new Vector3(0.44f, 0.06f, 0.14f), 0.01f, Counter);
+            Color[] syrups = { new Color(0.55f, 0.25f, 0.1f), new Color(0.9f, 0.55f, 0.2f), new Color(0.6f, 0.1f, 0.3f) };
+            for (int i = 0; i < 3; i++)
+                BlockKit.Block("SyrupBottle", bar, new Vector3(x + 0.76f + i * 0.14f, 1.12f, 0.1f), Vector3.zero, 0f, 0.28f,
+                    new Vector2(0.035f, 0.035f), new Vector2(0.015f, 0.015f), 0.005f, Glow(syrups[i], 0.5f));
         }
 
         /// <summary>The staff corkboard: the public details an attacker
