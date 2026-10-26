@@ -10,23 +10,22 @@ using Cyverse.UI;
 namespace Cyverse.Interaction
 {
     /// <summary>
-    /// The SOC investigation desk: a three-monitor console that opens the
-    /// forensic query terminal. Owns the level's LogDatabase and
-    /// InvestigationCase instances, so terminal progress survives stepping
-    /// away and re-opening.
+    /// The ANALYZE EVIDENCE desk: a three-monitor console that opens the
+    /// Evidence Explorer on the docked phone. Owns the level's PhoneImage and
+    /// InvestigationCase instances, so progress survives stepping away and
+    /// re-opening.
     /// </summary>
     public class ForensicsConsole : MonoBehaviour, IInteractable
     {
-        public LogDatabase Database { get; private set; }
+        public PhoneImage Phone { get; private set; }
         public InvestigationCase[] Cases { get; private set; }
 
         // The center monitor (MonScreen_0) is a live diegetic readout instead of
         // a static emissive quad: a DiegeticScreen RenderTexture surface that
         // shows current case / question / progress / SOC handoff / score. This
-        // is presentation only — the interactive QueryTerminal modal (keyboard
-        // KQL entry, `answer` submission) still opens on the HUD via
-        // QueryTerminal.Open(...); the readout mirrors the state the terminal
-        // reads from these same Cases. See Docs/FORENSICS_REWORK_PLAN.md §"MIDDLE".
+        // is presentation only — the interactive EvidenceExplorer modal still
+        // opens on the HUD via EvidenceExplorer.Open(...); the readout mirrors
+        // the state the explorer reads from these same Cases. See Docs/FORENSICS_REWORK_PLAN.md §"MIDDLE".
         private DiegeticScreen centerScreen;
         private TMP_Text readoutText;
         private bool readoutSubscribed;
@@ -82,9 +81,9 @@ namespace Cyverse.Interaction
         {
             // Plain C# objects don't serialize into saved scenes — rebuild
             // them on load so editor-saved copies of the level still work.
-            if (Database == null) Database = LogDatabase.Build();
+            if (Phone == null) Phone = PhoneImage.Build();
             if (Cases == null)
-                Cases = new[] { InvestigationCase.SpartanGold(), InvestigationCase.MidnightExfil() };
+                Cases = new[] { InvestigationCase.SpartanGoldPhone(), InvestigationCase.MidnightExfilPhone() };
         }
 
         private bool CustodyReady => ChainOfCustodyForm.Instance == null || ChainOfCustodyForm.Instance.IsComplete;
@@ -103,7 +102,7 @@ namespace Cyverse.Interaction
                 ? "Imaging device — E to skip"
             : AllComplete
                 ? "Review the case logs"
-                : $"Work {(ActiveCase != null ? ActiveCase.title : "the case")} — Forensic Terminal";
+                : $"Work {(ActiveCase != null ? ActiveCase.title : "the case")} — Evidence Explorer";
 
         public void Interact(GameObject interactor)
         {
@@ -115,30 +114,30 @@ namespace Cyverse.Interaction
                 return;
             }
             // First E after custody docks the device and starts the upload; the
-            // next E opens the terminal (finishing a running upload instantly,
+            // next E opens the Evidence Explorer (finishing a running upload instantly,
             // so it never blocks analysis).
             PlugInStation upload = PlugInStation.Instance;
             if (upload != null && upload.StartUpload()) return;
             if (upload != null) upload.CompleteNow();
-            if (QueryTerminal.Instance == null)
-            {
-                if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("Terminal offline — no QueryTerminal in scene.", new Color(1f, 0.55f, 0.4f));
-                return;
-            }
-            if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
 
             var current = ActiveCase;
             bool lastCase = current == null || current == Cases[Cases.Length - 1];
             string closedNote = lastCase
                 ? null // default "results are waiting" close-out
-                : "<b>CASE CLOSED.</b> A new case file just hit your desk — Esc, then open the terminal again.";
-            QueryTerminal.Instance.Open(Database, current, closedNote,
-                guidedStart: Cases != null && Cases.Length > 0 && current == Cases[0]);
+                : "<b>CASE CLOSED.</b> A new case file just hit your desk — Esc, then press E at the desk again.";
+
+            if (EvidenceExplorer.Instance == null)
+            {
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast("Evidence Explorer offline — no EvidenceExplorer in scene.", new Color(1f, 0.55f, 0.4f));
+                return;
+            }
+            if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
+            EvidenceExplorer.Instance.Open(Phone, current, closedNote);
 
             // Repaint the diegetic monitor on engage: the QuestionAnswered event
             // covers mid-session progress, and this catches score/case-advance
-            // that settle as the analyst opens the terminal.
+            // that settle as the analyst opens the explorer.
             RefreshReadout();
         }
 
@@ -213,11 +212,11 @@ namespace Cyverse.Interaction
             l.intensity = 1.8f;
 
             var console = root.AddComponent<ForensicsConsole>();
-            console.Database = LogDatabase.Build();
+            console.Phone = PhoneImage.Build();
             console.Cases = new[]
             {
-                InvestigationCase.SpartanGold(),
-                InvestigationCase.MidnightExfil(),
+                InvestigationCase.SpartanGoldPhone(),
+                InvestigationCase.MidnightExfilPhone(),
             };
 
             // Build the live diegetic center monitor and paint its first frame.
@@ -324,7 +323,7 @@ namespace Cyverse.Interaction
         }
 
         /// <summary>Subscribe to each case's answered event so the diegetic
-        /// readout re-renders as the analyst makes progress in the HUD terminal
+        /// readout re-renders as the analyst makes progress in the HUD explorer
         /// — without polling per frame (WebGL-friendly, matching DiegeticScreen's
         /// on-demand render). Idempotent.</summary>
         private void SubscribeCaseEvents()
@@ -344,13 +343,13 @@ namespace Cyverse.Interaction
         }
 
         /// <summary>Compose the live readout from this console's own case state
-        /// (the same objects QueryTerminal reads) and render one RT frame.</summary>
+        /// (the same objects the Evidence Explorer reads) and render one RT frame.</summary>
         public void RefreshReadout()
         {
             if (readoutText == null || centerScreen == null) return;
 
             var sb = new StringBuilder();
-            sb.Append("<b><color=#4CFF8C>CYVERSE FORENSIC TERMINAL</color></b>\n");
+            sb.Append("<b><color=#4CFF8C>CYVERSE EVIDENCE EXPLORER</color></b>\n");
 
             if (SocProgress.TryGetEvidence(out var evidence))
             {
@@ -394,7 +393,7 @@ namespace Cyverse.Interaction
             sb.Append("\n<size=12><color=#8FB8CC>CASE FILES ")
               .Append(TotalAnswered).Append('/').Append(TotalQuestions)
               .Append("   \u00b7   SCORE ").Append(ScoreSystem.Score).Append("</color></size>\n");
-            sb.Append("<size=11><color=#607585>Press E \u2014 open terminal</color></size>");
+            sb.Append("<size=11><color=#607585>Press E \u2014 open the case</color></size>");
 
             readoutText.text = sb.ToString();
             centerScreen.RenderNow();
@@ -402,7 +401,7 @@ namespace Cyverse.Interaction
 
         /// <summary>Neutralize angle-bracket sequences in dynamic content so they
         /// don't collide with TMP rich-text tags (same convention as
-        /// QueryTerminal.Escape).</summary>
+        /// EvidenceExplorer.Escape).</summary>
         private static string Escape(string s) => string.IsNullOrEmpty(s)
             ? "" : s.Replace("<", "\u2039").Replace(">", "\u203a");
     }

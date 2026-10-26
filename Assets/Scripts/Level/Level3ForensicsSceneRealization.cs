@@ -23,7 +23,7 @@ namespace Cyverse.Level
 
         public static Bindings Realize(GameObject host)
         {
-            if (QueryTerminal.Instance == null) host.AddComponent<QueryTerminal>();
+            if (EvidenceExplorer.Instance == null) host.AddComponent<EvidenceExplorer>();
             ChainOfCustodyForm form = ChainOfCustodyForm.Ensure(host);
             ChainOfCustodyStation station = ChainOfCustodyStation.Ensure();
 

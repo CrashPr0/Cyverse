@@ -47,7 +47,7 @@ namespace Cyverse.Interaction
                     if (i >= labels.Length) return;
                     if (q.Answered)
                     {
-                        labels[i].text = Shorten(q.answers[0]);
+                        labels[i].text = Shorten(q.finding);
                         labels[i].color = new Color(0.95f, 0.98f, 1f);
                         if (cards[i] != null) cards[i].sharedMaterial = solvedMat;
                     }

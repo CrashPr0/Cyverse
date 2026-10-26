@@ -190,6 +190,14 @@ namespace Cyverse.UI
                         GuideGold, objectiveHighlight);
             }
 
+            // The objective banner sits at the top of the screen, where full-
+            // screen menus put their title bars; step aside while one is up.
+            if (objectivePanel != null)
+            {
+                bool showObjective = !GameState.AnyMenuOpen;
+                if (objectivePanel.activeSelf != showObjective) objectivePanel.SetActive(showObjective);
+            }
+
             if (helpHint != null)
             {
                 bool showHint = !GameState.AnyMenuOpen;

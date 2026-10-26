@@ -12,8 +12,9 @@ namespace Cyverse.Level
     /// Level 3 (Digital Forensics) flow:
     ///   Retrieve    — take the seized device out of the evidence locker (south
     ///                 wall, the SOC handoff); needed before Evidence Intake
-    ///   Watch       — analyst briefing (query syntax 101); unlocks the door
-    ///   Investigate — solve two linked cases (14 findings) at the terminal
+    ///   Watch       — analyst briefing (custody, the Evidence Explorer); unlocks the door
+    ///   Investigate — dock the phone, then tag the evidence for two linked
+    ///                 cases (11 findings) in the Evidence Explorer
     ///   Complete    — level persisted, results, exit celebrated.
     /// Same discovery/self-heal pattern as the other level managers.
     /// </summary>
@@ -280,7 +281,7 @@ namespace Cyverse.Level
         private void UpdateObjective()
         {
             if (HudUI.Instance == null) return;
-            int total = console != null ? console.TotalQuestions : 14;
+            int total = console != null ? console.TotalQuestions : 11;
             int done = console != null ? console.TotalAnswered : 0;
             string caseName = console != null && console.ActiveCase != null ? console.ActiveCase.title : "the case";
             bool custodyComplete = custodyForm == null || custodyForm.IsComplete;
@@ -310,7 +311,7 @@ namespace Cyverse.Level
                         HudUI.Instance.ShowObjective(
                             "Objective: Dock the device at the ANALYZE EVIDENCE desk to copy its data  (E at the desk)");
                     else
-                        HudUI.Instance.ShowObjective($"Objective: Solve {caseName} at the ANALYZE EVIDENCE terminal  ({done}/{total})");
+                        HudUI.Instance.ShowObjective($"Objective: Work {caseName} at the ANALYZE EVIDENCE desk  ({done}/{total})");
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal);
                     break;
                 case Phase.Report:

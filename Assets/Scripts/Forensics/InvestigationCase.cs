@@ -1,55 +1,63 @@
 using System;
+using Cyverse.Core;
 using Cyverse.Interaction;
-using Cyverse.Level;
 
 namespace Cyverse.Forensics
 {
-    /// <summary>One investigation question: prompt, accepted answers, a hint
-    /// (using it halves the award), and an example query shown by `hint`.</summary>
+    /// <summary>One investigation question, answered in the Evidence
+    /// Explorer by tagging the artifact that proves it (<see cref="artifactId"/>).
+    /// <see cref="finding"/> is the short result the evidence board shows; a
+    /// hint halves the award.</summary>
     public class CaseQuestion
     {
         public readonly string prompt;
-        public readonly string[] answers;   // any match (case-insensitive) counts
+        public readonly string artifactId;
+        public readonly string finding;
         public readonly string hint;
-        public readonly string exampleQuery;
         public readonly int points;
 
         public bool Answered;
         public bool HintUsed;
         public bool AttemptedWrong;
 
-        public CaseQuestion(string prompt, string[] answers, string hint, string exampleQuery, int points = 120)
+        public CaseQuestion(string prompt, string artifactId, string finding, string hint, int points = 120)
         {
             this.prompt = prompt;
-            this.answers = answers;
+            this.artifactId = artifactId;
+            this.finding = finding;
             this.hint = hint;
-            this.exampleQuery = exampleQuery;
             this.points = points;
         }
 
-        public bool Matches(string given)
+        /// <summary>Mark answered and bank the score. Full points first try
+        /// without hint; hint halves; an earlier wrong attempt drops it to a
+        /// third. Returns the award.</summary>
+        public int Award()
         {
-            if (string.IsNullOrWhiteSpace(given)) return false;
-            string norm = Normalize(given);
-            foreach (var a in answers)
-                if (Normalize(a) == norm) return true;
-            return false;
-        }
-
-        private static string Normalize(string s)
-        {
-            s = s.Trim().ToLowerInvariant().Trim('"');
-            if (s.StartsWith("http://")) s = s.Substring(7);
-            if (s.StartsWith("https://")) s = s.Substring(8);
-            return s.TrimEnd('/');
+            Answered = true;
+            int award = points;
+            if (HintUsed) award /= 2;
+            if (AttemptedWrong) award = Math.Max(20, points / 3);
+            ScoreSystem.QuizTotal++;
+            if (!AttemptedWrong)
+            {
+                ScoreSystem.QuizCorrect++;
+                ScoreSystem.Streak++;
+                if (ScoreSystem.Streak > ScoreSystem.BestStreak) ScoreSystem.BestStreak = ScoreSystem.Streak;
+            }
+            else
+            {
+                ScoreSystem.Streak = 0;
+            }
+            ScoreSystem.Add(award);
+            return award;
         }
     }
 
     /// <summary>
-    /// "Case: Spartan Gold" — the KC7-style investigation for Level 3.
-    /// Eight questions that walk the classic phishing kill-chain pivot:
-    /// victim org → campaign emails → clicked link → payload execution →
-    /// attacker infrastructure → the attacker's NEXT campaign.
+    /// A Level 3 case file: questions worked in order on the seized phone in
+    /// the Evidence Explorer. Progress lives here, so stepping away and
+    /// reopening resumes.
     /// </summary>
     public class InvestigationCase
     {
@@ -90,109 +98,99 @@ namespace Cyverse.Forensics
 
         // ---- Level 3 content --------------------------------------------------
 
-        public static InvestigationCase SpartanGold()
+        /// <summary>
+        /// "Case: Spartan Gold" on the seized phone, worked in the Evidence
+        /// Explorer: the first half of the one-device story (lure, click,
+        /// payload, attacker infrastructure): the classic phishing kill chain
+        /// and the pivot to the attacker's next domain. Artifact ids live in
+        /// <see cref="PhoneImage.Build"/>.
+        /// </summary>
+        public static InvestigationCase SpartanGoldPhone()
         {
-            var roster = ScenarioRoster.Current;
-            string evidenceComputer = SocProgress.TryGetEvidence(out var evidence)
-                ? evidence.computer
-                : "WS-03";
             return new InvestigationCase(
                 "CASE: SPARTAN GOLD",
                 new[]
                 {
                 new CaseQuestion(
-                    "Validate the SOC handoff before analysis. Which COMPUTER'S disk image is mounted in EvidenceManifest?",
-                    new[] { evidenceComputer, evidenceComputer.Replace("-", "") },
-                    "The EvidenceManifest table is the chain-of-custody bridge from the SOC room.",
-                    "EvidenceManifest | project computer"),
+                    "Users reported a \"Spartan Gold\" prize scam. Open TEXT MESSAGES on the left, find the text that delivered it to this phone, select it, and press TAG AS EVIDENCE.",
+                    "msg_lure", "PRIZE TEXT",
+                    "It is the message from a number that is not in the contacts, with a link in it. Type spartan in the filter box to narrow the list.",
+                    120),
                 new CaseQuestion(
-                    "Users reported a suspicious sender: prizes@spartan-rewards.com. How many emails did that sender deliver?",
-                    new[] { "6" },
-                    "Filter Email by sender, then count.",
-                    "Email | where sender == \"prizes@spartan-rewards.com\" | count"),
+                    "The same campaign also came by EMAIL. Tag the phishing email from prizes@spartan-rewards.com.",
+                    "em_phish", "PHISH EMAIL",
+                    "Two emails mention Spartan. Check the From field: only one comes from outside cyverse.edu.",
+                    120),
                 new CaseQuestion(
-                    "What link are those phishing emails trying to get people to click?",
-                    new[] { "http://spartan-rewards.com/claim-now", "spartan-rewards.com/claim-now" },
-                    "Same filter, but look at the link column instead of counting.",
-                    "Email | where sender == \"prizes@spartan-rewards.com\" | distinct link"),
+                    "Did the owner click? Tag the WEB HISTORY visit to the claim-now link.",
+                    "web_claim", "CLAIM-NOW",
+                    "Look for spartan-rewards.com/claim-now. The detail pane says what opened it.",
+                    120),
                 new CaseQuestion(
-                    "How many machines actually VISITED that link? (Browsing is logged in WebVisits.)",
-                    new[] { "3" },
-                    "Filter WebVisits where url contains the phishing domain, then count.",
-                    "WebVisits | where url contains \"spartan-rewards\" | count"),
+                    "A minute after the visit something new landed on the phone. Tag the INSTALLED APP that did not come from the app store.",
+                    "app_goldclaim", "GOLD CLAIM APP",
+                    "Read each app's \"Installed from\" field. Apps from a browser download skip the store's checks.",
+                    120),
                 new CaseQuestion(
-                    "One of those visits dropped a payload. What is the malware's process name? (Check ProcessEvents for something a browser shouldn't spawn.)",
-                    new[] { "gold_claim.exe", "gold_claim" },
-                    "Look at processes whose parent_process is chrome.exe — browsers download things; they shouldn't launch strange executables.",
-                    "ProcessEvents | where parent_process == \"chrome.exe\""),
+                    "Infrastructure time. Tag the NETWORK record that shows the Gold Claim app sending data to the attacker's server.",
+                    "net_goldclaim", PhoneImage.AttackerIp,
+                    "Filter by gold claim. You want app traffic, not a DNS lookup.",
+                    120),
                 new CaseQuestion(
-                    $"Which EMPLOYEE's machine ran gold_claim.exe? Give their name.",
-                    new[] { roster.payloadEmployee, roster.payloadEmployee.Replace('.', ' '), roster.payloadEmail },
-                    "Find the hostname in ProcessEvents, then look that hostname up in Employees.",
-                    "ProcessEvents | where process_name == \"gold_claim.exe\""),
-                new CaseQuestion(
-                    "Infrastructure time. What IP address does spartan-rewards.com resolve to?",
-                    new[] { "45.133.7.22" },
-                    "DnsLookups maps domains to IPs.",
-                    "DnsLookups | where domain == \"spartan-rewards.com\""),
-                new CaseQuestion(
-                    "The pivot: what OTHER domain resolves to that same IP? That's the attacker's next campaign — flag it and close the case.",
-                    new[] { "gold-updates.net" },
-                    "Filter DnsLookups by the resolved_ip you just found and see what else is there.",
-                    "DnsLookups | where resolved_ip == \"45.133.7.22\""),
+                    "The pivot: tag the DNS lookup of a DIFFERENT domain that resolves to that same IP. That is the attacker's next campaign.",
+                    "dns_goldupdates", "GOLD-UPDATES.NET",
+                    "Filter by 45.133.7.22. spartan-rewards.com is the domain you already know; the other one is new.",
+                    140),
                 });
         }
 
         /// <summary>
-        /// "Case: Midnight Exfil" — the follow-up insider-threat case. Requires
-        /// the analytics operators (summarize / sort): the anomaly hides in
-        /// aggregates, not in any single row. New tables: LogonEvents, FileAccess.
+        /// "Case 2: Midnight Exfil" on the same phone: the second half of the
+        /// story. A fake "IT Support" chat contact talks the owner into
+        /// photographing confidential files after hours. Teaches chat
+        /// artifacts, Wi-Fi history as location evidence, photo metadata, and
+        /// tying an account back to known attacker infrastructure.
         /// </summary>
-        public static InvestigationCase MidnightExfil()
+        public static InvestigationCase MidnightExfilPhone()
         {
-            var roster = ScenarioRoster.Current;
             return new InvestigationCase(
                 "CASE 2: MIDNIGHT EXFIL",
                 new[]
                 {
                 new CaseQuestion(
-                    "New case. The SIEM flagged unusual account activity on 07-15. Which employee has the MOST logon events? (summarize is your friend.)",
-                    new[] { roster.insiderEmployee, roster.insiderEmployee.Replace('.', ' '), roster.insiderEmail },
-                    "Group the LogonEvents by employee and count each group — the biggest group is your answer.",
-                    "LogonEvents | summarize count by employee", 140),
+                    "New case, same phone. The day after the phish, someone posing as IT contacted the owner. Tag the CHAT message that asks for confidential files.",
+                    "chat_ask", "FAKE IT REQUEST",
+                    "Filter by IT Support and read each message. One of them names the files it wants.",
+                    140),
                 new CaseQuestion(
-                    "Business hours end at 19:00. At what TIME did the suspicious after-hours logon happen?",
-                    new[] { "23:40", "07-15 23:40" },
-                    "Sort LogonEvents by timestamp and look at the end of the day — or filter where timestamp contains \"07-15 23\".",
-                    "LogonEvents | sort by timestamp desc", 140),
+                    "Office hours end at 19:00. Tag the WI-FI & LOCATION record that puts the phone back in the office after hours.",
+                    "wifi_office_night", "23:40 OFFICE",
+                    "The phone joins CyVerse-Staff more than once. Look at the times.",
+                    140),
                 new CaseQuestion(
-                    "Right after that logon, files started moving. How many files were copied to USB?",
-                    new[] { "4" },
-                    "FileAccess logs every action — filter where action == \"copy_to_usb\" and count.",
-                    "FileAccess | where action == \"copy_to_usb\" | count", 140),
+                    "Tag the FIRST photo of a confidential document. Photo metadata records when and where each picture was taken.",
+                    "img_payroll", "07-15 23:52",
+                    "Most photos are personal. Check the Location field, then pick the earliest one taken in the office.",
+                    140),
                 new CaseQuestion(
-                    "Confirm the insider: who performed ALL of those USB copies?",
-                    new[] { roster.insiderEmployee, roster.insiderEmployee.Replace('.', ' '), roster.insiderEmail },
-                    "Same filter, but look at the employee column — distinct makes it unambiguous.",
-                    "FileAccess | where action == \"copy_to_usb\" | distinct employee", 140),
+                    "Where did the photos go? Tag the CHAT message that sent them out.",
+                    "chat_sent", "4 PHOTOS SENT",
+                    "Look for a sent message with attachments.",
+                    140),
                 new CaseQuestion(
-                    "Which WORKSTATION did the insider use? (Pivot back through LogonEvents.)",
-                    new[] { roster.insiderHostname, roster.insiderHostname.ToLowerInvariant() },
-                    "Filter LogonEvents by the employee you identified and read the workstation column.",
-                    $"LogonEvents | where employee == \"{roster.insiderEmployee}\"", 140),
-                new CaseQuestion(
-                    "For the HR report: what is the exact TIMESTAMP of the FIRST file copied to USB?",
-                    new[] { "07-15 23:52", "23:52" },
-                    "Filter the USB copies and sort by timestamp ascending — the first row is your answer.",
-                    "FileAccess | where action == \"copy_to_usb\" | sort by timestamp", 140),
+                    "Tie it together: tag the record that proves \"CyVerse IT Support\" is not CyVerse at all, and links it to the attacker from case 1.",
+                    "chat_contact", "ATTACKER ACCOUNT",
+                    "Chat contacts are listed in CHATS too. Check the account's directory status and the IP it was last seen from.",
+                    160),
                 });
         }
 
-        /// <summary>Video-room briefing: teaches just enough query syntax.</summary>
+        /// <summary>Video-room briefing: chain of custody, then how to work the
+        /// phone in the Evidence Explorer.</summary>
         public static VideoStation.Slide[] BriefingSlides() => new[]
         {
             new VideoStation.Slide("DIGITAL FORENSICS",
-                "A phishing campaign hit CyVerse this morning. Your job: work the logs, follow the trail, and find the attacker's infrastructure. Analysts don't scroll — they QUERY.", 10f),
+                "A phishing campaign hit CyVerse this morning, and the SOC seized a work phone. Your job: examine it, find the evidence, and trace the attacker's infrastructure.", 10f),
             // Chain-of-custody explainer (placeholder for a recorded video). The
             // custody form shows up twice on purpose: once in the SOC, again at
             // evidence intake here, because every handoff needs its own entry.
@@ -203,17 +201,19 @@ namespace Cyverse.Forensics
             new VideoStation.Slide("SEAL IT. SIGN IT. LOG IT.",
                 "Evidence goes in sealed, tamper-evident packaging with a label. Sender and receiver both sign, with the date and time, at every transfer. A broken seal or missing signature raises doubt.", 11f),
             new VideoStation.Slide("HASH VALUES",
-                "A hash (like SHA-256) is a fingerprint of a disk image. Take it at collection and again on receipt. If the two match, the image was not altered. Change even one bit and the hash changes completely.", 12f),
+                "A hash (like SHA-256) is a fingerprint of a device image. Take it at collection and again on receipt. If the two match, the image was not altered. Change even one bit and the hash changes completely.", 12f),
             new VideoStation.Slide("WHEN THE CHAIN BREAKS",
                 "A gap in the record or a missing signature lets the other side ask: who had it, and what did they do? Evidence can be challenged or ruled inadmissible in court, even if it is real.", 12f),
-            new VideoStation.Slide("TABLES",
-                "Start by validating EvidenceManifest — the disk image and custody record received from the SOC. Then correlate Employees, Email, WebVisits, ProcessEvents, DnsLookups, LogonEvents, and FileAccess.", 11f),
-            new VideoStation.Slide("FILTERING",
-                "Narrow with where:  Email | where sender == \"someone\"  — or use contains for partial matches. Chain steps with the | pipe, and end with | count to count rows.", 11f),
+            new VideoStation.Slide("FROM IMAGE TO ARTIFACTS",
+                "A forensic tool never works on the original phone. It reads the verified copy and sorts what it finds into artifacts: messages, email, web history, installed apps, network records.", 12f),
+            new VideoStation.Slide("THE EVIDENCE EXPLORER",
+                "Pick a category on the left, then an item in the list. The right side shows every field and the file on the phone it came from. Type in the filter box to search by keyword.", 12f),
+            new VideoStation.Slide("TAG WHAT PROVES IT",
+                "Most of a phone is ordinary life. Tag only the items that prove what happened. Tagged evidence is what goes in your report, so judge each one before you tag it.", 11f),
             new VideoStation.Slide("THE PIVOT",
-                "The analyst's superpower: take a fact from one table and chase it through another. An email gives you a link; the link gives you visitors; a visitor's machine gives you malware. Answer with: answer <your finding>.", 12f),
-            new VideoStation.Slide("AGGREGATES",
-                "Some anomalies hide in totals, not rows. summarize count by employee groups and counts; sort by timestamp desc orders. When one bar towers over the rest — that's your lead. You'll need both for the second case.", 11f),
+                "The examiner's superpower: take a fact from one record and chase it into another. A text gives you a link; the link gives you a download; the app gives you the attacker's IP; the IP shows up somewhere you did not expect.", 12f),
+            new VideoStation.Slide("METADATA TELLS TIME AND PLACE",
+                "Photos record when and where they were taken. Wi-Fi history shows which networks a phone joined and when. Put those together and you can say where the phone was, even at midnight.", 12f),
         };
     }
 }
