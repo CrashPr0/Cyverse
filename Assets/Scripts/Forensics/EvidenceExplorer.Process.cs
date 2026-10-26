@@ -195,7 +195,9 @@ namespace Cyverse.Forensics
             }
             if (!runDone)
             {
-                runClock = float.MaxValue;   // Enter skips the animation
+                // Enter skips the animation. Jump to the end exactly: a huge
+                // clock would overflow the int stage count and never finish.
+                runClock = SecondsPerStage * runStages.Length;
                 TickRun(0f);
                 return true;
             }
@@ -235,7 +237,9 @@ namespace Cyverse.Forensics
         {
             runClock += dt;
             int total = runStages.Length;
-            int doneCount = Mathf.Min(total, Mathf.FloorToInt(runClock / SecondsPerStage));
+            int doneCount = runClock >= SecondsPerStage * total
+                ? total
+                : Mathf.Clamp(Mathf.FloorToInt(runClock / SecondsPerStage), 0, total);
             if (doneCount >= total && !runDone)
             {
                 runDone = true;
