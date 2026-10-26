@@ -5,9 +5,9 @@ using Cyverse.Interaction;
 namespace Cyverse.Level
 {
     /// <summary>
-    /// Level 3 — Digital Forensics ("Case: Spartan Gold"), the in-engine KC7:
-    /// the standard two-room template, but the task room is a forensic lab built
-    /// around ONE deep interactable — the forensic query terminal — plus
+    /// Level 3 — Digital Forensics (a seized phone, two cases): the standard
+    /// two-room template, but the task room is a forensic lab built around ONE
+    /// deep interactable — the Evidence Explorer at the analysis desk — plus
     /// ambient dressing (wall TVs, evidence pinboard sign, server racks come
     /// from the shared furnishings). Palette: analyst green.
     /// </summary>
@@ -39,7 +39,7 @@ namespace Cyverse.Level
         public static GameObject BuildSystems()
         {
             var sys = BuildKit.BuildCommonSystems();
-            sys.AddComponent<QueryTerminal>();
+            sys.AddComponent<EvidenceExplorer>();
             sys.AddComponent<Level3ForensicsManager>();
             sys.AddComponent<Level3ForensicsPolish>();
             return sys;
@@ -102,7 +102,7 @@ namespace Cyverse.Level
                 "ALERT: PHISHING WAVE HITS CYVERSE",
                 "6 LURES SENT · SUBJECT: GOLD REWARD",
                 "SOC: FOLLOW THE EVIDENCE",
-                "TIP: PIVOT DOMAIN → IP → DOMAIN",
+                "TIP: PIVOT TEXT → APP → IP → DOMAIN",
             };
             PropFactory.BuildWallTV(null, new Vector3(-19.41f, 2.9f, 12f), -90f, ForensicGreen, caseNews);
             PropFactory.BuildWallTV(null, new Vector3(19.41f, 2.9f, 12f), 90f, ForensicGreen, caseNews, 2);

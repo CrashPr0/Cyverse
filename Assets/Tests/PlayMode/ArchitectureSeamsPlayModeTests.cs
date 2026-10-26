@@ -25,7 +25,7 @@ namespace Cyverse.Tests
                 "Cyverse.Player.FirstPersonController",
                 "Cyverse.Quiz.QuizSystem",
                 "Cyverse.Forensics.ChainOfCustodyForm",
-                "Cyverse.Forensics.QueryTerminal",
+                "Cyverse.Forensics.EvidenceExplorer",
                 "Cyverse.UI.PasswordLockController",
                 "Cyverse.UI.TypingChallenge",
             };

@@ -346,9 +346,9 @@ namespace Cyverse.Testing
             yield return new WaitForSecondsRealtime(0.5f);
             yield return MovePlayerTo(console.transform, 2.2f, "W", "Walk to Investigation Desk");
             if (!lastMoveSucceeded) yield break;
-            Show("E", "Open forensic query terminal");
+            Show("E", "Dock the phone and open the Evidence Explorer");
             yield return new WaitForSecondsRealtime(0.8f);
-            Show("TYPE QUERY  •  ENTER", "Solve both Digital Forensics cases");
+            Show("CLICK  •  PROCESS + TAG", "Process the phone, then tag the evidence for both cases");
             yield return new WaitForSecondsRealtime(1.8f);
             yield return DeterministicGameplayAdapter.CompleteForensics(console, gameObject);
             yield return null; yield return null;

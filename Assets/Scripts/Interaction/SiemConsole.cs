@@ -313,7 +313,7 @@ namespace Cyverse.Interaction
                 verificationResult = "machine locked/idle — activity unexplained",
                 collectedAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'"),
                 analystName = CustodyLog.SocAnalystName,
-                inventoryItem = "Evidence: WS-03 disk image + chain-of-custody record",
+                inventoryItem = $"Evidence: mobile phone from the {row.computer} desk + chain-of-custody record",
             };
         }
 

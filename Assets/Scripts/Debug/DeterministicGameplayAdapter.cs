@@ -233,7 +233,7 @@ namespace Cyverse.Testing
             if (console == null) yield break;
 
             // The first E at the desk docks the evidence device and starts the
-            // upload; the case loop below then opens the terminal as usual.
+            // upload; the case loop below then opens the Evidence Explorer.
             PlugInStation upload = PlugInStation.Instance;
             if (upload != null && !upload.UploadStarted)
             {
@@ -253,44 +253,51 @@ namespace Cyverse.Testing
                     yield break;
                 yield return null;
 
-                QueryTerminal terminal = QueryTerminal.Instance;
-                if (terminal == null || !terminal.IsOpen) yield break;
-
-                // Exercise the same first-use guide a player sees before the
-                // adapter submits the first finding. This keeps the watchable
-                // TAS and acceptance route honest as the tutorial evolves.
-                if (terminal.TutorialActive)
-                {
-                    if (!SendTerminalCommand(terminal, "tables", actor) ||
-                        !SendTerminalCommand(terminal,
-                            "EvidenceManifest | project computer", actor))
-                        yield break;
-                    yield return null;
-                }
-
-                int questionGuard = 0;
-                while (!investigation.IsComplete && questionGuard++ < 64)
-                {
-                    CaseQuestion question = investigation.Current;
-                    if (question == null || question.answers == null || question.answers.Length == 0)
-                        yield break;
-                    if (!SendTerminalCommand(terminal,
-                        "answer " + question.answers[0], actor))
-                        yield break;
-                    yield return null;
-                }
-
-                GameplayActions.TryApply(terminal, GameplayAction.Cancel(), actor);
+                if (!TagCaseEvidence(console, investigation, actor)) yield break;
                 yield return null;
             }
         }
 
-        private static bool SendTerminalCommand(QueryTerminal terminal,
-            string command, GameObject actor)
+        /// <summary>Work an Evidence Explorer case the way a player does: process
+        /// the phone if it hasn't been yet, open
+        /// the proving artifact's category, clear the filter, select the row,
+        /// tag it. Then step away.</summary>
+        private static bool TagCaseEvidence(ForensicsConsole console,
+            InvestigationCase investigation, GameObject actor)
         {
-            return GameplayActions.TryApply(terminal, GameplayAction.ClearText(), actor) &&
-                GameplayActions.TryApply(terminal, GameplayAction.Append(command), actor) &&
-                GameplayActions.TryApply(terminal, GameplayAction.Submit(), actor);
+            EvidenceExplorer explorer = EvidenceExplorer.Instance;
+            if (explorer == null || !explorer.IsOpen || console.Phone == null) return false;
+
+            // First time at the desk the phone has to be processed: the right
+            // pick on each setup step, then start, skip and open Examine.
+            int processGuard = 0;
+            while (explorer.InProcess && processGuard++ < 16)
+            {
+                int pick = explorer.ProcessCorrectChoice;
+                GameplayAction step = pick >= 0 ? GameplayAction.Choose(pick) : GameplayAction.Submit();
+                if (!GameplayActions.TryApply(explorer, step, actor)) return false;
+            }
+            if (explorer.InProcess) return false;
+
+            int questionGuard = 0;
+            while (!investigation.IsComplete && questionGuard++ < 64)
+            {
+                CaseQuestion question = investigation.Current;
+                PhoneArtifact artifact = question != null ? console.Phone.Find(question.artifactId) : null;
+                if (artifact == null) return false;
+                int categoryIndex = System.Array.IndexOf(PhoneImage.Categories, artifact.category);
+                if (!GameplayActions.TryApply(explorer, GameplayAction.Choose(categoryIndex), actor) ||
+                    !GameplayActions.TryApply(explorer, GameplayAction.ClearText(), actor))
+                    return false;
+                int row = -1;
+                for (int i = 0; i < explorer.VisibleArtifacts.Count; i++)
+                    if (explorer.VisibleArtifacts[i] == artifact) row = i;
+                if (row < 0 ||
+                    !GameplayActions.TryApply(explorer, GameplayAction.Select(row, 0), actor) ||
+                    !GameplayActions.TryApply(explorer, GameplayAction.Submit(), actor))
+                    return false;
+            }
+            return GameplayActions.TryApply(explorer, GameplayAction.Cancel(), actor);
         }
 
         public static bool CompleteSocInvestigation(SiemConsole console, GameObject actor = null)

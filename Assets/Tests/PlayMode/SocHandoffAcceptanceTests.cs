@@ -141,7 +141,7 @@ namespace Cyverse.Tests
             Set(evidence, "verificationResult", "machine locked/idle — activity unexplained");
             Set(evidence, "collectedAtUtc", "2026-08-14 17:00 UTC");
             Set(evidence, "analystName", "SOC Analyst");
-            Set(evidence, "inventoryItem", "Evidence: WS-03 disk image + chain-of-custody record");
+            Set(evidence, "inventoryItem", "Evidence: mobile phone from the WS-03 desk + chain-of-custody record");
 
             progressType.GetMethod("StoreEvidence").Invoke(null, new[] { evidence });
             object[] args = { null };
@@ -323,7 +323,7 @@ namespace Cyverse.Tests
             Set(evidence, "verificationResult", "machine locked/idle — activity unexplained");
             Set(evidence, "collectedAtUtc", "2026-08-14 17:00 UTC");
             Set(evidence, "analystName", "SOC Analyst");
-            Set(evidence, "inventoryItem", "Evidence: WS-03 disk image + chain-of-custody record");
+            Set(evidence, "inventoryItem", "Evidence: mobile phone from the WS-03 desk + chain-of-custody record");
             progressType.GetMethod("StoreEvidence").Invoke(null, new[] { evidence });
 
             SceneManager.LoadScene("Level3_Forensics", LoadSceneMode.Single);
@@ -379,7 +379,7 @@ namespace Cyverse.Tests
             Assert.That((bool)formType.GetProperty("IsComplete").GetValue(form), Is.True);
 
             // First E docks the evidence device and starts the upload; the
-            // second opens the terminal (finishing the upload instantly).
+            // second opens the Evidence Explorer (finishing the upload instantly).
             Type uploadType = FindType("Cyverse.Interaction.PlugInStation");
             object upload = uploadType.GetProperty("Instance").GetValue(null);
             Assert.That(upload, Is.Not.Null, "The investigation desk should host the evidence upload.");
@@ -389,39 +389,67 @@ namespace Cyverse.Tests
                 "The first E at the desk after custody should start the evidence upload.");
             Type gameState = FindType("Cyverse.Core.GameState");
             Assert.That((bool)gameState.GetField("QuizActive").GetValue(null), Is.False,
-                "Starting the upload must not also open the terminal.");
+                "Starting the upload must not also open the Evidence Explorer.");
             Assert.That(carryableType.GetProperty("Carried").GetValue(null), Is.Null,
                 "The device leaves the player's hands when it docks in the cradle.");
             Assert.That(GameplayActionTestDriver.Interact(console), Is.True);
             yield return null;
             Assert.That((bool)uploadType.GetProperty("UploadComplete").GetValue(upload), Is.True);
             Assert.That((bool)gameState.GetField("QuizActive").GetValue(null), Is.True,
-                "Completing custody should unlock the forensic query terminal.");
+                "Completing custody should unlock the Evidence Explorer.");
 
-            Type terminalType = FindType("Cyverse.Forensics.QueryTerminal");
-            object terminal = UnityEngine.Object.FindObjectOfType(terminalType);
-            Assert.That(terminalType.GetProperty("TutorialActive").GetValue(terminal), Is.True,
-                "The first forensic investigation should open with a guided start.");
-            Assert.That(terminalType.GetProperty("TutorialStep").GetValue(terminal), Is.EqualTo(0));
+            // The phone case opens in the Evidence Explorer: the first question
+            // is answered by finding the lure text and tagging it.
+            Type explorerType = FindType("Cyverse.Forensics.EvidenceExplorer");
+            object explorer = UnityEngine.Object.FindObjectOfType(explorerType);
+            Assert.That(explorer, Is.Not.Null, "The lab must host the Evidence Explorer.");
+            Assert.That((bool)explorerType.GetProperty("IsOpen").GetValue(explorer), Is.True,
+                "The first case is worked in the Evidence Explorer.");
+            Assert.That(GameObject.Find("EvidenceExplorer"), Is.Not.Null);
 
-            Assert.That(GameplayActionTestDriver.ClearText(terminal), Is.True);
-            Assert.That(GameplayActionTestDriver.Append(terminal, "tables"), Is.True);
-            Assert.That(GameplayActionTestDriver.Submit(terminal), Is.True);
-            Assert.That(terminalType.GetProperty("TutorialStep").GetValue(terminal), Is.EqualTo(1));
+            // The phone is processed first: a wrong setup pick explains itself
+            // and stays on the step; the right picks move on; the run verifies
+            // the hash and opens Examine.
+            Assert.That((bool)explorerType.GetProperty("InProcess").GetValue(explorer), Is.True,
+                "An unprocessed phone opens on the Process steps.");
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // HR COMPLAINT
+            Assert.That((int)explorerType.GetProperty("ProcessStep").GetValue(explorer), Is.EqualTo(0));
+            StringAssert.Contains("SOC alert", (string)explorerType.GetProperty("ProcessFeedback").GetValue(explorer));
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 0), Is.True); // PHISHING / MALWARE
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // ANDROID PHONE
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 0), Is.True); // QUICK: wrong for this case
+            Assert.That((int)explorerType.GetProperty("ProcessStep").GetValue(explorer), Is.EqualTo(2));
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // FULL FILE SYSTEM
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 0), Is.True); // keyword pass on
+            Assert.That(GameplayActionTestDriver.Submit(explorer), Is.True);    // start
+            Assert.That(GameplayActionTestDriver.Submit(explorer), Is.True);    // skip the run
+            Assert.That((bool)explorerType.GetProperty("ProcessRunDone").GetValue(explorer), Is.True);
+            Assert.That(GameplayActionTestDriver.Submit(explorer), Is.True);    // open in Examine
+            Assert.That((bool)explorerType.GetProperty("InProcess").GetValue(explorer), Is.False);
 
-            Assert.That(GameplayActionTestDriver.ClearText(terminal), Is.True);
-            Assert.That(GameplayActionTestDriver.Append(terminal,
-                "EvidenceManifest | project computer"), Is.True);
-            Assert.That(GameplayActionTestDriver.Submit(terminal), Is.True);
-            Assert.That(terminalType.GetProperty("TutorialStep").GetValue(terminal), Is.EqualTo(2));
+            object investigation = consoleType.GetProperty("ActiveCase").GetValue(console);
+            Type caseType = investigation.GetType();
+            Assert.That((int)caseType.GetProperty("AnsweredCount").GetValue(investigation), Is.EqualTo(0));
 
-            Assert.That(GameplayActionTestDriver.ClearText(terminal), Is.True);
-            Assert.That(GameplayActionTestDriver.Append(terminal, "answer WS-03"), Is.True);
-            Assert.That(GameplayActionTestDriver.Submit(terminal), Is.True);
-            Assert.That(terminalType.GetProperty("TutorialActive").GetValue(terminal), Is.False,
-                "Submitting the guided finding should hand control back to the normal case flow.");
-            Assert.That(terminalType.GetProperty("TutorialStep").GetValue(terminal), Is.EqualTo(3));
-            Assert.That(GameplayActionTestDriver.Cancel(terminal), Is.True);
+            // Tagging an unrelated item costs the question but explains where to look.
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 2), Is.True); // EMAIL
+            Assert.That(GameplayActionTestDriver.Select(explorer, 0, 0), Is.True);
+            Assert.That(GameplayActionTestDriver.Submit(explorer), Is.True);
+            Assert.That((int)caseType.GetProperty("AnsweredCount").GetValue(investigation), Is.EqualTo(0));
+            StringAssert.Contains("TEXT MESSAGES", (string)explorerType.GetProperty("Feedback").GetValue(explorer));
+
+            // Filter the messages to the scam and tag the lure.
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 0), Is.True); // TEXT MESSAGES
+            Assert.That(GameplayActionTestDriver.Append(explorer, "spartan"), Is.True);
+            var rows = (System.Collections.IList)explorerType.GetProperty("VisibleArtifacts").GetValue(explorer);
+            Assert.That(rows.Count, Is.EqualTo(1), "The keyword filter should leave only the lure text.");
+            Assert.That(GameplayActionTestDriver.Select(explorer, 0, 0), Is.True);
+            Assert.That(GameplayActionTestDriver.Submit(explorer), Is.True);
+            Assert.That((int)caseType.GetProperty("AnsweredCount").GetValue(investigation), Is.EqualTo(1),
+                "Tagging the lure text answers the first question.");
+            Assert.That(GameplayActionTestDriver.Cancel(explorer), Is.True);
+            yield return null;
+            Assert.That((bool)gameState.GetField("QuizActive").GetValue(null), Is.False);
         }
 
         [UnityTest]
@@ -478,16 +506,16 @@ namespace Cyverse.Tests
                 .GetValue(console);
             Assert.That(consoleReadout, Is.Not.Null);
             StringAssert.DoesNotContain("\u2713", consoleReadout.text,
-                "The completed terminal uses a glyph missing from the runtime TMP font.");
+                "The completed desk readout uses a glyph missing from the runtime TMP font.");
             StringAssert.Contains("[OK]", consoleReadout.text,
-                "The completed terminal should expose an ASCII-safe completion marker.");
+                "The completed desk readout should expose an ASCII-safe completion marker.");
 
             Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(),
                 Is.EqualTo("Report"));
             Assert.That((bool)managerType.GetProperty("ReportReady").GetValue(manager), Is.True);
             Assert.That((bool)managerType.GetProperty("ReportSubmitted").GetValue(manager), Is.False);
             Assert.That((bool)gameState.GetField("LevelComplete").GetValue(null), Is.False,
-                "Closing the terminal cases must not bypass the report step.");
+                "Closing the cases must not bypass the report step.");
             Assert.That(PlayerPrefs.GetInt("cv_done_3", 0), Is.EqualTo(0));
 
             Assert.That(GameplayActionTestDriver.Interact(report), Is.True);
@@ -529,27 +557,27 @@ namespace Cyverse.Tests
         }
 
         [Test]
-        public void ForensicsDatasets_KeepEveryRotatingAnswerSolvable()
+        public void ForensicsPhoneCases_EveryQuestionTagsARealArtifact()
         {
-            Type databaseType = FindType("Cyverse.Forensics.LogDatabase");
+            Type phoneType = FindType("Cyverse.Forensics.PhoneImage");
             Type caseType = FindType("Cyverse.Forensics.InvestigationCase");
-            Type queryType = FindType("Cyverse.Forensics.MiniKql");
-            object database = databaseType.GetMethod("Build").Invoke(null, null);
+            object phone = phoneType.GetMethod("Build").Invoke(null, null);
             object[] cases =
             {
-                caseType.GetMethod("SpartanGold").Invoke(null, null),
-                caseType.GetMethod("MidnightExfil").Invoke(null, null),
+                caseType.GetMethod("SpartanGoldPhone").Invoke(null, null),
+                caseType.GetMethod("MidnightExfilPhone").Invoke(null, null),
             };
 
+            var seen = new System.Collections.Generic.HashSet<string>();
             foreach (object investigation in cases)
             {
                 Array questions = (Array)caseType.GetField("questions").GetValue(investigation);
                 foreach (object question in questions)
                 {
-                    string example = (string)question.GetType().GetField("exampleQuery").GetValue(question);
-                    object result = queryType.GetMethod("Run").Invoke(null, new[] { database, example });
-                    string error = (string)result.GetType().GetField("error").GetValue(result);
-                    Assert.That(error, Is.Null, $"Broken example query: {example}");
+                    string id = (string)question.GetType().GetField("artifactId").GetValue(question);
+                    Assert.That(phoneType.GetMethod("Find").Invoke(phone, new object[] { id }), Is.Not.Null,
+                        $"Question points at a missing artifact: {id}");
+                    Assert.That(seen.Add(id), Is.True, $"Two questions tag the same artifact: {id}");
                 }
             }
         }
@@ -566,7 +594,7 @@ namespace Cyverse.Tests
             Set(evidence, "verificationResult", "machine locked/idle — activity unexplained");
             Set(evidence, "collectedAtUtc", "2026-08-14 17:00 UTC");
             Set(evidence, "analystName", "SOC Analyst");
-            Set(evidence, "inventoryItem", "Evidence: WS-03 disk image + chain-of-custody record");
+            Set(evidence, "inventoryItem", "Evidence: mobile phone from the WS-03 desk + chain-of-custody record");
             progressType.GetMethod("StoreEvidence").Invoke(null, new[] { evidence });
         }
 
