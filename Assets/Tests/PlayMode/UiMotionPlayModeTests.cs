@@ -78,7 +78,9 @@ namespace Cyverse.Tests
             slide.Invoke(null, new object[] { rt, new Vector2(0f, -12f), 0.15f, 0f });
             yield return new WaitForSecondsRealtime(0.3f);
             yield return null;
-            Assert.That(rt.anchoredPosition, Is.EqualTo(new Vector2(10f, 20f)));
+            // Within a hundredth of a pixel: the round trip through the rect
+            // leaves float noise, not a lost position.
+            Assert.That(Vector2.Distance(rt.anchoredPosition, new Vector2(10f, 20f)), Is.LessThan(0.01f));
         }
 
         [UnityTest]
