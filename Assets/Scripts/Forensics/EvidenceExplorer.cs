@@ -53,6 +53,7 @@ namespace Cyverse.Forensics
         private static readonly Color RowTagged = new Color(0.26f, 0.20f, 0.05f, 1f);
         private static readonly Color CategoryIdle = new Color(0.045f, 0.085f, 0.10f, 1f);
         private static readonly Color CategoryActive = new Color(0.08f, 0.27f, 0.17f, 1f);
+        private static readonly Color Wrong = new Color(1f, 0.45f, 0.35f);
 
         private PhoneImage phone;
         private InvestigationCase activeCase;
@@ -64,7 +65,8 @@ namespace Cyverse.Forensics
         private readonly List<PhoneArtifact> visible = new List<PhoneArtifact>();
 
         private GameObject card, examineRoot;
-        private TMP_Text titleText, sourceText, questionText, filterText, detailText, feedbackText, listHeader;
+        private TMP_Text titleText, sourceText, questionText, questionMeta, filterText, detailText, feedbackText, listHeader;
+        private Image feedbackEdge;
         private Button tagButton, hintButton;
         private readonly List<Button> categoryButtons = new List<Button>();
         private readonly List<TMP_Text> categoryCounts = new List<TMP_Text>();
@@ -132,6 +134,7 @@ namespace Cyverse.Forensics
             sourceText.text = $"<color=#8FB8CC>SOURCE</color>  Work phone of {Escape(phone.owner)}" +
                 $"  ·  full file system  ·  {phone.artifacts.Count} artifacts" +
                 "  ·  <color=#4CE087>image hash verified</color>  ·  read-only copy" + PassSummary();
+            SetAccent(Cyan);
             SetFeedback(activeCase.IsComplete
                 ? "<color=#E5A823>Case closed. Browse freely, or Esc to step away.</color>"
                 : "Pick a category, select an item, and read its details. Tag only what proves the answer.",
@@ -265,6 +268,7 @@ namespace Cyverse.Forensics
                     ? "\n<color=#E5A823>" + (caseClosedNote ??
                         "<b>CASE CLOSED.</b> Every finding is tagged. Esc to step away.") + "</color>"
                     : "  Next question is up top.";
+                SetAccent(Green);
                 SetFeedback($"<color=#4CE087><b>TAGGED AS EVIDENCE</b>  +{award} points</color>{next}", Ink);
                 activeCase.NotifyAnswered();
                 RefreshList(keepSelection: true);
@@ -279,6 +283,7 @@ namespace Cyverse.Forensics
             string where = answer != null && answer.category != artifact.category
                 ? $" The proof is in <b>{PhoneImage.Label(answer.category)}</b>."
                 : " Read the fields on the right again.";
+            SetAccent(Wrong);
             SetFeedback($"<color=#FF8866><b>That item does not prove it.</b></color>{where}", Ink);
         }
 
@@ -289,6 +294,7 @@ namespace Cyverse.Forensics
             q.HintUsed = true;
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
             RefreshQuestion();
+            SetAccent(Gold);
             SetFeedback($"<color=#E5A823>HINT (halves this question's points):</color> {Escape(q.hint)}", Ink);
         }
 
@@ -366,11 +372,11 @@ namespace Cyverse.Forensics
             if (findings.Length > 0)
                 sb.Append('\n').Append(SectionLabel("PROCESSING FINDINGS")).Append(findings);
             // Evidence information, as an examiner's tool shows under every record.
-            sb.Append('\n').Append(SectionLabel("EVIDENCE INFORMATION")).Append("<size=18>")
-              .Append(FieldLine("Source", Escape(a.sourcePath), "#8FB8CC"))
-              .Append(FieldLine("Recovery", Escape(a.Recovery), "#8FB8CC"))
-              .Append(FieldLine("Evidence", "#1  work phone of " + Escape(phone.owner), "#8FB8CC"))
-              .Append("</size>");
+            // A zero-width space after each '/' lets a long path wrap at a folder.
+            sb.Append('\n').Append(SectionLabel("EVIDENCE INFORMATION"))
+              .Append(FieldLine("Source", Escape(a.sourcePath).Replace("/", "/\u200B"), "#5BC8FF"))
+              .Append(FieldLine("Recovery", Escape(a.Recovery), "#5BC8FF"))
+              .Append(FieldLine("Evidence", "#1  work phone of " + Escape(phone.owner), "#5BC8FF"));
             detailText.text = sb.ToString();
             tagButton.interactable = !a.Tagged && !activeCase.IsComplete;
         }
@@ -385,22 +391,17 @@ namespace Cyverse.Forensics
 
         private void RefreshQuestion()
         {
-            var sb = new StringBuilder();
             CaseQuestion q = activeCase.Current;
-            if (q == null)
-            {
-                sb.Append("<color=#E5A823><b>CASE CLOSED [OK]</b></color>  All findings tagged.");
-            }
-            else
-            {
-                sb.Append($"<size=17><color=#E5A823><b><cspace=3>QUESTION {activeCase.CurrentIndex + 1} OF {activeCase.questions.Length}</cspace></b></color></size>\n")
-                  .Append("<b>").Append(Escape(q.prompt)).Append("</b>");
-            }
-            sb.Append("\n<size=18><color=#B8CCD6>");
+            questionText.text = q == null
+                ? "<size=16><color=#E5A823><b><cspace=3>CASE CLOSED</cspace></b></color></size>\n<b>All findings tagged.</b>"
+                : $"<size=16><color=#E5A823><b><cspace=3>QUESTION {activeCase.CurrentIndex + 1} OF {activeCase.questions.Length}</cspace></b></color></size>\n" +
+                  $"<b>{Escape(q.prompt)}</b>";
+
+            var meta = new StringBuilder("<color=#B8CCD6>");
             for (int i = 0; i < activeCase.questions.Length; i++)
-                sb.Append(activeCase.questions[i].Answered ? "<color=#4CE087>■</color>" : "□").Append(' ');
-            sb.Append($"</color>   <color=#E5A823>SCORE {ScoreSystem.Score}</color></size>");
-            questionText.text = sb.ToString();
+                meta.Append(activeCase.questions[i].Answered ? "<color=#4CE087>■</color>" : "□").Append(' ');
+            meta.Append($"</color>   <color=#E5A823><b>SCORE {ScoreSystem.Score}</b></color>");
+            questionMeta.text = meta.ToString();
             hintButton.interactable = q != null;
         }
 
@@ -414,7 +415,8 @@ namespace Cyverse.Forensics
         {
             if (filterText == null) return;
             filterText.text = $"<color=#8FB8CC><b>SEARCH</b></color>   {Escape(filter)}" +
-                (Mathf.Sin(Time.unscaledTime * 6f) > 0f ? "<color=#4CE087>_</color>" : " ") +
+                // The caret blinks by alpha so the placeholder never shifts.
+                (Mathf.Sin(Time.unscaledTime * 6f) > 0f ? "<color=#4CE087>_</color>" : "<color=#4CE08700>_</color>") +
                 (filter.Length == 0 ? "<color=#607585>   type to search every field</color>" : "");
         }
 
@@ -423,6 +425,11 @@ namespace Cyverse.Forensics
             if (feedbackText == null) return;
             feedbackText.text = text;
             feedbackText.color = color;
+        }
+
+        private void SetAccent(Color color)
+        {
+            if (feedbackEdge != null) feedbackEdge.color = color;
         }
 
         private static void Toast(string message)
@@ -445,7 +452,8 @@ namespace Cyverse.Forensics
             card.transform.SetParent(HudUI.Instance.Canvas.transform, false);
             // Stretch inside safe margins so it stays usable in a non-maximized
             // WebGL canvas instead of assuming a fixed pixel size.
-            Place(card.GetComponent<RectTransform>(), 0.035f, 0.055f, 0.965f, 0.945f, 0f);
+            // Kept below the HUD score and clear of the HUD ring.
+            Place(card.GetComponent<RectTransform>(), 0.05f, 0.035f, 0.95f, 0.905f, 0f);
             HudUI.StylePanel(card, new Color(0.008f, 0.022f, 0.032f, 0.985f), Green);
             Transform root = card.transform;
 
@@ -490,11 +498,20 @@ namespace Cyverse.Forensics
 
             // The case question, in a banner with a gold edge.
             Image questionBand = Band(root, "QuestionBar", new Color(0.06f, 0.055f, 0.025f, 1f),
-                0.012f, 0.785f, 0.988f, 0.884f, true);
+                0.012f, ColumnsTop + 0.012f, 0.988f, 0.884f, true);
             Edge(questionBand.transform, Gold, 6f);
-            questionText = MakeText(questionBand.transform, "Question", 23, TextAlignmentOptions.MidlineLeft);
+            questionText = MakeText(questionBand.transform, "Question", 22, TextAlignmentOptions.MidlineLeft);
+            questionText.lineSpacing = 4f;
+            questionText.paragraphSpacing = 10f;
             Place(questionText.rectTransform, 0f, 0f, 1f, 1f, 0f);
-            Inset(questionText.rectTransform, 22f, 4f);
+            questionText.rectTransform.offsetMin = new Vector2(24f, 10f);
+            questionText.rectTransform.offsetMax = new Vector2(-24f, -10f);
+            // Answered pips and the score, on the label line at the right.
+            questionMeta = MakeText(questionBand.transform, "Progress", 17, TextAlignmentOptions.TopRight);
+            questionMeta.enableWordWrapping = false;
+            Place(questionMeta.rectTransform, 0.6f, 0f, 1f, 1f, 0f);
+            questionMeta.rectTransform.offsetMin = new Vector2(0f, 8f);
+            questionMeta.rectTransform.offsetMax = new Vector2(-24f, -16f);
 
             // Left pane: one button per artifact category, with its count.
             Pane3(root, "CategoryPane", 0.012f, 0.205f, out _).text = "ARTIFACT CATEGORIES";
@@ -556,13 +573,13 @@ namespace Cyverse.Forensics
             detailText = MakeText(root, "Detail", 20, TextAlignmentOptions.TopLeft);
             detailText.lineSpacing = 6f;
             detailText.overflowMode = TextOverflowModes.Ellipsis;
-            Place(detailText.rectTransform, 0.565f, 0.235f, 0.988f, ColumnsTop - PaneHeaderH, 0f);
+            Place(detailText.rectTransform, 0.565f, ColumnsBottom + 0.1f, 0.988f, ColumnsTop - PaneHeaderH, 0f);
             Inset(detailText.rectTransform, 20f, 18f);
             detailText.rectTransform.offsetMax = new Vector2(-18f, -14f);
 
             tagButton = MakeButton("TagButton", root, "<b>TAG AS EVIDENCE</b>   <size=15><color=#9FD8B4>ENTER</color></size>",
                 new Color(0.10f, 0.40f, 0.22f));
-            Place(tagButton.GetComponent<RectTransform>(), 0.573f, ColumnsBottom + 0.012f, 0.80f, 0.222f, 0f);
+            Place(tagButton.GetComponent<RectTransform>(), 0.573f, ColumnsBottom + 0.012f, 0.80f, ColumnsBottom + 0.088f, 0f);
             tagButton.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
             Edge(tagButton.transform, Green, 4f);
 
@@ -570,19 +587,19 @@ namespace Cyverse.Forensics
 
             hintButton = MakeButton("HintButton", root, "<b>HINT</b>   <size=15><color=#E8C878>HALF POINTS</color></size>",
                 new Color(0.25f, 0.19f, 0.05f));
-            Place(hintButton.GetComponent<RectTransform>(), 0.81f, ColumnsBottom + 0.012f, 0.98f, 0.222f, 0f);
+            Place(hintButton.GetComponent<RectTransform>(), 0.81f, ColumnsBottom + 0.012f, 0.98f, ColumnsBottom + 0.088f, 0f);
             hintButton.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
             hintButton.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Toggle()));
 
-            feedbackText = MakeStatusBar(root, "Feedback");
+            feedbackText = MakeStatusBar(root, "Feedback", out feedbackEdge);
 
             card.SetActive(false);
         }
 
         // Top and bottom edges of the three columns, and the height of a pane's
         // header strip, as fractions of the card height.
-        private const float ColumnsTop = 0.772f;
-        private const float ColumnsBottom = 0.132f;
+        private const float ColumnsTop = 0.742f;
+        private const float ColumnsBottom = 0.1f;
         private const float PaneHeaderH = 0.042f;
 
         /// <summary>A bordered pane from ColumnsTop to ColumnsBottom with a header
@@ -609,11 +626,11 @@ namespace Cyverse.Forensics
 
         /// <summary>The feedback line along the bottom of the card, shared by
         /// Process and Examine.</summary>
-        private static TMP_Text MakeStatusBar(Transform root, string name)
+        private static TMP_Text MakeStatusBar(Transform root, string name, out Image accent)
         {
-            Image bar = Band(root, name + "Bar", new Color(0.03f, 0.06f, 0.075f, 1f), 0.012f, 0.018f, 0.988f, 0.118f, true);
-            Edge(bar.transform, Cyan, 6f);
-            TMP_Text text = MakeText(bar.transform, name, 21, TextAlignmentOptions.MidlineLeft);
+            Image bar = Band(root, name + "Bar", new Color(0.03f, 0.06f, 0.075f, 1f), 0.012f, 0.016f, 0.988f, 0.088f, true);
+            accent = Edge(bar.transform, Cyan, 6f);
+            TMP_Text text = MakeText(bar.transform, name, 20, TextAlignmentOptions.MidlineLeft);
             Place(text.rectTransform, 0f, 0f, 1f, 1f, 0f);
             Inset(text.rectTransform, 24f, 16f);
             return text;

@@ -33,7 +33,6 @@ namespace Cyverse.Forensics
             public string[] tiles;
             public string[] blurbs;  // one line under each tile's name
             public string[] notes;   // why each tile is right or wrong
-            public string summary;   // the case-summary label this step fills in
             public int correct;
         }
 
@@ -47,10 +46,9 @@ namespace Cyverse.Forensics
                 {
                     "Scam links, bad apps, strange network traffic",
                     "A coworker reported workplace conduct",
-                    "A phone that was found or turned in",
+                    "A phone someone found or turned in",
                     "Fake invoices or changed payment details",
                 },
-                summary = "CASE TYPE",
                 notes = new[]
                 {
                     "Phishing / malware: the SOC flagged a scam link and strange app traffic.",
@@ -71,7 +69,6 @@ namespace Cyverse.Forensics
                     "A phone running Apple iOS",
                     "Just the SIM: contacts and the number",
                 },
-                summary = "PLATFORM",
                 notes = new[]
                 {
                     "That's a phone in the cradle, not a computer.",
@@ -92,7 +89,6 @@ namespace Cyverse.Forensics
                     "Breaks into a locked phone. Needs legal authority.",
                     null,
                 },
-                summary = "ACQUISITION",
                 notes = new[]
                 {
                     "Quick is fast, but it skips chat databases, deleted chats and photo GPS. This case needs them.",
@@ -124,12 +120,13 @@ namespace Cyverse.Forensics
         private GameObject processRoot;
         private TMP_Text stepHeader, stepQuestion, processFeedback, runText, runPercent, evidenceCard;
         private RectTransform runFill;
+        private Image processEdge;
         private Button nextButton;
+        private int wrongTile = -1;
         private readonly Button[] tiles = new Button[TileCount];
         private readonly TMP_Text[] tileKeys = new TMP_Text[TileCount];
-        private readonly TMP_Text[] tileBlurbs = new TMP_Text[TileCount];
         private readonly TMP_Text[] tileStates = new TMP_Text[TileCount];
-        private readonly Image[] tileStripes = new Image[TileCount];
+        private readonly Image[] tileEdges = new Image[TileCount];
         private readonly Image[] railRows = new Image[StepNames.Length];
         private readonly Image[] railMarks = new Image[StepNames.Length];
         private readonly Image[] railBadges = new Image[StepNames.Length];
@@ -137,7 +134,6 @@ namespace Cyverse.Forensics
         private readonly TMP_Text[] railNames = new TMP_Text[StepNames.Length];
         private readonly TMP_Text[] railStates = new TMP_Text[StepNames.Length];
         private readonly Image[] progressSegments = new Image[StepNames.Length];
-        private readonly TMP_Text[] summaryValues = new TMP_Text[4];
 
         public bool InProcess => open && processRoot != null && processRoot.activeSelf;
         public int ProcessStep => processStep;
@@ -152,6 +148,8 @@ namespace Cyverse.Forensics
             processRoot.SetActive(true);
             titleText.text = $"PROCESS EVIDENCE  //  work phone of {Escape(phone.owner)}";
             if (processStep > StepRun) processStep = 0;
+            wrongTile = -1;
+            SetProcessAccent(Cyan);
             SetProcessFeedback(processStep == 0
                 ? "Set up the case before you touch any data. Start with the case type."
                 : "Picking up where you left off.", Ink);
@@ -185,6 +183,8 @@ namespace Cyverse.Forensics
                 {
                     if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
                     SetProcessFeedback($"<color=#4CE087><b>OK</b></color>  {pick.notes[index]}", Ink);
+                    SetProcessAccent(Green);
+                    wrongTile = -1;
                     processStep++;
                     if (processStep == StepOptions) phone.KeywordPass = phone.HashPass = phone.OcrPass = phone.AiPass = false;
                 }
@@ -192,6 +192,8 @@ namespace Cyverse.Forensics
                 {
                     if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
                     SetProcessFeedback($"<color=#FF8866><b>Not that one.</b></color>  {pick.notes[index]}", Ink);
+                    SetProcessAccent(Wrong);
+                    wrongTile = index;
                 }
                 RefreshProcess();
                 return true;
@@ -206,6 +208,7 @@ namespace Cyverse.Forensics
                     case 3: phone.AiPass = !phone.AiPass; break;
                 }
                 if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+                SetProcessAccent(Cyan);
                 SetProcessFeedback(OptionNotes[index], Ink);
                 RefreshProcess();
                 return true;
@@ -217,6 +220,7 @@ namespace Cyverse.Forensics
         {
             if (processStep < Picks.Length)
             {
+                SetProcessAccent(Gold);
                 SetProcessFeedback("Pick one of the options above first.", Gold);
                 return true;
             }
@@ -226,6 +230,7 @@ namespace Cyverse.Forensics
                 runDone = false;
                 runClock = 0f;
                 runStages = BuildStages();
+                SetProcessAccent(Cyan);
                 SetProcessFeedback("Processing. Leave the phone in the cradle.", Ink);
                 RefreshProcess();
                 return true;
@@ -281,6 +286,7 @@ namespace Cyverse.Forensics
             {
                 runDone = true;
                 if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
+                SetProcessAccent(Green);
                 SetProcessFeedback("<color=#4CE087><b>PROCESSING COMPLETE.</b></color>  The image hash matches " +
                     "the one on the custody form, so this copy is exactly what came off the phone.", Ink);
             }
@@ -320,7 +326,8 @@ namespace Cyverse.Forensics
                 railNumbers[i].text = done ? "OK" : (i + 1).ToString();
                 railNumbers[i].color = current ? new Color(0.05f, 0.05f, 0.03f) : done ? Green : Muted;
                 railNames[i].color = current ? Color.white : done ? new Color(0.78f, 0.88f, 0.92f) : new Color(0.42f, 0.52f, 0.58f);
-                railStates[i].text = done ? "<color=#4CE087>DONE</color>" + (i < Picks.Length ? "  ·  " + Answer(i) : "")
+                string detail = i < Picks.Length ? Answer(i) : i == StepOptions ? PassList() : "";
+                railStates[i].text = done ? "<color=#4CE087>DONE</color>" + (detail.Length > 0 ? "  ·  " + detail : "")
                     : current ? "<color=#E5A823>IN PROGRESS</color>" : "PENDING";
                 progressSegments[i].color = done ? Green : current ? Gold : new Color(0.12f, 0.19f, 0.22f);
             }
@@ -341,13 +348,6 @@ namespace Cyverse.Forensics
                 ? "The image is ready. Open it in the Evidence Explorer to examine it."
                 : "Processing the image. The tool copies the phone, checks the copy, then runs your passes.";
 
-            for (int i = 0; i < Picks.Length; i++)
-                summaryValues[i].text = i < processStep
-                    ? $"<color=#FFFFFF>{Answer(i)}</color>"
-                    : i == processStep ? "<color=#E5A823>choosing...</color>" : "<color=#607585>not set</color>";
-            summaryValues[3].text = processStep > StepOptions ? $"<color=#FFFFFF>{PassList()}</color>"
-                : processStep == StepOptions ? "<color=#E5A823>choosing...</color>" : "<color=#607585>not set</color>";
-
             for (int i = 0; i < TileCount; i++)
             {
                 Button tile = tiles[i];
@@ -357,13 +357,17 @@ namespace Cyverse.Forensics
                 if (label == null) continue;
                 bool options = processStep == StepOptions;
                 bool on = options && OptionOn(i);
-                tile.GetComponentInChildren<TMP_Text>().text = label;
+                bool wrong = !options && i == wrongTile;
+                string blurb = options ? OptionNotes[i] : Picks[processStep].blurbs[i];
+                tile.GetComponentInChildren<TMP_Text>().text =
+                    $"<b>{label}</b>\n<size=18><color=#8FB8CC>{blurb}</color></size>";
                 tileKeys[i].text = (i + 1).ToString();
-                tileBlurbs[i].text = options ? OptionNotes[i] : Picks[processStep].blurbs[i];
-                tileStates[i].text = !options ? ""
+                tileStates[i].text = wrong ? "<color=#FF8866><b>NOT THIS ONE</b></color>"
+                    : !options ? ""
                     : on ? "<color=#4CE087><b>ON</b></color>" : "<color=#607585><b>OFF</b></color>";
-                tileStripes[i].color = on ? Green : Line;
-                tile.GetComponent<Image>().color = on ? new Color(0.06f, 0.24f, 0.15f) : TileIdle;
+                tileEdges[i].color = wrong ? Wrong : on ? Green : Line;
+                tile.GetComponent<Image>().color = wrong ? new Color(0.14f, 0.06f, 0.055f)
+                    : on ? new Color(0.06f, 0.24f, 0.15f) : TileIdle;
             }
 
             nextButton.gameObject.SetActive(processStep >= StepOptions);
@@ -374,7 +378,7 @@ namespace Cyverse.Forensics
         }
 
         /// <summary>The right pick on setup step <paramref name="i"/>, in
-        /// sentence case for the summary and the step rail.</summary>
+        /// sentence case for the step rail.</summary>
         private static string Answer(int i)
         {
             string s = Picks[i].tiles[Picks[i].correct].ToLowerInvariant();
@@ -393,6 +397,11 @@ namespace Cyverse.Forensics
 
         private bool OptionOn(int i) =>
             i == 0 ? phone.KeywordPass : i == 1 ? phone.HashPass : i == 2 ? phone.OcrPass : phone.AiPass;
+
+        private void SetProcessAccent(Color color)
+        {
+            if (processEdge != null) processEdge.color = color;
+        }
 
         private void SetProcessFeedback(string text, Color color)
         {
@@ -455,13 +464,13 @@ namespace Cyverse.Forensics
             Transform root = processRoot.transform;
 
             // Left rail: the five setup steps, then the evidence item.
-            const float railX0 = 0.012f, railX1 = 0.245f, railTop = 0.925f;
+            const float railX0 = 0.012f, railX1 = 0.245f, railTop = 0.925f, rowStep = 0.105f;
             Band(root, "StepRail", Pane, railX0, ColumnsBottom, railX1, railTop, true);
             PaneTitle(root, "StepRailHeader", railX0, railTop - PaneHeaderH, railX1, railTop).text = "CASE SETUP";
             for (int i = 0; i < StepNames.Length; i++)
             {
-                float top = railTop - PaneHeaderH - 0.012f - i * 0.083f;
-                Image row = Band(root, "Step_" + i, CategoryIdle, railX0 + 0.006f, top - 0.075f, railX1 - 0.006f, top, false);
+                float top = railTop - PaneHeaderH - 0.012f - i * rowStep;
+                Image row = Band(root, "Step_" + i, CategoryIdle, railX0 + 0.006f, top - 0.095f, railX1 - 0.006f, top, false);
                 railRows[i] = row;
                 railMarks[i] = Edge(row.transform, Gold, 5f);
 
@@ -482,32 +491,33 @@ namespace Cyverse.Forensics
                 railNames[i].fontStyle = FontStyles.Bold;
                 railNames[i].enableWordWrapping = false;
                 railNames[i].overflowMode = TextOverflowModes.Ellipsis;
-                Place(railNames[i].rectTransform, 0f, 0.5f, 1f, 0.92f, 0f);
-                Inset(railNames[i].rectTransform, 72f, 8f);
+                Place(railNames[i].rectTransform, 0f, 0.5f, 1f, 0.9f, 0f);
+                Inset(railNames[i].rectTransform, 72f, 10f);
 
                 railStates[i] = MakeText(row.transform, "State", 15, TextAlignmentOptions.TopLeft);
                 railStates[i].color = new Color(0.42f, 0.52f, 0.58f);
                 railStates[i].enableWordWrapping = false;
                 railStates[i].overflowMode = TextOverflowModes.Ellipsis;
-                Place(railStates[i].rectTransform, 0f, 0.08f, 1f, 0.48f, 0f);
-                Inset(railStates[i].rectTransform, 72f, 8f);
+                Place(railStates[i].rectTransform, 0f, 0.1f, 1f, 0.46f, 0f);
+                Inset(railStates[i].rectTransform, 72f, 10f);
             }
+            float thenTop = railTop - PaneHeaderH - 0.012f - StepNames.Length * rowStep;
             TMP_Text then = MakeText(root, "Then", 15, TextAlignmentOptions.MidlineLeft);
             then.text = "<cspace=3><b>NEXT  >  EXAMINE</b></cspace>";
             then.color = new Color(0.42f, 0.52f, 0.58f);
-            float thenTop = railTop - PaneHeaderH - 0.012f - StepNames.Length * 0.083f;
-            Place(then.rectTransform, railX0, thenTop - 0.04f, railX1, thenTop, 0f);
+            Place(then.rectTransform, railX0, thenTop - 0.042f, railX1, thenTop, 0f);
             Inset(then.rectTransform, 22f, 8f);
 
             Image evidenceBox = Band(root, "EvidenceCard", new Color(0.035f, 0.07f, 0.085f, 1f),
                 railX0 + 0.006f, ColumnsBottom + 0.008f, railX1 - 0.006f, thenTop - 0.05f, false);
             Edge(evidenceBox.transform, Cyan, 4f);
-            evidenceCard = MakeText(evidenceBox.transform, "Evidence", 18, TextAlignmentOptions.TopLeft);
-            evidenceCard.lineSpacing = 8f;
-            Place(evidenceCard.rectTransform, 0f, 0f, 1f, 1f, 12f);
+            evidenceCard = MakeText(evidenceBox.transform, "Evidence", 18, TextAlignmentOptions.MidlineLeft);
+            evidenceCard.lineSpacing = 6f;
+            Place(evidenceCard.rectTransform, 0f, 0f, 1f, 1f, 8f);
             Inset(evidenceCard.rectTransform, 20f, 12f);
 
-            // Main area: progress, the step, a running case summary, the tiles.
+            // Main column: progress, the step and its question, then the
+            // choices as a list, one full-width row each.
             const float mainX0 = 0.262f, mainX1 = 0.988f, gap = 0.006f;
             float segment = (mainX1 - mainX0 - gap * (StepNames.Length - 1)) / StepNames.Length;
             for (int i = 0; i < StepNames.Length; i++)
@@ -521,104 +531,80 @@ namespace Cyverse.Forensics
             stepHeader.characterSpacing = 4f;
             stepHeader.color = Cyan;
             stepHeader.enableWordWrapping = false;
-            Place(stepHeader.rectTransform, mainX0, 0.86f, mainX1, 0.905f, 0f);
+            Place(stepHeader.rectTransform, mainX0, 0.862f, mainX1, 0.904f, 0f);
 
-            stepQuestion = MakeText(root, "StepQuestion", 31, TextAlignmentOptions.TopLeft);
+            stepQuestion = MakeText(root, "StepQuestion", 30, TextAlignmentOptions.TopLeft);
             stepQuestion.fontStyle = FontStyles.Bold;
             stepQuestion.color = Color.white;
-            Place(stepQuestion.rectTransform, mainX0, 0.735f, mainX1, 0.86f, 0f);
+            Place(stepQuestion.rectTransform, mainX0, 0.765f, mainX1, 0.86f, 0f);
+            Inset(stepQuestion.rectTransform, 0f, 24f);
 
-            Band(root, "CaseSummary", Pane, mainX0, 0.635f, mainX1, 0.725f, true);
-            string[] summaryLabels = { Picks[0].summary, Picks[1].summary, Picks[2].summary, "EXTRA PASSES" };
-            float cell = (mainX1 - mainX0) / summaryLabels.Length;
-            for (int i = 0; i < summaryLabels.Length; i++)
-            {
-                float x = mainX0 + i * cell;
-                if (i > 0) Band(root, "SummaryRule_" + i, Line, x, 0.648f, x + 0.0012f, 0.712f, false);
-                TMP_Text label = MakeText(root, "SummaryLabel_" + i, 14, TextAlignmentOptions.BottomLeft);
-                label.text = $"<b><cspace=3>{summaryLabels[i]}</cspace></b>";
-                label.color = new Color(0.42f, 0.52f, 0.58f);
-                label.enableWordWrapping = false;
-                Place(label.rectTransform, x, 0.682f, x + cell, 0.718f, 0f);
-                Inset(label.rectTransform, 20f, 8f);
-                summaryValues[i] = MakeText(root, "SummaryValue_" + i, 20, TextAlignmentOptions.TopLeft);
-                summaryValues[i].fontStyle = FontStyles.Bold;
-                summaryValues[i].enableWordWrapping = false;
-                summaryValues[i].overflowMode = TextOverflowModes.Ellipsis;
-                Place(summaryValues[i].rectTransform, x, 0.64f, x + cell, 0.68f, 0f);
-                Inset(summaryValues[i].rectTransform, 20f, 8f);
-            }
-
-            float tileW = (mainX1 - mainX0 - 0.012f * (TileCount - 1)) / TileCount;
+            const float listTop = 0.735f, rowH = 0.11f, rowGap = 0.014f;
             for (int i = 0; i < TileCount; i++)
             {
                 int captured = i;
                 Button tile = MakeButton("Tile_" + i, root, "", TileIdle);
-                float x = mainX0 + i * (tileW + 0.012f);
-                Place(tile.GetComponent<RectTransform>(), x, 0.225f, x + tileW, 0.612f, 0f);
+                float top = listTop - i * (rowH + rowGap);
+                Place(tile.GetComponent<RectTransform>(), mainX0, top - rowH, mainX1, top, 0f);
                 AddBorder(tile.gameObject);
-
-                TMP_Text label = tile.GetComponentInChildren<TMP_Text>();
-                label.alignment = TextAlignmentOptions.BottomLeft;
-                label.enableWordWrapping = true;
-                label.fontSize = 25;
-                label.fontStyle = FontStyles.Bold;
-                Place(label.rectTransform, 0f, 0.42f, 1f, 0.72f, 0f);
-                Inset(label.rectTransform, 22f, 18f);
-
-                Image stripe = Band(tile.transform, "Stripe", Line, 0f, 0.985f, 1f, 1f, false);
-                tileStripes[i] = stripe;
+                tileEdges[i] = Edge(tile.transform, Line, 5f);
 
                 Image keyBox = Band(tile.transform, "Key", new Color(0.09f, 0.15f, 0.18f), 0f, 0f, 0f, 0f, true);
                 RectTransform krt = keyBox.rectTransform;
-                krt.anchorMin = krt.anchorMax = new Vector2(0f, 1f);
-                krt.pivot = new Vector2(0f, 1f);
-                krt.sizeDelta = new Vector2(38f, 38f);
-                krt.anchoredPosition = new Vector2(22f, -22f);
-                tileKeys[i] = MakeText(keyBox.transform, "Number", 19, TextAlignmentOptions.Center);
+                krt.anchorMin = krt.anchorMax = new Vector2(0f, 0.5f);
+                krt.pivot = new Vector2(0f, 0.5f);
+                krt.sizeDelta = new Vector2(42f, 42f);
+                krt.anchoredPosition = new Vector2(30f, 0f);
+                tileKeys[i] = MakeText(keyBox.transform, "Number", 20, TextAlignmentOptions.Center);
                 tileKeys[i].fontStyle = FontStyles.Bold;
                 tileKeys[i].color = Gold;
                 Place(tileKeys[i].rectTransform, 0f, 0f, 1f, 1f, 0f);
 
-                tileStates[i] = MakeText(tile.transform, "State", 18, TextAlignmentOptions.TopRight);
+                // Name on the first line, what it means on the second.
+                TMP_Text label = tile.GetComponentInChildren<TMP_Text>();
+                label.alignment = TextAlignmentOptions.MidlineLeft;
+                label.fontSize = 23;
+                label.lineSpacing = 8f;
+                label.enableWordWrapping = true;
+                label.overflowMode = TextOverflowModes.Ellipsis;
+                Place(label.rectTransform, 0f, 0f, 1f, 1f, 0f);
+                Inset(label.rectTransform, 98f, 200f);
+
+                tileStates[i] = MakeText(tile.transform, "State", 17, TextAlignmentOptions.MidlineRight);
                 tileStates[i].enableWordWrapping = false;
                 tileStates[i].characterSpacing = 3f;
-                Place(tileStates[i].rectTransform, 0.5f, 0.8f, 1f, 0.95f, 0f);
-                Inset(tileStates[i].rectTransform, 0f, 22f);
-
-                tileBlurbs[i] = MakeText(tile.transform, "Blurb", 18, TextAlignmentOptions.TopLeft);
-                tileBlurbs[i].color = Muted;
-                tileBlurbs[i].lineSpacing = 4f;
-                Place(tileBlurbs[i].rectTransform, 0f, 0.05f, 1f, 0.40f, 0f);
-                Inset(tileBlurbs[i].rectTransform, 22f, 18f);
+                Place(tileStates[i].rectTransform, 0.7f, 0f, 1f, 1f, 0f);
+                Inset(tileStates[i].rectTransform, 0f, 28f);
 
                 tile.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Choose(captured)));
                 tiles[i] = tile;
             }
 
-            // The run panel takes the tiles' place while processing.
-            Image runBox = Band(root, "RunPanel", Pane, mainX0, 0.225f, mainX1, 0.612f, true);
+            // The run panel takes the list's place while processing.
+            float listBottom = listTop - TileCount * rowH - (TileCount - 1) * rowGap;
+            Image runBox = Band(root, "RunPanel", Pane, mainX0, listBottom, mainX1, listTop, true);
             runPercent = MakeText(runBox.transform, "Percent", 19, TextAlignmentOptions.MidlineLeft);
             runPercent.enableWordWrapping = false;
             runPercent.overflowMode = TextOverflowModes.Ellipsis;
-            Place(runPercent.rectTransform, 0.025f, 0.87f, 0.975f, 0.97f, 0f);
-            Image barBack = Band(runBox.transform, "Bar", new Color(0.08f, 0.13f, 0.15f, 1f), 0.025f, 0.80f, 0.975f, 0.855f, false);
+            Place(runPercent.rectTransform, 0.025f, 0.88f, 0.975f, 0.97f, 0f);
+            Image barBack = Band(runBox.transform, "Bar", new Color(0.08f, 0.13f, 0.15f, 1f), 0.025f, 0.82f, 0.975f, 0.865f, false);
             var fill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
             fill.transform.SetParent(barBack.transform, false);
             fill.GetComponent<Image>().color = Green;
             runFill = fill.GetComponent<RectTransform>();
             Place(runFill, 0f, 0f, 0f, 1f, 0f);
             runText = MakeText(runBox.transform, "RunLog", 19, TextAlignmentOptions.TopLeft);
-            Place(runText.rectTransform, 0.025f, 0.03f, 0.975f, 0.76f, 0f);
+            runText.lineSpacing = 4f;
+            Place(runText.rectTransform, 0.025f, 0.03f, 0.975f, 0.78f, 0f);
             runBox.gameObject.SetActive(false);
 
             nextButton = MakeButton("NextButton", root, "START PROCESSING", new Color(0.10f, 0.40f, 0.22f));
-            Place(nextButton.GetComponent<RectTransform>(), 0.74f, ColumnsBottom + 0.008f, mainX1, 0.212f, 0f);
+            Place(nextButton.GetComponent<RectTransform>(), 0.74f, ColumnsBottom + 0.008f, mainX1, ColumnsBottom + 0.08f, 0f);
             nextButton.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
             Edge(nextButton.transform, Green, 4f);
             nextButton.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Submit()));
 
-            processFeedback = MakeStatusBar(root, "ProcessFeedback");
+            processFeedback = MakeStatusBar(root, "ProcessFeedback", out processEdge);
 
             processRoot.SetActive(false);
         }
