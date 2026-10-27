@@ -98,6 +98,10 @@ namespace Cyverse.Forensics
     /// </summary>
     public sealed class PhoneImage
     {
+        /// <summary>The work phone's operating system. Invented, so the game
+        /// names no real phone brand.</summary>
+        public const string Platform = "NovaOS";
+
         public static readonly ArtifactCategory[] Categories =
             (ArtifactCategory[])Enum.GetValues(typeof(ArtifactCategory));
 
@@ -184,9 +188,9 @@ namespace Cyverse.Forensics
 
         // Illustrative source paths: real phones keep each of these in an app's
         // own database, which is the point the detail pane makes.
-        private const string SmsDb = "/data/data/com.android.providers.telephony/databases/mmssms.db";
+        private const string SmsDb = "/data/data/com.novaos.messages/databases/messages.db";
         private const string MailDb = "/data/data/com.cyverse.mail/databases/mail.db";
-        private const string ChromeHistory = "/data/data/com.android.chrome/app_chrome/Default/History";
+        private const string BrowserHistory = "/data/data/com.novaos.browser/databases/history.db";
         private const string Packages = "/data/system/packages.xml";
         private const string DnsLog = "/data/misc/net/dns_cache.log";
         private const string NetStats = "/data/system/netstats/app_traffic.db";
@@ -247,21 +251,21 @@ namespace Cyverse.Forensics
 
             // WEB HISTORY
             phone.Add(new PhoneArtifact("web_news", ArtifactCategory.WebHistory, "07-14 07:50",
-                "news.sjsu.edu", "SJSU campus news", ChromeHistory,
+                "news.sjsu.edu", "SJSU campus news", BrowserHistory,
                 "URL", "https://news.sjsu.edu", "Visit count", "4"));
             phone.Add(new PhoneArtifact("web_pride", ArtifactCategory.WebHistory, "07-14 08:21",
-                "cyverse.edu/spartan-pride-week", "Spartan Pride Week", ChromeHistory,
+                "cyverse.edu/spartan-pride-week", "Spartan Pride Week", BrowserHistory,
                 "URL", "https://cyverse.edu/spartan-pride-week", "Visit count", "1",
                 "Opened from", "CyVerse Mail"));
             phone.Add(new PhoneArtifact("web_claim", ArtifactCategory.WebHistory, "07-14 08:15",
-                "spartan-rewards.com/claim-now", "Claim your Spartan Gold", ChromeHistory,
+                "spartan-rewards.com/claim-now", "Claim your Spartan Gold", BrowserHistory,
                 "URL", PhishLink, "Visit count", "1", "Opened from", "Messages (SMS link)"));
             phone.Add(new PhoneArtifact("web_apk", ArtifactCategory.WebHistory, "07-14 08:15",
-                "spartan-rewards.com/get/GoldClaim.apk", "Download: GoldClaim.apk (4.1 MB)", ChromeHistory,
+                "spartan-rewards.com/get/GoldClaim.apk", "Download: GoldClaim.apk (4.1 MB)", BrowserHistory,
                 "URL", "http://spartan-rewards.com/get/GoldClaim.apk", "Visit count", "1",
                 "Saved to", "/sdcard/Download/GoldClaim.apk"));
             phone.Add(new PhoneArtifact("web_maps", ArtifactCategory.WebHistory, "07-14 12:20",
-                "maps.example.com", "Directions to the campus quad", ChromeHistory,
+                "maps.example.com", "Directions to the campus quad", BrowserHistory,
                 "URL", "https://maps.example.com/?q=campus+quad", "Visit count", "2"));
 
             // INSTALLED APPS
