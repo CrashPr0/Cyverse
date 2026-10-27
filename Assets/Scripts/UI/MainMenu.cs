@@ -60,6 +60,15 @@ namespace Cyverse.UI
             panel.transform.SetAsLastSibling(); // above the rest of the HUD
             panel.SetActive(true);
             Active = true;
+
+            // The backdrop fades up, then the lines arrive top to bottom.
+            UiMotion.FadeIn(panel, UiMotion.Slow);
+            float delay = 0.08f;
+            foreach (Transform line in panel.transform)
+            {
+                UiMotion.Reveal(line.gameObject, delay, UiMotion.Rise, UiMotion.Slow);
+                delay += UiMotion.Step * 1.5f;
+            }
         }
 
         void Update()

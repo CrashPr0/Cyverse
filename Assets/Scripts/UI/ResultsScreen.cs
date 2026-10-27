@@ -107,6 +107,7 @@ namespace Cyverse.UI
             PlaytestMetrics.RecordResult(headerText, score, quizCorrect, quizTotal, seconds);
 
             card.SetActive(true);
+            UiMotion.PanelIn(card, null, 0.96f);
             shown = true;
         }
 

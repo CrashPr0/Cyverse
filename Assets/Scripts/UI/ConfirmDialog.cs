@@ -60,6 +60,7 @@ namespace Cyverse.UI
             cancelLabel.text = $"{cancelText}   <size=18><color=#BFE9FF>[{GameInput.CancelLabel}]</color></size>";
             card.transform.SetAsLastSibling();
             card.SetActive(true);
+            UiMotion.PanelIn(card, card.transform.Find("Card"), 0.96f);
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
             return true;
         }
@@ -140,6 +141,7 @@ namespace Cyverse.UI
             rt.sizeDelta = new Vector2(300f, 58f);
             go.GetComponent<Image>().color = background;
             go.GetComponent<Button>().onClick.AddListener(() => click());
+            UiMotion.AddPress(go.GetComponent<Button>());
             Text label = MakeText(go.transform, "Label", 22, TextAnchor.MiddleCenter);
             label.fontStyle = FontStyle.Bold;
             label.rectTransform.anchorMin = Vector2.zero;

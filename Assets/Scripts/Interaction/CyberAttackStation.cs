@@ -103,6 +103,8 @@ namespace Cyverse.Interaction
             feedbackText.text = "Choose the simulated action that stays inside the rules of engagement.";
             feedbackText.color = new Color(0.72f, 0.86f, 0.92f);
             RefreshMeter();
+            UiMotion.PanelIn(panel, null, 0.985f);
+            UiMotion.Stagger(optionButtons, 0.1f, UiMotion.Rise * 0.5f);
         }
 
         private void Update()
@@ -290,6 +292,7 @@ namespace Cyverse.Interaction
             colors.highlightedColor = new Color(1f, 0.78f, 0.64f);
             colors.pressedColor = new Color(1f, 0.55f, 0.40f);
             button.colors = colors;
+            UiMotion.AddPress(button, row: name.StartsWith("Option_"));
 
             TMP_Text text = MakeText(name + "Label", 19f, TextAlignmentOptions.MidlineLeft);
             text.transform.SetParent(go.transform, false);

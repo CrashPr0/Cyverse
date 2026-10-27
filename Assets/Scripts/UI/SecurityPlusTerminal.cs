@@ -60,6 +60,7 @@ namespace Cyverse.UI
             sessionCorrect = 0;
             ShowRoles();
             card.SetActive(true);
+            UiMotion.PanelIn(card);
         }
 
         private void Close()

@@ -111,6 +111,7 @@ namespace Cyverse.Forensics
 
             open = true;
             card.SetActive(true);
+            UiMotion.PanelIn(card, null, 0.985f);
             Refresh();
         }
 
@@ -175,6 +176,7 @@ namespace Cyverse.Forensics
             close.onClick.AddListener(() =>
                 GameplayActions.TryApply(this, GameplayAction.Cancel()));
             close.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
+            UiMotion.AddPress(close);
 
             TMP_Text intro = MakeText("Instructions", card.transform, 19, TextAlignmentOptions.TopLeft);
             // This is the SECOND entry on the record the SOC started. Say so up
@@ -207,6 +209,7 @@ namespace Cyverse.Forensics
                 new Vector2(-32f, 30f), new Vector2(280f, 58f), new Vector2(1f, 0f));
             submitButton.onClick.AddListener(() =>
                 GameplayActions.TryApply(this, GameplayAction.Submit()));
+            UiMotion.AddPress(submitButton);
             TMP_Text submitLabel = submitButton.GetComponentInChildren<TMP_Text>();
             submitLabel.alignment = TextAlignmentOptions.Center;
             submitLabel.fontSize = 18f;
@@ -330,6 +333,7 @@ namespace Cyverse.Forensics
 
             int captured = index;
             blank.onClick.AddListener(() => OpenDropdown(captured, blankRt));
+            UiMotion.AddPress(blank, row: true);
         }
 
         private TMP_Text Cell(string name, int column, float top, float height, float size, string text, Color color)
@@ -407,7 +411,11 @@ namespace Cyverse.Forensics
                 ort.sizeDelta = new Vector2(-8f, 44f);
                 option.onClick.AddListener(() => GameplayActions.TryApply(this,
                     GameplayAction.Select(fieldIndex, selected)));
+                UiMotion.AddPress(option, row: true);
             }
+            // Drop open from the blank: a short fade and a few pixels of travel.
+            UiMotion.FadeIn(dropdown, UiMotion.Fast);
+            UiMotion.SlideIn(drt, new Vector2(0f, UiMotion.Nudge), UiMotion.Fast);
         }
 
         private void Select(int fieldIndex, int optionIndex)
