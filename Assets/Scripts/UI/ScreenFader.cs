@@ -16,6 +16,9 @@ namespace Cyverse.UI
 
         private Image img;
         private float target;
+        // Linear progress toward the target; the overlay shows it eased, so a
+        // fade starts and lands softly instead of at a constant rate.
+        private float level = 1f;
 
         void Awake()
         {
@@ -45,7 +48,7 @@ namespace Cyverse.UI
 
         private System.Action pending;
 
-        public void FadeFromBlack() { SetAlpha(1f); target = 0f; }
+        public void FadeFromBlack() { level = 1f; SetAlpha(1f); target = 0f; }
         public void FadeToBlack() { target = 1f; }
 
         /// <summary>Fade to black, then run the action (scene loads use this so
@@ -54,13 +57,9 @@ namespace Cyverse.UI
 
         void Update()
         {
-            float a = img.color.a;
-            if (AccessibilitySettings.ReduceMotion) SetAlpha(target);
-            else
-            {
-                a = Mathf.MoveTowards(a, target, speed * Time.unscaledDeltaTime);
-                SetAlpha(a);
-            }
+            if (AccessibilitySettings.ReduceMotion) level = target;
+            else level = Mathf.MoveTowards(level, target, speed * Time.unscaledDeltaTime);
+            SetAlpha(UiMotion.InOutCubic(level));
 
             if (pending != null && target >= 1f && img.color.a >= 0.999f)
             {

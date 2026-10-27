@@ -51,7 +51,9 @@ namespace Cyverse.Interaction
             if (screen == null) Build();
             if (screen == null) return;
             screen.transform.SetAsLastSibling();
+            if (screen.activeSelf) return;
             screen.SetActive(true);
+            UiMotion.PanelIn(screen, card != null ? card.transform : null);
         }
 
         public void Hide()

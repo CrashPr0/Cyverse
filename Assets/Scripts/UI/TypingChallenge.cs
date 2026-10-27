@@ -87,6 +87,7 @@ namespace Cyverse.UI
             bodyText.text = body;
             feedbackText.text = "<color=#8FB8CC>ENTER submit   ·   ESC / TAB step away</color>";
             card.SetActive(true);
+            UiMotion.PanelIn(card);
             if (phone)
             {
                 feedbackText.text = "<color=#8FB8CC>TYPE THE CODE FROM YOUR PHONE\nENTER submit   ·   ESC / TAB step away</color>";

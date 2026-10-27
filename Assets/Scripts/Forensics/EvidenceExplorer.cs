@@ -75,6 +75,11 @@ namespace Cyverse.Forensics
         private readonly List<Image> rowMarks = new List<Image>();
         private bool open;
         private ModalSession.Lease modal;
+        // What is on screen, so a refresh animates only real changes.
+        private PhoneArtifact detailShown;
+        private CaseQuestion questionShown;
+        private string filterShown;
+        private bool filterCaretShown;
 
         public bool IsOpen => open;
         public ArtifactCategory ActiveCategory => category;
@@ -122,6 +127,7 @@ namespace Cyverse.Forensics
             // the explorer reopens would otherwise sit across the source line.
             card.transform.SetAsLastSibling();
             card.SetActive(true);
+            UiMotion.PanelIn(card, null, 0.985f);
             if (!phone.Processed) { BeginProcess(); return; }
             ShowExamine();
         }
@@ -140,7 +146,21 @@ namespace Cyverse.Forensics
                 : "Pick a category, select an item, and read its details. Tag only what proves the answer.",
                 Ink);
             RefreshList(keepSelection: true);
+            RevealExamine();
         }
+
+        /// <summary>Bring the workbench in pane by pane: the categories, then
+        /// the rows a beat behind them.</summary>
+        private void RevealExamine()
+        {
+            UiMotion.FadeIn(examineRoot, UiMotion.Base);
+            UiMotion.Stagger(categoryButtons, 0.04f, UiMotion.Rise * 0.5f);
+            RevealRows(0.1f);
+            UiMotion.Reveal(detailText.gameObject, 0.12f, UiMotion.Rise * 0.5f);
+        }
+
+        private void RevealRows(float delay) =>
+            UiMotion.Stagger(rowButtons, delay, UiMotion.Rise * 0.5f, UiMotion.Base, 0.025f);
 
         void Update()
         {
@@ -183,9 +203,11 @@ namespace Cyverse.Forensics
             {
                 case GameplayActionKind.Choose:
                     if (action.Index < 0 || action.Index >= PhoneImage.Categories.Length) return false;
+                    bool switched = category != PhoneImage.Categories[action.Index];
                     category = PhoneImage.Categories[action.Index];
                     selected = -1;
                     RefreshList(keepSelection: false);
+                    if (switched) RevealRows(0f);
                     if (Sfx.Instance != null) Sfx.Instance.PlayClick();
                     return true;
                 case GameplayActionKind.Select:
@@ -272,6 +294,7 @@ namespace Cyverse.Forensics
                 SetFeedback($"<color=#4CE087><b>TAGGED AS EVIDENCE</b>  +{award} points</color>{next}", Ink);
                 activeCase.NotifyAnswered();
                 RefreshList(keepSelection: true);
+                UiMotion.Pulse(tagButton.transform, 0.04f);
                 return;
             }
 
@@ -285,6 +308,7 @@ namespace Cyverse.Forensics
                 : " Read the fields on the right again.";
             SetAccent(Wrong);
             SetFeedback($"<color=#FF8866><b>That item does not prove it.</b></color>{where}", Ink);
+            UiMotion.Shake(tagButton.GetComponent<RectTransform>());
         }
 
         private void ShowHint()
@@ -318,7 +342,7 @@ namespace Cyverse.Forensics
                 categoryCounts[i].text = count;
                 categoryCounts[i].color = active ? Green : Muted;
                 categoryMarks[i].enabled = active;
-                categoryButtons[i].GetComponent<Image>().color = active ? CategoryActive : CategoryIdle;
+                UiMotion.ColorTo(categoryButtons[i].GetComponent<Image>(), active ? CategoryActive : CategoryIdle);
             }
 
             listHeader.text = $"{PhoneImage.Label(category)}  <color=#607585>·</color>  " +
@@ -333,8 +357,8 @@ namespace Cyverse.Forensics
                 string tag = a.Tagged ? "<color=#E5A823>[EVIDENCE]</color> " : "";
                 row.GetComponentInChildren<TMP_Text>().text =
                     $"<color=#8FB8CC>{a.timestamp}</color><pos=25%>{tag}{Badges(a)}{Escape(a.title)}";
-                row.GetComponent<Image>().color = i == selected ? RowSelected
-                    : a.Tagged ? RowTagged : i % 2 == 0 ? RowIdle : RowAlt;
+                UiMotion.ColorTo(row.GetComponent<Image>(), i == selected ? RowSelected
+                    : a.Tagged ? RowTagged : i % 2 == 0 ? RowIdle : RowAlt);
                 rowMarks[i].enabled = i == selected;
                 rowMarks[i].color = Green;
             }
@@ -350,6 +374,12 @@ namespace Cyverse.Forensics
         private void RefreshDetail()
         {
             PhoneArtifact a = SelectedArtifact;
+            if (a != detailShown)
+            {
+                // A new item: its fields fade up rather than snapping in.
+                detailShown = a;
+                UiMotion.FadeIn(detailText, UiMotion.Fast);
+            }
             if (a == null)
             {
                 detailText.text = "<color=#607585>Select an item to see every field the tool recovered, " +
@@ -392,6 +422,11 @@ namespace Cyverse.Forensics
         private void RefreshQuestion()
         {
             CaseQuestion q = activeCase.Current;
+            if (q != questionShown)
+            {
+                if (questionShown != null) UiMotion.Reveal(questionText.gameObject, 0.05f, UiMotion.Rise * 0.5f);
+                questionShown = q;
+            }
             questionText.text = q == null
                 ? "<size=16><color=#E5A823><b><cspace=3>CASE CLOSED</cspace></b></color></size>\n<b>All findings tagged.</b>"
                 : $"<size=16><color=#E5A823><b><cspace=3>QUESTION {activeCase.CurrentIndex + 1} OF {activeCase.questions.Length}</cspace></b></color></size>\n" +
@@ -414,22 +449,29 @@ namespace Cyverse.Forensics
         private void RefreshFilter()
         {
             if (filterText == null) return;
+            bool caretOn = Mathf.Sin(Time.unscaledTime * 6f) > 0f;
+            // Called every frame for the caret: skip the TMP mesh rebuild
+            // unless the caret flipped or the filter changed.
+            if (caretOn == filterCaretShown && filter == filterShown) return;
+            filterCaretShown = caretOn;
+            filterShown = filter;
             filterText.text = $"<color=#8FB8CC><b>SEARCH</b></color>   {Escape(filter)}" +
                 // The caret blinks by alpha so the placeholder never shifts.
-                (Mathf.Sin(Time.unscaledTime * 6f) > 0f ? "<color=#4CE087>_</color>" : "<color=#4CE08700>_</color>") +
+                (caretOn ? "<color=#4CE087>_</color>" : "<color=#4CE08700>_</color>") +
                 (filter.Length == 0 ? "<color=#607585>   type to search every field</color>" : "");
         }
 
         private void SetFeedback(string text, Color color)
         {
             if (feedbackText == null) return;
+            if (feedbackText.text != text) UiMotion.FadeIn(feedbackText, UiMotion.Base);
             feedbackText.text = text;
             feedbackText.color = color;
         }
 
         private void SetAccent(Color color)
         {
-            if (feedbackEdge != null) feedbackEdge.color = color;
+            UiMotion.ColorTo(feedbackEdge, color, UiMotion.Base);
         }
 
         private static void Toast(string message)
@@ -479,6 +521,7 @@ namespace Cyverse.Forensics
             close.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
             close.GetComponentInChildren<TMP_Text>().fontSize = 16;
             AddBorder(close.gameObject);
+            UiMotion.AddPress(close);
             close.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Cancel()));
 
             BuildProcess(root);
@@ -532,6 +575,7 @@ namespace Cyverse.Forensics
                 categoryCounts.Add(count);
                 categoryMarks.Add(Edge(b.transform, Green, 5f));
                 b.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Choose(captured)));
+                UiMotion.AddPress(b, row: true);
                 categoryButtons.Add(b);
             }
 
@@ -565,6 +609,7 @@ namespace Cyverse.Forensics
                 label.richText = true;
                 rowMarks.Add(Edge(row.transform, Green, 4f));
                 row.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Select(captured, 0)));
+                UiMotion.AddPress(row, row: true);
                 rowButtons.Add(row);
             }
 
@@ -584,12 +629,14 @@ namespace Cyverse.Forensics
             Edge(tagButton.transform, Green, 4f);
 
             tagButton.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Submit()));
+            UiMotion.AddPress(tagButton);
 
             hintButton = MakeButton("HintButton", root, "<b>HINT</b>   <size=15><color=#E8C878>HALF POINTS</color></size>",
                 new Color(0.25f, 0.19f, 0.05f));
             Place(hintButton.GetComponent<RectTransform>(), 0.81f, ColumnsBottom + 0.012f, 0.98f, ColumnsBottom + 0.088f, 0f);
             hintButton.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
             hintButton.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Toggle()));
+            UiMotion.AddPress(hintButton);
 
             feedbackText = MakeStatusBar(root, "Feedback", out feedbackEdge);
 

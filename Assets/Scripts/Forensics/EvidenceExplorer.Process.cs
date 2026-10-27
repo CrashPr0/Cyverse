@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Interaction;
+using Cyverse.UI;
 
 namespace Cyverse.Forensics
 {
@@ -154,6 +155,18 @@ namespace Cyverse.Forensics
                 ? "Set up the case before you touch any data. Start with the case type."
                 : "Picking up where you left off.", Ink);
             RefreshProcess();
+            RevealStep();
+        }
+
+        /// <summary>A new step arriving: header, question, then each choice a
+        /// beat apart, so the eye lands on the question first.</summary>
+        private void RevealStep()
+        {
+            UiMotion.Reveal(stepHeader.gameObject, 0f, UiMotion.Rise * 0.5f);
+            UiMotion.Reveal(stepQuestion.gameObject, 0.03f);
+            UiMotion.Stagger(tiles, 0.08f);
+            UiMotion.Reveal(runText.transform.parent.gameObject, 0.08f);
+            UiMotion.Reveal(nextButton.gameObject, 0.08f + TileCount * UiMotion.Step, 0f);
         }
 
         private bool TryApplyProcess(GameplayAction action)
@@ -187,6 +200,10 @@ namespace Cyverse.Forensics
                     wrongTile = -1;
                     processStep++;
                     if (processStep == StepOptions) phone.KeywordPass = phone.HashPass = phone.OcrPass = phone.AiPass = false;
+                    RefreshProcess();
+                    RevealStep();
+                    UiMotion.Pulse(railBadges[processStep - 1].transform, 0.12f);
+                    return true;
                 }
                 else
                 {
@@ -196,6 +213,7 @@ namespace Cyverse.Forensics
                     wrongTile = index;
                 }
                 RefreshProcess();
+                UiMotion.Shake(tiles[index].GetComponent<RectTransform>());
                 return true;
             }
             if (processStep == StepOptions)
@@ -233,6 +251,7 @@ namespace Cyverse.Forensics
                 SetProcessAccent(Cyan);
                 SetProcessFeedback("Processing. Leave the phone in the cradle.", Ink);
                 RefreshProcess();
+                RevealStep();
                 return true;
             }
             if (!runDone)
@@ -289,6 +308,7 @@ namespace Cyverse.Forensics
                 SetProcessAccent(Green);
                 SetProcessFeedback("<color=#4CE087><b>PROCESSING COMPLETE.</b></color>  The image hash matches " +
                     "the one on the custody form, so this copy is exactly what came off the phone.", Ink);
+                UiMotion.Pulse(railBadges[StepRun].transform, 0.12f);
             }
             float fraction = runDone ? 1f : Mathf.Clamp01(runClock / (SecondsPerStage * total));
             runFill.anchorMax = new Vector2(fraction, 1f);
@@ -320,16 +340,16 @@ namespace Cyverse.Forensics
             {
                 bool done = i < processStep || (i == StepRun && runDone);
                 bool current = i == processStep && !done;
-                railRows[i].color = current ? new Color(0.07f, 0.16f, 0.18f, 1f) : CategoryIdle;
+                UiMotion.ColorTo(railRows[i], current ? new Color(0.07f, 0.16f, 0.18f, 1f) : CategoryIdle, UiMotion.Base);
                 railMarks[i].enabled = current;
-                railBadges[i].color = done ? new Color(0.10f, 0.42f, 0.22f) : current ? Gold : new Color(0.10f, 0.16f, 0.19f);
+                UiMotion.ColorTo(railBadges[i], done ? new Color(0.10f, 0.42f, 0.22f) : current ? Gold : new Color(0.10f, 0.16f, 0.19f), UiMotion.Base);
                 railNumbers[i].text = done ? "OK" : (i + 1).ToString();
                 railNumbers[i].color = current ? new Color(0.05f, 0.05f, 0.03f) : done ? Green : Muted;
                 railNames[i].color = current ? Color.white : done ? new Color(0.78f, 0.88f, 0.92f) : new Color(0.42f, 0.52f, 0.58f);
                 string detail = i < Picks.Length ? Answer(i) : i == StepOptions ? PassList() : "";
                 railStates[i].text = done ? "<color=#4CE087>DONE</color>" + (detail.Length > 0 ? "  ·  " + detail : "")
                     : current ? "<color=#E5A823>IN PROGRESS</color>" : "PENDING";
-                progressSegments[i].color = done ? Green : current ? Gold : new Color(0.12f, 0.19f, 0.22f);
+                UiMotion.ColorTo(progressSegments[i], done ? Green : current ? Gold : new Color(0.12f, 0.19f, 0.22f), UiMotion.Slow);
             }
             evidenceCard.text =
                 "<size=15><color=#607585><b><cspace=3>EVIDENCE ITEM</cspace></b></color></size>\n" +
@@ -365,9 +385,9 @@ namespace Cyverse.Forensics
                 tileStates[i].text = wrong ? "<color=#FF8866><b>NOT THIS ONE</b></color>"
                     : !options ? ""
                     : on ? "<color=#4CE087><b>ON</b></color>" : "<color=#607585><b>OFF</b></color>";
-                tileEdges[i].color = wrong ? Wrong : on ? Green : Line;
-                tile.GetComponent<Image>().color = wrong ? new Color(0.14f, 0.06f, 0.055f)
-                    : on ? new Color(0.06f, 0.24f, 0.15f) : TileIdle;
+                UiMotion.ColorTo(tileEdges[i], wrong ? Wrong : on ? Green : Line);
+                UiMotion.ColorTo(tile.GetComponent<Image>(), wrong ? new Color(0.14f, 0.06f, 0.055f)
+                    : on ? new Color(0.06f, 0.24f, 0.15f) : TileIdle);
             }
 
             nextButton.gameObject.SetActive(processStep >= StepOptions);
@@ -400,12 +420,13 @@ namespace Cyverse.Forensics
 
         private void SetProcessAccent(Color color)
         {
-            if (processEdge != null) processEdge.color = color;
+            UiMotion.ColorTo(processEdge, color, UiMotion.Base);
         }
 
         private void SetProcessFeedback(string text, Color color)
         {
             if (processFeedback == null) return;
+            if (processFeedback.text != text) UiMotion.FadeIn(processFeedback, UiMotion.Base);
             processFeedback.text = text;
             processFeedback.color = color;
         }
@@ -577,6 +598,7 @@ namespace Cyverse.Forensics
                 Inset(tileStates[i].rectTransform, 0f, 28f);
 
                 tile.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Choose(captured)));
+                UiMotion.AddPress(tile, row: true);
                 tiles[i] = tile;
             }
 
@@ -603,6 +625,7 @@ namespace Cyverse.Forensics
             nextButton.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
             Edge(nextButton.transform, Green, 4f);
             nextButton.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Submit()));
+            UiMotion.AddPress(nextButton);
 
             processFeedback = MakeStatusBar(root, "ProcessFeedback", out processEdge);
 

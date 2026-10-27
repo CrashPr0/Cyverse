@@ -28,7 +28,7 @@ namespace Cyverse.UI
 
         private const float SlideIn = 0.3f;
         private const float Hold = 2f;
-        private const float FadeOut = 0.5f;
+        private const float FadeOut = 0.35f;
         private const float RestY = -116f; // just below the objective bar
         private const float BannerHeight = 74f;
 
@@ -97,8 +97,8 @@ namespace Cyverse.UI
             {
                 t += Time.unscaledDeltaTime;
                 float p = Mathf.Clamp01(t / SlideIn);
-                group.alpha = p;
-                rect.anchoredPosition = new Vector2(0f, RestY + (still ? 0f : 30f * (1f - p) * (1f - p)));
+                group.alpha = UiMotion.OutCubic(p);
+                rect.anchoredPosition = new Vector2(0f, RestY + (still ? 0f : 30f * (1f - UiMotion.OutQuart(p))));
                 yield return null;
             }
             group.alpha = 1f;
@@ -110,7 +110,7 @@ namespace Cyverse.UI
             while (t < FadeOut)
             {
                 t += Time.unscaledDeltaTime;
-                group.alpha = 1f - Mathf.Clamp01(t / FadeOut);
+                group.alpha = 1f - UiMotion.InOutCubic(Mathf.Clamp01(t / FadeOut));
                 yield return null;
             }
             group.alpha = 0f;

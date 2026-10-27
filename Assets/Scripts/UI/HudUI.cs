@@ -98,7 +98,7 @@ namespace Cyverse.UI
             scoreText.text = $"SCORE  <b>{total}</b>";
             if (delta > 0 && !AccessibilitySettings.ReduceMotion)
             {
-                scorePop = 1.45f;
+                scorePop = 1.25f;
                 SpawnScorePopup(delta);
             }
         }
@@ -129,7 +129,7 @@ namespace Cyverse.UI
             {
                 e += Time.unscaledDeltaTime;
                 float p = e / duration;
-                t.rectTransform.anchoredPosition = start + Vector2.up * (46f * p);
+                t.rectTransform.anchoredPosition = start + Vector2.up * (46f * UiMotion.OutCubic(p));
                 var c = t.color;
                 c.a = 1f - p * p;
                 t.color = c;
@@ -284,7 +284,13 @@ namespace Cyverse.UI
                 : 1f;
             captionText.fontSize = Mathf.RoundToInt(BaseCaptionSize * scale);
             captionText.text = text;
-            captionPanel.SetActive(true);
+            if (!captionPanel.activeSelf)
+            {
+                // Only the first line of a conversation glides in; later lines
+                // swap in place so reading is never held up.
+                captionPanel.SetActive(true);
+                UiMotion.Reveal(captionPanel);
+            }
         }
 
         public void HideCaption()
@@ -316,7 +322,8 @@ namespace Cyverse.UI
             if (changed)
             {
                 objectiveHighlight = 1f;
-                if (!AccessibilitySettings.ReduceMotion) objectivePop = 1.07f;
+                if (!AccessibilitySettings.ReduceMotion) objectivePop = 1.04f;
+                UiMotion.FadeIn(objectiveText, UiMotion.Base);
             }
         }
 
@@ -360,6 +367,8 @@ namespace Cyverse.UI
                 Mathf.Clamp(t.preferredHeight + 8f, 40f, 86f));
             activeToasts.Add(t);
             CompactToastRows();
+            // Rise into its row from just below: never across the objective.
+            UiMotion.SlideIn(rt, new Vector2(0f, -UiMotion.Rise));
             StartCoroutine(ToastRoutine(t, color));
         }
 
@@ -376,21 +385,23 @@ namespace Cyverse.UI
             for (int i = 0; i < activeToasts.Count; i++)
             {
                 RectTransform rect = activeToasts[i].rectTransform;
-                rect.anchoredPosition = new Vector2(0, y);
+                // Rows close up smoothly when one above leaves.
+                UiMotion.MoveTo(rect, new Vector2(0, y));
                 y -= rect.sizeDelta.y + ToastRowGap;
             }
         }
 
         private IEnumerator ToastRoutine(Text t, Color baseColor)
         {
-            const float hold = 1.5f, fade = 0.6f;
+            const float hold = 1.7f, fade = 0.4f;
+            UiMotion.FadeIn(t, UiMotion.Base);
             yield return new WaitForSecondsRealtime(hold);
             float e = 0f;
             while (e < fade && t != null)
             {
                 e += Time.unscaledDeltaTime;
                 var c = baseColor;
-                c.a = baseColor.a * (1f - e / fade);
+                c.a = baseColor.a * (1f - UiMotion.InOutCubic(Mathf.Clamp01(e / fade)));
                 t.color = c;
                 yield return null;
             }

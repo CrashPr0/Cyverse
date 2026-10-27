@@ -80,6 +80,7 @@ namespace Cyverse.UI
             }
 
             panel.SetActive(open);
+            if (open) UiMotion.PanelIn(panel, panel.transform.Find("GlossaryCard"));
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
             if (open) Refresh();
         }

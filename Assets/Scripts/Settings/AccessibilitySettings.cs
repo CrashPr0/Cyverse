@@ -271,6 +271,7 @@ namespace Cyverse.Settings
             if (panel != null) panel.SetActive(open);
             if (open)
             {
+                if (panel != null) UiMotion.PanelIn(panel, card);
                 resetArmed = false;
                 lastMouse = Input.mousePosition;
                 if (Sfx.Instance != null) Sfx.Instance.PlayClick();
