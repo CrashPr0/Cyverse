@@ -60,20 +60,20 @@ namespace Cyverse.Forensics
             },
             new PickStep
             {
-                question = "What's in the cradle? The tool has to know the platform to read it.",
-                tiles = new[] { "COMPUTER", "ANDROID PHONE", "IPHONE", "SIM CARD ONLY" },
+                question = "What's in the cradle? Check the evidence label; the tool has to know the platform to read it.",
+                tiles = new[] { "COMPUTER", "NOVAOS PHONE", "ORBITOS PHONE", "SIM CARD ONLY" },
                 blurbs = new[]
                 {
                     "A laptop or desktop drive",
-                    "A phone running Google Android",
-                    "A phone running Apple iOS",
+                    "A phone running NovaOS",
+                    "A phone running OrbitOS",
                     "Just the SIM: contacts and the number",
                 },
                 notes = new[]
                 {
                     "That's a phone in the cradle, not a computer.",
-                    "Android: the docked work phone. The tool now knows where each app keeps its data.",
-                    "Look again: the work phone is an Android. iPhones store data differently.",
+                    "NovaOS: the docked work phone. The tool now knows where each app keeps its data.",
+                    "Check the evidence label: the work phone runs NovaOS. OrbitOS phones store data differently.",
                     "A SIM only holds contacts and the number. The data we need is on the phone itself.",
                 },
                 correct = 1,
@@ -335,7 +335,7 @@ namespace Cyverse.Forensics
                 "<size=15><color=#607585><b><cspace=3>EVIDENCE ITEM</cspace></b></color></size>\n" +
                 $"<b>#1  Work phone</b>\n<color=#8FB8CC>Owner</color><indent=38%>{Escape(phone.owner)}</indent>\n" +
                 $"<color=#8FB8CC>Case</color><indent=38%>{CaseNumber}</indent>\n" +
-                "<color=#8FB8CC>Examiner</color><indent=38%>You</indent>\n" +
+                $"<color=#8FB8CC>Platform</color><indent=38%>{PhoneImage.Platform}</indent>\n" +
                 "<color=#8FB8CC>Custody</color><indent=38%><color=#4CE087>Form signed</color></indent>";
 
             stepHeader.text = $"STEP {processStep + 1} OF {StepNames.Length}   <color=#607585>//</color>   {StepNames[processStep]}";

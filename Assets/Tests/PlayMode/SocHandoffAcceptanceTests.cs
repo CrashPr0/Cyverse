@@ -416,7 +416,7 @@ namespace Cyverse.Tests
             Assert.That((int)explorerType.GetProperty("ProcessStep").GetValue(explorer), Is.EqualTo(0));
             StringAssert.Contains("SOC alert", (string)explorerType.GetProperty("ProcessFeedback").GetValue(explorer));
             Assert.That(GameplayActionTestDriver.Choose(explorer, 0), Is.True); // PHISHING / MALWARE
-            Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // ANDROID PHONE
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // NOVAOS PHONE
             Assert.That(GameplayActionTestDriver.Choose(explorer, 0), Is.True); // QUICK: wrong for this case
             Assert.That((int)explorerType.GetProperty("ProcessStep").GetValue(explorer), Is.EqualTo(2));
             Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // FULL FILE SYSTEM
