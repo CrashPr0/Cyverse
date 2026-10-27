@@ -39,12 +39,20 @@ namespace Cyverse.Forensics
 
         private static readonly Color Green = new Color(0.30f, 1f, 0.45f);
         private static readonly Color Gold = new Color(0.90f, 0.66f, 0.14f);
+        private static readonly Color Cyan = new Color(0.36f, 0.78f, 1f);
         private static readonly Color Ink = new Color(0.85f, 0.95f, 1f);
-        private static readonly Color RowIdle = new Color(0.08f, 0.13f, 0.16f, 1f);
-        private static readonly Color RowSelected = new Color(0.10f, 0.32f, 0.20f, 1f);
-        private static readonly Color RowTagged = new Color(0.30f, 0.24f, 0.06f, 1f);
-        private static readonly Color CategoryIdle = new Color(0.08f, 0.12f, 0.14f, 1f);
-        private static readonly Color CategoryActive = new Color(0.12f, 0.40f, 0.24f, 1f);
+        private static readonly Color Muted = new Color(0.56f, 0.72f, 0.80f);
+        // Workbench chrome: dark panes with a thin border and a header strip,
+        // the way desktop forensic suites lay out their panes.
+        private static readonly Color Pane = new Color(0.022f, 0.045f, 0.058f, 1f);
+        private static readonly Color PaneHeader = new Color(0.045f, 0.09f, 0.11f, 1f);
+        private static readonly Color Line = new Color(0.16f, 0.30f, 0.34f, 1f);
+        private static readonly Color RowIdle = new Color(0.055f, 0.095f, 0.115f, 1f);
+        private static readonly Color RowAlt = new Color(0.04f, 0.075f, 0.09f, 1f);
+        private static readonly Color RowSelected = new Color(0.08f, 0.30f, 0.19f, 1f);
+        private static readonly Color RowTagged = new Color(0.26f, 0.20f, 0.05f, 1f);
+        private static readonly Color CategoryIdle = new Color(0.045f, 0.085f, 0.10f, 1f);
+        private static readonly Color CategoryActive = new Color(0.08f, 0.27f, 0.17f, 1f);
 
         private PhoneImage phone;
         private InvestigationCase activeCase;
@@ -59,7 +67,10 @@ namespace Cyverse.Forensics
         private TMP_Text titleText, sourceText, questionText, filterText, detailText, feedbackText, listHeader;
         private Button tagButton, hintButton;
         private readonly List<Button> categoryButtons = new List<Button>();
+        private readonly List<TMP_Text> categoryCounts = new List<TMP_Text>();
+        private readonly List<Image> categoryMarks = new List<Image>();
         private readonly List<Button> rowButtons = new List<Button>();
+        private readonly List<Image> rowMarks = new List<Image>();
         private bool open;
         private ModalSession.Lease modal;
 
@@ -296,11 +307,16 @@ namespace Cyverse.Forensics
                 int total = phone.CountIn(c);
                 int hits = phone.CountIn(c, filter);
                 string count = string.IsNullOrWhiteSpace(filter) ? $"{total}" : $"{hits}/{total}";
-                categoryButtons[i].GetComponentInChildren<TMP_Text>().text = $"{PhoneImage.Label(c)}  ({count})";
-                categoryButtons[i].GetComponent<Image>().color = c == category ? CategoryActive : CategoryIdle;
+                bool active = c == category;
+                categoryButtons[i].GetComponentInChildren<TMP_Text>().text = PhoneImage.Label(c);
+                categoryCounts[i].text = count;
+                categoryCounts[i].color = active ? Green : Muted;
+                categoryMarks[i].enabled = active;
+                categoryButtons[i].GetComponent<Image>().color = active ? CategoryActive : CategoryIdle;
             }
 
-            listHeader.text = $"{PhoneImage.Label(category)}  ·  {visible.Count} item{(visible.Count == 1 ? "" : "s")}";
+            listHeader.text = $"{PhoneImage.Label(category)}  <color=#607585>·</color>  " +
+                $"<color=#D8ECF5>{visible.Count} ITEM{(visible.Count == 1 ? "" : "S")}</color>";
             for (int i = 0; i < rowButtons.Count; i++)
             {
                 Button row = rowButtons[i];
@@ -310,11 +326,14 @@ namespace Cyverse.Forensics
                 PhoneArtifact a = visible[i];
                 string tag = a.Tagged ? "<color=#E5A823>[EVIDENCE]</color> " : "";
                 row.GetComponentInChildren<TMP_Text>().text =
-                    $"<color=#9FC4D6>{a.timestamp}</color>  {tag}{Badges(a)}{Escape(a.title)}";
-                row.GetComponent<Image>().color = i == selected ? RowSelected : a.Tagged ? RowTagged : RowIdle;
+                    $"<color=#8FB8CC>{a.timestamp}</color><pos=25%>{tag}{Badges(a)}{Escape(a.title)}";
+                row.GetComponent<Image>().color = i == selected ? RowSelected
+                    : a.Tagged ? RowTagged : i % 2 == 0 ? RowIdle : RowAlt;
+                rowMarks[i].enabled = i == selected;
+                rowMarks[i].color = Green;
             }
             if (visible.Count > MaxRows)
-                listHeader.text += $"  ·  showing {MaxRows}, filter to narrow";
+                listHeader.text += $"  <color=#E5A823>· SHOWING {MaxRows}, FILTER TO NARROW</color>";
 
             RefreshFilter();
 
@@ -333,23 +352,36 @@ namespace Cyverse.Forensics
                 return;
             }
             var sb = new StringBuilder();
-            sb.Append("<b><size=24>").Append(Escape(a.title)).Append("</size></b>\n");
-            if (a.Tagged) sb.Append("<color=#E5A823><b>TAGGED AS EVIDENCE</b></color>\n");
-            sb.Append("<color=#8FB8CC>").Append(PhoneImage.Label(a.category)).Append("  ·  ")
-              .Append(a.timestamp).Append("</color>\n\n");
+            sb.Append("<b><size=27>").Append(Escape(a.title)).Append("</size></b>\n");
+            sb.Append("<size=17><color=#8FB8CC>").Append(PhoneImage.Label(a.category)).Append("   ·   ")
+              .Append(a.timestamp).Append("</color>");
+            if (a.Tagged) sb.Append("   <color=#E5A823><b>[TAGGED AS EVIDENCE]</b></color>");
+            sb.Append("</size>\n\n");
             sb.Append(Escape(a.summary)).Append("\n\n");
+            sb.Append(SectionLabel("RECOVERED FIELDS"));
             for (int i = 0; i < a.fieldNames.Length; i++)
-                sb.Append("<color=#5BC8FF>").Append(Escape(a.fieldNames[i])).Append(":</color>  ")
-                  .Append(Escape(a.fieldValues[i])).Append('\n');
-            AppendPassFindings(sb, a);
+                sb.Append(FieldLine(Escape(a.fieldNames[i]), Escape(a.fieldValues[i]), "#5BC8FF"));
+            var findings = new StringBuilder();
+            AppendPassFindings(findings, a);
+            if (findings.Length > 0)
+                sb.Append('\n').Append(SectionLabel("PROCESSING FINDINGS")).Append(findings);
             // Evidence information, as an examiner's tool shows under every record.
-            sb.Append("\n<size=18><color=#8FB8CC>EVIDENCE INFORMATION</color>\n<color=#C8DCE6>")
-              .Append("Source: ").Append(Escape(a.sourcePath)).Append('\n')
-              .Append("Recovery: ").Append(Escape(a.Recovery)).Append('\n')
-              .Append("Evidence: work phone of ").Append(Escape(phone.owner)).Append("</color></size>");
+            sb.Append('\n').Append(SectionLabel("EVIDENCE INFORMATION")).Append("<size=18>")
+              .Append(FieldLine("Source", Escape(a.sourcePath), "#8FB8CC"))
+              .Append(FieldLine("Recovery", Escape(a.Recovery), "#8FB8CC"))
+              .Append(FieldLine("Evidence", "#1  work phone of " + Escape(phone.owner), "#8FB8CC"))
+              .Append("</size>");
             detailText.text = sb.ToString();
             tagButton.interactable = !a.Tagged && !activeCase.IsComplete;
         }
+
+        private static string SectionLabel(string label) =>
+            $"<size=15><color=#607585><b><cspace=3>{label}</cspace></b></color></size>\n";
+
+        /// <summary>One "name  value" line with a hanging indent, so a long
+        /// value wraps under itself instead of under the field name.</summary>
+        private static string FieldLine(string name, string value, string nameColor) =>
+            $"<color={nameColor}>{name}</color><indent=31%>{value}</indent>\n";
 
         private void RefreshQuestion()
         {
@@ -361,10 +393,10 @@ namespace Cyverse.Forensics
             }
             else
             {
-                sb.Append($"<color=#5BC8FF><b>QUESTION {activeCase.CurrentIndex + 1}/{activeCase.questions.Length}</b></color>   ")
-                  .Append(Escape(q.prompt));
+                sb.Append($"<size=17><color=#E5A823><b><cspace=3>QUESTION {activeCase.CurrentIndex + 1} OF {activeCase.questions.Length}</cspace></b></color></size>\n")
+                  .Append("<b>").Append(Escape(q.prompt)).Append("</b>");
             }
-            sb.Append("\n<size=20><color=#B8CCD6>");
+            sb.Append("\n<size=18><color=#B8CCD6>");
             for (int i = 0; i < activeCase.questions.Length; i++)
                 sb.Append(activeCase.questions[i].Answered ? "<color=#4CE087>■</color>" : "□").Append(' ');
             sb.Append($"</color>   <color=#E5A823>SCORE {ScoreSystem.Score}</color></size>");
@@ -381,7 +413,7 @@ namespace Cyverse.Forensics
         private void RefreshFilter()
         {
             if (filterText == null) return;
-            filterText.text = $"<color=#8FB8CC>FILTER</color>  {Escape(filter)}" +
+            filterText.text = $"<color=#8FB8CC><b>SEARCH</b></color>   {Escape(filter)}" +
                 (Mathf.Sin(Time.unscaledTime * 6f) > 0f ? "<color=#4CE087>_</color>" : " ") +
                 (filter.Length == 0 ? "<color=#607585>   type to search every field</color>" : "");
         }
@@ -414,18 +446,31 @@ namespace Cyverse.Forensics
             // Stretch inside safe margins so it stays usable in a non-maximized
             // WebGL canvas instead of assuming a fixed pixel size.
             Place(card.GetComponent<RectTransform>(), 0.035f, 0.055f, 0.965f, 0.945f, 0f);
-            HudUI.StylePanel(card, new Color(0.008f, 0.025f, 0.04f, 0.98f), Green);
+            HudUI.StylePanel(card, new Color(0.008f, 0.022f, 0.032f, 0.985f), Green);
             Transform root = card.transform;
 
-            titleText = MakeText(root, "Title", 24, TextAlignmentOptions.MidlineLeft);
+            // Title bar: app badge, what is open, close.
+            Band(root, "TitleBar", new Color(0.03f, 0.065f, 0.08f, 1f), 0f, 0.935f, 1f, 0.994f, false);
+            Image badge = Band(root, "AppBadge", new Color(0.08f, 0.30f, 0.17f, 1f), 0.012f, 0.945f, 0.118f, 0.985f, false);
+            TMP_Text badgeText = MakeText(badge.transform, "Label", 15, TextAlignmentOptions.Center);
+            badgeText.text = "<b><cspace=2>CY FORENSICS</cspace></b>";
+            badgeText.color = Green;
+            badgeText.enableWordWrapping = false;
+            Place(badgeText.rectTransform, 0f, 0f, 1f, 1f, 0f);
+
+            titleText = MakeText(root, "Title", 23, TextAlignmentOptions.MidlineLeft);
             titleText.fontStyle = FontStyles.Bold;
-            titleText.color = Green;
+            titleText.color = Ink;
+            titleText.characterSpacing = 1.5f;
             titleText.overflowMode = TextOverflowModes.Ellipsis;
             titleText.enableWordWrapping = false;
-            Place(titleText.rectTransform, 0.02f, 0.935f, 0.86f, 0.99f, 4f);
+            Place(titleText.rectTransform, 0.128f, 0.937f, 0.86f, 0.992f, 4f);
 
-            Button close = MakeButton("Close", root, "ESC  CLOSE", new Color(0.13f, 0.17f, 0.18f));
-            Place(close.GetComponent<RectTransform>(), 0.87f, 0.935f, 0.985f, 0.985f, 2f);
+            Button close = MakeButton("Close", root, "<b>ESC</b>   CLOSE", new Color(0.09f, 0.14f, 0.16f));
+            Place(close.GetComponent<RectTransform>(), 0.88f, 0.944f, 0.988f, 0.986f, 0f);
+            close.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
+            close.GetComponentInChildren<TMP_Text>().fontSize = 16;
+            AddBorder(close.gameObject);
             close.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Cancel()));
 
             BuildProcess(root);
@@ -435,81 +480,191 @@ namespace Cyverse.Forensics
             Place(examineRoot.GetComponent<RectTransform>(), 0f, 0f, 1f, 1f, 0f);
             root = examineRoot.transform;
 
-            sourceText = MakeText(root, "Source", 17, TextAlignmentOptions.MidlineLeft);
+            // Evidence source strip.
+            Image sourceBand = Band(root, "SourceBar", Pane, 0.012f, 0.893f, 0.988f, 0.93f, true);
+            sourceText = MakeText(sourceBand.transform, "Source", 17, TextAlignmentOptions.MidlineLeft);
             sourceText.enableWordWrapping = false;
             sourceText.overflowMode = TextOverflowModes.Ellipsis;
-            Place(sourceText.rectTransform, 0.02f, 0.895f, 0.98f, 0.935f, 4f);
+            Place(sourceText.rectTransform, 0f, 0f, 1f, 1f, 0f);
+            Inset(sourceText.rectTransform, 14f, 0f);
 
-            questionText = MakeText(root, "Question", 20, TextAlignmentOptions.TopLeft);
-            Place(questionText.rectTransform, 0.02f, 0.795f, 0.98f, 0.895f, 4f);
+            // The case question, in a banner with a gold edge.
+            Image questionBand = Band(root, "QuestionBar", new Color(0.06f, 0.055f, 0.025f, 1f),
+                0.012f, 0.785f, 0.988f, 0.884f, true);
+            Edge(questionBand.transform, Gold, 6f);
+            questionText = MakeText(questionBand.transform, "Question", 23, TextAlignmentOptions.MidlineLeft);
+            Place(questionText.rectTransform, 0f, 0f, 1f, 1f, 0f);
+            Inset(questionText.rectTransform, 22f, 4f);
 
-            // Left rail: one button per artifact category.
+            // Left pane: one button per artifact category, with its count.
+            Pane3(root, "CategoryPane", 0.012f, 0.205f, out _).text = "ARTIFACT CATEGORIES";
             for (int i = 0; i < PhoneImage.Categories.Length; i++)
             {
                 int captured = i;
                 Button b = MakeButton("Category_" + i, root, PhoneImage.Label(PhoneImage.Categories[i]), CategoryIdle);
-                float top = ColumnsTop - i * 0.074f;
-                Place(b.GetComponent<RectTransform>(), 0.015f, top - 0.066f, 0.205f, top, 2f);
+                float top = ColumnsTop - PaneHeaderH - 0.008f - i * 0.072f;
+                Place(b.GetComponent<RectTransform>(), 0.018f, top - 0.065f, 0.199f, top, 0f);
+                TMP_Text label = b.GetComponentInChildren<TMP_Text>();
+                label.fontSize = 19;
+                label.fontStyle = FontStyles.Bold;
+                label.rectTransform.offsetMax = new Vector2(-54f, -2f);
+                TMP_Text count = MakeText(b.transform, "Count", 18, TextAlignmentOptions.MidlineRight);
+                count.enableWordWrapping = false;
+                Place(count.rectTransform, 0.6f, 0f, 1f, 1f, 0f);
+                Inset(count.rectTransform, 0f, 12f);
+                categoryCounts.Add(count);
+                categoryMarks.Add(Edge(b.transform, Green, 5f));
                 b.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Choose(captured)));
                 categoryButtons.Add(b);
             }
 
-            // Middle: filter line, list header, rows.
-            var filterBox = new GameObject("FilterBox", typeof(RectTransform), typeof(Image));
-            filterBox.transform.SetParent(root, false);
-            filterBox.GetComponent<Image>().color = new Color(0.03f, 0.07f, 0.08f, 1f);
-            Place(filterBox.GetComponent<RectTransform>(), 0.215f, ColumnsTop - 0.065f, 0.545f, ColumnsTop, 2f);
+            // Middle pane: search box, column header, rows.
+            listHeader = Pane3(root, "ListPane", 0.213f, 0.557f, out _);
+            listHeader.richText = true;
+
+            Image filterBox = Band(root, "FilterBox", new Color(0.012f, 0.03f, 0.04f, 1f),
+                0.219f, ColumnsTop - PaneHeaderH - 0.068f, 0.551f, ColumnsTop - PaneHeaderH - 0.008f, true);
             filterText = MakeText(filterBox.transform, "Filter", 20, TextAlignmentOptions.MidlineLeft);
             filterText.enableWordWrapping = false;
             filterText.overflowMode = TextOverflowModes.Ellipsis;
-            Place(filterText.rectTransform, 0f, 0f, 1f, 1f, 10f);
+            Place(filterText.rectTransform, 0f, 0f, 1f, 1f, 0f);
+            Inset(filterText.rectTransform, 14f, 10f);
 
-            listHeader = MakeText(root, "ListHeader", 18, TextAlignmentOptions.MidlineLeft);
-            listHeader.color = new Color(0.62f, 0.78f, 0.86f);
-            listHeader.enableWordWrapping = false;
-            listHeader.overflowMode = TextOverflowModes.Ellipsis;
-            Place(listHeader.rectTransform, 0.215f, ColumnsTop - 0.11f, 0.545f, ColumnsTop - 0.07f, 4f);
+            float rowsTop = ColumnsTop - PaneHeaderH - 0.11f;
+            TMP_Text columns = MakeText(root, "Columns", 14, TextAlignmentOptions.MidlineLeft);
+            columns.text = "<b><cspace=3><color=#607585>TIME<pos=25%>ITEM</color></cspace></b>";
+            columns.enableWordWrapping = false;
+            Place(columns.rectTransform, 0.219f, rowsTop + 0.002f, 0.551f, rowsTop + 0.034f, 0f);
+            Inset(columns.rectTransform, 16f, 10f);
 
             for (int i = 0; i < MaxRows; i++)
             {
                 int captured = i;
                 Button row = MakeButton("Row_" + i, root, "", RowIdle);
-                float top = ColumnsTop - 0.115f - i * 0.052f;
-                Place(row.GetComponent<RectTransform>(), 0.215f, top - 0.048f, 0.545f, top, 1f);
+                float top = rowsTop - i * 0.0485f;
+                Place(row.GetComponent<RectTransform>(), 0.219f, top - 0.046f, 0.551f, top, 0f);
                 TMP_Text label = row.GetComponentInChildren<TMP_Text>();
-                label.fontSize = 18;
+                label.fontSize = 19;
                 label.richText = true;
+                rowMarks.Add(Edge(row.transform, Green, 4f));
                 row.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Select(captured, 0)));
                 rowButtons.Add(row);
             }
 
-            // Right: detail of the selected artifact, then the actions.
-            var divider = new GameObject("Divider", typeof(RectTransform), typeof(Image));
-            divider.transform.SetParent(root, false);
-            divider.GetComponent<Image>().color = new Color(0.30f, 1f, 0.45f, 0.35f);
-            Place(divider.GetComponent<RectTransform>(), 0.556f, 0.13f, 0.558f, ColumnsTop, 0f);
-
+            // Right pane: every field of the selected artifact, then the actions.
+            Pane3(root, "DetailPane", 0.565f, 0.988f, out _).text = "ARTIFACT DETAILS";
             detailText = MakeText(root, "Detail", 20, TextAlignmentOptions.TopLeft);
-            Place(detailText.rectTransform, 0.57f, 0.22f, 0.98f, ColumnsTop, 4f);
+            detailText.lineSpacing = 6f;
+            detailText.overflowMode = TextOverflowModes.Ellipsis;
+            Place(detailText.rectTransform, 0.565f, 0.235f, 0.988f, ColumnsTop - PaneHeaderH, 0f);
+            Inset(detailText.rectTransform, 20f, 18f);
+            detailText.rectTransform.offsetMax = new Vector2(-18f, -14f);
 
-            tagButton = MakeButton("TagButton", root, "TAG AS EVIDENCE", new Color(0.10f, 0.36f, 0.20f));
-            Place(tagButton.GetComponent<RectTransform>(), 0.57f, 0.13f, 0.80f, 0.205f, 2f);
+            tagButton = MakeButton("TagButton", root, "<b>TAG AS EVIDENCE</b>   <size=15><color=#9FD8B4>ENTER</color></size>",
+                new Color(0.10f, 0.40f, 0.22f));
+            Place(tagButton.GetComponent<RectTransform>(), 0.573f, ColumnsBottom + 0.012f, 0.80f, 0.222f, 0f);
             tagButton.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
+            Edge(tagButton.transform, Green, 4f);
+
             tagButton.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Submit()));
 
-            hintButton = MakeButton("HintButton", root, "HINT  (half points)", new Color(0.30f, 0.23f, 0.06f));
-            Place(hintButton.GetComponent<RectTransform>(), 0.815f, 0.13f, 0.98f, 0.205f, 2f);
+            hintButton = MakeButton("HintButton", root, "<b>HINT</b>   <size=15><color=#E8C878>HALF POINTS</color></size>",
+                new Color(0.25f, 0.19f, 0.05f));
+            Place(hintButton.GetComponent<RectTransform>(), 0.81f, ColumnsBottom + 0.012f, 0.98f, 0.222f, 0f);
             hintButton.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
             hintButton.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Toggle()));
 
-            feedbackText = MakeText(root, "Feedback", 20, TextAlignmentOptions.MidlineLeft);
-            Place(feedbackText.rectTransform, 0.02f, 0.02f, 0.98f, 0.115f, 4f);
+            feedbackText = MakeStatusBar(root, "Feedback");
 
             card.SetActive(false);
         }
 
-        // Top edge of the three columns, as a fraction of the card height.
-        private const float ColumnsTop = 0.785f;
+        // Top and bottom edges of the three columns, and the height of a pane's
+        // header strip, as fractions of the card height.
+        private const float ColumnsTop = 0.772f;
+        private const float ColumnsBottom = 0.132f;
+        private const float PaneHeaderH = 0.042f;
+
+        /// <summary>A bordered pane from ColumnsTop to ColumnsBottom with a header
+        /// strip; returns the header's label.</summary>
+        private static TMP_Text Pane3(Transform root, string name, float xMin, float xMax, out Image pane)
+        {
+            pane = Band(root, name, Pane, xMin, ColumnsBottom, xMax, ColumnsTop, true);
+            return PaneTitle(root, name + "Header", xMin, ColumnsTop - PaneHeaderH, xMax, ColumnsTop);
+        }
+
+        private static TMP_Text PaneTitle(Transform root, string name, float xMin, float yMin, float xMax, float yMax)
+        {
+            Image header = Band(root, name, PaneHeader, xMin, yMin, xMax, yMax, false);
+            TMP_Text label = MakeText(header.transform, "Label", 15, TextAlignmentOptions.MidlineLeft);
+            label.fontStyle = FontStyles.Bold;
+            label.color = Muted;
+            label.characterSpacing = 5f;
+            label.enableWordWrapping = false;
+            label.overflowMode = TextOverflowModes.Ellipsis;
+            Place(label.rectTransform, 0f, 0f, 1f, 1f, 0f);
+            Inset(label.rectTransform, 16f, 10f);
+            return label;
+        }
+
+        /// <summary>The feedback line along the bottom of the card, shared by
+        /// Process and Examine.</summary>
+        private static TMP_Text MakeStatusBar(Transform root, string name)
+        {
+            Image bar = Band(root, name + "Bar", new Color(0.03f, 0.06f, 0.075f, 1f), 0.012f, 0.018f, 0.988f, 0.118f, true);
+            Edge(bar.transform, Cyan, 6f);
+            TMP_Text text = MakeText(bar.transform, name, 21, TextAlignmentOptions.MidlineLeft);
+            Place(text.rectTransform, 0f, 0f, 1f, 1f, 0f);
+            Inset(text.rectTransform, 24f, 16f);
+            return text;
+        }
+
+        /// <summary>A plain coloured rect at a fraction of its parent, optionally
+        /// with a thin border.</summary>
+        private static Image Band(Transform parent, string name, Color color,
+            float xMin, float yMin, float xMax, float yMax, bool border)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            Image image = go.GetComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            Place(image.rectTransform, xMin, yMin, xMax, yMax, 0f);
+            if (border) AddBorder(go);
+            return image;
+        }
+
+        private static void AddBorder(GameObject go)
+        {
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = Line;
+            outline.effectDistance = new Vector2(1.5f, 1.5f);
+        }
+
+        /// <summary>An accent bar down the left edge of <paramref name="parent"/>.</summary>
+        private static Image Edge(Transform parent, Color color, float width)
+        {
+            var go = new GameObject("Edge", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 0.5f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = new Vector2(width, 0f);
+            Image image = go.GetComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        /// <summary>Pad a stretched rect horizontally by <paramref name="left"/>
+        /// and <paramref name="right"/> pixels.</summary>
+        private static void Inset(RectTransform rt, float left, float right)
+        {
+            rt.offsetMin = new Vector2(left, rt.offsetMin.y);
+            rt.offsetMax = new Vector2(-right, rt.offsetMax.y);
+        }
 
         /// <summary>Anchor a rect to a fraction of its parent, inset by
         /// <paramref name="pad"/> pixels, so the layout scales with the canvas.</summary>
