@@ -374,6 +374,8 @@ namespace Cyverse.Tests
             for (int field = 0; field < 4; field++)
                 Assert.That(GameplayActionTestDriver.Select(form, field, GameplayActionTestDriver.CustodyAnswer(field)), Is.True);
             Assert.That(GameplayActionTestDriver.Submit(form), Is.True);
+            Assert.That(GameplayActionTestDriver.Select(form, 0, 1), Is.False,
+                "A signed custody entry is final; its blanks can't be changed afterwards.");
             Assert.That(GameplayActionTestDriver.Cancel(form), Is.True);
             yield return null;
             Assert.That((bool)formType.GetProperty("IsComplete").GetValue(form), Is.True);
@@ -412,6 +414,12 @@ namespace Cyverse.Tests
             // the hash and opens Examine.
             Assert.That((bool)explorerType.GetProperty("InProcess").GetValue(explorer), Is.True,
                 "An unprocessed phone opens on the Process steps.");
+            string caseNumber = (string)FindType("Cyverse.Forensics.CustodyLog")
+                .GetMethod("CaseNumber").Invoke(null, new[] { evidence });
+            TMP_Text evidenceCard = (TMP_Text)explorerType
+                .GetField("evidenceCard", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(explorer);
+            StringAssert.Contains(caseNumber, evidenceCard.text,
+                "The Process evidence card must carry the same case number as the custody form.");
             Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // HR COMPLAINT
             Assert.That((int)explorerType.GetProperty("ProcessStep").GetValue(explorer), Is.EqualTo(0));
             StringAssert.Contains("SOC alert", (string)explorerType.GetProperty("ProcessFeedback").GetValue(explorer));
@@ -527,6 +535,11 @@ namespace Cyverse.Tests
             Assert.That((bool)managerType.GetProperty("ReportSubmitted").GetValue(manager), Is.True);
             Assert.That((bool)gameState.GetField("LevelComplete").GetValue(null), Is.True);
             Assert.That(PlayerPrefs.GetInt("cv_done_3", 0), Is.EqualTo(1));
+
+            GameObject reportStatus = GameObject.Find("DF_ReportStatus");
+            Assert.That(reportStatus, Is.Not.Null);
+            StringAssert.Contains("SUBMITTED", reportStatus.GetComponent<TMP_Text>().text,
+                "The report monitor should stop asking for E once the report is filed.");
         }
 
         [UnityTest]

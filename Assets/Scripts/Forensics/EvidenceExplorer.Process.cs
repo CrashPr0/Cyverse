@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Interaction;
+using Cyverse.Level;
 using Cyverse.UI;
 
 namespace Cyverse.Forensics
@@ -41,21 +42,21 @@ namespace Cyverse.Forensics
         {
             new PickStep
             {
-                question = "What kind of case is this? Check the SOC alert that sent the phone here.",
+                question = "What kind of case is this? Think back to the briefing and the SOC handoff.",
                 tiles = new[] { "PHISHING / MALWARE", "HR COMPLAINT", "LOST DEVICE", "BILLING FRAUD" },
                 blurbs = new[]
                 {
-                    "Scam links, bad apps, strange network traffic",
+                    "Scam links, bad apps, unexplained activity",
                     "A coworker reported workplace conduct",
                     "A phone someone found or turned in",
                     "Fake invoices or changed payment details",
                 },
                 notes = new[]
                 {
-                    "Phishing / malware: the SOC flagged a scam link and strange app traffic.",
-                    "No one filed a complaint. The SOC alert was a scam link and malware traffic.",
+                    "Phishing / malware: a phishing campaign hit CyVerse, and the SOC caught unexplained activity on this owner's workstation.",
+                    "No one filed a complaint. The SOC alert was unexplained activity during a phishing campaign.",
                     "The phone wasn't lost; it was handed over with a custody form.",
-                    "Nothing here is about billing. Re-read the SOC alert: a scam link, then malware traffic.",
+                    "Nothing here is about billing. The briefing called it a phishing campaign, and the SOC alert backs that up.",
                 },
                 correct = 0,
             },
@@ -105,7 +106,7 @@ namespace Cyverse.Forensics
             { "KEYWORD SEARCH", "HASH MATCH", "TEXT IN PHOTOS (OCR)", "AI TRIAGE" };
         private static readonly string[] OptionNotes =
         {
-            "Searches for the SOC alert terms (spartan-rewards, " + PhoneImage.AttackerIp + ") and badges every hit.",
+            "Searches for the campaign's known terms (spartan-rewards, " + PhoneImage.AttackerIp + ") and badges every hit.",
             "Compares every file against a list of known-bad hashes.",
             "Reads the words in photos so the filter can find them.",
             "AI flags strange chats and photos. Flags are leads, not proof. Check them.",
@@ -115,8 +116,6 @@ namespace Cyverse.Forensics
         private bool runDone;
         private float runClock;
         private string[] runStages;
-
-        private const string CaseNumber = "CY-2026-0714";
 
         private GameObject processRoot;
         private TMP_Text stepHeader, stepQuestion, processFeedback, runText, runPercent, evidenceCard;
@@ -307,7 +306,7 @@ namespace Cyverse.Forensics
                 if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
                 SetProcessAccent(Green);
                 SetProcessFeedback("<color=#4CE087><b>PROCESSING COMPLETE.</b></color>  The image hash matches " +
-                    "the one on the custody form, so this copy is exactly what came off the phone.", Ink);
+                    "the SHA-256 taken when the phone was imaged at the dock, so this copy is exactly what came off the phone.", Ink);
                 UiMotion.Pulse(railBadges[StepRun].transform, 0.12f);
             }
             float fraction = runDone ? 1f : Mathf.Clamp01(runClock / (SecondsPerStage * total));
@@ -354,7 +353,7 @@ namespace Cyverse.Forensics
             evidenceCard.text =
                 "<size=15><color=#607585><b><cspace=3>EVIDENCE ITEM</cspace></b></color></size>\n" +
                 $"<b>#1  Work phone</b>\n<color=#8FB8CC>Owner</color><indent=38%>{Escape(phone.owner)}</indent>\n" +
-                $"<color=#8FB8CC>Case</color><indent=38%>{CaseNumber}</indent>\n" +
+                $"<color=#8FB8CC>Case</color><indent=38%>{CaseNumber()}</indent>\n" +
                 $"<color=#8FB8CC>Platform</color><indent=38%>{PhoneImage.Platform}</indent>\n" +
                 "<color=#8FB8CC>Custody</color><indent=38%><color=#4CE087>Form signed</color></indent>";
 
@@ -413,6 +412,14 @@ namespace Cyverse.Forensics
             if (phone.OcrPass) on.Add("OCR");
             if (phone.AiPass) on.Add("AI");
             return on.Count == 0 ? "None" : string.Join(", ", on);
+        }
+
+        /// <summary>The same case number the custody form and the SOC record
+        /// carry, so the item reads as one case at every station.</summary>
+        private static string CaseNumber()
+        {
+            SocProgress.TryGetEvidence(out SocEvidenceRecord evidence);
+            return CustodyLog.CaseNumber(evidence);
         }
 
         private bool OptionOn(int i) =>

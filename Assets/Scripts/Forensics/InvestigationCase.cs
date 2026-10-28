@@ -108,7 +108,7 @@ namespace Cyverse.Forensics
         public static InvestigationCase SpartanGoldPhone()
         {
             return new InvestigationCase(
-                "CASE: SPARTAN GOLD",
+                "CASE 1: SPARTAN GOLD",
                 new[]
                 {
                 new CaseQuestion(
@@ -205,7 +205,7 @@ namespace Cyverse.Forensics
             new VideoStation.Slide("WHEN THE CHAIN BREAKS",
                 "A gap in the record or a missing signature lets the other side ask: who had it, and what did they do? Evidence can be challenged or ruled inadmissible in court, even if it is real.", 12f),
             new VideoStation.Slide("FROM IMAGE TO ARTIFACTS",
-                "A forensic tool never works on the original phone. It reads the verified copy and sorts what it finds into artifacts: messages, email, web history, installed apps, network records.", 12f),
+                "A forensic tool never works on the original phone. You set up processing first (case type, device, how much to copy), then it reads the verified copy and sorts it into artifacts: messages, email, apps, network records.", 12f),
             new VideoStation.Slide("THE EVIDENCE EXPLORER",
                 "Pick a category on the left, then an item in the list. The right side shows every field and the file on the phone it came from. Type in the filter box to search by keyword.", 12f),
             new VideoStation.Slide("TAG WHAT PROVES IT",

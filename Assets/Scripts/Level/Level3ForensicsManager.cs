@@ -28,6 +28,8 @@ namespace Cyverse.Level
         public bool ReportReady => custodyForm != null && custodyForm.IsComplete &&
             console != null && console.AllComplete;
         public bool ReportSubmitted { get; private set; }
+        /// <summary>Raised once, when the final report is filed.</summary>
+        public event System.Action ReportFiled;
 
         private ForensicsConsole console;
         private VideoStation briefing;
@@ -170,6 +172,7 @@ namespace Cyverse.Level
             if (ReportSubmitted || !ReportReady) return;
             ReportSubmitted = true;
             pendingComplete = true;
+            ReportFiled?.Invoke();
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast("FORENSIC REPORT SUBMITTED — case closed",
                     new Color(0.30f, 1f, 0.55f));
