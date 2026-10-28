@@ -35,6 +35,7 @@ namespace Cyverse.Level
         private TMP_Text intakeStatus;
         private ForensicsConsole console;
         private ChainOfCustodyForm custodyForm;
+        private Level3ForensicsManager manager;
         private bool applied;
 
         private void Start() => Apply();
@@ -70,6 +71,7 @@ namespace Cyverse.Level
                 custodyForm.Changed -= RefreshIntake;
                 custodyForm.Completed -= RefreshIntake;
             }
+            if (manager != null) manager.ReportFiled -= RefreshReport;
         }
 
         private void ApplyAtmosphere()
@@ -214,7 +216,7 @@ namespace Cyverse.Level
             // report monitor is free to carry the casework status again. 1.75 cm
             // proud of the screen face (z 11.0775) to stay out of its depth.
             reportStatus = CreateWorldText(root, "DF_ReportStatus", new Vector3(9.2f, 1.66f, 11.06f),
-                "CASEWORK  0 / 14  ·  REPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.040f, 58f, 30f);
+                "CASEWORK  0 / 11  ·  REPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.040f, 58f, 30f);
             ForensicsStationProps.DressReport(reportDesk.transform, reportMonitor.transform, root,
                 ForensicsStationProps.MakeFinish(FurnitureMaterial(), new Color(0.90f, 0.66f, 0.22f)));
         }
@@ -321,6 +323,10 @@ namespace Cyverse.Level
                 custodyForm.Changed += RefreshIntake;
                 custodyForm.Completed += RefreshIntake;
             }
+            // The report monitor kept saying PRESS E TO SUBMIT after the report
+            // was filed; repaint it when that happens.
+            manager = Level3ForensicsManager.Instance;
+            if (manager != null) manager.ReportFiled += RefreshReport;
             RefreshIntake();
             RefreshReport();
         }
@@ -340,7 +346,7 @@ namespace Cyverse.Level
         {
             if (reportStatus == null) return;
             int done = console != null ? console.TotalAnswered : 0;
-            int total = console != null ? console.TotalQuestions : 14;
+            int total = console != null ? console.TotalQuestions : 11;
             bool ready = console != null && console.AllComplete;
             bool submitted = Level3ForensicsManager.Instance != null &&
                 Level3ForensicsManager.Instance.ReportSubmitted;

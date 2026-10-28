@@ -143,7 +143,8 @@ namespace Cyverse.Forensics
             SetAccent(Cyan);
             SetFeedback(activeCase.IsComplete
                 ? "<color=#E5A823>Case closed. Browse freely, or Esc to step away.</color>"
-                : "Pick a category, select an item, and read its details. Tag only what proves the answer.",
+                : "Pick a category, select an item, and read its details. Tag only what proves the answer." +
+                  "  <color=#8FB8CC>Keys: ←/→ category · Up/Down item · type to search · Enter tag</color>",
                 Ink);
             RefreshList(keepSelection: true);
             RevealExamine();
@@ -175,6 +176,10 @@ namespace Cyverse.Forensics
             if (InProcess) { UpdateProcess(); return; }
             if (Input.GetKeyDown(KeyCode.UpArrow)) GameplayActions.TryApply(this, GameplayAction.Navigate(-1));
             else if (Input.GetKeyDown(KeyCode.DownArrow)) GameplayActions.TryApply(this, GameplayAction.Navigate(1));
+            // Left/Right step through the categories, so the whole bench works
+            // without a mouse (letters and digits go to the search box).
+            else if (Input.GetKeyDown(KeyCode.LeftArrow)) GameplayActions.TryApply(this, GameplayAction.Choose(CategoryStep(-1)));
+            else if (Input.GetKeyDown(KeyCode.RightArrow)) GameplayActions.TryApply(this, GameplayAction.Choose(CategoryStep(1)));
 
             bool submitted = false;
             foreach (char c in Input.inputString)
@@ -192,6 +197,13 @@ namespace Cyverse.Forensics
             // in Input.inputString; submit on the key too, without double-firing.
             if (!submitted && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
                 GameplayActions.TryApply(this, GameplayAction.Submit());
+        }
+
+        private int CategoryStep(int delta)
+        {
+            int count = PhoneImage.Categories.Length;
+            int current = System.Array.IndexOf(PhoneImage.Categories, category);
+            return ((current + delta) % count + count) % count;
         }
 
         public bool TryApply(GameplayAction action, GameObject actor)

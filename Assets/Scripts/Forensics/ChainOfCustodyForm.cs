@@ -382,6 +382,9 @@ namespace Cyverse.Forensics
         private void OpenDropdown(int fieldIndex, RectTransform blank)
         {
             CloseDropdown();
+            // A signed entry is final: changing a blank now would show answers
+            // the record no longer has.
+            if (IsComplete) return;
             Field field = fields[fieldIndex];
 
             dropdown = new GameObject("CustodyDropdown", typeof(RectTransform), typeof(Image));
@@ -440,6 +443,7 @@ namespace Cyverse.Forensics
             switch (action.Kind)
             {
                 case GameplayActionKind.Select:
+                    if (IsComplete) return false;
                     if (action.Index < 0 || action.Index >= fields.Count) return false;
                     Field field = fields[action.Index];
                     if (action.ValueIndex < 0 || action.ValueIndex >= field.options.Length) return false;
@@ -477,6 +481,8 @@ namespace Cyverse.Forensics
                     ? new Color(0.08f, 0.29f, 0.17f, 1f)
                     : new Color(0.38f, 0.10f, 0.08f, 1f);
                 if (correct) continue;
+                // Say which blanks are wrong in text too, not only in red.
+                field.value.text = "<color=#FF8866><b>[X]</b></color> " + field.options[field.selectedIndex];
                 wrong++;
                 if (hint == null) hint = field.hint;
             }

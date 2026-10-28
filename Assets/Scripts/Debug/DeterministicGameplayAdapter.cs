@@ -177,6 +177,7 @@ namespace Cyverse.Testing
         public static bool CompleteCustodyForm(ChainOfCustodyForm form, GameObject actor = null)
         {
             if (form == null) return false;
+            if (form.IsComplete) return true; // a signed entry can't be refilled
             if (!EvidenceLocker.DeviceReadyForIntake &&
                 !RetrieveEvidenceDevice(EvidenceLocker.Instance, actor))
                 return false;
