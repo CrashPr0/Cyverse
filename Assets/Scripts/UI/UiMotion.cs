@@ -175,8 +175,29 @@ namespace Cyverse.UI
         public static void PanelIn(GameObject panel, Transform card = null, float fromScale = 0.97f)
         {
             if (panel == null) return;
-            FadeIn(panel, Base);
-            ScaleIn(card != null ? card : panel.transform, fromScale, Slow);
+            Transform target = card != null ? card : panel.transform;
+            CanvasGroup g = Group(panel);
+            // A panel's Outline draws accent-coloured copies of its quad behind
+            // it; while the fill is see-through they wash the whole card in the
+            // accent. Hold the rim back until the fill is nearly opaque.
+            UiMotionRunner.Complete(g, ChAlpha);
+            var rims = new List<Shadow>(panel.GetComponents<Shadow>());
+            if (target != panel.transform) rims.AddRange(target.GetComponents<Shadow>());
+            var rest = new float[rims.Count];
+            for (int i = 0; i < rims.Count; i++) rest[i] = rims[i].effectColor.a;
+            Run(g, ChAlpha, Base, 0f, OutCubic, p =>
+            {
+                g.alpha = p;
+                float rim = p * p * p * p;
+                for (int i = 0; i < rims.Count; i++)
+                {
+                    if (rims[i] == null) continue;
+                    Color c = rims[i].effectColor;
+                    c.a = rest[i] * rim;
+                    rims[i].effectColor = c;
+                }
+            });
+            ScaleIn(target, fromScale, Slow);
         }
 
         /// <summary>Content arriving: fade in and rise a few pixels.</summary>
