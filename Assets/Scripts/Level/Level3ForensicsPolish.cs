@@ -120,13 +120,22 @@ namespace Cyverse.Level
             if (furnishings == null) return;
             foreach (Transform child in furnishings.transform)
             {
-                if (child.name != "Plant") continue;
                 Vector3 p = child.position;
-                if (Mathf.Abs(p.x + 8f) > 0.1f || Mathf.Abs(p.z - 8f) > 0.1f) continue;
-                child.position = new Vector3(-14.2f, p.y, 8.2f);
-                return;
+                if (child.name == "Plant" && Near(p, -8f, 8f))
+                    child.position = new Vector3(-14.2f, p.y, 8.2f);
+                // The east planter stood on the report pad's corner, in front
+                // of the report monitor.
+                else if (child.name == "Plant" && Near(p, 8f, 8f))
+                    child.position = new Vector3(12.8f, p.y, 8f);
+                // Reception sat between the evidence locker and the briefing
+                // screen, across the first walk of the level.
+                else if (child.name == "Reception" && Near(p, 5f, -12f))
+                    child.position = new Vector3(11.5f, p.y, -12f);
             }
         }
+
+        private static bool Near(Vector3 p, float x, float z) =>
+            Mathf.Abs(p.x - x) < 0.1f && Mathf.Abs(p.z - z) < 0.1f;
 
         private void BuildLab()
         {
@@ -145,11 +154,15 @@ namespace Cyverse.Level
 
         private void BuildWorkflowHeader(Transform root)
         {
-            CreateWorldText(root, "DF_WorkflowHeader", new Vector3(0f, 4.05f, 19.18f),
+            // Centred in the wall bay between Column_N-16 and Column_N-8: on
+            // the centre line the x=0 column hid "CORRELATE" and the exit
+            // door's housing covered "REPORT", and the next bay has the server
+            // row's tray rods in front of it.
+            CreateWorldText(root, "DF_WorkflowHeader", new Vector3(-12f, 4.05f, 19.18f),
                 "ACQUIRE   ›   ANALYZE   ›   CORRELATE   ›   REPORT",
                 Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.055f, 120f, 34f);
-            SpawnCube("DF_HeaderRail", root, new Vector3(0f, 3.62f, 19.28f),
-                new Vector3(17f, 0.045f, 0.055f), GreenMaterial());
+            SpawnCube("DF_HeaderRail", root, new Vector3(-12f, 3.62f, 19.28f),
+                new Vector3(6.9f, 0.045f, 0.055f), GreenMaterial());
         }
 
         private void BuildAnalysisZone(Transform root)
@@ -206,6 +219,12 @@ namespace Cyverse.Level
                 new Vector3(9.2f, 0.50f, 11f), new Vector3(3.0f, 1.0f, 1.25f),
                 FurnitureMaterial(), collider: true);
             BuildKit.EnsureAimCollider(reportDesk, 2.6f, 3.2f);
+            // EnsureAimCollider turns the desk's own box into a trigger, which
+            // left the desk walk-through. A child box keeps it solid; the
+            // interact ray still finds the station through GetComponentInParent.
+            var solid = new GameObject("DF_ReportDeskSolid");
+            solid.transform.SetParent(reportDesk.transform, false);
+            solid.AddComponent<BoxCollider>();
             reportDesk.AddComponent<ForensicsReportStation>();
             // The monitor stands on a neck above the desk (its housing used to
             // sink into the worktop); the heading panel rides above it.
@@ -215,6 +234,7 @@ namespace Cyverse.Level
                 new Vector3(2.45f, 1.04f, 0.025f), BuildKit.MakeEmissive(new Color(0.04f, 0.18f, 0.11f), 0.72f));
             SpawnCube("DF_ReportHeaderPanel", root, new Vector3(9.2f, 2.60f, 11.10f),
                 new Vector3(3.35f, 0.50f, 0.04f), PanelMaterial());
+            SpawnHangers("DF_ReportHeaderPanel", root, new Vector3(9.2f, 2.60f, 11.10f), 3.35f, 0.50f);
             CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.60f, 11.02f),
                 "04  FORENSIC REPORT", Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.045f, 52f, 28f);
             // Evidence acquisition now happens at the Investigation Desk, so the
@@ -232,10 +252,16 @@ namespace Cyverse.Level
             // level moves it, but other rooms keep it there).
             SpawnOrthogonalPath("DF_Path_AcquireToAnalyze", root, new Vector3(-9.3f, InlayY, 7f),
                 new Vector3(-3.8f, InlayY, 9.2f), GreenMaterial());
-            SpawnOrthogonalPath("DF_Path_AnalyzeToEvidence", root, new Vector3(-2.4f, InlayY, 12.5f),
-                new Vector3(-5.4f, InlayY, 13.8f), GoldMaterial());
-            SpawnOrthogonalPath("DF_Path_EvidenceToReport", root, new Vector3(-4.9f, InlayY, 15f),
-                new Vector3(6.5f, InlayY, 11.8f), GreenMaterial());
+            // Each leg starts where the last one ended, on the side of the
+            // station the player works from. The analyze leg used to start
+            // behind the desk, and the report leg ended at the report desk's
+            // back corner (it faces south, toward z 9).
+            SpawnOrthogonalPath("DF_Path_AnalyzeToEvidence", root, new Vector3(-3.8f, InlayY, 9.6f),
+                new Vector3(-5.4f, InlayY, 13.0f), GoldMaterial());
+            SpawnOrthogonalPath("DF_Path_EvidenceToReport", root, new Vector3(-4.9f, InlayY, 13.4f),
+                new Vector3(6.3f, InlayY, 9.4f), GreenMaterial());
+            SpawnBeam("DF_Path_EvidenceToReport_Front", root, new Vector3(6.3f, InlayY, 9.4f),
+                new Vector3(8.4f, InlayY, 9.4f), GreenMaterial());
         }
 
         private void BuildFillLights(Transform root)
@@ -276,7 +302,9 @@ namespace Cyverse.Level
                 ForensicsStationProps.DressIntake(intake.transform, finish);
             if (intake != null)
                 ConfigureStationHeading(intake.transform, "01  EVIDENCE INTAKE",
-                    new Vector3(-11.5f, 2.30f, 7.18f));
+                    // z 7.47 keeps its hanger rods clear of CeilingPanel_7's
+                    // light strip (z 6.55..7.45).
+                    new Vector3(-11.5f, 2.30f, 7.47f));
         }
 
         private void ConfigureStationHeading(Transform station, string content, Vector3 position)
@@ -307,8 +335,25 @@ namespace Cyverse.Level
             SignFX signFx = heading.GetComponent<SignFX>();
             if (signFx != null) signFx.enabled = false;
 
+            // Sized to the ~2 m heading (a 4.8 m slab read as a black wall from
+            // the side and hid the wall TV) and hung from the ceiling.
+            Vector3 panel = position + Vector3.forward * 0.08f;
             SpawnCube("DF_HeadingPanel_" + station.name, station.parent,
-                position + Vector3.forward * 0.08f, new Vector3(4.8f, 0.62f, 0.06f), PanelMaterial());
+                panel, new Vector3(2.6f, 0.62f, 0.06f), PanelMaterial());
+            SpawnHangers("DF_HeadingPanel_" + station.name, station.parent, panel, 2.6f, 0.62f);
+        }
+
+        /// <summary>Two thin rods from the top of a hanging panel to the ceiling.</summary>
+        private void SpawnHangers(string name, Transform root, Vector3 panelCenter, float width, float height)
+        {
+            const float Ceiling = 5f;
+            float top = panelCenter.y + height * 0.5f;
+            if (top >= Ceiling) return;
+            float length = Ceiling - top;
+            foreach (float side in new[] { -1f, 1f })
+                SpawnCube(name + "_Hanger" + (side < 0 ? "L" : "R"), root,
+                    new Vector3(panelCenter.x + side * (width * 0.5f - 0.15f), top + length * 0.5f, panelCenter.z),
+                    new Vector3(0.025f, length, 0.025f), FurnitureMaterial());
         }
 
         private void BindProgress()

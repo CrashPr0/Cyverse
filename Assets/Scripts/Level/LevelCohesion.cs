@@ -386,6 +386,14 @@ namespace Cyverse.Level
             float w = local.size.x * Mathf.Abs(scale.x), h = local.size.y * Mathf.Abs(scale.y);
             if (w <= 0.01f || h <= 0.01f) return;
             Vector3 centre = sign.TransformPoint(local.center);
+            // Keep the plate under the 5 m ceiling: the Forensics Lab door
+            // sign's plate ran 7 cm into it.
+            float overflow = centre.y + (h + 0.2f) * 0.5f - 4.97f;
+            if (overflow > 0f)
+            {
+                sign.position -= Vector3.up * overflow;
+                centre -= Vector3.up * overflow;
+            }
 
             Color colour = SignColour(sign);
             var plate = new GameObject(sign.name + "_Plate").transform;
