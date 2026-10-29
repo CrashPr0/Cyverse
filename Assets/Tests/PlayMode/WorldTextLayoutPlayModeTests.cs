@@ -258,7 +258,7 @@ namespace Cyverse.Tests
 
             string[] required =
             {
-                "DF_WorkflowHeader", "DF_IntakeStatus", "DF_CorrelationLabel",
+                "DF_WorkflowHeader", "DF_IntakeStatus",
                 "DF_ReportHeader", "DF_ReportStatus"
             };
             foreach (string name in required)

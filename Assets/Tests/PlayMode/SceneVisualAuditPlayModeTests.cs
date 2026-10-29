@@ -209,7 +209,8 @@ namespace Cyverse.Tests
             yield return AuditScene("Level3_Forensics");
 
             Assert.That(GameObject.Find("ForensicsConsole"), Is.Not.Null);
-            Assert.That(GameObject.Find("EvidenceBoard"), Is.Not.Null);
+            Assert.That(GameObject.Find("EvidenceBoard"), Is.Null,
+                "The passive correlate board was removed; the lab runs intake, analyze, report.");
             Assert.That(GameObject.Find("ChainOfCustodyStation"), Is.Not.Null);
             Assert.That(GameObject.Find("FORENSICS_LAB_POLISH"), Is.Not.Null);
 
