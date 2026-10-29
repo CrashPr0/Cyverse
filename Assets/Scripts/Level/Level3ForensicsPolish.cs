@@ -126,7 +126,7 @@ namespace Cyverse.Level
                 // The east planter stood on the report pad's corner, in front
                 // of the report monitor.
                 else if (child.name == "Plant" && Near(p, 8f, 8f))
-                    child.position = new Vector3(12.6f, p.y, 8f);
+                    child.position = new Vector3(12.8f, p.y, 8f);
                 // Reception sat between the evidence locker and the briefing
                 // screen, across the first walk of the level.
                 else if (child.name == "Reception" && Near(p, 5f, -12f))
@@ -154,13 +154,14 @@ namespace Cyverse.Level
 
         private void BuildWorkflowHeader(Transform root)
         {
-            // Centred in the wall bay between Column_N-8 and Column_N0: on the
-            // centre line the x=0 column hid "CORRELATE" and the exit door's
-            // housing covered "REPORT".
-            CreateWorldText(root, "DF_WorkflowHeader", new Vector3(-4f, 4.05f, 19.18f),
+            // Centred in the wall bay between Column_N-16 and Column_N-8: on
+            // the centre line the x=0 column hid "CORRELATE" and the exit
+            // door's housing covered "REPORT", and the next bay has the server
+            // row's tray rods in front of it.
+            CreateWorldText(root, "DF_WorkflowHeader", new Vector3(-12f, 4.05f, 19.18f),
                 "ACQUIRE   ›   ANALYZE   ›   CORRELATE   ›   REPORT",
                 Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.055f, 120f, 34f);
-            SpawnCube("DF_HeaderRail", root, new Vector3(-4f, 3.62f, 19.28f),
+            SpawnCube("DF_HeaderRail", root, new Vector3(-12f, 3.62f, 19.28f),
                 new Vector3(6.9f, 0.045f, 0.055f), GreenMaterial());
         }
 
@@ -301,7 +302,9 @@ namespace Cyverse.Level
                 ForensicsStationProps.DressIntake(intake.transform, finish);
             if (intake != null)
                 ConfigureStationHeading(intake.transform, "01  EVIDENCE INTAKE",
-                    new Vector3(-11.5f, 2.30f, 7.18f));
+                    // z 7.47 keeps its hanger rods clear of CeilingPanel_7's
+                    // light strip (z 6.55..7.45).
+                    new Vector3(-11.5f, 2.30f, 7.47f));
         }
 
         private void ConfigureStationHeading(Transform station, string content, Vector3 position)
