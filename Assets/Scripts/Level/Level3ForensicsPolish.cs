@@ -187,6 +187,11 @@ namespace Cyverse.Level
                 new Vector3(5.6f, InlayHeight, 0.045f), GoldMaterial());
             CreateWorldText(root, "DF_CorrelationLabel", new Vector3(-8f, 3.55f, 14.82f),
                 "03  CORRELATE FINDINGS", new Color(0.92f, 0.72f, 0.30f), 0.045f, 52f, 28f);
+            // The board's own EVIDENCE sign sat across this label; the zone
+            // label replaces it.
+            EvidenceBoard board = FindObjectOfType<EvidenceBoard>();
+            Transform boardSign = board != null ? board.transform.Find("Sign_EVIDENCE") : null;
+            if (boardSign != null) boardSign.gameObject.SetActive(false);
         }
 
         private void BuildReportingZone(Transform root)

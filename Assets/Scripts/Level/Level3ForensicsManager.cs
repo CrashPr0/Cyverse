@@ -135,9 +135,10 @@ namespace Cyverse.Level
 
         private void OnCustodyCompleted()
         {
-            if (HudUI.Instance != null)
-                HudUI.Instance.ShowToast("Custody accepted — dock the device at the ANALYZE EVIDENCE desk",
-                    new Color(0.30f, 1f, 0.55f));
+            Announce("Custody accepted — dock the device at the ANALYZE EVIDENCE desk",
+                new Color(0.30f, 1f, 0.55f));
+            // The desk's score line would otherwise lag the custody points.
+            if (console != null) console.RefreshReadout();
             if (custodyStation != null)
                 BurstFX.SpawnAbove(custodyStation.transform, new Color(0.30f, 1f, 0.55f),
                     28, minimumHeight: 2.0f);
@@ -145,21 +146,37 @@ namespace Cyverse.Level
         }
 
         private bool pendingComplete;
+        private float completeAt;
+        private string pendingToast;
+        private Color pendingToastColor;
+
+        // Toasts draw on the HUD canvas, and these fire while the custody form
+        // or the Explorer is still open, landing on its title line. Hold them
+        // until the screen closes.
+        private void Announce(string message, Color color)
+        {
+            if (HudUI.Instance == null) return;
+            if (GameState.AnyMenuOpen)
+            {
+                pendingToast = message;
+                pendingToastColor = color;
+                return;
+            }
+            HudUI.Instance.ShowToast(message, color);
+        }
 
         private void OnCaseCompleted()
         {
             if (ReportReady)
             {
                 CurrentPhase = Phase.Report;
-                if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("CASEWORK COMPLETE — submit the final report at the FORENSIC REPORT desk",
-                        new Color(0.90f, 0.66f, 0.14f));
+                Announce("CASEWORK COMPLETE — submit the final report at the FORENSIC REPORT desk",
+                    new Color(0.90f, 0.66f, 0.14f));
             }
             else
             {
-                if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("CASE CLOSED — a new case file hit your desk",
-                        new Color(0.90f, 0.66f, 0.14f));
+                Announce("CASE CLOSED — a new case file hit your desk",
+                    new Color(0.90f, 0.66f, 0.14f));
                 if (console != null)
                     BurstFX.SpawnAbove(console.transform, new Color(0.90f, 0.66f, 0.14f),
                         40, minimumHeight: 2.2f);
@@ -172,6 +189,9 @@ namespace Cyverse.Level
             if (ReportSubmitted || !ReportReady) return;
             ReportSubmitted = true;
             pendingComplete = true;
+            // Let the report monitor show SUBMITTED before the results card
+            // covers it. Batch runs (CI) finish at once.
+            completeAt = Time.time + (Application.isBatchMode ? 0f : 1.6f);
             ReportFiled?.Invoke();
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast("FORENSIC REPORT SUBMITTED — case closed",
@@ -183,7 +203,12 @@ namespace Cyverse.Level
 
         void Update()
         {
-            if (pendingComplete && !GameState.AnyMenuOpen)
+            if (pendingToast != null && !GameState.AnyMenuOpen && HudUI.Instance != null)
+            {
+                HudUI.Instance.ShowToast(pendingToast, pendingToastColor);
+                pendingToast = null;
+            }
+            if (pendingComplete && !GameState.AnyMenuOpen && Time.time >= completeAt)
             {
                 pendingComplete = false;
                 CompleteLevel();

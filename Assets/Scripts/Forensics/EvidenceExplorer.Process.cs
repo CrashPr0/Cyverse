@@ -307,6 +307,7 @@ namespace Cyverse.Forensics
                 SetProcessAccent(Green);
                 SetProcessFeedback("<color=#4CE087><b>PROCESSING COMPLETE.</b></color>  The image hash matches " +
                     "the SHA-256 taken when the phone was imaged at the dock, so this copy is exactly what came off the phone.", Ink);
+                RefreshRail();
                 UiMotion.Pulse(railBadges[StepRun].transform, 0.12f);
             }
             float fraction = runDone ? 1f : Mathf.Clamp01(runClock / (SecondsPerStage * total));
@@ -332,9 +333,9 @@ namespace Cyverse.Forensics
                 : "<b>SKIP</b>   <size=15><color=#9FD8B4>ENTER</color></size>";
         }
 
-        private void RefreshProcess()
+        /// <summary>The step rail and progress strip.</summary>
+        private void RefreshRail()
         {
-            bool run = processStep == StepRun;
             for (int i = 0; i < StepNames.Length; i++)
             {
                 bool done = i < processStep || (i == StepRun && runDone);
@@ -350,6 +351,12 @@ namespace Cyverse.Forensics
                     : current ? "<color=#E5A823>IN PROGRESS</color>" : "PENDING";
                 UiMotion.ColorTo(progressSegments[i], done ? Green : current ? Gold : new Color(0.12f, 0.19f, 0.22f), UiMotion.Slow);
             }
+        }
+
+        private void RefreshProcess()
+        {
+            bool run = processStep == StepRun;
+            RefreshRail();
             evidenceCard.text =
                 "<size=15><color=#607585><b><cspace=3>EVIDENCE ITEM</cspace></b></color></size>\n" +
                 $"<b>#1  Work phone</b>\n<color=#8FB8CC>Owner</color><indent=38%>{Escape(phone.owner)}</indent>\n" +
@@ -401,7 +408,7 @@ namespace Cyverse.Forensics
         private static string Answer(int i)
         {
             string s = Picks[i].tiles[Picks[i].correct].ToLowerInvariant();
-            return char.ToUpperInvariant(s[0]) + s.Substring(1);
+            return (char.ToUpperInvariant(s[0]) + s.Substring(1)).Replace("Novaos", PhoneImage.Platform);
         }
 
         private string PassList()

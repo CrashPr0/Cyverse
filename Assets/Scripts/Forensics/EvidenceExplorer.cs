@@ -119,6 +119,14 @@ namespace Cyverse.Forensics
                 out modal, releaseCursor: true)) return;
 
             phone = image;
+            // A new case starts on a clean bench: case 1's last category,
+            // filter and tagged item would otherwise greet case 2.
+            if (investigation != activeCase)
+            {
+                category = PhoneImage.Categories[0];
+                filter = "";
+                selected = -1;
+            }
             activeCase = investigation;
             caseClosedNote = closedNote;
             open = true;
@@ -143,8 +151,7 @@ namespace Cyverse.Forensics
             SetAccent(Cyan);
             SetFeedback(activeCase.IsComplete
                 ? "<color=#E5A823>Case closed. Browse freely, or Esc to step away.</color>"
-                : "Pick a category, select an item, and read its details. Tag only what proves the answer." +
-                  "  <color=#8FB8CC>Keys: ←/→ category · Up/Down item · type to search · Enter tag</color>",
+                : "Pick a category, select an item, and read its details. Tag only what proves the answer.",
                 Ink);
             RefreshList(keepSelection: true);
             RevealExamine();
@@ -368,7 +375,7 @@ namespace Cyverse.Forensics
                 PhoneArtifact a = visible[i];
                 string tag = a.Tagged ? "<color=#E5A823>[EVIDENCE]</color> " : "";
                 row.GetComponentInChildren<TMP_Text>().text =
-                    $"<color=#8FB8CC>{a.timestamp}</color><pos=25%>{tag}{Badges(a)}{Escape(a.title)}";
+                    $"<color=#8FB8CC>{a.timestamp}</color><pos=28%>{tag}{Badges(a)}{Escape(a.title)}";
                 UiMotion.ColorTo(row.GetComponent<Image>(), i == selected ? RowSelected
                     : a.Tagged ? RowTagged : i % 2 == 0 ? RowIdle : RowAlt);
                 rowMarks[i].enabled = i == selected;
@@ -605,7 +612,7 @@ namespace Cyverse.Forensics
 
             float rowsTop = ColumnsTop - PaneHeaderH - 0.11f;
             TMP_Text columns = MakeText(root, "Columns", 14, TextAlignmentOptions.MidlineLeft);
-            columns.text = "<b><cspace=3><color=#607585>TIME<pos=25%>ITEM</color></cspace></b>";
+            columns.text = "<b><cspace=3><color=#607585>TIME<pos=28%>ITEM</color></cspace></b>";
             columns.enableWordWrapping = false;
             Place(columns.rectTransform, 0.219f, rowsTop + 0.002f, 0.551f, rowsTop + 0.034f, 0f);
             Inset(columns.rectTransform, 16f, 10f);
@@ -618,6 +625,9 @@ namespace Cyverse.Forensics
                 Place(row.GetComponent<RectTransform>(), 0.219f, top - 0.046f, 0.551f, top, 0f);
                 TMP_Text label = row.GetComponentInChildren<TMP_Text>();
                 label.fontSize = 19;
+                label.enableAutoSizing = true;
+                label.fontSizeMin = 14;
+                label.fontSizeMax = 19;
                 label.richText = true;
                 rowMarks.Add(Edge(row.transform, Green, 4f));
                 row.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Select(captured, 0)));
@@ -627,7 +637,19 @@ namespace Cyverse.Forensics
 
             // Right pane: every field of the selected artifact, then the actions.
             Pane3(root, "DetailPane", 0.565f, 0.988f, out _).text = "ARTIFACT DETAILS";
+            // The key legend lives in the pane header so feedback never
+            // pushes it off screen.
+            TMP_Text keys = MakeText(root, "KeyLegend", 14, TextAlignmentOptions.MidlineRight);
+            keys.text = "<color=#8FB8CC>←/→ CATEGORY · UP/DOWN ITEM · TYPE TO SEARCH · ENTER TAG</color>";
+            keys.enableWordWrapping = false;
+            Place(keys.rectTransform, 0.565f, ColumnsTop - PaneHeaderH, 0.988f, ColumnsTop, 0f);
+            Inset(keys.rectTransform, 250f, 14f);
             detailText = MakeText(root, "Detail", 20, TextAlignmentOptions.TopLeft);
+            // Long records (several fields plus findings) shrink to fit
+            // instead of losing their last lines under the buttons.
+            detailText.enableAutoSizing = true;
+            detailText.fontSizeMin = 14;
+            detailText.fontSizeMax = 20;
             detailText.lineSpacing = 6f;
             detailText.overflowMode = TextOverflowModes.Ellipsis;
             Place(detailText.rectTransform, 0.565f, ColumnsBottom + 0.1f, 0.988f, ColumnsTop - PaneHeaderH, 0f);
