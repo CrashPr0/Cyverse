@@ -145,7 +145,6 @@ namespace Cyverse.Level
             BuildWorkflowHeader(root.transform);
             BuildAnalysisZone(root.transform);
             BuildAcquisitionZone(root.transform);
-            BuildEvidenceZone(root.transform);
             BuildReportingZone(root.transform);
             BuildWorkflowPath(root.transform);
             BuildFillLights(root.transform);
@@ -155,14 +154,14 @@ namespace Cyverse.Level
         private void BuildWorkflowHeader(Transform root)
         {
             // Centred in the wall bay between Column_N-16 and Column_N-8: on
-            // the centre line the x=0 column hid "CORRELATE" and the exit
-            // door's housing covered "REPORT", and the next bay has the server
-            // row's tray rods in front of it.
+            // the centre line the x=0 column and the exit door's housing
+            // covered the words, and the next bay has the server row's tray
+            // rods in front of it.
             CreateWorldText(root, "DF_WorkflowHeader", new Vector3(-12f, 4.05f, 19.18f),
-                "ACQUIRE   ›   ANALYZE   ›   CORRELATE   ›   REPORT",
+                "ACQUIRE   ›   ANALYZE   ›   REPORT",
                 Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.055f, 120f, 34f);
             SpawnCube("DF_HeaderRail", root, new Vector3(-12f, 3.62f, 19.28f),
-                new Vector3(6.9f, 0.045f, 0.055f), GreenMaterial());
+                new Vector3(5.2f, 0.045f, 0.055f), GreenMaterial());
         }
 
         private void BuildAnalysisZone(Transform root)
@@ -190,21 +189,6 @@ namespace Cyverse.Level
                 new Vector3(2.45f, 0.42f, 0.04f), PanelMaterial());
             intakeStatus = CreateWorldText(root, "DF_IntakeStatus", new Vector3(-11.5f, 0.60f, 7.28f),
                 evidenceText, new Color(0.78f, 0.92f, 1f), 0.026f, 88f, 22f);
-        }
-
-        private void BuildEvidenceZone(Transform root)
-        {
-            SpawnCube("DF_EvidencePad", root, new Vector3(-8f, PadY, 15f),
-                new Vector3(6.2f, PadHeight, 4.2f), FloorMaterial());
-            SpawnCube("DF_EvidenceRail", root, new Vector3(-8f, InlayY, 12.92f),
-                new Vector3(5.6f, InlayHeight, 0.045f), GoldMaterial());
-            CreateWorldText(root, "DF_CorrelationLabel", new Vector3(-8f, 3.55f, 14.82f),
-                "03  CORRELATE FINDINGS", new Color(0.92f, 0.72f, 0.30f), 0.045f, 52f, 28f);
-            // The board's own EVIDENCE sign sat across this label; the zone
-            // label replaces it.
-            EvidenceBoard board = FindObjectOfType<EvidenceBoard>();
-            Transform boardSign = board != null ? board.transform.Find("Sign_EVIDENCE") : null;
-            if (boardSign != null) boardSign.gameObject.SetActive(false);
         }
 
         private void BuildReportingZone(Transform root)
@@ -236,7 +220,7 @@ namespace Cyverse.Level
                 new Vector3(3.35f, 0.50f, 0.04f), PanelMaterial());
             SpawnHangers("DF_ReportHeaderPanel", root, new Vector3(9.2f, 2.60f, 11.10f), 3.35f, 0.50f);
             CreateWorldText(root, "DF_ReportHeader", new Vector3(9.2f, 2.60f, 11.02f),
-                "04  FORENSIC REPORT", Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.045f, 52f, 28f);
+                "03  FORENSIC REPORT", Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.045f, 52f, 28f);
             // Evidence acquisition now happens at the Investigation Desk, so the
             // report monitor is free to carry the casework status again. 1.75 cm
             // proud of the screen face (z 11.0775) to stay out of its depth.
@@ -253,14 +237,10 @@ namespace Cyverse.Level
             SpawnOrthogonalPath("DF_Path_AcquireToAnalyze", root, new Vector3(-9.3f, InlayY, 7f),
                 new Vector3(-3.8f, InlayY, 9.2f), GreenMaterial());
             // Each leg starts where the last one ended, on the side of the
-            // station the player works from. The analyze leg used to start
-            // behind the desk, and the report leg ended at the report desk's
-            // back corner (it faces south, toward z 9).
-            SpawnOrthogonalPath("DF_Path_AnalyzeToEvidence", root, new Vector3(-3.8f, InlayY, 9.6f),
-                new Vector3(-5.4f, InlayY, 13.0f), GoldMaterial());
-            SpawnOrthogonalPath("DF_Path_EvidenceToReport", root, new Vector3(-4.9f, InlayY, 13.4f),
-                new Vector3(6.3f, InlayY, 9.4f), GreenMaterial());
-            SpawnBeam("DF_Path_EvidenceToReport_Front", root, new Vector3(6.3f, InlayY, 9.4f),
+            // station the player works from: the analyze desk's front edge
+            // straight across to the report desk's front (it faces south,
+            // toward z 9).
+            SpawnBeam("DF_Path_AnalyzeToReport", root, new Vector3(3.8f, InlayY, 9.4f),
                 new Vector3(8.4f, InlayY, 9.4f), GreenMaterial());
         }
 

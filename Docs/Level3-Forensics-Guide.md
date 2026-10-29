@@ -57,9 +57,9 @@ sliding and scaling animations.
 ## 3. Walkthrough
 
 The HUD always shows the current objective at the top, a task list on the side,
-and a gold beacon over the next station. The lab has four numbered zones on the
-floor and wall: **01 Evidence Intake → 02 Analyze Evidence → 03 Correlate →
-04 Forensic Report**.
+and a gold beacon over the next station. The lab has three numbered zones on the
+floor and wall: **01 Evidence Intake → 02 Analyze Evidence → 03 Forensic
+Report**.
 
 ### Step 1 — Retrieve the device (evidence locker)
 
@@ -128,16 +128,16 @@ right (every recovered field, any processing findings, and the source file on
 the phone). The question sits in the gold banner on top.
 
 Select the item that proves the answer and press **TAG AS EVIDENCE**. Correct
-tags turn gold (`[EVIDENCE]`) and pin a card on the **03 CORRELATE** board.
+tags turn gold (`[EVIDENCE]`) and the desk's centre monitor counts them.
 A wrong tag tells you which category holds the proof (or to re-read the fields
 if you are already in the right one).
 
 When Case 1 closes, press **Esc**, then **E** at the desk again to open Case 2.
 The phone stays processed; Case 2 opens straight into Examine.
 
-### Step 7 — Submit the forensic report (04)
+### Step 7 — Submit the forensic report (03)
 
-With both cases closed, go to the **04 FORENSIC REPORT** desk and press **E**.
+With both cases closed, go to the **03 FORENSIC REPORT** desk and press **E**.
 The level completes, the results screen shows your score, and Level 4 unlocks.
 Leave through either **Return to Hub** door.
 
@@ -153,8 +153,7 @@ Leave through either **Return to Hub** door.
 | 02 Analyze Evidence | Lab, centre | Three monitors: left = acquisition and hash, centre = live case readout (question, progress, score), right = the working copy. Opens the Evidence Explorer. |
 | Write blocker + cradle | On the 02 desk | The phone docks here; the blocker's amber LED shows no writes reach the evidence. |
 | Evidence Explorer | Full-screen at 02 | Process (case setup) then Examine (categories, list, details, tagging). |
-| 03 Correlate board | Lab, back left | A card for every finding, filled in as questions are answered. |
-| 04 Forensic Report | Lab, right | Locked until intake and both cases are done; its monitor shows `CASEWORK n / 11`. |
+| 03 Forensic Report | Lab, right | Locked until intake and both cases are done; its monitor shows `CASEWORK n / 11`. |
 
 ---
 
