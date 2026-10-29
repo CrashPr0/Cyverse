@@ -279,10 +279,10 @@ namespace Cyverse.Forensics
             // What each column means, so players know what to track. Says what
             // the columns ask for, never which option answers them.
             TMP_Text key = MakeText("ColumnKey", card.transform, 17, TextAlignmentOptions.MidlineLeft);
-            key.text = "<color=#8CC7D1>RELEASED BY</color> who hands the item over     " +
+            key.text = "<color=#8CC7D1>ITEM #</color> which item, from the item block     " +
+                       "<color=#8CC7D1>RELEASED BY</color> who hands the item over     " +
                        "<color=#8CC7D1>RECEIVED BY</color> who takes custody     " +
-                       "<color=#8CC7D1>REASON</color> why it is moving     " +
-                       "<color=#8CC7D1>ITEM #</color> which item, from the item block";
+                       "<color=#8CC7D1>REASON</color> why it is moving";
             key.color = Muted;
             SetRect(key.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f),
                 new Vector2(36f, Entry2Top - 124f), new Vector2(-72f, 28f), new Vector2(0f, 1f));
@@ -482,7 +482,7 @@ namespace Cyverse.Forensics
                     : new Color(0.38f, 0.10f, 0.08f, 1f);
                 if (correct) continue;
                 // Say which blanks are wrong in text too, not only in red.
-                field.value.text = "<color=#FF8866><b>[X]</b></color> " + field.options[field.selectedIndex];
+                field.value.text = "<b>[X]</b> " + field.options[field.selectedIndex];
                 wrong++;
                 if (hint == null) hint = field.hint;
             }

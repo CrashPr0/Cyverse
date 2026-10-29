@@ -527,8 +527,14 @@ namespace Cyverse.Tests
             Assert.That(PlayerPrefs.GetInt("cv_done_3", 0), Is.EqualTo(0));
 
             Assert.That(GameplayActionTestDriver.Interact(report), Is.True);
+            // Outside batch mode the results card waits a beat so the report
+            // monitor can show SUBMITTED; allow for that in the editor.
+            float deadline = Time.realtimeSinceStartup + 4f;
             yield return null;
             yield return null;
+            while (!(bool)gameState.GetField("LevelComplete").GetValue(null) &&
+                   Time.realtimeSinceStartup < deadline)
+                yield return null;
 
             Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(),
                 Is.EqualTo("Complete"));
