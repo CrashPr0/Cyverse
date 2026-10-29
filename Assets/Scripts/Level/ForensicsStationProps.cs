@@ -266,7 +266,8 @@ namespace Cyverse.Level
                 new Vector3(0.06f, 0.004f, 0.05f), redTab);
 
             // Report printer with a page in the output tray.
-            Vector3 printer = new Vector3(c.x + 1.0f, top, c.z - 0.05f);
+            // Forward of the monitor housing (it stands 0.15 m behind centre).
+            Vector3 printer = new Vector3(c.x + 1.0f, top, c.z - 0.25f);
             BlockKit.Block("Printer", dress, printer, Vector3.zero, 0f, 0.20f,
                 new Vector2(0.24f, 0.20f), new Vector2(0.22f, 0.18f), 0.02f, f.body);
             BlockKit.Box("PrinterSlot", dress, printer + new Vector3(0f, 0.12f, -0.201f),

@@ -219,6 +219,12 @@ namespace Cyverse.Tests
             GameObject reportMonitor = GameObject.Find("DF_ReportMonitor");
             Assert.That(reportMonitor, Is.Not.Null);
             Assert.That(reportMonitor.GetComponent<Renderer>(), Is.Not.Null);
+            GameObject reportDesk = GameObject.Find("DF_ReportDesk");
+            Assert.That(reportDesk, Is.Not.Null);
+            bool deskSolid = false;
+            foreach (Collider c in reportDesk.GetComponentsInChildren<Collider>())
+                if (!c.isTrigger) deskSolid = true;
+            Assert.That(deskSolid, Is.True, "The report desk must block movement, not only catch the aim ray.");
             AssertQuietGridFloor("Level 3");
 
             Transform polish = GameObject.Find("FORENSICS_LAB_POLISH").transform;

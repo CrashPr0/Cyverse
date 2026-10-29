@@ -210,9 +210,11 @@ namespace Cyverse.Level
                 Transform halo = sign.Find("Halo");
                 if (halo != null) halo.gameObject.SetActive(false);
                 sign.localRotation = Quaternion.identity;
-                sign.localPosition = new Vector3(0f, 4.78f, -0.34f);
-                Slab("SignPlate", dress, new Vector3(0f, 4.76f, -0.27f), new Vector3(3.3f, 0.62f, 0.08f), 0.02f, body);
-                Box("SignEdge", dress, new Vector3(0f, 5.06f, -0.315f), new Vector3(3.1f, 0.02f, 0.012f), glow);
+                // 0.1 m below the old height: the plate's top edge ran 7 cm
+                // into the 5 m ceiling.
+                sign.localPosition = new Vector3(0f, 4.68f, -0.34f);
+                Slab("SignPlate", dress, new Vector3(0f, 4.66f, -0.27f), new Vector3(3.3f, 0.62f, 0.08f), 0.02f, body);
+                Box("SignEdge", dress, new Vector3(0f, 4.96f, -0.315f), new Vector3(3.1f, 0.02f, 0.012f), glow);
             }
 
             // Level 4 is the game room, so its doorway carries the same
