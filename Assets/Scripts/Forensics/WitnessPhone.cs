@@ -394,9 +394,14 @@ namespace Cyverse.Forensics
                 TMP_Text body = MakeText(chatContent, "Text", BubbleFont, TextAlignmentOptions.TopLeft);
                 body.text = Escape(m.text);
                 body.color = Color.white;
+                // TMP can measure 0 when no font atlas is rendered (batch mode),
+                // so never go below an estimate from the character count.
+                float estimateW = Mathf.Min(BubbleMax, m.text.Length * BubbleFont * 0.5f);
                 Vector2 pref = body.GetPreferredValues(body.text, BubbleMax, 0f);
-                float textW = Mathf.Min(BubbleMax, Mathf.Ceil(pref.x) + 1f);
-                float textH = Mathf.Ceil(body.GetPreferredValues(body.text, textW, 0f).y);
+                float textW = Mathf.Min(BubbleMax, Mathf.Max(Mathf.Ceil(pref.x) + 1f, pref.x > 0f ? 0f : estimateW));
+                int estimateLines = Mathf.Max(1, Mathf.CeilToInt(m.text.Length * BubbleFont * 0.5f / textW));
+                float textH = Mathf.Max(Mathf.Ceil(body.GetPreferredValues(body.text, textW, 0f).y),
+                    estimateLines * BubbleFont * 1.25f);
                 float bubbleW = textW + BubblePad * 2f, bubbleH = textH + BubblePad * 1.4f;
                 float x = m.outgoing ? width - 8f - bubbleW : 8f;
 
