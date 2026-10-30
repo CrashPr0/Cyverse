@@ -600,11 +600,21 @@ namespace Cyverse.Tests
             Assert.That((int)phoneType.GetProperty("OpenContact").GetValue(phone), Is.EqualTo(-1),
                 "The phone opens on the contact list.");
 
-            Assert.That(GameplayActionTestDriver.Choose(phone, 0), Is.True);
-            yield return null;
-            Assert.That((int)phoneType.GetProperty("OpenContact").GetValue(phone), Is.EqualTo(0));
-            Assert.That((float)phoneType.GetProperty("ScrollRange").GetValue(phone), Is.GreaterThan(0f),
+            // Contacts are listed newest first, so find the longest thread.
+            int count = (int)phoneType.GetProperty("ContactCount").GetValue(phone);
+            int longest = 0;
+            float longestRange = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                Assert.That(GameplayActionTestDriver.Choose(phone, i), Is.True);
+                Assert.That((int)phoneType.GetProperty("OpenContact").GetValue(phone), Is.EqualTo(i));
+                float range = (float)phoneType.GetProperty("ScrollRange").GetValue(phone);
+                if (range > longestRange) { longestRange = range; longest = i; }
+            }
+            Assert.That(longestRange, Is.GreaterThan(0f),
                 "The longest conversation should be taller than the screen, so it scrolls.");
+            Assert.That(GameplayActionTestDriver.Choose(phone, longest), Is.True);
+            yield return null;
             Assert.That(GameplayActionTestDriver.Navigate(phone, 1), Is.True);
             Assert.That((float)phoneType.GetProperty("ScrollPosition").GetValue(phone), Is.LessThan(0.999f),
                 "Down should scroll the conversation.");
