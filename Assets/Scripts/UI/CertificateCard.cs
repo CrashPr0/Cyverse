@@ -7,10 +7,11 @@ using Cyverse.Core;
 namespace Cyverse.UI
 {
     /// <summary>
-    /// Prototype certificate of completion, opened from the results card of
-    /// any level ([C] or the button). Names the player's callsign, the level,
-    /// the score and rating, and today's date. Drawn on the HUD canvas like the
-    /// results card; nothing is saved or printed yet.
+    /// Prototype certificate for finishing the whole game, offered only on the
+    /// results card of the last story level once Levels 1-4 are all complete
+    /// ([C] or the button). Names the player's callsign, the program, the
+    /// final mission's score and rating, and today's date. Drawn on the HUD
+    /// canvas like the results card; nothing is saved or printed yet.
     /// </summary>
     public sealed class CertificateCard
     {
@@ -22,35 +23,25 @@ namespace Cyverse.UI
 
         private GameObject root;
         private RectTransform sheet;
-        private Text recipient, levelLine, scoreLine, dateLine;
+        private Text recipient, scoreLine, dateLine;
 
         public bool IsOpen => root != null && root.activeSelf;
 
-        /// <summary>"LEVEL 3 COMPLETE" or "LEVEL 3 HARD — COMPLETE" → the
-        /// level's full name, as the Hub doors call it.</summary>
-        public static string LevelName(string headerText)
-        {
-            Match m = Regex.Match(headerText ?? "", @"LEVEL\s+(\d)");
-            if (!m.Success) return "CyVerse Training";
-            string name;
-            switch (m.Groups[1].Value)
-            {
-                case "0": name = "Level 0: Orientation"; break;
-                case "1": name = "Level 1: Identity & Access Management"; break;
-                case "2": name = "Level 2: Cyber Defense (SOC)"; break;
-                case "3": name = "Level 3: Digital Forensics"; break;
-                case "4": name = "Level 4: Cyber Attack"; break;
-                default: name = "Level " + m.Groups[1].Value; break;
-            }
-            return headerText.Contains("HARD") ? name + "  (Hard)" : name;
-        }
+        public const string ProgramName = "the CyVerse Security Training Program";
+        public const string ProgramLevels =
+            "Identity & Access Management  ·  Cyber Defense  ·  Digital Forensics  ·  Cyber Attack";
 
-        public void Show(Transform canvas, string headerText, int score, int parScore, string grade, string rank)
+        /// <summary>True when this results card ends the whole game: the
+        /// final story level (Level 4, normal or Hard) with every story level
+        /// complete. Earlier levels never offer a certificate.</summary>
+        public static bool EarnedBy(string headerText, int completedStoryLevels) =>
+            completedStoryLevels >= 4 && Regex.IsMatch(headerText ?? "", @"\bLEVEL\s+4\b");
+
+        public void Show(Transform canvas, int score, int parScore, string grade, string rank)
         {
             if (root == null) Build(canvas);
             recipient.text = PlayerIdentity.Callsign;
-            levelLine.text = LevelName(headerText);
-            scoreLine.text = $"Score  <b>{score:N0}</b>  /  {parScore:N0} par      Rating  <b>{grade}</b>  ·  {rank}";
+            scoreLine.text = $"Final mission score  <b>{score:N0}</b>  /  {parScore:N0} par      Rating  <b>{grade}</b>  ·  {rank}";
             dateLine.text = DateTime.Now.ToString("MMMM d, yyyy");
             root.transform.SetAsLastSibling();
             root.SetActive(true);
@@ -85,8 +76,9 @@ namespace Cyverse.UI
             recipient = Label(sheet, "Recipient", "", 54, InkDark, 66f, FontStyle.Bold);
             Box("NameRule", sheet, InkSoft, new Vector2(0f, 30f), new Vector2(560f, 1.5f));
             Label(sheet, "Completed", "has successfully completed", 24, InkSoft, -6f, FontStyle.Italic);
-            levelLine = Label(sheet, "Level", "", 38, Navy, -58f, FontStyle.Bold);
-            scoreLine = Label(sheet, "Score", "", 22, InkDark, -112f, FontStyle.Normal);
+            Label(sheet, "Program", ProgramName, 38, Navy, -56f, FontStyle.Bold);
+            Label(sheet, "Levels", ProgramLevels, 19, InkSoft, -100f, FontStyle.Normal);
+            scoreLine = Label(sheet, "Score", "", 21, InkDark, -140f, FontStyle.Normal);
 
             // Date on the left, signature on the right, seal between them.
             dateLine = Signature(sheet, "Date", -300f, "Date");

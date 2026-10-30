@@ -644,13 +644,17 @@ namespace Cyverse.Tests
         }
 
         [Test]
-        public void Certificate_NamesTheLevelFromTheResultsHeader()
+        public void Certificate_OnlyForFinishingTheWholeGame()
         {
             Type certType = FindType("Cyverse.UI.CertificateCard");
-            MethodInfo levelName = certType.GetMethod("LevelName");
-            Assert.That((string)levelName.Invoke(null, new object[] { "LEVEL 3 COMPLETE" }),
-                Is.EqualTo("Level 3: Digital Forensics"));
-            StringAssert.Contains("(Hard)", (string)levelName.Invoke(null, new object[] { "LEVEL 1 HARD — COMPLETE" }));
+            MethodInfo earned = certType.GetMethod("EarnedBy");
+            bool Earned(string header, int done) => (bool)earned.Invoke(null, new object[] { header, done });
+            Assert.That(Earned("LEVEL 4 COMPLETE", 4), Is.True, "Finishing the last level with all four done earns it.");
+            Assert.That(Earned("LEVEL 4 HARD — COMPLETE", 4), Is.True);
+            Assert.That(Earned("LEVEL 4 COMPLETE", 3), Is.False, "Not while any story level is unfinished.");
+            Assert.That(Earned("LEVEL 3 COMPLETE", 4), Is.False, "Individual levels never offer a certificate.");
+            Assert.That(Earned("LEVEL 0 COMPLETE", 4), Is.False);
+            Assert.That(Earned("LEVEL 1 HARD — COMPLETE", 4), Is.False);
         }
 
         [Test]
