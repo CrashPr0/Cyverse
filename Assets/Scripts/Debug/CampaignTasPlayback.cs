@@ -360,6 +360,8 @@ namespace Cyverse.Testing
             Show("E", "Submit final forensic report");
             GameplayActions.TryApply(report, GameplayAction.Interact(), gameObject);
             yield return null; yield return null;
+            Show("1  2  3", "Answer the knowledge check");
+            yield return DeterministicGameplayAdapter.CompleteKnowledgeCheckPaced(manager, gameObject, 0.6f);
             if (manager.CurrentPhase != Level3ForensicsManager.Phase.Complete)
                 Fail("Digital Forensics did not reach completion.");
         }

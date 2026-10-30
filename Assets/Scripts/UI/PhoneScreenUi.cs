@@ -43,6 +43,15 @@ namespace Cyverse.UI
         /// centre); the caller anchors and positions it.</summary>
         public static RectTransform BuildDevice(Transform parent, out PhoneScreenUi ui)
         {
+            RectTransform device = BuildCase(parent, out RectTransform screen);
+            ui = Build(screen);
+            return device;
+        }
+
+        /// <summary>Drop shadow, side buttons, rim and case, with an empty
+        /// ScreenSize rect centred in it.</summary>
+        private static RectTransform BuildCase(Transform parent, out RectTransform screen)
+        {
             var device = Rect("PhoneDevice", parent);
             device.sizeDelta = DeviceSize;
 
@@ -65,11 +74,41 @@ namespace Cyverse.UI
             Stretch(body.rectTransform, new Vector2(2.5f, 2.5f), new Vector2(-2.5f, -2.5f));
             SetRadius(body, 32f);
 
-            var screen = Rect("Screen", body.rectTransform);
+            screen = Rect("Screen", body.rectTransform);
             screen.sizeDelta = ScreenSize;
             screen.anchoredPosition = Vector2.zero;
-            ui = Build(screen);
             return device;
+        }
+
+        /// <summary>An empty handheld for other phone apps: the same case as
+        /// <see cref="BuildDevice"/> (DeviceSize), with the status bar and home
+        /// indicator on a rounded, masked glass of ScreenSize for the caller to
+        /// fill. Scale the returned device root to size it on screen.</summary>
+        public static RectTransform BuildShell(Transform parent, Color glassColor, out RectTransform glass)
+        {
+            RectTransform device = BuildCase(parent, out RectTransform screen);
+            var pane = Img("Glass", screen, Rounded(), glassColor);
+            Stretch(pane.rectTransform, Vector2.zero, Vector2.zero);
+            SetRadius(pane, 26f);
+            pane.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+            glass = pane.rectTransform;
+
+            BuildStatusBar(glass, new PhoneScreenUi());
+            var home = Img("HomeIndicator", glass, Rounded(), new Color(1f, 1f, 1f, 0.7f));
+            var hr = home.rectTransform;
+            hr.anchorMin = hr.anchorMax = new Vector2(0.5f, 0f);
+            hr.sizeDelta = new Vector2(70f, 4f); hr.anchoredPosition = new Vector2(0f, 6f);
+            SetRadius(home, 2f);
+            return device;
+        }
+
+        /// <summary>A rounded-rectangle image (corner radius in UI units) for
+        /// apps drawn inside <see cref="BuildShell"/>.</summary>
+        public static Image RoundedImage(string name, Transform parent, Color color, float radius)
+        {
+            var img = Img(name, parent, Rounded(), color);
+            SetRadius(img, radius);
+            return img;
         }
 
         /// <summary>Fill <paramref name="screen"/> (sized ScreenSize) with the

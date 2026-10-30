@@ -101,7 +101,7 @@ The first time the Explorer opens it shows **CASE SETUP**, five steps on a left
 rail:
 
 1. **Case details** — what kind of case is this?
-2. **Evidence source** — what device and platform is in the cradle?
+2. **Evidence source** — what kind of device is in the cradle?
 3. **Acquisition** — how much should the tool copy?
 4. **Processing options** — optional passes; none is required.
 5. **Process** — the run: copy, verify hash, parse, carve deleted records, run
@@ -138,8 +138,35 @@ The phone stays processed; Case 2 opens straight into Examine.
 ### Step 7 — Submit the forensic report (03)
 
 With both cases closed, go to the **03 FORENSIC REPORT** desk and press **E**.
-The level completes, the results screen shows your score, and Level 4 unlocks.
-Leave through either **Return to Hub** door.
+
+### Step 8 — Knowledge check
+
+Filing the report opens a five-question knowledge check, one question at a
+time. Answer with **1**, **2** or **3**. A wrong answer shows why and still
+moves on. After the last question the level completes, the results screen
+shows your score, and Level 4 unlocks. Leave through either **Return to Hub**
+door.
+
+On the results screen, press **C** (or VIEW CERTIFICATE) to see a prototype
+certificate of completion with your callsign, the level, your score and rating,
+and today's date. Every level's results screen has it.
+
+### Optional — the witness phone
+
+East of the report desk, a phone lies on a stand marked **WITNESS PHONE**. It
+belongs to Jamie Park, a coworker of the phone's owner, who shared it by
+consent. Press **E** to open it as a messages app: click a contact to open the
+conversation, scroll with the mouse wheel, by dragging, or with **Up/Down**,
+and press **Esc** to go back to the list (and Esc again to close). It is not
+needed to finish the level.
+
+What it shows: the same fake "CyVerse IT Support" account tried Jamie first;
+Jamie asked for a ticket number, checked with the real help desk (ticket
+#4471) and blocked it. Jamie also tried to warn the owner, whose replies show
+the after-hours return to the office from Case 2. Jamie's copy of that
+conversation is longer than what the image holds from the owner's side, a
+reminder that a witness's device can hold messages the other party no longer
+has.
 
 ---
 
@@ -153,7 +180,8 @@ Leave through either **Return to Hub** door.
 | 02 Analyze Evidence | Lab, centre | Three monitors: left = acquisition and hash, centre = live case readout (question, progress, score), right = the working copy. Opens the Evidence Explorer. |
 | Write blocker + cradle | On the 02 desk | The phone docks here; the blocker's amber LED shows no writes reach the evidence. |
 | Evidence Explorer | Full-screen at 02 | Process (case setup) then Examine (categories, list, details, tagging). |
-| 03 Forensic Report | Lab, right | Locked until intake and both cases are done; its monitor shows `CASEWORK n / 11`. |
+| 03 Forensic Report | Lab, right | Locked until intake and both cases are done; its monitor shows `CASEWORK n / 11`. Filing it starts the knowledge check. |
+| Witness phone | Stand east of the report desk | Optional. A coworker's phone shared by consent: contact list, scrollable conversations. |
 
 ---
 
@@ -176,7 +204,7 @@ Client IT" as releaser (skipping the SOC's custody), and "None: same department"
 | Step | Correct pick | Teaching point |
 | --- | --- | --- |
 | 1 Case details | **Phishing / malware** | The briefing describes a phishing campaign; the SOC caught unexplained activity on the owner's workstation. |
-| 2 Evidence source | **NovaOS phone** | The evidence label says NovaOS; the tool needs the platform to know where apps keep their data. ("NovaOS" and "OrbitOS" are invented platforms.) |
+| 2 Evidence source | **Phone** | The evidence label says item #1 is a work phone (it runs the invented NovaOS). The tool needs the device type to know where data lives. Wrong picks: Vehicle Operating System (a car's infotainment unit), Tablet, Laptop. |
 | 3 Acquisition | **Full file system** | Quick (logical) skips chat databases, deleted records and photo GPS, which Case 2 needs. Lock bypass isn't needed (the owner gave the passcode) and needs legal authority. |
 | 4 Options | Any combination | None is required. Hash match and AI triage give the most visible clues. |
 
@@ -211,7 +239,23 @@ taken at home at 20:15), which is the lesson that AI flags are leads; the "delet
 this chat" message was recovered from deleted space, which only a full file
 system acquisition finds.
 
-### 5.5 Scoring
+### 5.5 Knowledge check
+
+Asked after the report, in this order; the options are shuffled on screen.
+
+| # | Question (short) | Correct answer | Teaching point |
+| --- | --- | --- | --- |
+| 1 | Which item number did entry 2 keep? | **#1, the same number at every handoff** | Each handoff adds a row, not a new item. |
+| 2 | Why a write blocker and a SHA-256 check? | **To prove the copy matches the phone and nothing changed it** | Wrong picks: unlocking the phone, speeding up processing. |
+| 3 | Which acquisition finds deleted chats and photo GPS? | **Full file system** | Quick (logical) skips them; SIM only holds contacts and the number. |
+| 4 | App → IP → second domain on the same IP is called? | **Pivoting** | Wrong picks: hashing, chain of custody. |
+| 5 | What to do with the AI "possible deepfake" flag? | **Treat it as a lead and check the metadata** | Wrong picks: report it as proof, delete the photo. |
+
+Each answer goes through the shared quiz card: 100 points for a correct answer
+(more on a streak, with the combo multiplier), 25 for a wrong one. The results
+screen's Knowledge Check line counts these together with first-try tags.
+
+### 5.6 Scoring
 
 | Item | Points |
 | --- | --- |
@@ -220,6 +264,7 @@ system acquisition finds.
 | Hint used | half of that question's points |
 | Any wrong tag on that question first | one third of its points (minimum 20); this replaces the hint halving |
 | Maximum for the level's tasks | **1,610** (150 + 740 + 720) |
+| Knowledge check | 100 per correct answer (streak bonus on top), 25 per wrong one; 500+ for a clean run |
 
 The results screen also tracks quiz accuracy (first-try tags / questions),
 streaks, and time. Hard mode multiplies the par score.
@@ -250,6 +295,8 @@ flag?
 | Pressing E at the desk didn't open the Explorer | The first E docks the phone. Press E again (this also skips the imaging). |
 | The case closed but there are more questions on the task list | Case 2 is a new file: press Esc, then E at the desk again. |
 | The report desk says "locked" | Both cases (11 findings) and intake must be done first; check the task list. |
+| Number keys don't answer the knowledge check | Wait for "Press 1, 2 or 3 to answer" under the question (a short read delay), and click the game first so it has keyboard focus. |
+| The witness phone won't scroll | Open a conversation first (the contact list fits on one screen), then use the wheel, drag, or Up/Down. |
 | Keys don't type into the search box | Click inside the browser window first so the game has keyboard focus. |
 | Pressing Esc drops out of mouse look / fullscreen | That's the browser. Use **Tab** to close screens instead, then click to re-capture the mouse. |
 | Left the level halfway | Progress inside a level isn't saved; re-entering from the Hub starts Level 3 fresh. Completing it is saved. |
@@ -260,5 +307,7 @@ For developers: Level 3 is generated in code at load time
 (`Level3ForensicsSceneFactory`, `Level3ForensicsPolish`). The flow lives in
 `Level3ForensicsManager`, the custody form in `ChainOfCustodyForm`, the Explorer
 in `EvidenceExplorer` and `EvidenceExplorer.Process`, and the case content in
-`InvestigationCase` and `PhoneImage`. The PlayMode tests in
+`InvestigationCase` and `PhoneImage`. The knowledge check questions are in
+`Level3KnowledgeCheck`, the witness phone in `WitnessPhone` and
+`WitnessPhoneContent`, and the certificate in `CertificateCard`. The PlayMode tests in
 `SocHandoffAcceptanceTests` play the level end to end and gate the deploy.

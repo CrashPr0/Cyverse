@@ -424,7 +424,7 @@ namespace Cyverse.Tests
             Assert.That((int)explorerType.GetProperty("ProcessStep").GetValue(explorer), Is.EqualTo(0));
             StringAssert.Contains("SOC alert", (string)explorerType.GetProperty("ProcessFeedback").GetValue(explorer));
             Assert.That(GameplayActionTestDriver.Choose(explorer, 0), Is.True); // PHISHING / MALWARE
-            Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // NOVAOS PHONE
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // PHONE
             Assert.That(GameplayActionTestDriver.Choose(explorer, 0), Is.True); // QUICK: wrong for this case
             Assert.That((int)explorerType.GetProperty("ProcessStep").GetValue(explorer), Is.EqualTo(2));
             Assert.That(GameplayActionTestDriver.Choose(explorer, 1), Is.True); // FULL FILE SYSTEM
@@ -527,14 +527,21 @@ namespace Cyverse.Tests
             Assert.That(PlayerPrefs.GetInt("cv_done_3", 0), Is.EqualTo(0));
 
             Assert.That(GameplayActionTestDriver.Interact(report), Is.True);
-            // Outside batch mode the results card waits a beat so the report
-            // monitor can show SUBMITTED; allow for that in the editor.
+            // Filing the report starts the knowledge check; the level only
+            // completes once it is answered.
+            // Outside batch mode it waits a beat so the report monitor can
+            // show SUBMITTED; allow for that in the editor.
             float deadline = Time.realtimeSinceStartup + 4f;
             yield return null;
-            yield return null;
-            while (!(bool)gameState.GetField("LevelComplete").GetValue(null) &&
+            while (!(bool)managerType.GetProperty("InKnowledgeCheck").GetValue(manager) &&
                    Time.realtimeSinceStartup < deadline)
                 yield return null;
+            Assert.That((bool)gameState.GetField("LevelComplete").GetValue(null), Is.False,
+                "The knowledge check comes before the results.");
+            Assert.That((bool)managerType.GetProperty("InKnowledgeCheck").GetValue(manager), Is.True,
+                "Submitting the report should open the knowledge check.");
+            yield return GameplayActionTestDriver.RunDeterministic("CompleteKnowledgeCheck", manager);
+            Assert.That((bool)managerType.GetProperty("KnowledgeCheckDone").GetValue(manager), Is.True);
 
             Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(),
                 Is.EqualTo("Complete"));
@@ -573,6 +580,67 @@ namespace Cyverse.Tests
             Assert.That((bool)formType.GetProperty("IsOpen").GetValue(form), Is.True,
                 "With the device in hand, Evidence Intake opens as normal.");
             GameplayActionTestDriver.Cancel(form);
+        }
+
+        [UnityTest]
+        public IEnumerator ForensicsWitnessPhone_OpensAConversationThatScrolls()
+        {
+            SceneManager.LoadScene("Level3_Forensics", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Type phoneType = FindType("Cyverse.Forensics.WitnessPhone");
+            object phone = UnityEngine.Object.FindObjectOfType(phoneType);
+            Assert.That(phone, Is.Not.Null, "The lab should have the witness phone stand.");
+            Assert.That(GameplayActionTestDriver.Interact(phone), Is.True);
+            yield return null;
+            Assert.That((bool)phoneType.GetProperty("IsOpen").GetValue(phone), Is.True);
+            Assert.That((int)phoneType.GetProperty("ContactCount").GetValue(phone), Is.GreaterThanOrEqualTo(4));
+            Assert.That((int)phoneType.GetProperty("OpenContact").GetValue(phone), Is.EqualTo(-1),
+                "The phone opens on the contact list.");
+
+            Assert.That(GameplayActionTestDriver.Choose(phone, 0), Is.True);
+            yield return null;
+            Assert.That((int)phoneType.GetProperty("OpenContact").GetValue(phone), Is.EqualTo(0));
+            Assert.That((float)phoneType.GetProperty("ScrollRange").GetValue(phone), Is.GreaterThan(0f),
+                "The longest conversation should be taller than the screen, so it scrolls.");
+            Assert.That(GameplayActionTestDriver.Navigate(phone, 1), Is.True);
+            Assert.That((float)phoneType.GetProperty("ScrollPosition").GetValue(phone), Is.LessThan(0.999f),
+                "Down should scroll the conversation.");
+
+            Assert.That(GameplayActionTestDriver.Cancel(phone), Is.True);
+            Assert.That((int)phoneType.GetProperty("OpenContact").GetValue(phone), Is.EqualTo(-1),
+                "Esc goes back to the contact list first.");
+            Assert.That(GameplayActionTestDriver.Cancel(phone), Is.True);
+            Assert.That((bool)phoneType.GetProperty("IsOpen").GetValue(phone), Is.False);
+        }
+
+        [Test]
+        public void ForensicsKnowledgeCheck_HasThreeOptionsAndAValidAnswer()
+        {
+            Type checkType = FindType("Cyverse.Level.Level3KnowledgeCheck");
+            Type questionType = FindType("Cyverse.Quiz.QuizQuestion");
+            Array questions = (Array)checkType.GetField("Questions").GetValue(null);
+            Assert.That(questions.Length, Is.GreaterThanOrEqualTo(4));
+            foreach (object q in questions)
+            {
+                string[] options = (string[])questionType.GetField("options").GetValue(q);
+                int correct = (int)questionType.GetField("correctIndex").GetValue(q);
+                Assert.That(options.Length, Is.EqualTo(3), "The quiz card answers with keys 1-3.");
+                Assert.That(correct, Is.InRange(0, 2));
+                Assert.That((string)questionType.GetField("explanation").GetValue(q), Is.Not.Empty);
+            }
+        }
+
+        [Test]
+        public void Certificate_NamesTheLevelFromTheResultsHeader()
+        {
+            Type certType = FindType("Cyverse.UI.CertificateCard");
+            MethodInfo levelName = certType.GetMethod("LevelName");
+            Assert.That((string)levelName.Invoke(null, new object[] { "LEVEL 3 COMPLETE" }),
+                Is.EqualTo("Level 3: Digital Forensics"));
+            StringAssert.Contains("(Hard)", (string)levelName.Invoke(null, new object[] { "LEVEL 1 HARD — COMPLETE" }));
         }
 
         [Test]

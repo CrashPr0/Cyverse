@@ -91,7 +91,7 @@ namespace Cyverse.Quiz
         }
 
         /// <summary>Show a question; the callback receives whether it was correct.</summary>
-        public void Ask(QuizQuestion q, Action<bool> answered, float readDelay = 0f)
+        public void Ask(QuizQuestion q, Action<bool> answered, float readDelay = 0f, string header = null)
         {
             if (q == null) { answered?.Invoke(true); return; }
             if (card == null) Build();
@@ -104,7 +104,7 @@ namespace Cyverse.Quiz
             current = q;
             onAnswered = answered;
 
-            headerText.text = "KNOWLEDGE CHECK";
+            headerText.text = header ?? "KNOWLEDGE CHECK";
             bodyText.text = BodyFor(q, chosen: -1);
             acceptInputAt = Time.unscaledTime + readDelay;
             feedbackText.text = ReadDelayOver ? PromptText : ReadingText;

@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Cyverse.Forensics;
+using Cyverse.UI;
 using Cyverse.Interaction;
 
 namespace Cyverse.Level
@@ -26,6 +27,13 @@ namespace Cyverse.Level
         private const float InlayY = 0.0145f;
         private const float InlayHeight = 0.005f;
 
+        /// <summary>The lab floor is a light gray with a faint green grid, so
+        /// the green stations and signs stand out against it. Zone pads sit a
+        /// shade darker so the three work areas still read from the door.</summary>
+        public static readonly Color FloorBase = new Color(0.66f, 0.68f, 0.68f);
+        public static readonly Color FloorLine = new Color(0.20f, 0.46f, 0.30f);
+        private static readonly Color PadBase = new Color(0.54f, 0.57f, 0.57f);
+
         private Material panelMaterial;
         private Material furnitureMaterial;
         private Material floorMaterial;
@@ -47,9 +55,7 @@ namespace Cyverse.Level
             if (applied) return;
             applied = true;
             ApplyAtmosphere();
-            BuildKit.ToneGridFloor(
-                new Color(0.020f, 0.035f, 0.028f),
-                Palette.Tint("Level3", new Color(0.08f, 0.38f, 0.20f)));
+            ToneLabFloor(GameObject.Find("Floor")?.GetComponent<Renderer>()?.sharedMaterial);
             ToneFixtures();
             MovePlanterOffIntake();
             BuildLab();
@@ -147,6 +153,7 @@ namespace Cyverse.Level
             BuildAcquisitionZone(root.transform);
             BuildReportingZone(root.transform);
             BuildWorkflowPath(root.transform);
+            BuildWitnessPhone(root.transform);
             BuildFillLights(root.transform);
             PolishInvestigationDesk();
         }
@@ -228,6 +235,45 @@ namespace Cyverse.Level
                 "CASEWORK  0 / 11  ·  REPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.040f, 58f, 30f);
             ForensicsStationProps.DressReport(reportDesk.transform, reportMonitor.transform, root,
                 ForensicsStationProps.MakeFinish(FurnitureMaterial(), new Color(0.90f, 0.66f, 0.22f)));
+        }
+
+        /// <summary>Optional side station east of the report desk: a coworker's
+        /// phone lying on a reading stand, tilted toward the player. E opens it
+        /// as a messages app (<see cref="WitnessPhone"/>).</summary>
+        private void BuildWitnessPhone(Transform root)
+        {
+            Vector3 at = new Vector3(12.4f, 0f, 11.0f);
+            var stand = new GameObject("DF_WitnessPhone");
+            stand.transform.SetParent(root, false);
+            stand.transform.position = at;
+            // One solid box: blocks walking and catches the interact ray.
+            var box = stand.AddComponent<BoxCollider>();
+            box.center = new Vector3(0f, 0.6f, 0f);
+            box.size = new Vector3(0.62f, 1.2f, 0.5f);
+            stand.AddComponent<WitnessPhone>();
+
+            SpawnCube("DF_WitnessStandBase", stand.transform, at + new Vector3(0f, 0.03f, 0f),
+                new Vector3(0.56f, 0.06f, 0.46f), FurnitureMaterial());
+            SpawnCube("DF_WitnessStandPost", stand.transform, at + new Vector3(0f, 0.5f, 0.04f),
+                new Vector3(0.12f, 0.9f, 0.12f), FurnitureMaterial());
+            // Tilted 20 degrees so the top faces the player approaching from -z.
+            Quaternion tilt = Quaternion.Euler(-20f, 0f, 0f);
+            GameObject top = SpawnCube("DF_WitnessStandTop", stand.transform, at + new Vector3(0f, 0.98f, 0f),
+                new Vector3(0.48f, 0.035f, 0.36f), PanelMaterial());
+            top.transform.rotation = tilt;
+            Vector3 up = tilt * Vector3.up;
+            GameObject body = SpawnCube("DF_WitnessPhoneBody", stand.transform, top.transform.position + up * 0.024f,
+                new Vector3(0.10f, 0.012f, 0.19f), BuildKit.MakeStandard(PhoneScreenUi.CaseColor, 0.35f, 0.25f));
+            body.transform.rotation = tilt;
+            GameObject screen = SpawnCube("DF_WitnessPhoneScreen", stand.transform, body.transform.position + up * 0.0065f,
+                new Vector3(0.088f, 0.002f, 0.172f), BuildKit.MakeEmissive(new Color(0.22f, 0.40f, 0.95f), 0.9f));
+            screen.transform.rotation = tilt;
+
+            // A name plate on the post's front face, approached from the south.
+            SpawnCube("DF_WitnessPlate", stand.transform, at + new Vector3(0f, 0.66f, -0.03f),
+                new Vector3(0.46f, 0.15f, 0.02f), PanelMaterial());
+            CreateWorldText(stand.transform, "DF_WitnessLabel", at + new Vector3(0f, 0.66f, -0.043f),
+                "WITNESS PHONE", Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.025f, 17f, 28f);
         }
 
         private void BuildWorkflowPath(Transform root)
@@ -476,24 +522,30 @@ namespace Cyverse.Level
             return furnitureMaterial;
         }
 
+        /// <summary>Light gray lab floor with a quiet grid. Shared with the
+        /// Level 2 locker sightline so the view through the wall matches.</summary>
+        public static void ToneLabFloor(Material material) => ToneLabFloor(material, FloorBase);
+
+        private static void ToneLabFloor(Material material, Color baseColor)
+        {
+            BuildKit.ToneGridFloor(material, baseColor, Palette.Tint("Level3", FloorLine));
+            if (material == null || material.shader == null || material.shader.name != "Cyverse/GridFloor") return;
+            // A bright floor needs less line glow and less shine than the old
+            // dark one, or the grid and the ceiling reflections wash it out.
+            material.SetFloat("_MinorEmission", 0.04f);
+            material.SetFloat("_Emission", 0.30f);
+            material.SetFloat("_Smoothness", 0.30f);
+            material.SetFloat("_Metallic", 0.02f);
+        }
+
         /// <summary>Zone inlays reuse the floor's world-space grid so lines run
         /// unbroken through each station zone; a lifted base and brighter lines
         /// mark the zone instead of a dark slab that blanked the grid.</summary>
         private Material FloorMaterial()
         {
             if (floorMaterial != null) return floorMaterial;
-            floorMaterial = BuildKit.MakeGridFloor(Palette.Tint("Level3", new Color(0.12f, 0.52f, 0.28f)), new Color(0.034f, 0.062f, 0.048f));
-            if (floorMaterial.shader != null && floorMaterial.shader.name == "Cyverse/GridFloor")
-            {
-                floorMaterial.SetFloat("_GridScale", 4f);
-                floorMaterial.SetFloat("_LineWidth", 0.012f);
-                floorMaterial.SetFloat("_MinorEmission", 0.08f);
-                floorMaterial.SetFloat("_Emission", 0.5f);
-                floorMaterial.SetFloat("_PulseStrength", 0f);
-                floorMaterial.SetFloat("_FadeDistance", 26f);
-                floorMaterial.SetFloat("_Smoothness", 0.5f);
-                floorMaterial.SetFloat("_Metallic", 0.12f);
-            }
+            floorMaterial = BuildKit.MakeGridFloor(FloorLine, PadBase);
+            ToneLabFloor(floorMaterial, PadBase);
             return floorMaterial;
         }
 
