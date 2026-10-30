@@ -62,21 +62,21 @@ namespace Cyverse.Forensics
             },
             new PickStep
             {
-                question = "What's in the cradle? Check the evidence label; the tool has to know the platform to read it.",
-                tiles = new[] { "COMPUTER", "NOVAOS PHONE", "ORBITOS PHONE", "SIM CARD ONLY" },
+                question = "What's in the cradle? Check the evidence label; the tool has to know the device type to read it.",
+                tiles = new[] { "VEHICLE OPERATING SYSTEM", "PHONE", "TABLET", "LAPTOP" },
                 blurbs = new[]
                 {
-                    "A laptop or desktop drive",
-                    "A phone running NovaOS",
-                    "A phone running OrbitOS",
-                    "Just the SIM: contacts and the number",
+                    "A car's infotainment and navigation unit",
+                    "A handheld phone with texts, calls and apps",
+                    "A large-screen touch device, usually Wi-Fi only",
+                    "A notebook computer's internal drive",
                 },
                 notes = new[]
                 {
-                    "That's a phone in the cradle, not a computer.",
-                    "NovaOS: the docked work phone. The tool now knows where each app keeps its data.",
-                    "Check the evidence label: the work phone runs NovaOS. OrbitOS phones store data differently.",
-                    "A SIM only holds contacts and the number. The data we need is on the phone itself.",
+                    "A vehicle system logs trips and paired phones, but the evidence in the cradle is the owner's work phone.",
+                    "Phone: the docked " + PhoneImage.Platform + " work phone. The tool now knows where each app keeps its data.",
+                    "Check the evidence label: item #1 is a work phone, not a tablet. Texts and calls live on the phone.",
+                    "That's a phone in the cradle, not a laptop. A laptop drive would be imaged with a different setup.",
                 },
                 correct = 1,
             },
@@ -408,7 +408,7 @@ namespace Cyverse.Forensics
         private static string Answer(int i)
         {
             string s = Picks[i].tiles[Picks[i].correct].ToLowerInvariant();
-            return (char.ToUpperInvariant(s[0]) + s.Substring(1)).Replace("Novaos", PhoneImage.Platform);
+            return (char.ToUpperInvariant(s[0]) + s.Substring(1));
         }
 
         private string PassList()

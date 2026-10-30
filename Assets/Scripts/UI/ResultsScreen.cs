@@ -19,6 +19,11 @@ namespace Cyverse.UI
         private bool shown;
         private bool canReload;
         private bool canHub;
+        private readonly CertificateCard certificate = new CertificateCard();
+        private string certHeader, certGrade, certRank;
+        private int certScore, certPar;
+
+        public bool CertificateOpen => certificate.IsOpen;
 
         void Awake()
         {
@@ -74,6 +79,11 @@ namespace Cyverse.UI
                         : "Security Recruit";
 
             int percentile = PercentileFor(score, par);
+            certHeader = headerText;
+            certScore = score;
+            certPar = parScore;
+            certGrade = grade;
+            certRank = rank;
 
             var sb = new System.Text.StringBuilder();
             sb.AppendLine($"<color=#4CE087><b>{grantedLine}</b></color>");
@@ -93,15 +103,11 @@ namespace Cyverse.UI
                 sb.AppendLine();
                 sb.AppendLine($"<size=20><color=#5BC8FF>NEXT MISSION:</color> <color=#8FB8CC>{nextMissionText}</color></size>");
             }
-            if (canReload || canHub)
-            {
-                sb.AppendLine();
-                string keys = "";
-                if (canReload) keys += $"[R]  Replay {replaySuffix}";
-                if (canReload && canHub) keys += "      ";
-                if (canHub) keys += "[H]  Return to Hub";
-                sb.AppendLine($"<size=20><color=#8FB8CC>{keys}</color></size>");
-            }
+            sb.AppendLine();
+            string keys = "[C]  Certificate";
+            if (canReload) keys += $"      [R]  Replay {replaySuffix}";
+            if (canHub) keys += "      [H]  Return to Hub";
+            sb.AppendLine($"<size=20><color=#8FB8CC>{keys}</color></size>");
             bodyText.text = sb.ToString();
 
             PlaytestMetrics.RecordResult(headerText, score, quizCorrect, quizTotal, seconds);
@@ -111,10 +117,24 @@ namespace Cyverse.UI
             shown = true;
         }
 
+        /// <summary>Opens the prototype certificate for the level just finished.</summary>
+        public void ShowCertificate()
+        {
+            if (!shown || card == null) return;
+            certificate.Show(card.transform.parent, certHeader, certScore, certPar, certGrade, certRank);
+        }
+
         void Update()
         {
             if (!shown) return;
-            if (canReload && Input.GetKeyDown(KeyCode.R))
+            if (certificate.IsOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.C) || GameInput.CancelDown) certificate.Hide();
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.C))
+                ShowCertificate();
+            else if (canReload && Input.GetKeyDown(KeyCode.R))
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             else if (canHub && Input.GetKeyDown(KeyCode.H))
             {
@@ -161,7 +181,7 @@ namespace Cyverse.UI
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(0, 30);
-            rt.sizeDelta = new Vector2(780, 700);
+            rt.sizeDelta = new Vector2(780, 740);
             HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.95f), HudUI.Accent);
 
             var header = new GameObject("Header", typeof(RectTransform));
@@ -189,7 +209,32 @@ namespace Cyverse.UI
             bodyText.verticalOverflow = VerticalWrapMode.Overflow;
             var brt = body.GetComponent<RectTransform>();
             brt.anchorMin = Vector2.zero; brt.anchorMax = Vector2.one;
-            brt.offsetMin = new Vector2(40, 30); brt.offsetMax = new Vector2(-40, -90);
+            brt.offsetMin = new Vector2(40, 80); brt.offsetMax = new Vector2(-40, -90);
+
+            var certButton = new GameObject("CertificateButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            certButton.transform.SetParent(card.transform, false);
+            certButton.GetComponent<Image>().color = new Color(0.78f, 0.58f, 0.16f, 1f);
+            var cbt = certButton.GetComponent<RectTransform>();
+            cbt.anchorMin = cbt.anchorMax = new Vector2(0.5f, 0f);
+            cbt.pivot = new Vector2(0.5f, 0f);
+            cbt.sizeDelta = new Vector2(300f, 46f);
+            cbt.anchoredPosition = new Vector2(0f, 22f);
+            var cbl = new GameObject("Label", typeof(RectTransform)).AddComponent<Text>();
+            cbl.transform.SetParent(certButton.transform, false);
+            cbl.font = HudUI.UIFont;
+            cbl.fontSize = 20;
+            cbl.fontStyle = FontStyle.Bold;
+            cbl.alignment = TextAnchor.MiddleCenter;
+            cbl.color = new Color(0.05f, 0.06f, 0.08f);
+            cbl.text = "VIEW CERTIFICATE   [C]";
+            cbl.raycastTarget = false;
+            var cblr = cbl.rectTransform;
+            cblr.anchorMin = Vector2.zero; cblr.anchorMax = Vector2.one;
+            cblr.offsetMin = cblr.offsetMax = Vector2.zero;
+            Button cb = certButton.GetComponent<Button>();
+            cb.onClick.AddListener(ShowCertificate);
+            UiMotion.AddPress(cb);
+            ModalSession.EnsureEventSystem();
 
             card.SetActive(false);
         }

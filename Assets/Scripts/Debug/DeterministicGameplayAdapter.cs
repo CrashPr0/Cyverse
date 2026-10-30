@@ -228,6 +228,34 @@ namespace Cyverse.Testing
             CompleteCustodyForm(form, actor);
         }
 
+        /// <summary>Answers Level 3's end-of-level knowledge check correctly,
+        /// one question at a time, until the level completes. Call after the
+        /// report is submitted.</summary>
+        public static IEnumerator CompleteKnowledgeCheck(Level3ForensicsManager manager, GameObject actor) =>
+            CompleteKnowledgeCheckPaced(manager, actor, 0.05f);
+
+        /// <summary>As <see cref="CompleteKnowledgeCheck"/>, holding each answer's
+        /// feedback on screen for <paramref name="feedbackSeconds"/>.</summary>
+        public static IEnumerator CompleteKnowledgeCheckPaced(Level3ForensicsManager manager, GameObject actor,
+            float feedbackSeconds)
+        {
+            if (manager == null) yield break;
+            QuizSystem quiz = QuizSystem.Instance;
+            float previousFeedback = quiz != null ? quiz.feedbackSeconds : 0f;
+            if (quiz != null) quiz.feedbackSeconds = Mathf.Max(0f, feedbackSeconds);
+
+            float deadline = Time.realtimeSinceStartup + 20f;
+            while (manager.CurrentPhase != Level3ForensicsManager.Phase.Complete &&
+                   Time.realtimeSinceStartup < deadline)
+            {
+                if (quiz != null && quiz.IsAwaitingInput && manager.InKnowledgeCheck)
+                    quiz.AnswerCorrectly(actor);
+                yield return null;
+            }
+
+            if (quiz != null) quiz.feedbackSeconds = previousFeedback;
+        }
+
         public static IEnumerator CompleteForensics(ForensicsConsole console,
             GameObject actor = null)
         {

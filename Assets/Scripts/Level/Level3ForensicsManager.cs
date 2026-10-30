@@ -28,6 +28,10 @@ namespace Cyverse.Level
         public bool ReportReady => custodyForm != null && custodyForm.IsComplete &&
             console != null && console.AllComplete;
         public bool ReportSubmitted { get; private set; }
+        /// <summary>Index of the knowledge-check question on screen, or -1.</summary>
+        public int KnowledgeCheckQuestion { get; private set; } = -1;
+        public bool KnowledgeCheckDone { get; private set; }
+        public bool InKnowledgeCheck => KnowledgeCheckQuestion >= 0 && !KnowledgeCheckDone;
         /// <summary>Raised once, when the final report is filed.</summary>
         public event System.Action ReportFiled;
 
@@ -189,14 +193,33 @@ namespace Cyverse.Level
             if (ReportSubmitted || !ReportReady) return;
             ReportSubmitted = true;
             pendingComplete = true;
-            // Let the report monitor show SUBMITTED before the results card
-            // covers it. Batch runs (CI) finish at once.
+            // Let the report monitor show SUBMITTED before the knowledge check
+            // covers it. Batch runs (CI) go straight on.
             completeAt = Time.time + (Application.isBatchMode ? 0f : 1.6f);
             ReportFiled?.Invoke();
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast("FORENSIC REPORT SUBMITTED — case closed",
                     new Color(0.30f, 1f, 0.55f));
             UpdateObjective();
+        }
+
+        /// <summary>The end-of-level knowledge check: one question at a time
+        /// on the shared quiz card, then the results.</summary>
+        private void AskKnowledgeCheck(int index)
+        {
+            Quiz.QuizSystem quiz = Quiz.QuizSystem.Instance;
+            if (quiz == null || index >= Level3KnowledgeCheck.Questions.Length)
+            {
+                KnowledgeCheckQuestion = -1;
+                KnowledgeCheckDone = true;
+                CompleteLevel();
+                return;
+            }
+            KnowledgeCheckQuestion = index;
+            UpdateObjective();
+            quiz.Ask(Level3KnowledgeCheck.Questions[index].Shuffled(),
+                _ => AskKnowledgeCheck(index + 1), readDelay: 0.6f,
+                header: $"KNOWLEDGE CHECK  {index + 1} / {Level3KnowledgeCheck.Questions.Length}");
         }
 
         private float guidanceTimer;
@@ -211,7 +234,7 @@ namespace Cyverse.Level
             if (pendingComplete && !GameState.AnyMenuOpen && Time.time >= completeAt)
             {
                 pendingComplete = false;
-                CompleteLevel();
+                AskKnowledgeCheck(0);
             }
 
             guidanceTimer += Time.deltaTime;
@@ -343,7 +366,9 @@ namespace Cyverse.Level
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal);
                     break;
                 case Phase.Report:
-                    HudUI.Instance.ShowObjective("Objective: Submit the final forensic report at the FORENSIC REPORT desk");
+                    HudUI.Instance.ShowObjective(InKnowledgeCheck
+                        ? $"Objective: Answer the knowledge check  ({KnowledgeCheckQuestion + 1}/{Level3KnowledgeCheck.Questions.Length})"
+                        : "Objective: Submit the final forensic report at the FORENSIC REPORT desk");
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal, "!");
                     break;
                 case Phase.Complete:
