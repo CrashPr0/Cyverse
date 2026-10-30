@@ -20,10 +20,15 @@ namespace Cyverse.UI
         private bool canReload;
         private bool canHub;
         private readonly CertificateCard certificate = new CertificateCard();
-        private string certHeader, certGrade, certRank;
+        private string certGrade, certRank;
         private int certScore, certPar;
+        private bool certAvailable;
+
+        private GameObject certButton;
 
         public bool CertificateOpen => certificate.IsOpen;
+        /// <summary>Whether this card ends the whole game and offers the certificate.</summary>
+        public bool CertificateAvailable => certAvailable;
 
         void Awake()
         {
@@ -79,7 +84,7 @@ namespace Cyverse.UI
                         : "Security Recruit";
 
             int percentile = PercentileFor(score, par);
-            certHeader = headerText;
+            certAvailable = CertificateCard.EarnedBy(headerText, LevelProgress.CompletedStoryLevels());
             certScore = score;
             certPar = parScore;
             certGrade = grade;
@@ -103,25 +108,36 @@ namespace Cyverse.UI
                 sb.AppendLine();
                 sb.AppendLine($"<size=20><color=#5BC8FF>NEXT MISSION:</color> <color=#8FB8CC>{nextMissionText}</color></size>");
             }
-            sb.AppendLine();
-            string keys = "[C]  Certificate";
-            if (canReload) keys += $"      [R]  Replay {replaySuffix}";
-            if (canHub) keys += "      [H]  Return to Hub";
-            sb.AppendLine($"<size=20><color=#8FB8CC>{keys}</color></size>");
+            if (certAvailable)
+            {
+                sb.AppendLine();
+                sb.AppendLine("<size=22><color=#E5A823><b>ALL MISSIONS COMPLETE — your certificate is ready.</b></color></size>");
+            }
+            var keys = new System.Collections.Generic.List<string>();
+            if (certAvailable) keys.Add("[C]  Certificate");
+            if (canReload) keys.Add($"[R]  Replay {replaySuffix}");
+            if (canHub) keys.Add("[H]  Return to Hub");
+            if (keys.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"<size=20><color=#8FB8CC>{string.Join("      ", keys)}</color></size>");
+            }
             bodyText.text = sb.ToString();
 
             PlaytestMetrics.RecordResult(headerText, score, quizCorrect, quizTotal, seconds);
 
+            certButton.SetActive(certAvailable);
             card.SetActive(true);
             UiMotion.PanelIn(card, null, 0.96f);
             shown = true;
         }
 
-        /// <summary>Opens the prototype certificate for the level just finished.</summary>
+        /// <summary>Opens the prototype certificate for finishing the whole
+        /// game. Does nothing on any other results card.</summary>
         public void ShowCertificate()
         {
-            if (!shown || card == null) return;
-            certificate.Show(card.transform.parent, certHeader, certScore, certPar, certGrade, certRank);
+            if (!shown || card == null || !certAvailable) return;
+            certificate.Show(card.transform.parent, certScore, certPar, certGrade, certRank);
         }
 
         void Update()
@@ -132,7 +148,7 @@ namespace Cyverse.UI
                 if (Input.GetKeyDown(KeyCode.C) || GameInput.CancelDown) certificate.Hide();
                 return;
             }
-            if (Input.GetKeyDown(KeyCode.C))
+            if (certAvailable && Input.GetKeyDown(KeyCode.C))
                 ShowCertificate();
             else if (canReload && Input.GetKeyDown(KeyCode.R))
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -211,7 +227,7 @@ namespace Cyverse.UI
             brt.anchorMin = Vector2.zero; brt.anchorMax = Vector2.one;
             brt.offsetMin = new Vector2(40, 80); brt.offsetMax = new Vector2(-40, -90);
 
-            var certButton = new GameObject("CertificateButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            certButton = new GameObject("CertificateButton", typeof(RectTransform), typeof(Image), typeof(Button));
             certButton.transform.SetParent(card.transform, false);
             certButton.GetComponent<Image>().color = new Color(0.78f, 0.58f, 0.16f, 1f);
             var cbt = certButton.GetComponent<RectTransform>();

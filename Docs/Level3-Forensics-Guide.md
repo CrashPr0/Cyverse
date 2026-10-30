@@ -147,9 +147,9 @@ moves on. After the last question the level completes, the results screen
 shows your score, and Level 4 unlocks. Leave through either **Return to Hub**
 door.
 
-On the results screen, press **C** (or VIEW CERTIFICATE) to see a prototype
-certificate of completion with your callsign, the level, your score and rating,
-and today's date. Every level's results screen has it.
+There is no certificate for Level 3 on its own. A single prototype certificate
+is offered on the Level 4 results screen once all four story levels are
+complete (press **C** or VIEW CERTIFICATE).
 
 ### Optional — the witness phone
 
