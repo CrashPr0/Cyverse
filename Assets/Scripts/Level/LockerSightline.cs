@@ -179,7 +179,8 @@ namespace Cyverse.Level
             }, keep: b => b.min.z < 2.6f, sharedWall: "Wall_South", offsetZ: RoomSpan);
 
             ShowFirstSlide(root, Forensics.InvestigationCase.BriefingSlides());
-            ToneFloor(root, new Color(0.020f, 0.035f, 0.028f), new Color(0.08f, 0.38f, 0.20f));
+            Transform labFloor = root.transform.Find("Mirror_Floor");
+            Level3ForensicsPolish.ToneLabFloor(labFloor != null ? labFloor.GetComponent<Renderer>()?.sharedMaterial : null);
             // Same ceiling tone the lab's own polish pass applies.
             ToneCeiling(root, BuildKit.MakeEmissive(new Color(0.48f, 0.64f, 0.57f), 0.58f));
             AddFill(root, new Color(0.45f, 1f, 0.65f), 1f);
