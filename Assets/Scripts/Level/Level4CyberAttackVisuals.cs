@@ -120,6 +120,7 @@ namespace Cyverse.Level
             applied = true;
 
             ApplyAtmosphere();
+            Level4CyberAttackSceneFactory.ToneAttackFloor();
             ToneFixtures();
 
             GameObject existingRoot = GameObject.Find(VisualRootName);

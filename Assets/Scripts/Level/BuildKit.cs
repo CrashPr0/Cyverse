@@ -117,6 +117,28 @@ namespace Cyverse.Level
             material.SetFloat("_Metallic", 0.12f);
         }
 
+        /// <summary>Light gray floor shared by the story levels (1-4). Only
+        /// the grid lines carry each level's accent.</summary>
+        public static readonly Color LightFloorBase = new Color(0.66f, 0.68f, 0.68f);
+
+        public static void ToneLightFloor(Color lineColor)
+        {
+            Renderer floor = GameObject.Find("Floor")?.GetComponent<Renderer>();
+            ToneLightFloor(floor != null ? floor.sharedMaterial : null, LightFloorBase, lineColor);
+        }
+
+        public static void ToneLightFloor(Material material, Color baseColor, Color lineColor)
+        {
+            ToneGridFloor(material, baseColor, lineColor);
+            if (material == null || material.shader == null || material.shader.name != "Cyverse/GridFloor") return;
+            // A bright floor needs less line glow and less shine than the old
+            // dark one, or the grid and the ceiling reflections wash it out.
+            material.SetFloat("_MinorEmission", 0.04f);
+            material.SetFloat("_Emission", 0.30f);
+            material.SetFloat("_Smoothness", 0.30f);
+            material.SetFloat("_Metallic", 0.02f);
+        }
+
         public static void BuildWalls(Color wallColor, float roomHeight = 5f)
         {
             roomHeight = Mathf.Max(3f, roomHeight);

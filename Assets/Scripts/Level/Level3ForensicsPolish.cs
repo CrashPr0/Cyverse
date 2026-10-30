@@ -30,7 +30,7 @@ namespace Cyverse.Level
         /// <summary>The lab floor is a light gray with a faint green grid, so
         /// the green stations and signs stand out against it. Zone pads sit a
         /// shade darker so the three work areas still read from the door.</summary>
-        public static readonly Color FloorBase = new Color(0.66f, 0.68f, 0.68f);
+        public static readonly Color FloorBase = BuildKit.LightFloorBase;
         public static readonly Color FloorLine = new Color(0.20f, 0.46f, 0.30f);
         private static readonly Color PadBase = new Color(0.54f, 0.57f, 0.57f);
 
@@ -526,17 +526,8 @@ namespace Cyverse.Level
         /// Level 2 locker sightline so the view through the wall matches.</summary>
         public static void ToneLabFloor(Material material) => ToneLabFloor(material, FloorBase);
 
-        private static void ToneLabFloor(Material material, Color baseColor)
-        {
-            BuildKit.ToneGridFloor(material, baseColor, Palette.Tint("Level3", FloorLine));
-            if (material == null || material.shader == null || material.shader.name != "Cyverse/GridFloor") return;
-            // A bright floor needs less line glow and less shine than the old
-            // dark one, or the grid and the ceiling reflections wash it out.
-            material.SetFloat("_MinorEmission", 0.04f);
-            material.SetFloat("_Emission", 0.30f);
-            material.SetFloat("_Smoothness", 0.30f);
-            material.SetFloat("_Metallic", 0.02f);
-        }
+        private static void ToneLabFloor(Material material, Color baseColor) =>
+            BuildKit.ToneLightFloor(material, baseColor, Palette.Tint("Level3", FloorLine));
 
         /// <summary>Zone inlays reuse the floor's world-space grid so lines run
         /// unbroken through each station zone; a lifted base and brighter lines

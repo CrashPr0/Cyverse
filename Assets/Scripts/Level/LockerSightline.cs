@@ -204,7 +204,7 @@ namespace Cyverse.Level
                 CertExamStation.Build(new Vector3(8f, 0f, 16f), 0f, Level2Content.ExamQuestions(), red);
             }, keep: b => b.max.z > 1.4f, sharedWall: "Wall_North", offsetZ: -RoomSpan);
 
-            ToneFloor(root, new Color(0.035f, 0.025f, 0.030f), new Color(0.46f, 0.11f, 0.08f));
+            ToneFloor(root, BuildKit.LightFloorBase, new Color(0.46f, 0.11f, 0.08f));
             ToneCeiling(root, BuildKit.MakeEmissive(new Color(0.52f, 0.60f, 0.70f), 0.62f));
             AddFill(root, new Color(1f, 0.55f, 0.45f), -1f);
             return root;
@@ -272,7 +272,7 @@ namespace Cyverse.Level
         {
             Transform floor = root.transform.Find("Mirror_Floor");
             Material m = floor != null ? floor.GetComponent<Renderer>()?.sharedMaterial : null;
-            BuildKit.ToneGridFloor(m, baseColor, lineColor);
+            BuildKit.ToneLightFloor(m, baseColor, lineColor);
         }
 
         private static void ToneCeiling(GameObject root, Material ceiling)
