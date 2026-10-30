@@ -153,12 +153,14 @@ complete (press **C** or VIEW CERTIFICATE).
 
 ### Optional — the witness phone
 
-East of the report desk, a phone lies on a stand marked **WITNESS PHONE**. It
-belongs to Jamie Park, a coworker of the phone's owner, who shared it by
-consent. Press **E** to open it as a messages app: click a contact to open the
-conversation, scroll with the mouse wheel, by dragging, or with **Up/Down**,
-and press **Esc** to go back to the list (and Esc again to close). It is not
-needed to finish the level.
+In the Evidence Explorer, under **OTHER SOURCES** at the bottom of the left
+pane, is **WITNESS PHONE**. It belongs to Jamie Park, a coworker of the phone's
+owner, who shared it by consent. Pick it (or press **→** past the last
+category) and the middle list shows Jamie's contacts. Click a contact (or use
+**Up/Down**) to read the conversation on the right, and scroll it with the
+mouse wheel, by dragging, or with **Page Up/Page Down**. Typing searches the
+contacts and their messages. Nothing on it is tagged, and it is not needed to
+finish the level; pick any category to go back to tagging.
 
 What it shows: the same fake "CyVerse IT Support" account tried Jamie first;
 Jamie asked for a ticket number, checked with the real help desk (ticket
@@ -181,7 +183,7 @@ has.
 | Write blocker + cradle | On the 02 desk | The phone docks here; the blocker's amber LED shows no writes reach the evidence. |
 | Evidence Explorer | Full-screen at 02 | Process (case setup) then Examine (categories, list, details, tagging). |
 | 03 Forensic Report | Lab, right | Locked until intake and both cases are done; its monitor shows `CASEWORK n / 11`. Filing it starts the knowledge check. |
-| Witness phone | Stand east of the report desk | Optional. A coworker's phone shared by consent: contact list, scrollable conversations. |
+| Witness phone | Evidence Explorer, OTHER SOURCES | Optional. A coworker's phone shared by consent: contact list, scrollable conversations. |
 
 ---
 
@@ -296,7 +298,7 @@ flag?
 | The case closed but there are more questions on the task list | Case 2 is a new file: press Esc, then E at the desk again. |
 | The report desk says "locked" | Both cases (11 findings) and intake must be done first; check the task list. |
 | Number keys don't answer the knowledge check | Wait for "Press 1, 2 or 3 to answer" under the question (a short read delay), and click the game first so it has keyboard focus. |
-| The witness phone won't scroll | Open a conversation first (the contact list fits on one screen), then use the wheel, drag, or Up/Down. |
+| The witness phone won't scroll | Select a contact first, then use the wheel, drag, or Page Up/Page Down. Short conversations fit without scrolling. |
 | Keys don't type into the search box | Click inside the browser window first so the game has keyboard focus. |
 | Pressing Esc drops out of mouse look / fullscreen | That's the browser. Use **Tab** to close screens instead, then click to re-capture the mouse. |
 | Left the level halfway | Progress inside a level isn't saved; re-entering from the Hub starts Level 3 fresh. Completing it is saved. |
@@ -308,6 +310,6 @@ For developers: Level 3 is generated in code at load time
 `Level3ForensicsManager`, the custody form in `ChainOfCustodyForm`, the Explorer
 in `EvidenceExplorer` and `EvidenceExplorer.Process`, and the case content in
 `InvestigationCase` and `PhoneImage`. The knowledge check questions are in
-`Level3KnowledgeCheck`, the witness phone in `WitnessPhone` and
+`Level3KnowledgeCheck`, the witness phone in `EvidenceExplorer.Witness` and
 `WitnessPhoneContent`, and the certificate in `CertificateCard`. The PlayMode tests in
 `SocHandoffAcceptanceTests` play the level end to end and gate the deploy.
