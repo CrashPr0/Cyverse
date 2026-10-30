@@ -34,9 +34,7 @@ namespace Cyverse.Level
         public void Apply()
         {
             ApplyAtmosphere();
-            BuildKit.ToneGridFloor(
-                new Color(0.035f, 0.025f, 0.030f),
-                Palette.Tint("Level2", new Color(0.46f, 0.11f, 0.08f)));
+            BuildKit.ToneLightFloor(Palette.Tint("Level2", new Color(0.46f, 0.11f, 0.08f)));
             ToneCeilingAndFixtures();
             PolishWorkstations();
             BuildDecor();

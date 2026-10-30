@@ -39,7 +39,7 @@ namespace Cyverse.Level
             BuildSystems();
         }
 
-        private static void ToneAttackFloor()
+        internal static void ToneAttackFloor()
         {
             // The shared grid shader defaults are intentionally dramatic for
             // the older showcase rooms. Level 4 needs a quieter floor so the
@@ -52,17 +52,11 @@ namespace Cyverse.Level
             if (material == null || material.shader == null ||
                 material.shader.name != "Cyverse/GridFloor") return;
 
-            // A dark plum carpet with a faint magenta grid: game room, not lab.
-            material.SetColor("_BaseColor", new Color(0.030f, 0.016f, 0.036f, 1f));
-            material.SetColor("_LineColor", new Color(0.30f, 0.06f, 0.20f, 1f));
+            // Light gray like the other story levels, with a magenta grid
+            // at the game room's wider spacing.
+            BuildKit.ToneLightFloor(material, BuildKit.LightFloorBase, new Color(0.46f, 0.12f, 0.34f, 1f));
             material.SetFloat("_GridScale", 7.0f);
-            material.SetFloat("_LineWidth", 0.012f);
-            material.SetFloat("_MinorEmission", 0.025f);
-            material.SetFloat("_Emission", 0.28f);
-            material.SetFloat("_PulseStrength", 0f);
             material.SetFloat("_FadeDistance", 24f);
-            material.SetFloat("_Smoothness", 0.48f);
-            material.SetFloat("_Metallic", 0.10f);
         }
 
         public static GameObject BuildSystems()
