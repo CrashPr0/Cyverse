@@ -153,7 +153,6 @@ namespace Cyverse.Level
             BuildAcquisitionZone(root.transform);
             BuildReportingZone(root.transform);
             BuildWorkflowPath(root.transform);
-            BuildWitnessPhone(root.transform);
             BuildFillLights(root.transform);
             PolishInvestigationDesk();
         }
@@ -235,45 +234,6 @@ namespace Cyverse.Level
                 "CASEWORK  0 / 11  ·  REPORT LOCKED", new Color(0.82f, 0.92f, 1f), 0.040f, 58f, 30f);
             ForensicsStationProps.DressReport(reportDesk.transform, reportMonitor.transform, root,
                 ForensicsStationProps.MakeFinish(FurnitureMaterial(), new Color(0.90f, 0.66f, 0.22f)));
-        }
-
-        /// <summary>Optional side station east of the report desk: a coworker's
-        /// phone lying on a reading stand, tilted toward the player. E opens it
-        /// as a messages app (<see cref="WitnessPhone"/>).</summary>
-        private void BuildWitnessPhone(Transform root)
-        {
-            Vector3 at = new Vector3(12.4f, 0f, 11.0f);
-            var stand = new GameObject("DF_WitnessPhone");
-            stand.transform.SetParent(root, false);
-            stand.transform.position = at;
-            // One solid box: blocks walking and catches the interact ray.
-            var box = stand.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, 0.6f, 0f);
-            box.size = new Vector3(0.62f, 1.2f, 0.5f);
-            stand.AddComponent<WitnessPhone>();
-
-            SpawnCube("DF_WitnessStandBase", stand.transform, at + new Vector3(0f, 0.03f, 0f),
-                new Vector3(0.56f, 0.06f, 0.46f), FurnitureMaterial());
-            SpawnCube("DF_WitnessStandPost", stand.transform, at + new Vector3(0f, 0.5f, 0.04f),
-                new Vector3(0.12f, 0.9f, 0.12f), FurnitureMaterial());
-            // Tilted 20 degrees so the top faces the player approaching from -z.
-            Quaternion tilt = Quaternion.Euler(-20f, 0f, 0f);
-            GameObject top = SpawnCube("DF_WitnessStandTop", stand.transform, at + new Vector3(0f, 0.98f, 0f),
-                new Vector3(0.48f, 0.035f, 0.36f), PanelMaterial());
-            top.transform.rotation = tilt;
-            Vector3 up = tilt * Vector3.up;
-            GameObject body = SpawnCube("DF_WitnessPhoneBody", stand.transform, top.transform.position + up * 0.024f,
-                new Vector3(0.10f, 0.012f, 0.19f), BuildKit.MakeStandard(PhoneScreenUi.CaseColor, 0.35f, 0.25f));
-            body.transform.rotation = tilt;
-            GameObject screen = SpawnCube("DF_WitnessPhoneScreen", stand.transform, body.transform.position + up * 0.0065f,
-                new Vector3(0.088f, 0.002f, 0.172f), BuildKit.MakeEmissive(new Color(0.22f, 0.40f, 0.95f), 0.9f));
-            screen.transform.rotation = tilt;
-
-            // A name plate on the post's front face, approached from the south.
-            SpawnCube("DF_WitnessPlate", stand.transform, at + new Vector3(0f, 0.66f, -0.03f),
-                new Vector3(0.46f, 0.15f, 0.02f), PanelMaterial());
-            CreateWorldText(stand.transform, "DF_WitnessLabel", at + new Vector3(0f, 0.66f, -0.043f),
-                "WITNESS PHONE", Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.025f, 17f, 28f);
         }
 
         private void BuildWorkflowPath(Transform root)

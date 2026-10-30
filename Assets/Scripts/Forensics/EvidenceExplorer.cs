@@ -21,6 +21,9 @@ namespace Cyverse.Forensics
     /// Before any of that the phone has to be processed (EvidenceExplorer.Process.cs):
     /// a short setup on the same screen, like AXIOM's Process before Examine.
     ///
+    /// A second source, the witness phone (EvidenceExplorer.Witness.cs), sits
+    /// under the categories: its contacts and conversations, read only.
+    ///
     /// Mouse-first so it works in WebGL: categories, rows and buttons are uGUI
     /// buttons on the HUD canvas. Keyboard too: type to filter, Up/Down to move
     /// through the list, Enter to tag, Esc to step away. Progress lives in the
@@ -126,6 +129,8 @@ namespace Cyverse.Forensics
                 category = PhoneImage.Categories[0];
                 filter = "";
                 selected = -1;
+                witnessMode = false;
+                witnessSelected = -1;
             }
             activeCase = investigation;
             caseClosedNote = closedNote;
@@ -145,9 +150,7 @@ namespace Cyverse.Forensics
             processRoot.SetActive(false);
             examineRoot.SetActive(true);
             titleText.text = $"EVIDENCE EXPLORER  //  {activeCase.title}";
-            sourceText.text = $"<color=#8FB8CC>SOURCE</color>  Work phone of {Escape(phone.owner)}" +
-                $"  ·  full file system  ·  {phone.artifacts.Count} artifacts" +
-                "  ·  <color=#4CE087>image hash verified</color>  ·  read-only copy" + PassSummary();
+            sourceText.text = ExamineSourceLine();
             SetAccent(Cyan);
             SetFeedback(activeCase.IsComplete
                 ? "<color=#E5A823>Case closed. Browse freely, or Esc to step away.</color>"
@@ -163,6 +166,7 @@ namespace Cyverse.Forensics
         {
             UiMotion.FadeIn(examineRoot, UiMotion.Base);
             UiMotion.Stagger(categoryButtons, 0.04f, UiMotion.Rise * 0.5f);
+            UiMotion.Reveal(witnessButton.gameObject, 0.04f + categoryButtons.Count * 0.03f, UiMotion.Rise * 0.5f);
             RevealRows(0.1f);
             UiMotion.Reveal(detailText.gameObject, 0.12f, UiMotion.Rise * 0.5f);
         }
@@ -181,6 +185,7 @@ namespace Cyverse.Forensics
                 return;
             }
             if (InProcess) { UpdateProcess(); return; }
+            UpdateWitnessKeys();
             if (Input.GetKeyDown(KeyCode.UpArrow)) GameplayActions.TryApply(this, GameplayAction.Navigate(-1));
             else if (Input.GetKeyDown(KeyCode.DownArrow)) GameplayActions.TryApply(this, GameplayAction.Navigate(1));
             // Left/Right step through the categories, so the whole bench works
@@ -208,8 +213,9 @@ namespace Cyverse.Forensics
 
         private int CategoryStep(int delta)
         {
-            int count = PhoneImage.Categories.Length;
-            int current = System.Array.IndexOf(PhoneImage.Categories, category);
+            // The witness phone is one more stop after the last category.
+            int count = PhoneImage.Categories.Length + 1;
+            int current = witnessMode ? WitnessSourceIndex : System.Array.IndexOf(PhoneImage.Categories, category);
             return ((current + delta) % count + count) % count;
         }
 
@@ -217,12 +223,24 @@ namespace Cyverse.Forensics
         {
             if (!open) return false;
             if (InProcess) return TryApplyProcess(action);
+            if (witnessMode && TryApplyWitness(action)) return true;
 
             switch (action.Kind)
             {
                 case GameplayActionKind.Choose:
+                    if (action.Index == WitnessSourceIndex)
+                    {
+                        bool entering = !witnessMode;
+                        witnessMode = true;
+                        witnessSelected = -1;
+                        RefreshList(keepSelection: false);
+                        if (entering) RevealRows(0f);
+                        if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+                        return true;
+                    }
                     if (action.Index < 0 || action.Index >= PhoneImage.Categories.Length) return false;
-                    bool switched = category != PhoneImage.Categories[action.Index];
+                    bool switched = witnessMode || category != PhoneImage.Categories[action.Index];
+                    witnessMode = false;
                     category = PhoneImage.Categories[action.Index];
                     selected = -1;
                     RefreshList(keepSelection: false);
@@ -356,12 +374,22 @@ namespace Cyverse.Forensics
                 int total = phone.CountIn(c);
                 int hits = phone.CountIn(c, filter);
                 string count = string.IsNullOrWhiteSpace(filter) ? $"{total}" : $"{hits}/{total}";
-                bool active = c == category;
+                bool active = !witnessMode && c == category;
                 categoryButtons[i].GetComponentInChildren<TMP_Text>().text = PhoneImage.Label(c);
                 categoryCounts[i].text = count;
                 categoryCounts[i].color = active ? Green : Muted;
                 categoryMarks[i].enabled = active;
                 UiMotion.ColorTo(categoryButtons[i].GetComponent<Image>(), active ? CategoryActive : CategoryIdle);
+            }
+
+            RefreshWitnessSource();
+            SetWitnessView(witnessMode);
+            if (witnessMode)
+            {
+                RefreshWitnessList();
+                RefreshFilter();
+                RefreshQuestion();
+                return;
             }
 
             listHeader.text = $"{PhoneImage.Label(category)}  <color=#607585>·</color>  " +
@@ -577,12 +605,13 @@ namespace Cyverse.Forensics
 
             // Left pane: one button per artifact category, with its count.
             Pane3(root, "CategoryPane", 0.012f, 0.205f, out _).text = "ARTIFACT CATEGORIES";
+            float categoriesTop = ColumnsTop - PaneHeaderH - 0.008f;
             for (int i = 0; i < PhoneImage.Categories.Length; i++)
             {
                 int captured = i;
                 Button b = MakeButton("Category_" + i, root, PhoneImage.Label(PhoneImage.Categories[i]), CategoryIdle);
-                float top = ColumnsTop - PaneHeaderH - 0.008f - i * 0.072f;
-                Place(b.GetComponent<RectTransform>(), 0.018f, top - 0.065f, 0.199f, top, 0f);
+                float top = categoriesTop - i * CategoryStepY;
+                Place(b.GetComponent<RectTransform>(), 0.018f, top - CategoryHeight, 0.199f, top, 0f);
                 TMP_Text label = b.GetComponentInChildren<TMP_Text>();
                 label.fontSize = 19;
                 label.fontStyle = FontStyles.Bold;
@@ -597,6 +626,8 @@ namespace Cyverse.Forensics
                 UiMotion.AddPress(b, row: true);
                 categoryButtons.Add(b);
             }
+            BuildWitnessSource(root,
+                categoriesTop - (PhoneImage.Categories.Length - 1) * CategoryStepY - CategoryHeight - 0.03f);
 
             // Middle pane: search box, column header, rows.
             listHeader = Pane3(root, "ListPane", 0.213f, 0.557f, out _);
@@ -611,7 +642,7 @@ namespace Cyverse.Forensics
             Inset(filterText.rectTransform, 14f, 10f);
 
             float rowsTop = ColumnsTop - PaneHeaderH - 0.11f;
-            TMP_Text columns = MakeText(root, "Columns", 14, TextAlignmentOptions.MidlineLeft);
+            TMP_Text columns = columnsText = MakeText(root, "Columns", 14, TextAlignmentOptions.MidlineLeft);
             columns.text = "<b><cspace=3><color=#607585>TIME<pos=28%>ITEM</color></cspace></b>";
             columns.enableWordWrapping = false;
             Place(columns.rectTransform, 0.219f, rowsTop + 0.002f, 0.551f, rowsTop + 0.034f, 0f);
@@ -636,10 +667,11 @@ namespace Cyverse.Forensics
             }
 
             // Right pane: every field of the selected artifact, then the actions.
-            Pane3(root, "DetailPane", 0.565f, 0.988f, out _).text = "ARTIFACT DETAILS";
+            detailPaneTitle = Pane3(root, "DetailPane", 0.565f, 0.988f, out _);
+            detailPaneTitle.text = "ARTIFACT DETAILS";
             // The key legend lives in the pane header so feedback never
             // pushes it off screen.
-            TMP_Text keys = MakeText(root, "KeyLegend", 14, TextAlignmentOptions.MidlineRight);
+            TMP_Text keys = keyLegend = MakeText(root, "KeyLegend", 14, TextAlignmentOptions.MidlineRight);
             keys.text = "<color=#8FB8CC>←/→ CATEGORY · UP/DOWN ITEM · TYPE TO SEARCH · ENTER TAG</color>";
             keys.enableWordWrapping = false;
             Place(keys.rectTransform, 0.565f, ColumnsTop - PaneHeaderH, 0.988f, ColumnsTop, 0f);
@@ -672,6 +704,8 @@ namespace Cyverse.Forensics
             hintButton.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Toggle()));
             UiMotion.AddPress(hintButton);
 
+            BuildWitnessPane(root);
+
             feedbackText = MakeStatusBar(root, "Feedback", out feedbackEdge);
 
             card.SetActive(false);
@@ -682,6 +716,9 @@ namespace Cyverse.Forensics
         private const float ColumnsTop = 0.742f;
         private const float ColumnsBottom = 0.1f;
         private const float PaneHeaderH = 0.042f;
+        // Category buttons, spaced so the OTHER SOURCES entry fits under them.
+        private const float CategoryStepY = 0.062f;
+        private const float CategoryHeight = 0.055f;
 
         /// <summary>A bordered pane from ColumnsTop to ColumnsBottom with a header
         /// strip; returns the header's label.</summary>

@@ -583,47 +583,60 @@ namespace Cyverse.Tests
         }
 
         [UnityTest]
-        public IEnumerator ForensicsWitnessPhone_OpensAConversationThatScrolls()
+        public IEnumerator ForensicsWitnessPhone_IsASourceInTheEvidenceExplorer()
         {
             SceneManager.LoadScene("Level3_Forensics", LoadSceneMode.Single);
             yield return null;
             yield return null;
             yield return null;
 
-            Type phoneType = FindType("Cyverse.Forensics.WitnessPhone");
-            object phone = UnityEngine.Object.FindObjectOfType(phoneType);
-            Assert.That(phone, Is.Not.Null, "The lab should have the witness phone stand.");
-            Assert.That(GameplayActionTestDriver.Interact(phone), Is.True);
+            Assert.That(GameObject.Find("DF_WitnessPhone"), Is.Null,
+                "The witness phone lives in the Evidence Explorer, not on a stand.");
+
+            Type explorerType = FindType("Cyverse.Forensics.EvidenceExplorer");
+            Type phoneType = FindType("Cyverse.Forensics.PhoneImage");
+            Type caseType = FindType("Cyverse.Forensics.InvestigationCase");
+            object explorer = UnityEngine.Object.FindObjectOfType(explorerType);
+            Assert.That(explorer, Is.Not.Null);
+            object phone = phoneType.GetMethod("Build").Invoke(null, null);
+            phoneType.GetField("Processed").SetValue(phone, true);
+            object investigation = caseType.GetMethod("SpartanGoldPhone").Invoke(null, null);
+            explorerType.GetMethod("Open").Invoke(explorer, new[] { phone, investigation, null });
             yield return null;
-            Assert.That((bool)phoneType.GetProperty("IsOpen").GetValue(phone), Is.True);
-            Assert.That((int)phoneType.GetProperty("ContactCount").GetValue(phone), Is.GreaterThanOrEqualTo(4));
-            Assert.That((int)phoneType.GetProperty("OpenContact").GetValue(phone), Is.EqualTo(-1),
-                "The phone opens on the contact list.");
+            Assert.That((bool)explorerType.GetProperty("IsOpen").GetValue(explorer), Is.True);
+            Assert.That((bool)explorerType.GetProperty("InProcess").GetValue(explorer), Is.False);
+
+            int witness = (int)explorerType.GetProperty("WitnessSourceIndex").GetValue(null);
+            Assert.That(GameplayActionTestDriver.Choose(explorer, witness), Is.True);
+            Assert.That((bool)explorerType.GetProperty("WitnessMode").GetValue(explorer), Is.True);
+            int count = (int)explorerType.GetProperty("VisibleContactCount").GetValue(explorer);
+            Assert.That(count, Is.GreaterThanOrEqualTo(4), "The witness phone lists its contacts.");
+            Assert.That(explorerType.GetProperty("SelectedContact").GetValue(explorer), Is.Null,
+                "It opens on the contact list.");
 
             // Contacts are listed newest first, so find the longest thread.
-            int count = (int)phoneType.GetProperty("ContactCount").GetValue(phone);
             int longest = 0;
             float longestRange = 0f;
             for (int i = 0; i < count; i++)
             {
-                Assert.That(GameplayActionTestDriver.Choose(phone, i), Is.True);
-                Assert.That((int)phoneType.GetProperty("OpenContact").GetValue(phone), Is.EqualTo(i));
-                float range = (float)phoneType.GetProperty("ScrollRange").GetValue(phone);
+                Assert.That(GameplayActionTestDriver.Select(explorer, i, 0), Is.True);
+                Assert.That(explorerType.GetProperty("SelectedContact").GetValue(explorer), Is.Not.Null);
+                float range = (float)explorerType.GetProperty("ConversationScrollRange").GetValue(explorer);
                 if (range > longestRange) { longestRange = range; longest = i; }
             }
             Assert.That(longestRange, Is.GreaterThan(0f),
-                "The longest conversation should be taller than the screen, so it scrolls.");
-            Assert.That(GameplayActionTestDriver.Choose(phone, longest), Is.True);
+                "The longest conversation should be taller than the pane, so it scrolls.");
+            Assert.That(GameplayActionTestDriver.Select(explorer, longest, 0), Is.True);
             yield return null;
-            Assert.That(GameplayActionTestDriver.Navigate(phone, 1), Is.True);
-            Assert.That((float)phoneType.GetProperty("ScrollPosition").GetValue(phone), Is.LessThan(0.999f),
-                "Down should scroll the conversation.");
+            Assert.That((bool)explorerType.GetMethod("ScrollConversation").Invoke(explorer, new object[] { 1 }), Is.True);
+            Assert.That((float)explorerType.GetProperty("ConversationScrollPosition").GetValue(explorer), Is.LessThan(0.999f),
+                "Page Down should scroll the conversation.");
 
-            Assert.That(GameplayActionTestDriver.Cancel(phone), Is.True);
-            Assert.That((int)phoneType.GetProperty("OpenContact").GetValue(phone), Is.EqualTo(-1),
-                "Esc goes back to the contact list first.");
-            Assert.That(GameplayActionTestDriver.Cancel(phone), Is.True);
-            Assert.That((bool)phoneType.GetProperty("IsOpen").GetValue(phone), Is.False);
+            // Back to a category: the bench tags artifacts again.
+            Assert.That(GameplayActionTestDriver.Choose(explorer, 0), Is.True);
+            Assert.That((bool)explorerType.GetProperty("WitnessMode").GetValue(explorer), Is.False);
+            Assert.That(GameplayActionTestDriver.Cancel(explorer), Is.True);
+            Assert.That((bool)explorerType.GetProperty("IsOpen").GetValue(explorer), Is.False);
         }
 
         [Test]
