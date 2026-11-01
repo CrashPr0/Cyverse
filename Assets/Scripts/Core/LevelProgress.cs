@@ -7,7 +7,8 @@ namespace Cyverse.Core
     /// Level indices: 0 = Orientation (Level0 scene), 1 = I/AM, 2 = Cyber
     /// Defense (SOC), 3 = Digital Forensics, 4 = Cyber Attack.
     /// Rule: levels 0 and 1 are always open; level N unlocks when N-1 is
-    /// completed. Stored in PlayerPrefs so it works on WebGL with no backend.
+    /// completed. Stored in PlayerPrefs so it works on WebGL with no backend;
+    /// PlaythroughReset wipes it on every launch, so it lasts one run.
     /// </summary>
     public static class LevelProgress
     {

@@ -5,8 +5,8 @@ namespace Cyverse.Core
     /// <summary>
     /// The player's chosen callsign, entered on the title screen and woven
     /// through the dialogue, badge, and results (endowment: it's *their*
-    /// recruit, not a generic one). Persists between sessions; falls back to
-    /// the script's canonical ID when unset.
+    /// recruit, not a generic one). Cleared on each launch by PlaythroughReset;
+    /// falls back to the script's canonical ID when unset.
     /// </summary>
     public static class PlayerIdentity
     {
