@@ -435,8 +435,8 @@ namespace Cyverse.Forensics
                 return;
             }
             var sb = new StringBuilder();
-            sb.Append("<b><size=27>").Append(Escape(a.title)).Append("</size></b>\n");
-            sb.Append("<size=17><color=#8FB8CC>").Append(PhoneImage.Label(a.category)).Append("   ·   ")
+            sb.Append("<b><size=135%>").Append(Escape(a.title)).Append("</size></b>\n");
+            sb.Append("<size=85%><color=#8FB8CC>").Append(PhoneImage.Label(a.category)).Append("   ·   ")
               .Append(a.timestamp).Append("</color>");
             if (a.Tagged) sb.Append("   <color=#E5A823><b>[TAGGED AS EVIDENCE]</b></color>");
             sb.Append("</size>\n\n");
@@ -459,7 +459,7 @@ namespace Cyverse.Forensics
         }
 
         private static string SectionLabel(string label) =>
-            $"<size=15><color=#607585><b><cspace=3>{label}</cspace></b></color></size>\n";
+            $"<size=75%><color=#607585><b><cspace=3>{label}</cspace></b></color></size>\n";
 
         /// <summary>One "name  value" line with a hanging indent, so a long
         /// value wraps under itself instead of under the field name.</summary>
@@ -475,8 +475,8 @@ namespace Cyverse.Forensics
                 questionShown = q;
             }
             questionText.text = q == null
-                ? "<size=16><color=#E5A823><b><cspace=3>CASE CLOSED</cspace></b></color></size>\n<b>All findings tagged.</b>"
-                : $"<size=16><color=#E5A823><b><cspace=3>QUESTION {activeCase.CurrentIndex + 1} OF {activeCase.questions.Length}</cspace></b></color></size>\n" +
+                ? "<size=70%><color=#E5A823><b><cspace=3>CASE CLOSED</cspace></b></color></size>\n<b>All findings tagged.</b>"
+                : $"<size=70%><color=#E5A823><b><cspace=3>QUESTION {activeCase.CurrentIndex + 1} OF {activeCase.questions.Length}</cspace></b></color></size>\n" +
                   $"<b>{Escape(q.prompt)}</b>";
 
             var meta = new StringBuilder("<color=#B8CCD6>");
@@ -555,7 +555,7 @@ namespace Cyverse.Forensics
             badgeText.enableWordWrapping = false;
             Place(badgeText.rectTransform, 0f, 0f, 1f, 1f, 0f);
 
-            titleText = MakeText(root, "Title", 23, TextAlignmentOptions.MidlineLeft);
+            titleText = MakeText(root, "Title", 25, TextAlignmentOptions.MidlineLeft);
             titleText.fontStyle = FontStyles.Bold;
             titleText.color = Ink;
             titleText.characterSpacing = 1.5f;
@@ -566,7 +566,7 @@ namespace Cyverse.Forensics
             Button close = MakeButton("Close", root, "<b>ESC</b>   CLOSE", new Color(0.09f, 0.14f, 0.16f));
             Place(close.GetComponent<RectTransform>(), 0.88f, 0.944f, 0.988f, 0.986f, 0f);
             close.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
-            close.GetComponentInChildren<TMP_Text>().fontSize = 16;
+            close.GetComponentInChildren<TMP_Text>().fontSize = 17;
             AddBorder(close.gameObject);
             UiMotion.AddPress(close);
             close.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Cancel()));
@@ -580,7 +580,7 @@ namespace Cyverse.Forensics
 
             // Evidence source strip.
             Image sourceBand = Band(root, "SourceBar", Pane, 0.012f, 0.893f, 0.988f, 0.93f, true);
-            sourceText = MakeText(sourceBand.transform, "Source", 17, TextAlignmentOptions.MidlineLeft);
+            sourceText = MakeText(sourceBand.transform, "Source", 19, TextAlignmentOptions.MidlineLeft);
             sourceText.enableWordWrapping = false;
             sourceText.overflowMode = TextOverflowModes.Ellipsis;
             Place(sourceText.rectTransform, 0f, 0f, 1f, 1f, 0f);
@@ -590,14 +590,18 @@ namespace Cyverse.Forensics
             Image questionBand = Band(root, "QuestionBar", new Color(0.06f, 0.055f, 0.025f, 1f),
                 0.012f, ColumnsTop + 0.012f, 0.988f, 0.884f, true);
             Edge(questionBand.transform, Gold, 6f);
-            questionText = MakeText(questionBand.transform, "Question", 22, TextAlignmentOptions.MidlineLeft);
+            questionText = MakeText(questionBand.transform, "Question", 24, TextAlignmentOptions.MidlineLeft);
+            // A long two-line question shrinks a little rather than clipping.
+            questionText.enableAutoSizing = true;
+            questionText.fontSizeMin = 18;
+            questionText.fontSizeMax = 24;
             questionText.lineSpacing = 4f;
             questionText.paragraphSpacing = 10f;
             Place(questionText.rectTransform, 0f, 0f, 1f, 1f, 0f);
             questionText.rectTransform.offsetMin = new Vector2(24f, 10f);
             questionText.rectTransform.offsetMax = new Vector2(-24f, -10f);
             // Answered pips and the score, on the label line at the right.
-            questionMeta = MakeText(questionBand.transform, "Progress", 17, TextAlignmentOptions.TopRight);
+            questionMeta = MakeText(questionBand.transform, "Progress", 18, TextAlignmentOptions.TopRight);
             questionMeta.enableWordWrapping = false;
             Place(questionMeta.rectTransform, 0.6f, 0f, 1f, 1f, 0f);
             questionMeta.rectTransform.offsetMin = new Vector2(0f, 8f);
@@ -613,10 +617,10 @@ namespace Cyverse.Forensics
                 float top = categoriesTop - i * CategoryStepY;
                 Place(b.GetComponent<RectTransform>(), 0.018f, top - CategoryHeight, 0.199f, top, 0f);
                 TMP_Text label = b.GetComponentInChildren<TMP_Text>();
-                label.fontSize = 19;
+                label.fontSize = 21;
                 label.fontStyle = FontStyles.Bold;
                 label.rectTransform.offsetMax = new Vector2(-54f, -2f);
-                TMP_Text count = MakeText(b.transform, "Count", 18, TextAlignmentOptions.MidlineRight);
+                TMP_Text count = MakeText(b.transform, "Count", 20, TextAlignmentOptions.MidlineRight);
                 count.enableWordWrapping = false;
                 Place(count.rectTransform, 0.6f, 0f, 1f, 1f, 0f);
                 Inset(count.rectTransform, 0f, 12f);
@@ -635,14 +639,14 @@ namespace Cyverse.Forensics
 
             Image filterBox = Band(root, "FilterBox", new Color(0.012f, 0.03f, 0.04f, 1f),
                 0.219f, ColumnsTop - PaneHeaderH - 0.068f, 0.551f, ColumnsTop - PaneHeaderH - 0.008f, true);
-            filterText = MakeText(filterBox.transform, "Filter", 20, TextAlignmentOptions.MidlineLeft);
+            filterText = MakeText(filterBox.transform, "Filter", 22, TextAlignmentOptions.MidlineLeft);
             filterText.enableWordWrapping = false;
             filterText.overflowMode = TextOverflowModes.Ellipsis;
             Place(filterText.rectTransform, 0f, 0f, 1f, 1f, 0f);
             Inset(filterText.rectTransform, 14f, 10f);
 
             float rowsTop = ColumnsTop - PaneHeaderH - 0.11f;
-            TMP_Text columns = columnsText = MakeText(root, "Columns", 14, TextAlignmentOptions.MidlineLeft);
+            TMP_Text columns = columnsText = MakeText(root, "Columns", 15, TextAlignmentOptions.MidlineLeft);
             columns.text = "<b><cspace=3><color=#607585>TIME<pos=28%>ITEM</color></cspace></b>";
             columns.enableWordWrapping = false;
             Place(columns.rectTransform, 0.219f, rowsTop + 0.002f, 0.551f, rowsTop + 0.034f, 0f);
@@ -655,10 +659,10 @@ namespace Cyverse.Forensics
                 float top = rowsTop - i * 0.0485f;
                 Place(row.GetComponent<RectTransform>(), 0.219f, top - 0.046f, 0.551f, top, 0f);
                 TMP_Text label = row.GetComponentInChildren<TMP_Text>();
-                label.fontSize = 19;
+                label.fontSize = 22;
                 label.enableAutoSizing = true;
-                label.fontSizeMin = 14;
-                label.fontSizeMax = 19;
+                label.fontSizeMin = 15;
+                label.fontSizeMax = 22;
                 label.richText = true;
                 rowMarks.Add(Edge(row.transform, Green, 4f));
                 row.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Select(captured, 0)));
@@ -680,15 +684,15 @@ namespace Cyverse.Forensics
             // Long records (several fields plus findings) shrink to fit
             // instead of losing their last lines under the buttons.
             detailText.enableAutoSizing = true;
-            detailText.fontSizeMin = 14;
-            detailText.fontSizeMax = 20;
+            detailText.fontSizeMin = 15;
+            detailText.fontSizeMax = 23;
             detailText.lineSpacing = 6f;
             detailText.overflowMode = TextOverflowModes.Ellipsis;
             Place(detailText.rectTransform, 0.565f, ColumnsBottom + 0.1f, 0.988f, ColumnsTop - PaneHeaderH, 0f);
             Inset(detailText.rectTransform, 20f, 18f);
             detailText.rectTransform.offsetMax = new Vector2(-18f, -14f);
 
-            tagButton = MakeButton("TagButton", root, "<b>TAG AS EVIDENCE</b>   <size=15><color=#9FD8B4>ENTER</color></size>",
+            tagButton = MakeButton("TagButton", root, "<b>TAG AS EVIDENCE</b>   <size=16><color=#9FD8B4>ENTER</color></size>",
                 new Color(0.10f, 0.40f, 0.22f));
             Place(tagButton.GetComponent<RectTransform>(), 0.573f, ColumnsBottom + 0.012f, 0.80f, ColumnsBottom + 0.088f, 0f);
             tagButton.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
@@ -697,7 +701,7 @@ namespace Cyverse.Forensics
             tagButton.onClick.AddListener(() => GameplayActions.TryApply(this, GameplayAction.Submit()));
             UiMotion.AddPress(tagButton);
 
-            hintButton = MakeButton("HintButton", root, "<b>HINT</b>   <size=15><color=#E8C878>HALF POINTS</color></size>",
+            hintButton = MakeButton("HintButton", root, "<b>HINT</b>   <size=16><color=#E8C878>HALF POINTS</color></size>",
                 new Color(0.25f, 0.19f, 0.05f));
             Place(hintButton.GetComponent<RectTransform>(), 0.81f, ColumnsBottom + 0.012f, 0.98f, ColumnsBottom + 0.088f, 0f);
             hintButton.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
@@ -731,7 +735,7 @@ namespace Cyverse.Forensics
         private static TMP_Text PaneTitle(Transform root, string name, float xMin, float yMin, float xMax, float yMax)
         {
             Image header = Band(root, name, PaneHeader, xMin, yMin, xMax, yMax, false);
-            TMP_Text label = MakeText(header.transform, "Label", 15, TextAlignmentOptions.MidlineLeft);
+            TMP_Text label = MakeText(header.transform, "Label", 16, TextAlignmentOptions.MidlineLeft);
             label.fontStyle = FontStyles.Bold;
             label.color = Muted;
             label.characterSpacing = 5f;
@@ -748,7 +752,11 @@ namespace Cyverse.Forensics
         {
             Image bar = Band(root, name + "Bar", new Color(0.03f, 0.06f, 0.075f, 1f), 0.012f, 0.016f, 0.988f, 0.088f, true);
             accent = Edge(bar.transform, Cyan, 6f);
-            TMP_Text text = MakeText(bar.transform, name, 20, TextAlignmentOptions.MidlineLeft);
+            TMP_Text text = MakeText(bar.transform, name, 22, TextAlignmentOptions.MidlineLeft);
+            // Long feedback shrinks to fit the bar instead of losing a line.
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 16;
+            text.fontSizeMax = 22;
             Place(text.rectTransform, 0f, 0f, 1f, 1f, 0f);
             Inset(text.rectTransform, 24f, 16f);
             return text;
@@ -825,7 +833,7 @@ namespace Cyverse.Forensics
             colors.disabledColor = new Color(0.45f, 0.45f, 0.45f, 0.6f);
             button.colors = colors;
 
-            TMP_Text text = MakeText(go.transform, "Label", 19, TextAlignmentOptions.MidlineLeft);
+            TMP_Text text = MakeText(go.transform, "Label", 21, TextAlignmentOptions.MidlineLeft);
             text.text = label;
             text.color = Color.white;
             text.overflowMode = TextOverflowModes.Ellipsis;

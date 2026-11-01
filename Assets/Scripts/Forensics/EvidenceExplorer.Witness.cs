@@ -23,7 +23,7 @@ namespace Cyverse.Forensics
     /// </summary>
     public sealed partial class EvidenceExplorer
     {
-        private const float BubbleFont = 18f, BubblePad = 12f, ScrollStep = 120f;
+        private const float BubbleFont = 20f, BubblePad = 12f, ScrollStep = 120f;
 
         private static readonly Color OutBubble = new Color(0.20f, 0.40f, 0.90f, 1f);
         private static readonly Color InBubble = new Color(0.12f, 0.17f, 0.22f, 1f);
@@ -201,7 +201,7 @@ namespace Cyverse.Forensics
                 chatContent.sizeDelta = Vector2.zero;
                 return;
             }
-            conversationHeader.text = $"<b>{Escape(contact.name)}</b>   <size=16><color=#8FB8CC>{Escape(contact.detail)}</color></size>";
+            conversationHeader.text = $"<b>{Escape(contact.name)}</b>   <size=18><color=#8FB8CC>{Escape(contact.detail)}</color></size>";
             FillConversation(contact);
             // Start at the beginning so the story reads in order.
             chatScroll.verticalNormalizedPosition = 1f;
@@ -224,30 +224,30 @@ namespace Cyverse.Forensics
                 {
                     day = date;
                     y -= 4f;
-                    TMP_Text stamp = MakeText(chatContent, "Day", 14, TextAlignmentOptions.Center);
+                    TMP_Text stamp = MakeText(chatContent, "Day", 15, TextAlignmentOptions.Center);
                     stamp.color = Muted;
                     stamp.text = "<b>" + DayLabel(date) + "</b>";
-                    TopLeft(stamp.rectTransform, 0f, y, width, 22f);
-                    y -= 28f;
+                    TopLeft(stamp.rectTransform, 0f, y, width, 24f);
+                    y -= 30f;
                 }
 
                 if (m.IsSystem)
                 {
-                    TMP_Text note = MakeText(chatContent, "System", 15, TextAlignmentOptions.Center);
+                    TMP_Text note = MakeText(chatContent, "System", 17, TextAlignmentOptions.Center);
                     note.color = new Color(1f, 0.62f, 0.45f);
                     note.text = "<i>" + Escape(m.text) + "</i>";
-                    TopLeft(note.rectTransform, 0f, y, width, 22f);
-                    y -= 30f;
+                    TopLeft(note.rectTransform, 0f, y, width, 24f);
+                    y -= 32f;
                     continue;
                 }
 
                 if (contact.group && !m.outgoing && !string.IsNullOrEmpty(m.sender))
                 {
-                    TMP_Text who = MakeText(chatContent, "Sender", 14, TextAlignmentOptions.Left);
+                    TMP_Text who = MakeText(chatContent, "Sender", 16, TextAlignmentOptions.Left);
                     who.color = Nova;
                     who.text = "<b>" + Escape(m.sender) + "</b>";
-                    TopLeft(who.rectTransform, 18f, y, bubbleMax, 20f);
-                    y -= 20f;
+                    TopLeft(who.rectTransform, 18f, y, bubbleMax, 22f);
+                    y -= 22f;
                 }
 
                 TMP_Text body = MakeText(chatContent, "Text", (int)BubbleFont, TextAlignmentOptions.TopLeft);
@@ -273,11 +273,11 @@ namespace Cyverse.Forensics
                 body.rectTransform.offsetMax = new Vector2(-BubblePad, -BubblePad * 0.7f);
                 y -= bubbleH + 3f;
 
-                TMP_Text time = MakeText(chatContent, "Time", 12, m.outgoing ? TextAlignmentOptions.Right : TextAlignmentOptions.Left);
+                TMP_Text time = MakeText(chatContent, "Time", 14, m.outgoing ? TextAlignmentOptions.Right : TextAlignmentOptions.Left);
                 time.color = new Color(0.50f, 0.57f, 0.68f);
                 time.text = m.time.Substring(6);
-                TopLeft(time.rectTransform, m.outgoing ? width - 16f - 120f : 18f, y, 120f, 16f);
-                y -= 22f;
+                TopLeft(time.rectTransform, m.outgoing ? width - 16f - 120f : 18f, y, 120f, 18f);
+                y -= 24f;
             }
             chatContent.sizeDelta = new Vector2(0f, -y + 10f);
         }
@@ -308,7 +308,7 @@ namespace Cyverse.Forensics
         /// <summary>The OTHER SOURCES entry under the categories.</summary>
         private void BuildWitnessSource(Transform root, float top)
         {
-            TMP_Text other = MakeText(root, "OtherSources", 13, TextAlignmentOptions.BottomLeft);
+            TMP_Text other = MakeText(root, "OtherSources", 14, TextAlignmentOptions.BottomLeft);
             other.text = "<b><cspace=4>OTHER SOURCES</cspace></b>";
             other.color = Muted;
             other.enableWordWrapping = false;
@@ -319,10 +319,10 @@ namespace Cyverse.Forensics
             witnessButton = MakeButton("WitnessPhone", root, "WITNESS PHONE", CategoryIdle);
             Place(witnessButton.GetComponent<RectTransform>(), 0.018f, buttonTop - CategoryHeight, 0.199f, buttonTop, 0f);
             TMP_Text label = witnessButton.GetComponentInChildren<TMP_Text>();
-            label.fontSize = 19;
+            label.fontSize = 21;
             label.fontStyle = FontStyles.Bold;
             label.rectTransform.offsetMax = new Vector2(-54f, -2f);
-            witnessCount = MakeText(witnessButton.transform, "Count", 18, TextAlignmentOptions.MidlineRight);
+            witnessCount = MakeText(witnessButton.transform, "Count", 20, TextAlignmentOptions.MidlineRight);
             witnessCount.enableWordWrapping = false;
             Place(witnessCount.rectTransform, 0.6f, 0f, 1f, 1f, 0f);
             Inset(witnessCount.rectTransform, 0f, 12f);
@@ -339,7 +339,7 @@ namespace Cyverse.Forensics
             Place(witnessRoot.GetComponent<RectTransform>(), 0.565f, ColumnsBottom, 0.988f, ColumnsTop - PaneHeaderH, 0f);
             Transform pane = witnessRoot.transform;
 
-            conversationHeader = MakeText(pane, "Contact", 22, TextAlignmentOptions.MidlineLeft);
+            conversationHeader = MakeText(pane, "Contact", 24, TextAlignmentOptions.MidlineLeft);
             conversationHeader.enableWordWrapping = false;
             conversationHeader.overflowMode = TextOverflowModes.Ellipsis;
             var hr = conversationHeader.rectTransform;
