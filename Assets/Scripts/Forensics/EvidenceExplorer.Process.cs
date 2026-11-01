@@ -329,8 +329,8 @@ namespace Cyverse.Forensics
                 sb.Append($"<b>{phone.artifacts.Count} artifacts</b> recovered" + PassSummary());
             runText.text = sb.ToString();
             nextButton.GetComponentInChildren<TMP_Text>().text = runDone
-                ? "<b>OPEN IN EXPLORER</b>   <size=15><color=#9FD8B4>ENTER</color></size>"
-                : "<b>SKIP</b>   <size=15><color=#9FD8B4>ENTER</color></size>";
+                ? "<b>OPEN IN EXPLORER</b>   <size=16><color=#9FD8B4>ENTER</color></size>"
+                : "<b>SKIP</b>   <size=16><color=#9FD8B4>ENTER</color></size>";
         }
 
         /// <summary>The step rail and progress strip.</summary>
@@ -358,7 +358,7 @@ namespace Cyverse.Forensics
             bool run = processStep == StepRun;
             RefreshRail();
             evidenceCard.text =
-                "<size=15><color=#607585><b><cspace=3>EVIDENCE ITEM</cspace></b></color></size>\n" +
+                "<size=16><color=#607585><b><cspace=3>EVIDENCE ITEM</cspace></b></color></size>\n" +
                 $"<b>#1  Work phone</b>\n<color=#8FB8CC>Owner</color><indent=38%>{Escape(phone.owner)}</indent>\n" +
                 $"<color=#8FB8CC>Case</color><indent=38%>{CaseNumber()}</indent>\n" +
                 $"<color=#8FB8CC>Platform</color><indent=38%>{PhoneImage.Platform}</indent>\n" +
@@ -386,7 +386,7 @@ namespace Cyverse.Forensics
                 bool wrong = !options && i == wrongTile;
                 string blurb = options ? OptionNotes[i] : Picks[processStep].blurbs[i];
                 tile.GetComponentInChildren<TMP_Text>().text =
-                    $"<b>{label}</b>\n<size=18><color=#8FB8CC>{blurb}</color></size>";
+                    $"<b>{label}</b>\n<size=19><color=#8FB8CC>{blurb}</color></size>";
                 tileKeys[i].text = (i + 1).ToString();
                 tileStates[i].text = wrong ? "<color=#FF8866><b>NOT THIS ONE</b></color>"
                     : !options ? ""
@@ -399,7 +399,7 @@ namespace Cyverse.Forensics
             nextButton.gameObject.SetActive(processStep >= StepOptions);
             if (processStep == StepOptions)
                 nextButton.GetComponentInChildren<TMP_Text>().text =
-                    "<b>START PROCESSING</b>   <size=15><color=#9FD8B4>ENTER</color></size>";
+                    "<b>START PROCESSING</b>   <size=16><color=#9FD8B4>ENTER</color></size>";
             if (run) TickRun(0f);
         }
 
@@ -516,12 +516,12 @@ namespace Cyverse.Forensics
                 brt.sizeDelta = new Vector2(40f, 40f);
                 brt.anchoredPosition = new Vector2(18f, 0f);
                 railBadges[i] = badgeBox;
-                railNumbers[i] = MakeText(badgeBox.transform, "Number", 18, TextAlignmentOptions.Center);
+                railNumbers[i] = MakeText(badgeBox.transform, "Number", 19, TextAlignmentOptions.Center);
                 railNumbers[i].fontStyle = FontStyles.Bold;
                 railNumbers[i].enableWordWrapping = false;
                 Place(railNumbers[i].rectTransform, 0f, 0f, 1f, 1f, 0f);
 
-                railNames[i] = MakeText(row.transform, "Name", 19, TextAlignmentOptions.BottomLeft);
+                railNames[i] = MakeText(row.transform, "Name", 21, TextAlignmentOptions.BottomLeft);
                 railNames[i].text = StepNames[i];
                 railNames[i].fontStyle = FontStyles.Bold;
                 railNames[i].enableWordWrapping = false;
@@ -529,7 +529,7 @@ namespace Cyverse.Forensics
                 Place(railNames[i].rectTransform, 0f, 0.5f, 1f, 0.9f, 0f);
                 Inset(railNames[i].rectTransform, 72f, 10f);
 
-                railStates[i] = MakeText(row.transform, "State", 15, TextAlignmentOptions.TopLeft);
+                railStates[i] = MakeText(row.transform, "State", 16, TextAlignmentOptions.TopLeft);
                 railStates[i].color = new Color(0.42f, 0.52f, 0.58f);
                 railStates[i].enableWordWrapping = false;
                 railStates[i].overflowMode = TextOverflowModes.Ellipsis;
@@ -537,7 +537,7 @@ namespace Cyverse.Forensics
                 Inset(railStates[i].rectTransform, 72f, 10f);
             }
             float thenTop = railTop - PaneHeaderH - 0.012f - StepNames.Length * rowStep;
-            TMP_Text then = MakeText(root, "Then", 15, TextAlignmentOptions.MidlineLeft);
+            TMP_Text then = MakeText(root, "Then", 16, TextAlignmentOptions.MidlineLeft);
             then.text = "<cspace=3><b>NEXT  >  EXAMINE</b></cspace>";
             then.color = new Color(0.42f, 0.52f, 0.58f);
             Place(then.rectTransform, railX0, thenTop - 0.042f, railX1, thenTop, 0f);
@@ -546,7 +546,7 @@ namespace Cyverse.Forensics
             Image evidenceBox = Band(root, "EvidenceCard", new Color(0.035f, 0.07f, 0.085f, 1f),
                 railX0 + 0.006f, ColumnsBottom + 0.008f, railX1 - 0.006f, thenTop - 0.05f, false);
             Edge(evidenceBox.transform, Cyan, 4f);
-            evidenceCard = MakeText(evidenceBox.transform, "Evidence", 18, TextAlignmentOptions.MidlineLeft);
+            evidenceCard = MakeText(evidenceBox.transform, "Evidence", 19, TextAlignmentOptions.MidlineLeft);
             evidenceCard.lineSpacing = 6f;
             Place(evidenceCard.rectTransform, 0f, 0f, 1f, 1f, 8f);
             Inset(evidenceCard.rectTransform, 20f, 12f);
@@ -561,14 +561,14 @@ namespace Cyverse.Forensics
                 progressSegments[i] = Band(root, "Progress_" + i, Line, x, 0.912f, x + segment, 0.92f, false);
             }
 
-            stepHeader = MakeText(root, "StepHeader", 18, TextAlignmentOptions.MidlineLeft);
+            stepHeader = MakeText(root, "StepHeader", 20, TextAlignmentOptions.MidlineLeft);
             stepHeader.fontStyle = FontStyles.Bold;
             stepHeader.characterSpacing = 4f;
             stepHeader.color = Cyan;
             stepHeader.enableWordWrapping = false;
             Place(stepHeader.rectTransform, mainX0, 0.862f, mainX1, 0.904f, 0f);
 
-            stepQuestion = MakeText(root, "StepQuestion", 30, TextAlignmentOptions.TopLeft);
+            stepQuestion = MakeText(root, "StepQuestion", 32, TextAlignmentOptions.TopLeft);
             stepQuestion.fontStyle = FontStyles.Bold;
             stepQuestion.color = Color.white;
             Place(stepQuestion.rectTransform, mainX0, 0.765f, mainX1, 0.86f, 0f);
@@ -590,7 +590,7 @@ namespace Cyverse.Forensics
                 krt.pivot = new Vector2(0f, 0.5f);
                 krt.sizeDelta = new Vector2(42f, 42f);
                 krt.anchoredPosition = new Vector2(30f, 0f);
-                tileKeys[i] = MakeText(keyBox.transform, "Number", 20, TextAlignmentOptions.Center);
+                tileKeys[i] = MakeText(keyBox.transform, "Number", 22, TextAlignmentOptions.Center);
                 tileKeys[i].fontStyle = FontStyles.Bold;
                 tileKeys[i].color = Gold;
                 Place(tileKeys[i].rectTransform, 0f, 0f, 1f, 1f, 0f);
@@ -598,14 +598,14 @@ namespace Cyverse.Forensics
                 // Name on the first line, what it means on the second.
                 TMP_Text label = tile.GetComponentInChildren<TMP_Text>();
                 label.alignment = TextAlignmentOptions.MidlineLeft;
-                label.fontSize = 23;
+                label.fontSize = 25;
                 label.lineSpacing = 8f;
                 label.enableWordWrapping = true;
                 label.overflowMode = TextOverflowModes.Ellipsis;
                 Place(label.rectTransform, 0f, 0f, 1f, 1f, 0f);
                 Inset(label.rectTransform, 98f, 200f);
 
-                tileStates[i] = MakeText(tile.transform, "State", 17, TextAlignmentOptions.MidlineRight);
+                tileStates[i] = MakeText(tile.transform, "State", 18, TextAlignmentOptions.MidlineRight);
                 tileStates[i].enableWordWrapping = false;
                 tileStates[i].characterSpacing = 3f;
                 Place(tileStates[i].rectTransform, 0.7f, 0f, 1f, 1f, 0f);
@@ -619,7 +619,7 @@ namespace Cyverse.Forensics
             // The run panel takes the list's place while processing.
             float listBottom = listTop - TileCount * rowH - (TileCount - 1) * rowGap;
             Image runBox = Band(root, "RunPanel", Pane, mainX0, listBottom, mainX1, listTop, true);
-            runPercent = MakeText(runBox.transform, "Percent", 19, TextAlignmentOptions.MidlineLeft);
+            runPercent = MakeText(runBox.transform, "Percent", 21, TextAlignmentOptions.MidlineLeft);
             runPercent.enableWordWrapping = false;
             runPercent.overflowMode = TextOverflowModes.Ellipsis;
             Place(runPercent.rectTransform, 0.025f, 0.88f, 0.975f, 0.97f, 0f);
@@ -629,7 +629,7 @@ namespace Cyverse.Forensics
             fill.GetComponent<Image>().color = Green;
             runFill = fill.GetComponent<RectTransform>();
             Place(runFill, 0f, 0f, 0f, 1f, 0f);
-            runText = MakeText(runBox.transform, "RunLog", 19, TextAlignmentOptions.TopLeft);
+            runText = MakeText(runBox.transform, "RunLog", 20, TextAlignmentOptions.TopLeft);
             runText.lineSpacing = 4f;
             Place(runText.rectTransform, 0.025f, 0.03f, 0.975f, 0.78f, 0f);
             runBox.gameObject.SetActive(false);
