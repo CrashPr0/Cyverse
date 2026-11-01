@@ -8,7 +8,7 @@ namespace Cyverse.Level
     /// Tracks which glossary entries have been discovered (codex mechanic).
     /// General-knowledge entries (no Topic) are always unlocked; station-tagged
     /// entries unlock the moment that station is reviewed. Persists across
-    /// sessions via PlayerPrefs so the collection carries over between plays.
+    /// scenes via PlayerPrefs; PlaythroughReset clears it on each launch.
     /// </summary>
     public static class GlossaryProgress
     {
