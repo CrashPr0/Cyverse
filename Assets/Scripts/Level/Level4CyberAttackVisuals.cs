@@ -267,23 +267,27 @@ namespace Cyverse.Level
             // can pass through its visual bounds even though it has no
             // collider. The raised, compact plate keeps the title readable
             // while preserving a clear sightline to the screen.
-            Vector3 boardCenter = anchor + forward * 1.28f + Vector3.up * 3.35f;
+            // The board is a slim header, a little wider than its words: at
+            // its old 5.4 x 1.9 m it was the largest, blackest shape in the
+            // room and dwarfed the machine under it.
+            const float boardWidth = 4.3f, boardHeight = 1.2f;
+            Vector3 boardCenter = anchor + forward * 1.28f + Vector3.up * 3.15f;
             FramedPanel("L4_StationBoard_" + spec.key, boardCenter, Quaternion.LookRotation(forward, Vector3.up),
-                new Vector3(ZoneWidth - 0.42f, 1.90f, 0.11f));
+                new Vector3(boardWidth, boardHeight, 0.11f));
 
             SpawnCube("L4_StationRail_" + spec.key, visualRoot,
-                boardCenter - forward * 0.075f + Vector3.down * 0.77f,
-                new Vector3(ZoneWidth - 0.42f, 0.045f, 0.05f), accent).transform.rotation =
+                boardCenter - forward * 0.075f + Vector3.down * (boardHeight * 0.5f - 0.1f),
+                new Vector3(boardWidth, 0.045f, 0.05f), accent).transform.rotation =
                 Quaternion.LookRotation(forward, Vector3.up);
 
             Vector3 textFront = boardCenter - forward * 0.085f;
             Quaternion textRotation = Quaternion.LookRotation(forward, Vector3.up);
             CreateWorldText("L4_StationTitle_" + spec.key,
-                textFront + Vector3.up * 0.42f, spec.title,
-                Color.Lerp(spec.accent, Color.white, 0.18f), 0.060f, 78f, 36f, textRotation);
+                textFront + Vector3.up * 0.2f, spec.title,
+                Color.Lerp(spec.accent, Color.white, 0.18f), 0.060f, 66f, 38f, textRotation);
             CreateWorldText("L4_StationInstruction_" + spec.key,
-                textFront - Vector3.up * 0.12f, spec.instruction,
-                new Color(0.77f, 0.84f, 0.94f), 0.042f, 105f, 23f, textRotation);
+                textFront - Vector3.up * 0.2f, spec.instruction,
+                new Color(0.77f, 0.84f, 0.94f), 0.042f, 94f, 23f, textRotation);
 
             GameObject marker = new GameObject("L4_StationMarker_" + spec.key);
             marker.transform.SetParent(visualRoot, false);
