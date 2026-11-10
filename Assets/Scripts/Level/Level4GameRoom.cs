@@ -32,8 +32,8 @@ namespace Cyverse.Level
 
         // ---- Materials (palette files, so they can be recoloured) ----------
 
-        private static Material CabinetBody => Palette.Get("GameCabinetBody", new Color(0.09f, 0.06f, 0.14f), 0.45f, 0.2f);
-        private static Material CabinetTrim => Palette.Get("GameCabinetTrim", new Color(0.20f, 0.17f, 0.26f), 0.6f, 0.5f);
+        private static Material CabinetBody => Palette.Get("GameCabinetBody", new Color(0.105f, 0.075f, 0.165f), 0.45f, 0.2f);
+        private static Material CabinetTrim => Palette.Get("GameCabinetTrim", new Color(0.25f, 0.21f, 0.33f), 0.6f, 0.5f);
         private static Material Chrome => Palette.Get("GameChrome", new Color(0.62f, 0.64f, 0.70f), 0.85f, 0.9f);
         private static Material DarkGlass => Palette.Get("GameDarkGlass", new Color(0.02f, 0.025f, 0.04f), 0.9f, 0.1f);
         private static Material Felt => Palette.Get("GameFelt", new Color(0.05f, 0.30f, 0.26f), 0.1f, 0f);
@@ -53,6 +53,10 @@ namespace Cyverse.Level
             return glows[key] = BuildKit.MakeEmissive(c, strength);
         }
 
+        /// <summary>A lit finish in one of the room's colours, shared with
+        /// Level4GameRoomAmbience.</summary>
+        internal static Material GlowMaterial(Color c, float strength) => Glow(c, strength);
+
         private static Material Plain(Color c)
         {
             if (plains.TryGetValue(c, out Material m) && m != null) return m;
@@ -66,6 +70,7 @@ namespace Cyverse.Level
         {
             var root = new GameObject(RootName).transform;
 
+            Level4GameRoomAmbience.Build(root);
             BuildArch(root, accent);
             BuildSnackBar(root, new Vector3(0f, 0f, -6f));
             BuildCorkboard(root, new Vector3(-19.35f, 0f, -4f), -90f);
@@ -93,7 +98,9 @@ namespace Cyverse.Level
 
             // Neon on the side walls, below the wall strip (y 3.4) and
             // between the columns.
-            WallNeon(root, "Neon_LevelUp", new Vector3(-19.45f, 2.6f, 4f), -90f,
+            // LEVEL UP hangs over the lounge: by the game floor it showed as
+            // a stray yellow corner behind the first station's header board.
+            WallNeon(root, "Neon_LevelUp", new Vector3(-19.45f, 2.6f, -12f), -90f,
                 "LEVEL UP", Lemon, 4.2f, new Vector2(2.6f, 0.5f));
             WallNeon(root, "Neon_NoRageQuit", new Vector3(19.45f, 2.6f, -4f), 90f,
                 "NO RAGE QUITTING", Magenta, 3.0f, new Vector2(3.4f, 0.42f));
@@ -130,7 +137,7 @@ namespace Cyverse.Level
 
             // The dividing wall: the snack bar on the south side, the game
             // floor on the north, with the archway as the way through.
-            Material wall = Plain(BuildKit.WallColor);
+            Material wall = Plain(Level4GameRoomAmbience.WallBand);
             Material strip = Glow(accent, 1.2f);
             foreach (float side in new[] { -1f, 1f })
             {
@@ -139,6 +146,7 @@ namespace Cyverse.Level
                 float cx = side * (inner + outer) * 0.5f, w = outer - inner;
                 BlockKit.Slab("DividerWall_" + s, arch, new Vector3(cx, height * 0.5f, 0f),
                     new Vector3(w, height, 0.3f), 0.02f, wall, solid: true);
+                Level4GameRoomAmbience.WainscotBothFaces(arch, "Divider_" + s, cx, w, 0.15f);
                 foreach (float z in new[] { -0.17f, 0.17f })
                 {
                     BlockKit.Box("DividerStrip_" + s, arch, new Vector3(cx, 3.4f, z), new Vector3(w, 0.08f, 0.02f), strip);
@@ -229,7 +237,7 @@ namespace Cyverse.Level
                 BlockKit.Box("CanopyPost_" + s, bar, new Vector3(x + px, 1.45f, 1.45f), new Vector3(0.08f, 2.9f, 0.08f), CabinetTrim);
             BlockKit.Slab("Canopy_" + s, bar, new Vector3(x, 2.95f, 0.4f), new Vector3(3.3f, 0.1f, 2.1f), 0.02f, CabinetBody);
             BlockKit.Box("CanopyEdge_" + s, bar, new Vector3(x, 2.89f, -0.65f), new Vector3(3.3f, 0.02f, 0.02f), Glow(colour, 1.2f));
-            WallNeon(bar, "Neon_" + s, new Vector3(x, 3.32f, -0.6f), 0f, title, colour, 2.4f, new Vector2(2.4f, 0.32f));
+            WallNeon(bar, "Neon_" + s, new Vector3(x, 3.32f, -0.6f), 0f, title, colour, 2.4f, new Vector2(2.4f, 0.32f), onWall: false);
 
             Color warm = new Color(1f, 0.78f, 0.5f);
             for (int k = -1; k <= 1; k++)
@@ -652,9 +660,13 @@ namespace Cyverse.Level
         /// <summary>A neon tube sign on a wall: lit text in a glowing frame on
         /// a dark backer. The text reads from local -Z.</summary>
         private static void WallNeon(Transform parent, string name, Vector3 position, float yaw,
-            string text, Color colour, float fontSize, Vector2 size)
+            string text, Color colour, float fontSize, Vector2 size, bool onWall = true)
         {
             var t = Group(parent, name, position, yaw);
+            // The light the tubes throw on the wall round the backer.
+            if (onWall)
+                Level4GameRoomAmbience.Wash(t, "Wash", new Vector3(0f, 0f, 0.02f), Vector3.zero,
+                    new Vector2(size.x * 1.9f + 1.2f, size.y * 3f + 2.2f), colour, 0.5f);
             BlockKit.Slab("Backer", t, new Vector3(0f, 0f, 0.03f), new Vector3(size.x + 0.3f, size.y + 0.24f, 0.04f), 0.01f, DarkGlass);
             float hx = size.x * 0.5f + 0.08f, hy = size.y * 0.5f + 0.06f;
             var tube = new List<CombineInstance>
@@ -755,8 +767,8 @@ namespace Cyverse.Level
 
         /// <summary>A soft pool of colour on the carpet under a machine.</summary>
         private static void UnderGlow(Transform parent, Vector3 center, Vector2 size, Color colour) =>
-            BlockKit.Box("UnderGlow", parent, center + new Vector3(0f, 0.004f, 0f),
-                new Vector3(size.x, 0.004f, size.y), Glow(Color.Lerp(colour, Color.black, 0.6f), 1f));
+            Level4GameRoomAmbience.Pool(parent, "UnderGlow", center + new Vector3(0f, 0.045f, 0f),
+                size * 2.1f, colour, 0.55f);
 
         /// <summary>Three upright arcade cabinets side by side; the middle one
         /// is the station, the other two run attract mode. Each has the

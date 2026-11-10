@@ -27,7 +27,7 @@ namespace Cyverse.Level
             // Level 4's large task boards need a taller volume than the shared
             // five-metre training shell. Keeping the height local to this scene
             // avoids changing the composition of Levels 1-3.
-            BuildKit.BuildWalls(BuildKit.WallColor, AttackRoomHeight);
+            BuildKit.BuildWalls(Level4GameRoomAmbience.WallUpper, AttackRoomHeight);
             BuildKit.BuildCeilingPanels(AttackRoomHeight);
             BuildKit.BuildWallDetail(AttackOrange, AttackRoomHeight);
             BuildKit.BuildNeonTrim(AttackOrange);
