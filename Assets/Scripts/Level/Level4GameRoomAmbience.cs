@@ -29,7 +29,7 @@ namespace Cyverse.Level
         public const string RootName = "GameRoomAmbience";
 
         /// <summary>The wall band at eye level, and the dividing wall.</summary>
-        public static readonly Color WallBand = new Color(0.215f, 0.18f, 0.30f);
+        public static readonly Color WallBand = new Color(0.25f, 0.21f, 0.345f);
         /// <summary>The wall above the light strip, and the base wall colour.</summary>
         public static readonly Color WallUpper = new Color(0.115f, 0.10f, 0.165f);
         public static readonly Color Wainscot = new Color(0.135f, 0.11f, 0.20f);
@@ -193,7 +193,7 @@ namespace Cyverse.Level
                         if (i < steps)
                         {
                             cable.Add(BlockKit.Piece(BlockKit.CubeMesh, p + Vector3.down * 0.035f, Vector3.zero, new Vector3(0.022f, 0.05f, 0.022f)));
-                            bulbs.Add(BlockKit.Piece(BlockKit.CubeMesh, p + Vector3.down * 0.095f, new Vector3(45f, 45f, 0f), Vector3.one * 0.065f));
+                            bulbs.Add(BlockKit.Piece(BlockKit.CubeMesh, p + Vector3.down * 0.095f, new Vector3(45f, 45f, 0f), Vector3.one * 0.08f));
                         }
                         previous = p;
                     }
@@ -203,7 +203,7 @@ namespace Cyverse.Level
                         Vector3.zero, new Vector3(0.02f, ceiling - anchorY, 0.02f)));
             }
             BlockKit.Batch("FestoonCable", root, CableMat, cable);
-            BlockKit.Batch("FestoonBulbs", root, Level4GameRoom.GlowMaterial(Warm, 2.4f), bulbs);
+            BlockKit.Batch("FestoonBulbs", root, Level4GameRoom.GlowMaterial(Warm, 1.5f), bulbs);
         }
 
         // ---- Pixel art ----------------------------------------------------------
@@ -302,7 +302,7 @@ namespace Cyverse.Level
                 }
             BlockKit.Batch("Pixels", t, Level4GameRoom.GlowMaterial(colour, 1.15f), pixels);
             Wash(t, "Wash", new Vector3(0f, 0f, -0.005f), new Vector3(0f, 180f, 0f),
-                new Vector2(columns * pixel * 2.4f, rows.Length * pixel * 2.2f), colour, 0.45f);
+                new Vector2(columns * pixel * 3.6f, rows.Length * pixel * 3.3f), colour, 0.8f);
         }
 
         // ---- Soft light ---------------------------------------------------------
@@ -312,7 +312,7 @@ namespace Cyverse.Level
         private static void BarPools(Transform root)
         {
             foreach (float x in new[] { -4.7f, 4.7f })
-                Pool(root, "BarPool", new Vector3(x, 0.02f, -6.9f), new Vector2(5.2f, 3.2f), Warm, 0.35f);
+                Pool(root, "BarPool", new Vector3(x, 0.02f, -6.9f), new Vector2(6.4f, 4.4f), Warm, 0.6f);
         }
 
         private static Shader glowShader;

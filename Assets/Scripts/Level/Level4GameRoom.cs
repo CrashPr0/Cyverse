@@ -666,7 +666,7 @@ namespace Cyverse.Level
             // The light the tubes throw on the wall round the backer.
             if (onWall)
                 Level4GameRoomAmbience.Wash(t, "Wash", new Vector3(0f, 0f, 0.02f), Vector3.zero,
-                    new Vector2(size.x * 1.9f + 1.2f, size.y * 3f + 2.2f), colour, 0.5f);
+                    new Vector2(size.x * 2.4f + 2.4f, size.y * 4f + 3.6f), colour, 1f);
             BlockKit.Slab("Backer", t, new Vector3(0f, 0f, 0.03f), new Vector3(size.x + 0.3f, size.y + 0.24f, 0.04f), 0.01f, DarkGlass);
             float hx = size.x * 0.5f + 0.08f, hy = size.y * 0.5f + 0.06f;
             var tube = new List<CombineInstance>
@@ -768,7 +768,7 @@ namespace Cyverse.Level
         /// <summary>A soft pool of colour on the carpet under a machine.</summary>
         private static void UnderGlow(Transform parent, Vector3 center, Vector2 size, Color colour) =>
             Level4GameRoomAmbience.Pool(parent, "UnderGlow", center + new Vector3(0f, 0.045f, 0f),
-                size * 2.1f, colour, 0.55f);
+                size * 2.6f, colour, 0.85f);
 
         /// <summary>Three upright arcade cabinets side by side; the middle one
         /// is the station, the other two run attract mode. Each has the
