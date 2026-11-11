@@ -236,7 +236,7 @@ namespace Cyverse.Level
             foreach (Vector2 corner in new[] { new Vector2(-1f, -1f), new Vector2(-1f, 1f), new Vector2(1f, 1f) })
                 edges.Add(BlockKit.Piece(BlockKit.CubeMesh, at + new Vector3(corner.x * size * 0.5f, 0.21f, corner.y * size * 0.5f),
                     Vector3.zero, new Vector3(0.012f, 0.42f, 0.012f)));
-            BlockKit.Batch("ChuteGuardEdges", m, Glow(Teal, 1.1f), edges);
+            BlockKit.Batch("ChuteGuardEdges", m, Glow(Teal, 0.7f), edges);
         }
 
         // ---- Bar ----------------------------------------------------------------
