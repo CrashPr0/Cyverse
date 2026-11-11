@@ -87,6 +87,14 @@ namespace Cyverse.UI
                 return;
             }
 
+            if (screen == Screen.Question && awaitingNext)
+            {
+                if (Time.unscaledTime >= nextAt &&
+                    (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) ||
+                     Input.GetKeyDown(KeyCode.Space)))
+                    ShowQuestion();
+                return;
+            }
             if (screen == Screen.Roles) HandleRolesInput();
             else if (screen == Screen.Question && awaitingInput) HandleQuestionInput();
         }
@@ -101,6 +109,7 @@ namespace Cyverse.UI
         private void ShowRoles()
         {
             screen = Screen.Roles;
+            awaitingNext = false;
             titleText.text = "SECURITY+ PREP — CHOOSE A CATEGORY";
 
             var sb = new System.Text.StringBuilder();
@@ -159,6 +168,7 @@ namespace Cyverse.UI
         private void ShowQuestion()
         {
             screen = Screen.Question;
+            awaitingNext = false;
             if (bag == null || bag.Length == 0)
             {
                 bodyText.text = "<color=#FF8866>No questions in this category.</color>";
@@ -219,8 +229,16 @@ namespace Cyverse.UI
             if (Sfx.Instance != null) { if (correct) Sfx.Instance.PlayConfirm(); else Sfx.Instance.PlayDeny(); }
 
             cursor++;
-            StartCoroutine(NextAfterDelay());
+            // The explanation stays until the player moves on (batch runs
+            // keep the old short timer).
+            if (Application.isBatchMode) { StartCoroutine(NextAfterDelay()); return; }
+            feedbackText.text += "\n<color=#8FB8CC>Press Enter or Space for the next question   ·   Esc for categories</color>";
+            awaitingNext = true;
+            nextAt = Time.unscaledTime + 0.4f;
         }
+
+        private bool awaitingNext;
+        private float nextAt;
 
         private IEnumerator NextAfterDelay()
         {
