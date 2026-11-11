@@ -83,7 +83,7 @@ namespace Cyverse.Testing
             DeterministicGameplayAdapter.SubmitConfiguredPassword(password, gameObject);
             yield return WaitForScene("Hub", 8f);
 
-            yield return EnterLevelFromHub(1, "LEVEL 1 — I/AM");
+            yield return EnterLevelFromHub(1, "LEVEL 1 — IDENTITY & ACCESS");
             var level1 = gameObject.AddComponent<Level1TasPlayback>();
             level1.restoreProgressOnFinish = false;
             level1.travelSpeed = 11f;

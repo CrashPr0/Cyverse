@@ -264,7 +264,7 @@ namespace Cyverse.Interaction
                 "<color=#5BD9FF><b>LIVE WORKSTATION ACTIVITY</b></color>\n" +
                 $"> {lines[0]}\n> {lines[1]}";
             feedbackText.text = "Does the flagged activity match what is visibly running here?";
-            controlsText.text = "[1] MATCH — BENIGN POSITIVE     ·     [2] NO MATCH — POSSIBLE TRUE POSITIVE     ·     ESC / TAB CLOSE";
+            controlsText.text = "[1] IT MATCHES — FALSE ALARM     ·     [2] NO MATCH — POSSIBLY REAL     ·     ESC / TAB CLOSE";
         }
 
         private void ResolveVerdict(Level2Content.SocVerdict verdict)

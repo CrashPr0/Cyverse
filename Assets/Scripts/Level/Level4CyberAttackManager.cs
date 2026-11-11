@@ -47,8 +47,15 @@ namespace Cyverse.Level
         public string LastFeedback { get; private set; } = string.Empty;
         public string MeterSummary =>
             $"DATA STOLEN  {ExfiltrationPercent:00}%    ·    CAUGHT  {DetectionPercent:00}%" +
-            (TimeExpired ? "    ·    OVERTIME" :
-                $"    ·    T-{Mathf.FloorToInt(TimeRemaining / 60f)}:{Mathf.FloorToInt(TimeRemaining % 60f):00}");
+            TimerSuffix("    ·    ");
+
+        /// <summary>Countdown text for the meters; empty in the untimed run.</summary>
+        public string TimerSuffix(string separator)
+        {
+            if (!Level4CyberAttackContent.TimedRun) return string.Empty;
+            return separator + (TimeExpired ? "OVERTIME"
+                : $"T-{Mathf.FloorToInt(TimeRemaining / 60f)}:{Mathf.FloorToInt(TimeRemaining % 60f):00}");
+        }
 
         private readonly bool[] completed = new bool[4];
         private Level4CyberAttackContent.StationScenario[] scenarios;
@@ -136,7 +143,8 @@ namespace Cyverse.Level
                 !GameState.AnyMenuOpen && Application.isFocused)
                 activeElapsedSeconds += Time.unscaledDeltaTime;
 
-            if (ScenarioStarted && !TimeExpired && CurrentPhase != Phase.Complete && TimeRemaining <= 0f)
+            if (Level4CyberAttackContent.TimedRun && ScenarioStarted && !TimeExpired &&
+                CurrentPhase != Phase.Complete && TimeRemaining <= 0f)
             {
                 TimeExpired = true;
                 DetectionPercent = Mathf.Clamp(DetectionPercent + Level4CyberAttackContent.TimeoutDetectionPenalty, 0, 100);
@@ -177,7 +185,7 @@ namespace Cyverse.Level
             else if (stations != null && CurrentStationIndex >= 0 && CurrentStationIndex < stations.Length)
             {
                 target = stations[CurrentStationIndex].transform;
-                action = "RUN THE NEXT SIMULATED STAGE";
+                action = "PLAY " + Level4CyberAttackContent.MachineTitle(scenarios[CurrentStationIndex].kind);
             }
 
             if (target != null) beacon.PointAt(target, action, AttackOrange);
@@ -212,11 +220,11 @@ namespace Cyverse.Level
             if (station == null) return "Cyber Attack Simulation";
             if (IsLevelComplete) return "Simulation complete";
             if (!ScenarioStarted) return "Watch the attack briefing first";
-            if (IsStationComplete(station)) return "Stage complete — review lesson";
+            if (IsStationComplete(station)) return "Finished — review the lesson";
             if (station.StationIndex == CurrentStationIndex)
-                return $"Run {Level4CyberAttackContent.DisplayName(station.Kind)} simulation";
-            if (station.StationIndex < CurrentStationIndex) return "Stage complete — review lesson";
-            return $"Locked — complete {Level4CyberAttackContent.DisplayName(scenarios[CurrentStationIndex].kind)} first";
+                return $"Play {Level4CyberAttackContent.MachineTitle(station.Kind)}";
+            if (station.StationIndex < CurrentStationIndex) return "Finished — review the lesson";
+            return $"Locked — play {Level4CyberAttackContent.MachineTitle(scenarios[CurrentStationIndex].kind)} first";
         }
 
         public void ExplainUnavailable(CyberAttackStation station)
@@ -228,7 +236,7 @@ namespace Cyverse.Level
                 return;
             }
             if (station.StationIndex > CurrentStationIndex)
-                HudUI.Instance.ShowToast("That stage is locked — follow the simulated attack chain in order.", Gold);
+                HudUI.Instance.ShowToast($"Locked — play {Level4CyberAttackContent.MachineTitle(scenarios[CurrentStationIndex].kind)} first.", Gold);
         }
 
         public bool TryResolve(CyberAttackStation station, int optionIndex)
@@ -281,8 +289,6 @@ namespace Cyverse.Level
         private void UpdateObjective()
         {
             if (HudUI.Instance == null) return;
-            string timer = ScenarioStarted && !IsLevelComplete
-                ? $"  [T-{Mathf.FloorToInt(TimeRemaining / 60f)}:{Mathf.FloorToInt(TimeRemaining % 60f):00}]" : string.Empty;
             switch (CurrentPhase)
             {
                 case Phase.Briefing:
@@ -292,14 +298,17 @@ namespace Cyverse.Level
                     HudUI.Instance.ShowObjective("LEVEL 4 COMPLETE");
                     break;
                 default:
+                    // Name the machine by the sign the player can see in the
+                    // room, with the attack step it stands for after it.
                     string name = CurrentStationIndex < scenarios.Length
-                        ? Level4CyberAttackContent.DisplayName(scenarios[CurrentStationIndex].kind)
-                        : "final stage";
+                        ? Level4CyberAttackContent.MachineTitle(scenarios[CurrentStationIndex].kind) +
+                          "  (" + Level4CyberAttackContent.DisplayName(scenarios[CurrentStationIndex].kind) + ")"
+                        : "the last machine";
                     // The dedicated meter owns the exfiltration/detection
                     // telemetry. Keeping that summary out of the objective
                     // banner prevents a duplicate timer and leaves the next
                     // action readable at narrow WebGL aspect ratios.
-                    HudUI.Instance.ShowStep(CurrentStationIndex + 2, 5, $"Run {name} at its game machine{timer}");
+                    HudUI.Instance.ShowStep(CurrentStationIndex + 2, 5, $"Play {name}");
                     break;
             }
             HudUI.Instance.SetProgress(CurrentPhase == Phase.Complete ? 4 : CompletedCount, 4);
@@ -323,8 +332,7 @@ namespace Cyverse.Level
                         ? Level4CyberAttackContent.DisplayName(scenarios[CurrentStationIndex].kind).ToUpperInvariant()
                         : "FINAL STAGE";
                     status = $"STAGE {Mathf.Clamp(CurrentStationIndex + 1, 1, 4)} / 4  ·  {stage}" +
-                        (TimeExpired ? "  ·  OVERTIME" :
-                            $"  ·  T-{Mathf.FloorToInt(TimeRemaining / 60f)}:{Mathf.FloorToInt(TimeRemaining % 60f):00}");
+                        TimerSuffix("  ·  ");
                     break;
             }
             Level4ExfiltrationMeter.Report(ExfiltrationPercent / 100f,
@@ -349,10 +357,10 @@ namespace Cyverse.Level
             list.Show(new List<TaskListPanel.Task>
             {
                 new TaskListPanel.Task("Watch briefing", active, !active),
-                new TaskListPanel.Task("Bypass MFA", completed[0], active && CurrentStationIndex == 0),
-                new TaskListPanel.Task("Escalate privileges", completed[1], active && CurrentStationIndex == 1),
-                new TaskListPanel.Task("Extract data", completed[2], active && CurrentStationIndex == 2),
-                new TaskListPanel.Task("Cover tracks", completed[3], active && CurrentStationIndex == 3),
+                new TaskListPanel.Task("Phish Frenzy · bypass MFA", completed[0], active && CurrentStationIndex == 0),
+                new TaskListPanel.Task("Access Grabber · escalate", completed[1], active && CurrentStationIndex == 1),
+                new TaskListPanel.Task("Data Vending · extract data", completed[2], active && CurrentStationIndex == 2),
+                new TaskListPanel.Task("High Score Log · cover tracks", completed[3], active && CurrentStationIndex == 3),
             });
         }
 

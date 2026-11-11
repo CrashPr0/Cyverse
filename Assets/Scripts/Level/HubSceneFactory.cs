@@ -37,7 +37,7 @@ namespace Cyverse.Level
             // Story doors along the EAST wall (the z slots clear the wall
             // columns at every ±8). rotY=90 points each door's readable face
             // west, into the room.
-            new DoorSpec("Level 1 — I/AM", "Level1_IAM", 1, new Color(0.25f, 0.65f, 1f), new Vector3(19.2f, 0f, 12f), 90f),
+            new DoorSpec("Level 1 — Identity & Access", "Level1_IAM", 1, new Color(0.25f, 0.65f, 1f), new Vector3(19.2f, 0f, 12f), 90f),
             new DoorSpec("Level 2 — Cyber Defense", "Level2_CyberDefense", 2, new Color(0.95f, 0.35f, 0.25f), new Vector3(19.2f, 0f, 4f), 90f),
             new DoorSpec("Level 3 — Digital Forensics", "Level3_Forensics", 3, new Color(0.75f, 0.35f, 1f), new Vector3(19.2f, 0f, -4f), 90f),
             new DoorSpec("Level 4 — Cyber Attack", "Level4_CyberAttack", 4, new Color(1f, 0.60f, 0.15f), new Vector3(19.2f, 0f, -12f), 90f),
@@ -379,7 +379,7 @@ namespace Cyverse.Level
             var lines = new List<DialogueLine>();
             if (done == 0)
                 lines.Add(new DialogueLine("Concierge",
-                    $"Welcome to the CyVerse Hub, {PlayerIdentity.Callsign}. Start with Level 1 — I/AM: follow the blue path to the east wall. Each level: watch the briefing, then complete the task.", null, 5f));
+                    $"Welcome to the CyVerse Hub, {PlayerIdentity.Callsign}. Start with Level 1 — Identity & Access: follow the blue path to the east wall. Each level: watch the briefing, then complete the task.", null, 5f));
             else
                 lines.Add(new DialogueLine("Concierge",
                     $"Good to see you, {PlayerIdentity.Callsign} — {done} level{(done == 1 ? "" : "s")} complete. Finished levels stay open if you want a better score.", null, 4.5f));

@@ -45,7 +45,7 @@ namespace Cyverse.Interaction
             if (manager.ReportSubmitted)
             {
                 if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("FORENSIC REPORT SUBMITTED — case closed.",
+                    HudUI.Instance.ShowToast("The forensic report is already submitted.",
                         new Color(0.30f, 1f, 0.55f));
                 return;
             }

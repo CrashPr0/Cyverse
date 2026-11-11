@@ -12,6 +12,10 @@ namespace Cyverse.Level
     /// </summary>
     public static class Level4CyberAttackContent
     {
+        /// <summary>The normal run is untimed: a first-time player should read
+        /// each choice, not race a clock. The limit stays for a future timed
+        /// (Hard) run.</summary>
+        public static readonly bool TimedRun = false;
         public const float ScenarioTimeLimitSeconds = 240f;
         public const int TimeoutDetectionPenalty = 15;
 

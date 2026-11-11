@@ -198,7 +198,8 @@ namespace Cyverse.Level
             completeAt = Time.time + (Application.isBatchMode ? 0f : 1.6f);
             ReportFiled?.Invoke();
             if (HudUI.Instance != null)
-                HudUI.Instance.ShowToast("FORENSIC REPORT SUBMITTED — case closed",
+                HudUI.Instance.ShowToast(
+                    $"FORENSIC REPORT SUBMITTED — last step: {Level3KnowledgeCheck.Questions.Length} quick questions",
                     new Color(0.30f, 1f, 0.55f));
             UpdateObjective();
         }
@@ -398,6 +399,9 @@ namespace Cyverse.Level
                     answered >= total, watched && custodyComplete && answered < total),
                 new TaskListPanel.Task("Submit forensic report", ReportSubmitted,
                     CurrentPhase == Phase.Report && !ReportSubmitted),
+                new TaskListPanel.Task(
+                    $"Knowledge check  ({Level3KnowledgeCheck.Questions.Length} questions)",
+                    KnowledgeCheckDone, ReportSubmitted && !KnowledgeCheckDone),
             });
         }
 
