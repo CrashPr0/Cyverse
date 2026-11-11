@@ -88,6 +88,13 @@ namespace Cyverse.Tests
                 ("model-prizes", new Vector3(-4f, 1.7f, 15.4f), new Vector3(-4f, 1.7f, 19f), 55f),
                 ("model-prizes-close", new Vector3(-4.6f, 1.7f, 17.25f), new Vector3(-4.6f, 1.5f, 19.3f), 60f),
                 ("model-prizes-angle", new Vector3(-2.2f, 1.7f, 17.1f), new Vector3(-4.6f, 1.45f, 19.3f), 55f),
+                ("model-ticket-machine", new Vector3(-5.2f, 1.6f, 17.3f), new Vector3(-5.5f, 1.15f, 18.25f), 45f),
+                ("model-air-hockey", new Vector3(12.5f, 1.75f, 14.1f), new Vector3(15.2f, 0.95f, 16.2f), 55f),
+                ("model-hoops", new Vector3(-15.4f, 1.7f, 14.9f), new Vector3(-17.9f, 1.7f, 18.4f), 60f),
+                ("model-snack-counter", new Vector3(-4.7f, 1.65f, -8.1f), new Vector3(-4.7f, 1.3f, -5.2f), 60f),
+                ("model-drinks-counter", new Vector3(4.7f, 1.65f, -8.1f), new Vector3(4.7f, 1.3f, -5.2f), 60f),
+                ("model-coffee", new Vector3(4.3f, 1.6f, -7.2f), new Vector3(3.9f, 1.3f, -5.95f), 50f),
+                ("model-lan-desk", new Vector3(10.6f, 1.55f, 16.0f), new Vector3(10.6f, 0.7f, 18.7f), 60f),
                 ("model-console-lounge", new Vector3(-8.4f, 1.6f, 16.3f), new Vector3(-11.6f, 0.6f, 17.9f), 60f),
                 ("model-ping-pong", new Vector3(9.6f, 1.6f, -9.4f), new Vector3(12f, 0.8f, -12f), 50f),
             };
@@ -129,6 +136,11 @@ namespace Cyverse.Tests
                 yield return null;
                 Assert.That(Capture(camera, Path.Combine(output,
                     "Level4_CyberAttack__model-station-" + i + "-profile.png")), Is.True);
+                PositionPlayerView(camera, station.position - ahead * 1.1f + Vector3.up * 2.05f,
+                    station.position + ahead * 0.15f + Vector3.up * 0.95f);
+                yield return null;
+                Assert.That(Capture(camera, Path.Combine(output,
+                    "Level4_CyberAttack__model-station-" + i + "-top.png")), Is.True);
             }
 
             // Include one normal gameplay frame with the overlay canvases so

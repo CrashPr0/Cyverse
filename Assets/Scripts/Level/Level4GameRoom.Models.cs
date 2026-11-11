@@ -278,12 +278,8 @@ namespace Cyverse.Level
         /// to a lump at the back.</summary>
         private static Transform BuildBeanbagModel(Transform parent, Vector3 position, float yaw, Color colour)
         {
-            Transform bag = BlockKit.MeshPart("Beanbag", parent, Shared("beanbag", () => CharacterMesh.Loft(new[]
-            {
-                new Ring(0f, 0.42f, 0.40f), new Ring(0.06f, 0.56f, 0.52f), new Ring(0.22f, 0.58f, 0.54f),
-                new Ring(0.34f, 0.50f, 0.46f, 0.06f), new Ring(0.44f, 0.37f, 0.31f, 0.2f), new Ring(0.56f, 0.28f, 0.2f, 0.3f),
-                new Ring(0.66f, 0.2f, 0.14f, 0.34f), new Ring(0.71f, 0.1f, 0.07f, 0.35f),
-            }, 22, 3, "Beanbag")), position, new Vector3(0f, yaw, 0f), BuildKit.MakeStandard(colour * 0.75f, 0.15f, 0f));
+            Transform bag = BlockKit.MeshPart("Beanbag", parent, Shared("beanbagSack", SackMesh), position,
+                new Vector3(0f, yaw, 0f), BuildKit.MakeStandard(colour * 0.75f, 0.15f, 0f));
             // The same footprint the old round bag blocked.
             var body = bag.gameObject.AddComponent<SphereCollider>();
             body.center = new Vector3(0f, 0.3f, 0f);
