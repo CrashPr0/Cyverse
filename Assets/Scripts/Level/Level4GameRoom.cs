@@ -20,7 +20,7 @@ namespace Cyverse.Level
     /// are built in station-local space with their playable face toward
     /// local -Z, the side the player reads every station from.
     /// </summary>
-    public static class Level4GameRoom
+    public static partial class Level4GameRoom
     {
         public const string RootName = "GameRoom";
         public const string ArchName = "GameRoomArch";
@@ -76,13 +76,13 @@ namespace Cyverse.Level
             BuildCorkboard(root, new Vector3(-19.35f, 0f, -4f), -90f);
             // North of the shared station aisle (z 11) so the walk between
             // machines stays clear.
-            BuildFoosball(root, new Vector3(0f, 0f, 15.6f), 0f);
+            BuildFoosballModel(root, new Vector3(0f, 0f, 15.6f), 0f);
             BuildPingPong(root, new Vector3(12f, 0f, -12f), 0f);
 
             PropFactory.BuildLounge(root);
-            BuildBeanbag(root, new Vector3(-12.2f, 0f, -9.4f), Magenta);
-            BuildBeanbag(root, new Vector3(-14.0f, 0f, -8.6f), Teal);
-            BuildBeanbag(root, new Vector3(-15.8f, 0f, -9.6f), Lemon);
+            BuildBeanbagModel(root, new Vector3(-12.2f, 0f, -9.4f), 140f, Magenta);
+            BuildBeanbagModel(root, new Vector3(-14.0f, 0f, -8.6f), 185f, Teal);
+            BuildBeanbagModel(root, new Vector3(-15.8f, 0f, -9.6f), 225f, Lemon);
 
             // The north end, behind the station rows. Each piece sits in a bay
             // between the north wall's columns (x = -16, -8, 0, 8, 16) and
@@ -201,12 +201,8 @@ namespace Cyverse.Level
                 // Stools on the room side.
                 for (int k = 0; k < 3; k++)
                 {
-                    Vector3 stool = new Vector3(x - 1.0f + k * 1.0f, 0f, -0.95f);
-                    BlockKit.Block($"Stool_{s}{k}", bar, stool, Vector3.zero, 0f, 0.7f,
-                        new Vector2(0.06f, 0.06f), new Vector2(0.05f, 0.05f), 0.01f, Chrome);
-                    BlockKit.Slab($"StoolSeat_{s}{k}", bar, stool + Vector3.up * 0.74f,
-                        new Vector3(0.42f, 0.08f, 0.42f), 0.03f, Plain(side < 0f ? Magenta * 0.7f : Teal * 0.6f));
-                    BlockKit.Box($"StoolFootRing_{s}{k}", bar, stool + Vector3.up * 0.28f, new Vector3(0.3f, 0.02f, 0.3f), Chrome);
+                    BuildStool(bar, $"{s}{k}", new Vector3(x - 1.0f + k * 1.0f, 0f, -0.95f),
+                        side < 0f ? Magenta * 0.7f : Teal * 0.6f);
                 }
 
                 BuildCounterDress(bar, x, side < 0f ? Magenta : Teal);
@@ -244,8 +240,7 @@ namespace Cyverse.Level
             {
                 Vector3 at = new Vector3(x + k * 1.0f, 0f, -0.15f);
                 BlockKit.Box("PendantCord", bar, at + new Vector3(0f, 2.62f, 0f), new Vector3(0.012f, 0.56f, 0.012f), CabinetTrim);
-                BlockKit.Block("PendantShade", bar, at + new Vector3(0f, 2.18f, 0f), Vector3.zero, 0f, 0.18f,
-                    new Vector2(0.16f, 0.16f), new Vector2(0.05f, 0.05f), 0.01f, CabinetTrim);
+                BuildPendantShade(bar, at + new Vector3(0f, 2.185f, 0f));
                 var bulb = BuildKit.SpawnLocal(PrimitiveType.Sphere, "PendantBulb", bar, at + new Vector3(0f, 2.17f, 0f),
                     Vector3.zero, Vector3.one * 0.11f, Glow(warm, 1.8f), false);
                 bulb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -352,42 +347,6 @@ namespace Cyverse.Level
             return tmp;
         }
 
-        private static void BuildFoosball(Transform parent, Vector3 position, float yaw)
-        {
-            var t = new GameObject("Foosball").transform;
-            t.SetParent(parent, false);
-            t.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
-
-            foreach (float x in new[] { -0.6f, 0.6f })
-                foreach (float z in new[] { -0.35f, 0.35f })
-                    BlockKit.Box("Leg", t, new Vector3(x, 0.4f, z), new Vector3(0.08f, 0.8f, 0.08f), CabinetTrim);
-            BlockKit.Block("Box", t, Vector3.zero, Vector3.zero, 0.8f, 1.0f,
-                new Vector2(0.72f, 0.42f), new Vector2(0.72f, 0.42f), 0.02f, CabinetBody, solid: true);
-            BlockKit.Box("Pitch", t, new Vector3(0f, 0.86f, 0f), new Vector3(1.36f, 0.01f, 0.76f), Felt);
-            BlockKit.Box("Halfway", t, new Vector3(0f, 0.867f, 0f), new Vector3(0.015f, 0.004f, 0.76f), WhiteLine);
-
-            var rods = new List<CombineInstance>();
-            var red = new List<CombineInstance>();
-            var blue = new List<CombineInstance>();
-            for (int i = 0; i < 8; i++)
-            {
-                float x = -0.56f + i * 0.16f;
-                rods.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, 0.96f, 0f), Vector3.zero, new Vector3(0.018f, 0.018f, 1.2f)));
-                var team = i % 2 == 0 ? red : blue;
-                int players = i == 0 || i == 7 ? 1 : i % 3 == 1 ? 2 : 3;
-                for (int p = 0; p < players; p++)
-                {
-                    float z = players == 1 ? 0f : -0.22f + p * (0.44f / (players - 1));
-                    team.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, 0.93f, z), Vector3.zero, new Vector3(0.04f, 0.13f, 0.03f)));
-                }
-            }
-            BlockKit.Batch("Rods", t, Chrome, rods);
-            BlockKit.Batch("RedTeam", t, Plain(new Color(0.85f, 0.15f, 0.2f)), red);
-            BlockKit.Batch("BlueTeam", t, Plain(new Color(0.15f, 0.35f, 0.9f)), blue);
-            // The badge someone left behind (the corkboard's "found" note).
-            BlockKit.Box("ForgottenBadge", t, new Vector3(0.62f, 1.005f, 0.3f), new Vector3(0.09f, 0.006f, 0.13f), Glow(Lemon, 0.8f));
-        }
-
         private static void BuildPingPong(Transform parent, Vector3 position, float yaw)
         {
             var t = new GameObject("PingPong").transform;
@@ -409,19 +368,11 @@ namespace Cyverse.Level
             };
             BlockKit.Batch("Lines", t, WhiteLine, lines);
             BlockKit.Box("Net", t, new Vector3(0f, 0.85f, 0f), new Vector3(1.66f, 0.15f, 0.01f), Plain(new Color(0.12f, 0.12f, 0.14f)));
-            BlockKit.Box("PaddleA", t, new Vector3(0.35f, 0.785f, -0.9f), new Vector3(0.16f, 0.015f, 0.26f), Plain(new Color(0.8f, 0.12f, 0.15f)));
-            BlockKit.Box("PaddleB", t, new Vector3(-0.3f, 0.785f, 0.95f), new Vector3(0.16f, 0.015f, 0.26f), Plain(new Color(0.1f, 0.1f, 0.12f)));
+            BuildPaddle(t, "PaddleA", new Vector3(0.35f, 0.771f, -0.9f), 25f, new Color(0.8f, 0.12f, 0.15f));
+            BuildPaddle(t, "PaddleB", new Vector3(-0.3f, 0.771f, 0.95f), 200f, new Color(0.1f, 0.1f, 0.12f));
             var ball = BuildKit.SpawnLocal(PrimitiveType.Sphere, "Ball", t, new Vector3(0.1f, 0.79f, -0.4f),
                 Vector3.zero, Vector3.one * 0.04f, Plain(new Color(1f, 0.6f, 0.2f)), false);
             ball.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        }
-
-        private static void BuildBeanbag(Transform parent, Vector3 position, Color colour)
-        {
-            var bag = BuildKit.SpawnLocal(PrimitiveType.Sphere, "Beanbag", parent, position + Vector3.up * 0.3f,
-                new Vector3(0f, Random.Range(0f, 360f), 0f), new Vector3(1.05f, 0.62f, 0.95f),
-                BuildKit.MakeStandard(colour * 0.75f, 0.15f, 0f), true);
-            bag.isStatic = true;
         }
 
         // ---- North end ----------------------------------------------------------
@@ -517,7 +468,7 @@ namespace Cyverse.Level
                 Plain(new Color(0.1f, 0.1f, 0.12f)));
             BlockKit.Slab("ControllerB", t, new Vector3(0.5f, 0.6f, -0.7f), new Vector3(0.16f, 0.04f, 0.1f), 0.01f,
                 Plain(Magenta * 0.7f));
-            BuildBeanbag(t, new Vector3(1.9f, 0f, 0.3f), Violet);
+            BuildBeanbagModel(t, new Vector3(1.9f, 0f, 0.3f), 160f, Violet);
         }
 
         /// <summary>Ticket prizes on wall shelves behind a counter. The bowl
@@ -554,12 +505,19 @@ namespace Cyverse.Level
             Color[] prizeColours = { Magenta, Teal, Lemon, Violet };
             for (int i = 0; i < prizes.Length; i++)
                 BlockKit.Batch("Prizes_" + i, t, Plain(prizeColours[i] * 0.8f), prizes[i]);
+            var muzzles = new List<CombineInstance>();
+            var faces = new List<CombineInstance>();
             for (int k = 0; k < 5; k++)
             {
-                var plush = BuildKit.SpawnLocal(PrimitiveType.Sphere, "Plush", t, new Vector3(-1.8f + k * 0.9f, 2.17f, 1.1f),
-                    Vector3.zero, new Vector3(0.32f, 0.3f, 0.28f), Plain(prizeColours[k % 4] * 0.85f), false);
-                plush.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                Vector3 seat = new Vector3(-1.8f + k * 0.9f, 2.02f, 1.1f);
+                var bear = new List<CombineInstance>();
+                AddPlushBear(bear, seat);
+                BlockKit.Batch("Plush", t, Plain(prizeColours[k % 4] * 0.85f), bear);
+                muzzles.Add(PlushMuzzle(seat));
+                AddPlushFace(faces, seat);
             }
+            BlockKit.Batch("PlushMuzzles", t, Glow(new Color(1f, 0.8f, 0.58f), 0.3f), muzzles);
+            BlockKit.Batch("PlushFaces", t, Plain(new Color(0.05f, 0.04f, 0.05f)), faces);
 
             // The free USB bowl, nearest the room.
             BlockKit.Block("UsbBowl", t, new Vector3(1.4f, 1.005f, -0.1f), Vector3.zero, 0f, 0.1f,
@@ -607,7 +565,7 @@ namespace Cyverse.Level
                 BlockKit.Box("KeyboardGlow", t, new Vector3(x, 0.801f, -0.18f), new Vector3(0.42f, 0.003f, 0.11f), Glow(c, 0.4f));
                 BlockKit.Box("Mouse", t, new Vector3(x + 0.34f, 0.79f, -0.18f), new Vector3(0.06f, 0.025f, 0.1f), CabinetBody);
                 cans.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x - 0.5f, 0.86f, -0.05f), Vector3.zero, new Vector3(0.07f, 0.16f, 0.07f)));
-                BuildGamingChair(t, new Vector3(x, 0f, -1.05f), 180f + (i - 1) * 12f, c);
+                BuildGamingChairModel(t, new Vector3(x, 0f, -1.05f), 180f + (i - 1) * 12f, c);
             }
             BlockKit.Batch("EnergyCans", t, Glow(Lemon, 0.9f), cans);
 
@@ -616,22 +574,6 @@ namespace Cyverse.Level
                 new Color(0.10f, 0.08f, 0.12f), 0.26f, 0.17f, 0.13f);
 
             WallNeon(t, "Neon_Lan", new Vector3(0f, 2.6f, 0.6f), 0f, "LAN PARTY", Teal, 3.6f, new Vector2(2.6f, 0.5f));
-        }
-
-        /// <summary>A gaming chair; the sitter faces local -Z.</summary>
-        private static void BuildGamingChair(Transform parent, Vector3 position, float yaw, Color accent)
-        {
-            var c = Group(parent, "GamingChair", position, yaw);
-            Material shell = Plain(new Color(0.07f, 0.06f, 0.09f));
-            BlockKit.Box("BaseA", c, new Vector3(0f, 0.05f, 0f), new Vector3(0.6f, 0.04f, 0.08f), CabinetTrim);
-            BlockKit.Box("BaseB", c, new Vector3(0f, 0.05f, 0f), new Vector3(0.08f, 0.04f, 0.6f), CabinetTrim);
-            BlockKit.Box("Pole", c, new Vector3(0f, 0.27f, 0f), new Vector3(0.06f, 0.42f, 0.06f), Chrome);
-            BlockKit.Slab("Seat", c, new Vector3(0f, 0.52f, 0f), new Vector3(0.56f, 0.1f, 0.54f), 0.03f, shell, solid: true);
-            BlockKit.Slab("Back", c, new Vector3(0f, 1.0f, 0.27f), new Vector3(0.52f, 0.86f, 0.1f), 0.04f, shell);
-            BlockKit.Slab("Headrest", c, new Vector3(0f, 1.5f, 0.27f), new Vector3(0.34f, 0.16f, 0.1f), 0.03f, shell);
-            // Racing stripes on the back, which faces the room.
-            foreach (float x in new[] { -0.14f, 0.14f })
-                BlockKit.Box("Stripe", c, new Vector3(x, 1.0f, 0.322f), new Vector3(0.06f, 0.72f, 0.006f), Plain(accent * 0.85f));
         }
 
         private static void BuildAirHockey(Transform parent, Vector3 position)
@@ -792,22 +734,19 @@ namespace Cyverse.Level
 
                 BlockKit.Block("Base", cab, Vector3.zero, Vector3.zero, 0f, 1.0f,
                     new Vector2(0.48f, 0.42f), new Vector2(0.48f, 0.42f), 0.02f, CabinetBody, solid: true);
-                BlockKit.Block("Deck", cab, new Vector3(0f, 0f, -0.42f), new Vector3(-12f, 0f, 0f), 0.94f, 1.06f,
-                    new Vector2(0.47f, 0.2f), new Vector2(0.47f, 0.2f), 0.02f, CabinetTrim);
+                BlockKit.MeshPart("Deck", cab, BlockKit.CubeMesh, new Vector3(0f, 1.032f, -0.493f),
+                    new Vector3(-12f, 0f, 0f), CabinetTrim, scale: new Vector3(0.96f, 0.07f, 0.41f));
+                BlockKit.MeshPart("DeckFront", cab, BlockKit.CubeMesh, new Vector3(0f, 0.975f, -0.69f),
+                    new Vector3(-12f, 0f, 0f), CabinetTrim, scale: new Vector3(0.96f, 0.1f, 0.03f));
+                BlockKit.Box("Hood", cab, new Vector3(0f, 2.225f, 0.045f), new Vector3(0.96f, 0.03f, 0.72f), CabinetBody);
                 BlockKit.Block("Upper", cab, new Vector3(0f, 0f, 0.08f), Vector3.zero, 1.0f, 2.22f,
                     new Vector2(0.48f, 0.34f), new Vector2(0.48f, 0.3f), 0.02f, CabinetBody);
 
-                // Side panels in the cabinet's art colour, proud of the body,
-                // traced along the front edge with glowing T-molding.
+                // Side panels cut to the classic arcade profile in the cabinet's
+                // art colour, traced with glowing T-molding.
+                BuildArcadeSides(cab, side, molding);
                 foreach (float sx in new[] { -0.5f, 0.5f })
                 {
-                    BlockKit.Slab("SideLower", cab, new Vector3(sx, 0.5f, 0f), new Vector3(0.04f, 1.0f, 0.86f), 0.01f, side);
-                    BlockKit.Slab("SideUpper", cab, new Vector3(sx, 1.62f, 0.08f), new Vector3(0.04f, 1.24f, 0.7f), 0.01f, side);
-                    BlockKit.MeshPart("SideDeck", cab, BlockKit.CubeMesh, new Vector3(sx, 1.03f, -0.36f),
-                        new Vector3(-38f, 0f, 0f), side, scale: new Vector3(0.04f, 0.05f, 0.24f));
-                    BlockKit.Box("Molding", cab, new Vector3(sx, 0.5f, -0.435f), new Vector3(0.05f, 0.96f, 0.012f), molding);
-                    BlockKit.Box("Molding", cab, new Vector3(sx, 1.66f, -0.275f), new Vector3(0.05f, 1.12f, 0.012f), molding);
-                    BlockKit.Box("Molding", cab, new Vector3(sx, 2.245f, 0.08f), new Vector3(0.05f, 0.012f, 0.7f), molding);
                     // A big stripe of side art, readable from the aisle.
                     BlockKit.MeshPart("SideArt", cab, BlockKit.CubeMesh, new Vector3(sx * 1.04f, 1.3f, 0.1f),
                         new Vector3(-30f, 0f, 0f), Glow(c, 0.8f), scale: new Vector3(0.01f, 0.9f, 0.06f));
@@ -821,8 +760,8 @@ namespace Cyverse.Level
 
                 // Control panel: chrome lip, joystick, six buttons in two rows
                 // and a lit 1P START.
-                BlockKit.MeshPart("PanelLip", cab, BlockKit.CubeMesh, new Vector3(0f, 0.955f, -0.615f),
-                    new Vector3(-12f, 0f, 0f), Chrome, scale: new Vector3(0.94f, 0.03f, 0.02f));
+                BlockKit.MeshPart("PanelLip", cab, BlockKit.CubeMesh, new Vector3(0f, 0.975f, -0.712f),
+                    new Vector3(-12f, 0f, 0f), Chrome, scale: new Vector3(0.96f, 0.035f, 0.012f));
                 BuildKit.SpawnLocal(PrimitiveType.Cylinder, "StickBase", cab, new Vector3(-0.24f, 1.075f, -0.47f),
                     new Vector3(-12f, 0f, 0f), new Vector3(0.09f, 0.008f, 0.09f), Chrome, false);
                 BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Stick", cab, new Vector3(-0.24f, 1.12f, -0.47f),
@@ -918,8 +857,7 @@ namespace Cyverse.Level
             Pane(m, "GlassRight", new Vector3(0.73f, 1.5f, 0f), -90f, new Vector2(1.22f, 1.08f));
 
             // Prize chute in the front-right corner, with a flap below.
-            BlockKit.Box("Chute", m, new Vector3(0.5f, 1.12f, -0.4f), new Vector3(0.3f, 0.3f, 0.3f), DarkGlass);
-            BlockKit.Box("ChuteRim", m, new Vector3(0.5f, 1.275f, -0.4f), new Vector3(0.32f, 0.02f, 0.32f), Glow(Lemon, 1.4f));
+            BuildChute(m, new Vector3(0.5f, 0.97f, -0.4f));
 
             // Keycards in three colours, lanyards and all, plus the gold one.
             var rnd = new System.Random(4);
@@ -944,16 +882,7 @@ namespace Cyverse.Level
                 BlockKit.Box("Rail", m, new Vector3(0f, 2.0f, z), new Vector3(1.4f, 0.03f, 0.03f), Chrome);
             BlockKit.Box("Gantry", m, new Vector3(-0.15f, 1.98f, 0f), new Vector3(0.05f, 0.04f, 1.12f), Chrome);
             BlockKit.Box("Carriage", m, new Vector3(-0.15f, 1.96f, 0.05f), new Vector3(0.12f, 0.06f, 0.12f), CabinetTrim);
-            BlockKit.Box("Cable", m, new Vector3(-0.15f, 1.72f, 0.05f), new Vector3(0.012f, 0.44f, 0.012f), Chrome);
-            BlockKit.Box("ClawHub", m, new Vector3(-0.15f, 1.5f, 0.05f), new Vector3(0.11f, 0.09f, 0.11f), Chrome);
-            foreach (float a in new[] { 0f, 120f, 240f })
-            {
-                Vector3 dir = Quaternion.Euler(0f, a, 0f) * Vector3.forward;
-                BlockKit.MeshPart("Prong", m, BlockKit.CubeMesh, new Vector3(-0.15f, 1.4f, 0.05f) + dir * 0.06f,
-                    new Vector3(-25f, a, 0f), Chrome, scale: new Vector3(0.02f, 0.16f, 0.02f));
-                BlockKit.MeshPart("ProngTip", m, BlockKit.CubeMesh, new Vector3(-0.15f, 1.31f, 0.05f) + dir * 0.09f,
-                    new Vector3(25f, a, 0f), Chrome, scale: new Vector3(0.02f, 0.07f, 0.02f));
-            }
+            BuildClaw(m, new Vector3(-0.15f, 1.19f, 0.05f), 1.93f);
 
             // Canopy with a marquee and chasing bulbs round its front.
             BlockKit.Slab("Canopy", m, new Vector3(0f, 2.2f, 0f), new Vector3(1.55f, 0.4f, 1.35f), 0.03f, CabinetBody);
