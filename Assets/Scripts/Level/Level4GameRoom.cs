@@ -92,7 +92,7 @@ namespace Cyverse.Level
             BuildConsoleLounge(root, new Vector3(-12.6f, 0f, 17.6f));
             BuildPrizeCounter(root, new Vector3(-4.0f, 0f, 18.2f));
             BuildLanCorner(root, new Vector3(10.6f, 0f, 18.85f));
-            BuildAirHockey(root, new Vector3(15.2f, 0f, 16.2f));
+            BuildAirHockeyModel(root, new Vector3(15.2f, 0f, 16.2f));
             PropFactory.BuildPlant(root, new Vector3(-9.2f, 0f, 18.7f));
             PropFactory.BuildPlant(root, new Vector3(18.6f, 0f, 18.6f));
 
@@ -188,14 +188,7 @@ namespace Cyverse.Level
                         new Vector2(0.29f, 0.36f), new Vector2(0.29f, 0.36f), 0.02f, CabinetTrim, solid: true);
                     BlockKit.Slab(n + "_Glass", bar, c + new Vector3(0f, 1.08f, -0.37f),
                         new Vector3(0.5f, 1.6f, 0.02f), 0.005f, Glow(new Color(0.55f, 0.75f, 0.95f), 0.35f));
-                    var cans = new List<CombineInstance>();
-                    for (int shelf = 0; shelf < 4; shelf++)
-                        for (int k = 0; k < 3; k++)
-                            cans.Add(BlockKit.Piece(BlockKit.CubeMesh,
-                                c + new Vector3(-0.15f + k * 0.15f, 0.48f + shelf * 0.38f, -0.4f),
-                                Vector3.zero, new Vector3(0.08f, 0.16f, 0.04f)));
-                    Color drinks = side < 0f ? (i == 0 ? Magenta : Teal) : (i == 0 ? Lemon : Violet);
-                    BlockKit.Batch(n + "_Cans", bar, Glow(drinks, 0.9f), cans);
+                    BuildCoolerFront(bar, n, c, side < 0f ? (i == 0 ? Magenta : Teal) : (i == 0 ? Lemon : Violet));
                 }
 
                 // Stools on the room side.
@@ -257,17 +250,11 @@ namespace Cyverse.Level
                 Vector3 c = new Vector3(x - 1.0f + b * 0.75f, 1.06f, -0.05f);
                 BlockKit.Block("ChipBasket", bar, c, Vector3.zero, 0f, 0.12f,
                     new Vector2(0.24f, 0.16f), new Vector2(0.27f, 0.19f), 0.01f, Cork);
-                var bags = new List<CombineInstance>();
-                for (int i = 0; i < 5; i++)
-                    bags.Add(BlockKit.Piece(BlockKit.CubeMesh,
-                        c + new Vector3(-0.18f + i * 0.09f, 0.17f, (float)rnd.NextDouble() * 0.06f - 0.03f),
-                        new Vector3(-15f + (float)rnd.NextDouble() * 10f, 0f, (float)rnd.NextDouble() * 16f - 8f),
-                        new Vector3(0.08f, 0.2f, 0.03f)));
-                BlockKit.Batch("ChipBags", bar, Plain(bagColours[b * 2] * 0.85f), bags);
+                BuildChipBags(bar, c, bagColours[b * 2], rnd);
             }
             Vector3 bowl = new Vector3(x + 0.85f, 1.06f, 0f);
-            BlockKit.Block("FruitBowl", bar, bowl, Vector3.zero, 0f, 0.1f,
-                new Vector2(0.12f, 0.12f), new Vector2(0.2f, 0.2f), 0.01f, Plain(new Color(0.9f, 0.9f, 0.88f)));
+            BlockKit.MeshPart("FruitBowl", bar, Flare, bowl, Vector3.zero, Plain(new Color(0.9f, 0.9f, 0.88f)),
+                scale: new Vector3(0.42f, 0.1f, 0.42f));
             Color[] fruit = { new Color(0.85f, 0.15f, 0.12f), new Color(0.95f, 0.6f, 0.1f), new Color(0.5f, 0.75f, 0.2f), new Color(0.95f, 0.85f, 0.2f) };
             for (int i = 0; i < 5; i++)
             {
@@ -283,13 +270,8 @@ namespace Cyverse.Level
         private static void BuildCoffeeCounterTop(Transform bar, float x)
         {
             Vector3 m = new Vector3(x - 0.8f, 1.06f, 0.05f);
-            BlockKit.Slab("CoffeeMachine", bar, m + new Vector3(0f, 0.24f, 0f), new Vector3(0.38f, 0.48f, 0.34f), 0.03f, Chrome);
-            BlockKit.Slab("CoffeeMachineFace", bar, m + new Vector3(0f, 0.3f, -0.17f), new Vector3(0.3f, 0.2f, 0.01f), 0.005f, DarkGlass);
-            BlockKit.Box("CoffeeMachineLed", bar, m + new Vector3(0.09f, 0.36f, -0.178f), new Vector3(0.05f, 0.03f, 0.004f), Glow(Teal, 1.6f));
-            BlockKit.Box("DripTray", bar, m + new Vector3(0f, 0.02f, -0.12f), new Vector3(0.24f, 0.03f, 0.14f), CabinetTrim);
-            for (int i = 0; i < 2; i++)
-                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "CupStack", bar, new Vector3(x - 0.2f + i * 0.14f, 1.2f, -0.05f),
-                    Vector3.zero, new Vector3(0.08f, 0.14f, 0.08f), Plain(new Color(0.95f, 0.93f, 0.88f)), false);
+            BuildEspressoMachine(bar, m);
+            BuildCupStacks(bar, new Vector3(x - 0.32f, 1.06f, -0.05f));
             BlockKit.Slab("NapkinBox", bar, new Vector3(x + 0.35f, 1.12f, -0.05f), new Vector3(0.16f, 0.12f, 0.12f), 0.01f, Plain(Teal * 0.6f));
             BlockKit.Slab("SyrupRack", bar, new Vector3(x + 0.9f, 1.09f, 0.1f), new Vector3(0.44f, 0.06f, 0.14f), 0.01f, Counter);
             Color[] syrups = { new Color(0.55f, 0.25f, 0.1f), new Color(0.9f, 0.55f, 0.2f), new Color(0.6f, 0.1f, 0.3f) };
@@ -353,9 +335,7 @@ namespace Cyverse.Level
             t.SetParent(parent, false);
             t.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
 
-            foreach (float x in new[] { -0.6f, 0.6f })
-                foreach (float z in new[] { -1.1f, 1.1f })
-                    BlockKit.Box("Leg", t, new Vector3(x, 0.37f, z), new Vector3(0.06f, 0.74f, 0.06f), CabinetTrim);
+            BuildPingPongFrame(t);
             BlockKit.Block("Top", t, Vector3.zero, Vector3.zero, 0.74f, 0.77f,
                 new Vector2(0.76f, 1.37f), new Vector2(0.76f, 1.37f), 0.01f, TableBlue, solid: true);
             var lines = new List<CombineInstance>
@@ -399,16 +379,19 @@ namespace Cyverse.Level
                 Plain(new Color(0.20f, 0.12f, 0.08f)), solid: true, scale: new Vector3(1.04f, 0.06f, 2.3f));
             foreach (float x in new[] { -0.54f, 0.54f })
             {
-                BlockKit.Box("SideNet", t, new Vector3(x, 1.65f, 0.25f), new Vector3(0.03f, 1.2f, 2.3f),
-                    Plain(new Color(0.07f, 0.06f, 0.10f)));
+                BuildCageSide(t, x, 1.05f, 2.25f, -0.9f, 1.4f);
                 BlockKit.Box("SideRail", t, new Vector3(x, 2.26f, 0.25f), new Vector3(0.05f, 0.04f, 2.3f), Glow(accent, 1.4f));
             }
+            var seams = new List<CombineInstance>();
             for (int i = 0; i < 5; i++)
             {
-                var ball = BuildKit.SpawnLocal(PrimitiveType.Sphere, "Ball", t, new Vector3(-0.32f + i * 0.16f, 0.99f, -0.75f),
+                Vector3 at = new Vector3(-0.32f + i * 0.16f, 0.99f, -0.75f);
+                var ball = BuildKit.SpawnLocal(PrimitiveType.Sphere, "Ball", t, at,
                     Vector3.zero, Vector3.one * 0.2f, Plain(new Color(0.95f, 0.45f, 0.12f)), false);
                 ball.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                AddBallSeams(seams, at, 0.2f);
             }
+            BlockKit.Batch("BallSeams", t, Plain(new Color(0.12f, 0.07f, 0.04f)), seams);
 
             BlockKit.Box("Post", t, new Vector3(0f, 1.5f, 1.38f), new Vector3(0.12f, 3.0f, 0.12f), CabinetTrim);
             BlockKit.Slab("Backboard", t, new Vector3(0f, 2.45f, 1.28f), new Vector3(1.0f, 0.7f, 0.04f), 0.01f,
@@ -422,17 +405,7 @@ namespace Cyverse.Level
             };
             BlockKit.Batch("Target", t, Glow(accent, 1.4f), square);
 
-            var ring = new List<CombineInstance>();
-            const int segments = 12;
-            for (int i = 0; i < segments; i++)
-            {
-                float a = i * 360f / segments;
-                Vector3 at = new Vector3(0f, 2.2f, 1.04f) + Quaternion.Euler(0f, a, 0f) * Vector3.forward * 0.2f;
-                ring.Add(BlockKit.Piece(BlockKit.CubeMesh, at, new Vector3(0f, a, 0f), new Vector3(0.11f, 0.02f, 0.02f)));
-            }
-            BlockKit.Batch("Hoop", t, Glow(new Color(1f, 0.4f, 0.1f), 1.4f), ring);
-            BlockKit.Block("Net", t, new Vector3(0f, 1.93f, 1.04f), Vector3.zero, 0f, 0.26f,
-                new Vector2(0.12f, 0.12f), new Vector2(0.18f, 0.18f), 0f, WhiteLine);
+            BuildHoop(t, new Vector3(0f, 2.2f, 1.04f), 1.26f);
 
             BlockKit.Slab("ScoreBox", t, new Vector3(0f, 2.98f, 1.28f), new Vector3(1.0f, 0.3f, 0.1f), 0.01f, DarkGlass);
             MakeText(t, "HoopShot_Text", new Vector3(0f, 2.98f, 1.22f), "HOOP SHOT", accent, 1.3f, 0.9f, 0.24f)
@@ -481,8 +454,7 @@ namespace Cyverse.Level
                 new Vector2(2.2f, 0.35f), new Vector2(2.2f, 0.35f), 0.03f, CabinetBody, solid: true);
             BlockKit.Slab("CounterTop", t, new Vector3(0f, 0.98f, 0f), new Vector3(4.5f, 0.05f, 0.75f), 0.01f, DarkGlass);
             BlockKit.Box("CounterGlow", t, new Vector3(0f, 0.9f, -0.36f), new Vector3(4.3f, 0.02f, 0.01f), Glow(Magenta, 1.6f));
-            BlockKit.Slab("TicketMachine", t, new Vector3(-1.5f, 1.14f, 0.05f), new Vector3(0.36f, 0.28f, 0.28f), 0.02f, CabinetTrim);
-            BlockKit.Box("TicketScreen", t, new Vector3(-1.5f, 1.18f, -0.095f), new Vector3(0.26f, 0.12f, 0.005f), Glow(Lemon, 1.2f));
+            BuildTicketDispenser(t, new Vector3(-1.5f, 1.005f, 0.05f));
 
             // Shelves on the wall behind (local z 1.3 is the wall).
             foreach (float x in new[] { -2.3f, 2.3f })
@@ -559,6 +531,8 @@ namespace Cyverse.Level
                 BlockKit.Box("KeyboardGlow", t, new Vector3(x, 0.801f, -0.18f), new Vector3(0.42f, 0.003f, 0.11f), Glow(c, 0.4f));
                 BlockKit.Box("Mouse", t, new Vector3(x + 0.34f, 0.79f, -0.18f), new Vector3(0.06f, 0.025f, 0.1f), CabinetBody);
                 cans.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x - 0.5f, 0.86f, -0.05f), Vector3.zero, new Vector3(0.07f, 0.16f, 0.07f)));
+                BuildPcTower(t, new Vector3(x + 0.45f, 0f, 0.08f), c);
+                BuildHeadset(t, new Vector3(x + 0.52f, 0.78f, -0.1f), c);
                 BuildGamingChairModel(t, new Vector3(x, 0f, -1.05f), 180f + (i - 1) * 12f, c);
             }
             BlockKit.Batch("EnergyCans", t, Glow(Lemon, 0.9f), cans);
@@ -568,29 +542,6 @@ namespace Cyverse.Level
                 new Color(0.10f, 0.08f, 0.12f), 0.26f, 0.17f, 0.13f);
 
             WallNeon(t, "Neon_Lan", new Vector3(0f, 2.6f, 0.6f), 0f, "LAN PARTY", Teal, 3.6f, new Vector2(2.6f, 0.5f));
-        }
-
-        private static void BuildAirHockey(Transform parent, Vector3 position)
-        {
-            var t = Group(parent, "AirHockey", position, 0f);
-
-            BlockKit.Block("Body", t, Vector3.zero, Vector3.zero, 0f, 0.78f,
-                new Vector2(1.08f, 0.58f), new Vector2(1.14f, 0.62f), 0.03f, CabinetBody, solid: true);
-            BlockKit.Box("Surface", t, new Vector3(0f, 0.785f, 0f), new Vector3(2.2f, 0.01f, 1.16f), Plain(new Color(0.82f, 0.88f, 0.94f)));
-            BlockKit.Batch("Rail", t, Glow(Teal, 1.4f), BlockKit.Outline(new Vector3(0f, 0.81f, 0f), 2.24f, 1.2f, 0.07f));
-            BlockKit.Box("CentreLine", t, new Vector3(0f, 0.792f, 0f), new Vector3(0.015f, 0.004f, 1.1f), Glow(Magenta, 1.2f));
-            foreach (float x in new[] { -1.115f, 1.115f })
-                BlockKit.Box("Goal", t, new Vector3(x, 0.8f, 0f), new Vector3(0.03f, 0.04f, 0.38f), DarkGlass);
-            foreach (float x in new[] { -0.8f, 0.75f })
-            {
-                Material m = Glow(x < 0f ? Magenta : Lemon, 1.2f);
-                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Mallet", t, new Vector3(x, 0.805f, x < 0f ? 0.15f : -0.2f),
-                    Vector3.zero, new Vector3(0.1f, 0.015f, 0.1f), m, false);
-                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "MalletKnob", t, new Vector3(x, 0.84f, x < 0f ? 0.15f : -0.2f),
-                    Vector3.zero, new Vector3(0.04f, 0.03f, 0.04f), m, false);
-            }
-            BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Puck", t, new Vector3(0.25f, 0.795f, -0.15f),
-                Vector3.zero, new Vector3(0.07f, 0.004f, 0.07f), Plain(new Color(0.08f, 0.08f, 0.1f)), false);
         }
 
         /// <summary>A neon tube sign on a wall: lit text in a glowing frame on
@@ -939,9 +890,6 @@ namespace Cyverse.Level
                 BlockKit.Box("Window", v, new Vector3(-0.12f, 1.2f, -0.425f), new Vector3(0.86f, 1.3f, 0.01f), DarkGlass);
                 var lips = new List<CombineInstance>();
                 var tags = new List<CombineInstance>();
-                var snacks = new List<CombineInstance>[snackMix.Length];
-                for (int s = 0; s < snacks.Length; s++) snacks[s] = new List<CombineInstance>();
-                var rnd = new System.Random(20 + i);
                 for (int shelf = 0; shelf < 5; shelf++)
                 {
                     float y = 0.62f + shelf * 0.25f;
@@ -949,19 +897,12 @@ namespace Cyverse.Level
                     for (int k = 0; k < 5; k++)
                     {
                         float x = -0.48f + k * 0.18f;
-                        float h = 0.1f + (float)rnd.NextDouble() * 0.06f;
-                        int kind = (shelf + k * 2 + i + 1) % snackMix.Length;
-                        // Two items deep, slightly offset, so rows read as stock.
-                        snacks[kind].Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, y + h * 0.5f, -0.44f), Vector3.zero, new Vector3(0.11f, h, 0.025f)));
-                        snacks[kind].Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x + 0.01f, y + h * 0.5f, -0.4f), Vector3.zero, new Vector3(0.11f, h, 0.025f)));
                         tags.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x, y - 0.045f, -0.452f), Vector3.zero, new Vector3(0.05f, 0.025f, 0.004f)));
                     }
                 }
                 BlockKit.Batch("ShelfLips", v, Glow(c, 1.2f), lips);
                 BlockKit.Batch("PriceTags", v, Paper, tags);
-                for (int s = 0; s < snacks.Length; s++)
-                    if (snacks[s].Count > 0)
-                        BlockKit.Batch("Snacks_" + s, v, Glow(Color.Lerp(snackMix[s], Color.white, 0.15f), 0.55f), snacks[s]);
+                BuildVendingStock(v, i, snackMix);
                 var frame = new List<CombineInstance>();
                 foreach (float y in new[] { 0.54f, 1.86f })
                     frame.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(-0.12f, y, -0.44f), Vector3.zero, new Vector3(0.92f, 0.035f, 0.03f)));
@@ -1015,9 +956,7 @@ namespace Cyverse.Level
                 foreach (float z in new[] { -0.6f, 0.6f })
                 {
                     float h = z < 0f ? 0.72f : 0.82f;
-                    BlockKit.Box("Leg", p, new Vector3(x, h * 0.5f, z), new Vector3(0.07f, h, 0.07f), Chrome);
-                    BlockKit.Box("LegFoot", p, new Vector3(x, 0.015f, z), new Vector3(0.12f, 0.03f, 0.12f), Chrome);
-                    BlockKit.Box("LegBolt", p, new Vector3(x, h - 0.06f, z - 0.04f), new Vector3(0.05f, 0.05f, 0.01f), CabinetTrim);
+                    BuildPinballLeg(p, new Vector3(x, 0f, z), h);
                 }
             BlockKit.Block("Cabinet", p, new Vector3(0f, 0.86f, 0f), new Vector3(-5f, 0f, 0f), -0.24f, 0.12f,
                 new Vector2(0.37f, 0.7f), new Vector2(0.37f, 0.7f), 0.02f, CabinetBody, solid: true);
@@ -1041,10 +980,7 @@ namespace Cyverse.Level
             foreach (var bump in new[] { new Vector3(-0.14f, 0f, 0.3f), new Vector3(0.14f, 0f, 0.3f), new Vector3(0f, 0f, 0.45f) })
             {
                 Vector3 b = new Vector3(bump.x, Field(bump.z), bump.z);
-                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "BumperBase", p, b + new Vector3(0f, 0.015f, 0f), Vector3.zero,
-                    new Vector3(0.12f, 0.015f, 0.12f), Plain(Color.white), false);
-                BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Bumper", p, b + new Vector3(0f, 0.045f, 0f), Vector3.zero,
-                    new Vector3(0.09f, 0.02f, 0.09f), Glow(Magenta, 1.6f), false);
+                BuildBumper(p, b);
             }
             foreach (float s in new[] { -1f, 1f })
             {
@@ -1064,6 +1000,7 @@ namespace Cyverse.Level
                     inserts.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(s * (0.1f + k * 0.03f), Field(z) + 0.003f, z), new Vector3(-5f, 45f, 0f), new Vector3(0.025f, 0.004f, 0.025f)));
             }
             BlockKit.Batch("Inserts", p, Glow(Lemon, 1.4f), inserts);
+            BuildPinballDetail(p, Field);
             Pane(p, "PlayfieldGlass", new Vector3(0f, Field(0f) + 0.07f, 0f), 0f, new Vector2(0.7f, 1.38f), 85f);
 
             // Backbox on a neck: the station screen, framed with light, and a
@@ -1084,10 +1021,10 @@ namespace Cyverse.Level
             var board = new GameObject("HighScoreBoard").transform;
             board.SetParent(station, false);
             board.localPosition = new Vector3(1.55f, 0f, 0.55f);
-            BlockKit.Block("StandFoot", board, Vector3.zero, Vector3.zero, 0f, 0.04f,
-                new Vector2(0.25f, 0.2f), new Vector2(0.24f, 0.19f), 0.01f, Chrome);
-            BlockKit.Block("Stand", board, Vector3.zero, Vector3.zero, 0f, 1.1f,
-                new Vector2(0.06f, 0.06f), new Vector2(0.05f, 0.05f), 0.01f, Chrome);
+            BlockKit.MeshPart("StandFoot", board, Round, Vector3.zero, Vector3.zero, BrightSteel, scale: new Vector3(0.52f, 0.035f, 0.52f));
+            BlockKit.MeshPart("StandCollar", board, Flare, new Vector3(0f, 0.115f, 0f), new Vector3(180f, 0f, 0f), BrightSteel,
+                scale: new Vector3(0.2f, 0.08f, 0.2f));
+            BlockKit.MeshPart("Stand", board, Round, Vector3.zero, Vector3.zero, BrightSteel, scale: new Vector3(0.08f, 1.1f, 0.08f));
             BlockKit.Slab("Panel", board, new Vector3(0f, 1.6f, 0f), new Vector3(1.0f, 1.0f, 0.08f), 0.02f, DarkGlass);
             BlockKit.Box("PanelGlow", board, new Vector3(0f, 2.1f, -0.045f), new Vector3(0.95f, 0.025f, 0.01f), Glow(Teal, 1.6f));
             BlockKit.Box("PanelGlowLow", board, new Vector3(0f, 1.1f, -0.045f), new Vector3(0.95f, 0.025f, 0.01f), Glow(Teal, 1.6f));
