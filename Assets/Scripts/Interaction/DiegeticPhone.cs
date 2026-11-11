@@ -151,7 +151,7 @@ namespace Cyverse.Interaction
             // caption is a nameplate on the dock's front rather than a floating
             // label: up close a floating one swelled across the vault behind.
             BuildKit.MakeLabel(transform, new Vector3(0f, 0.86f, -0.15f),
-                "AUTHENTICATOR", accent, 0.0075f);
+                "MY PHONE", accent, 0.0075f);
         }
 
         /// <summary>The offscreen render pipeline: a world-space Canvas holding

@@ -299,7 +299,26 @@ namespace Cyverse.UI
             captionPanel.SetActive(false);
         }
 
+        /// <summary>The next-step line in the one format every level uses: a
+        /// step count in the kicker ("STEP 3 OF 6") and a short instruction
+        /// (verb + place). Keys belong on the prompt at the object, not here.</summary>
+        public void ShowStep(int step, int totalSteps, string text)
+        {
+            objectiveStep = Mathf.Max(0, step);
+            objectiveStepTotal = Mathf.Max(0, totalSteps);
+            ShowObjectiveCore(text);
+        }
+
         public void ShowObjective(string text)
+        {
+            objectiveStep = 0;
+            objectiveStepTotal = 0;
+            ShowObjectiveCore(text);
+        }
+
+        private int objectiveStep, objectiveStepTotal;
+
+        private void ShowObjectiveCore(string text)
         {
             PinObjectiveToTop();
             bool hadObjective = !string.IsNullOrEmpty(objectiveRawText);
@@ -312,7 +331,10 @@ namespace Cyverse.UI
             bool complete = display.Contains("COMPLETE");
             // Keep HUD markers in the ASCII subset so WebGL does not replace
             // arrows/checks with tofu squares when no fallback font exists.
-            objectiveKicker.text = complete ? "[OK]  MISSION UPDATE" : ">  NEXT TASK";
+            objectiveKicker.text = complete ? "[OK]  MISSION UPDATE"
+                : objectiveStep > 0 && objectiveStepTotal > 0
+                    ? $">  NEXT TASK  ·  STEP {Mathf.Min(objectiveStep, objectiveStepTotal)} OF {objectiveStepTotal}"
+                    : ">  NEXT TASK";
             objectiveKicker.color = complete ? new Color(0.30f, 1f, 0.55f) : GuideGold;
             objectiveText.text = display;
 
@@ -342,9 +364,9 @@ namespace Cyverse.UI
                 // WebGL has no U+2713 (✓) or U+25B6 (▶) — they render as tofu
                 // squares. Fold the known non-ASCII markers to the ASCII subset,
                 // matching the same substitution ShowObjective already uses.
-                string text = label ?? $"{completed}/{total}";
-                text = text.Replace("✓", "OK").Replace("✔", "OK").Replace("▶", ">");
-                ringLabel.text = text;
+                // One set of marks in every level: a count while underway,
+                // OK when done. (Levels used to pass their own glyphs.)
+                ringLabel.text = total > 0 && completed >= total ? "OK" : $"{completed}/{total}";
             }
         }
 

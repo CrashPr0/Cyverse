@@ -207,7 +207,7 @@ namespace Cyverse.Interaction
             }
             if (Carryable.Carried != null)
             {
-                Deny("Your hands are full — put the item down (Q) before taking the device.");
+                Deny("Your hands are full — put the item down (E) before taking the device.");
                 return;
             }
 
