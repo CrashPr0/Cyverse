@@ -44,6 +44,37 @@ namespace Cyverse.Level
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
 
+            RenameOrientationDoor();
+
+            // First arrival of a playthrough: title + callsign, then a short
+            // learn-by-doing start. It hands back to ShowDoorGuidance.
+            if (HubOnboarding.ShouldRun())
+                gameObject.AddComponent<HubOnboarding>().Begin(ShowDoorGuidance);
+            else
+                ShowDoorGuidance();
+        }
+
+        /// <summary>Orientation is optional, not a demo. The Hub is a saved
+        /// scene, so the door's name is corrected here at load.</summary>
+        private static void RenameOrientationDoor()
+        {
+            const string Old = "Orientation (Demo)", New = "Orientation (optional)";
+            foreach (HubDoor door in FindObjectsOfType<HubDoor>())
+            {
+                if (door.displayName != Old) continue;
+                door.displayName = New;
+                foreach (TextMesh label in door.GetComponentsInChildren<TextMesh>(true))
+                    if (label.text == Old) label.text = New;
+                    else if (label.text == Old.ToUpperInvariant()) label.text = New.ToUpperInvariant();
+                foreach (TMPro.TMP_Text label in door.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                    if (label.text == Old) label.text = New;
+                    else if (label.text == Old.ToUpperInvariant()) label.text = New.ToUpperInvariant();
+            }
+        }
+
+        /// <summary>Names and marks the door that moves the story on.</summary>
+        public void ShowDoorGuidance()
+        {
             int done = LevelProgress.CompletedStoryLevels();
             HubDoor next = NextStoryDoor();
             if (HudUI.Instance != null)

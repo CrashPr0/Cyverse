@@ -26,6 +26,7 @@ namespace Cyverse.Core
             "cv_best",
             "cv_callsign",
             "cv_seen_controls",
+            "cv_hub_intro_done",
             "cv_glossary_unlocked",
             "cv_scenario_roster_finished",
             "cv_soc_compromised_computer",
