@@ -274,9 +274,7 @@ namespace Cyverse.Level
                     if (ReportStation != null) { t = ReportStation.transform; action = "SUBMIT THE REPORT"; }
                     break;
                 case Phase.Complete:
-                    HubDoor door = NearestHubDoor();
-                    if (door != null) { t = door.transform; action = "RETURN TO THE HUB"; }
-                    break;
+                    break; // the results card owns the screen; nowhere to walk
             }
 
             // Re-point only on a change; the docking prompt flips mid-step.
@@ -372,7 +370,7 @@ namespace Cyverse.Level
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal, "!");
                     break;
                 case Phase.Complete:
-                    HudUI.Instance.ShowObjective("LEVEL 3 COMPLETE — exit to the Hub");
+                    HudUI.Instance.ShowObjective("LEVEL 3 COMPLETE");
                     HudUI.Instance.SetProgress(workflowTotal, workflowTotal, "[OK]");
                     break;
             }
@@ -394,8 +392,6 @@ namespace Cyverse.Level
                     answered >= total, watched && custodyComplete && answered < total),
                 new TaskListPanel.Task("Submit forensic report", ReportSubmitted,
                     CurrentPhase == Phase.Report && !ReportSubmitted),
-                new TaskListPanel.Task("Return to Hub", CurrentPhase == Phase.Complete,
-                    CurrentPhase == Phase.Complete),
             });
         }
 

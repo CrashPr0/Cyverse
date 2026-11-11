@@ -549,6 +549,21 @@ namespace Cyverse.Tests
             Assert.That((bool)gameState.GetField("LevelComplete").GetValue(null), Is.True);
             Assert.That(PlayerPrefs.GetInt("cv_done_3", 0), Is.EqualTo(1));
 
+            // The player is frozen behind the results card, so the card must
+            // offer the way on and nothing may still tell them to walk.
+            Type resultsType = FindType("Cyverse.UI.ResultsScreen");
+            object results = resultsType.GetProperty("Instance").GetValue(null);
+            Assert.That(results, Is.Not.Null);
+            Assert.That((bool)resultsType.GetProperty("IsShown").GetValue(results), Is.True);
+            Assert.That((string)resultsType.GetProperty("ContinueLabel").GetValue(results),
+                Is.EqualTo("Continue to the Hub"));
+            yield return new WaitForSeconds(0.5f);
+            Type beaconType = FindType("Cyverse.Level.ObjectiveBeacon");
+            object beacon = beaconType.GetProperty("Instance").GetValue(null);
+            if (beacon != null)
+                Assert.That((bool)beaconType.GetProperty("MarkerShown").GetValue(beacon), Is.False,
+                    "No marker should point at an exit the frozen player cannot walk to.");
+
             GameObject reportStatus = GameObject.Find("DF_ReportStatus");
             Assert.That(reportStatus, Is.Not.Null);
             StringAssert.Contains("SUBMITTED", reportStatus.GetComponent<TMP_Text>().text,

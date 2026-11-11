@@ -301,14 +301,7 @@ namespace Cyverse.Level
                     if (exam != null) { t = exam.transform; action = "TAKE THE CERTIFICATION EXAM"; }
                     break;
                 case Phase.Complete:
-                    if (forensicsDoor != null && ForensicsTransferOpen)
-                    {
-                        t = forensicsDoor.transform; action = "TAKE THE DEVICE TO THE FORENSICS LAB";
-                        break;
-                    }
-                    var near = NearestHubExit();
-                    if (near != null) { t = near.transform; action = "RETURN TO THE HUB"; }
-                    break;
+                    break; // the results card owns the screen; nowhere to walk
             }
 
             if (t != null) beacon.PointAt(t, action, GuideGold);
@@ -423,9 +416,7 @@ namespace Cyverse.Level
                     HudUI.Instance.SetProgress(TotalTasks, TotalSteps);
                     break;
                 case Phase.Complete:
-                    SetObjective(ForensicsTransferOpen
-                        ? "LEVEL 2 COMPLETE — take the device to the Digital Forensics Lab (or return to the Hub)"
-                        : "LEVEL 2 COMPLETE — exit to the Hub");
+                    SetObjective("LEVEL 2 COMPLETE");
                     HudUI.Instance.SetProgress(TotalSteps, Mathf.Max(1, TotalSteps), "✓");
                     break;
             }
@@ -457,6 +448,8 @@ namespace Cyverse.Level
             }
 
             UpdateObjective();
+            HubDoor labDoor = forensicsDoor;
+            bool toLab = labDoor != null && ForensicsTransferOpen;
             LevelMissionRuntime.Complete(new LevelMissionRuntime.Completion
             {
                 levelNumber = 2,
@@ -465,11 +458,15 @@ namespace Cyverse.Level
                 elapsedSeconds = Time.time - startTime,
                 headerText = "LEVEL 2 COMPLETE",
                 grantedLine = "Certification Confirmed — SOC Analyst",
-                nextMissionText = locker != null
-                    ? "Level 3 — Digital Forensics is unlocked: use the Forensics Lab door in this room, or the Hub."
+                nextMissionText = toLab
+                    ? "Level 3 — Digital Forensics is unlocked. Continue to hand the device to the lab."
                     : "Level 3 — Digital Forensics is now unlocked in the Hub.",
                 replaySuffix = "Level 2",
                 parScore = Level2Content.ParScore,
+                // The frozen player can't walk through the lab door, so the
+                // card takes them through it.
+                continueLabel = toLab ? "Continue to the Forensics Lab" : null,
+                continueAction = toLab ? (System.Action)(() => labDoor.Interact(null)) : null,
             });
         }
     }

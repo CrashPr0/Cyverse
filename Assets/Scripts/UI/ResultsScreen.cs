@@ -6,9 +6,12 @@ using Cyverse.Core;
 namespace Cyverse.UI
 {
     /// <summary>
-    /// End-of-level results card: score, knowledge-check accuracy, and time,
+    /// End-of-level results card: score, knowledge-check accuracy, and time.
+    /// [Enter] continues to the next step (the Hub by default; a level can
+    /// supply its own, e.g. Level 2 walks the evidence into the Forensics Lab),
     /// with an optional [R] replay (when the scene can be reloaded — i.e. it's
-    /// a saved scene in Build Settings, not an untitled editor scene).
+    /// a saved scene in Build Settings, not an untitled editor scene). The
+    /// player is frozen while the card is up, so the card is the only way on.
     /// </summary>
     public class ResultsScreen : MonoBehaviour
     {
@@ -19,6 +22,16 @@ namespace Cyverse.UI
         private bool shown;
         private bool canReload;
         private bool canHub;
+        private System.Action continueAction;
+        private float shownAt;
+        // Players reach the card still pressing keys from the last question;
+        // a short guard keeps Continue from firing before the card is read.
+        private const float ContinueGuardSeconds = 0.8f;
+
+        /// <summary>The card is up and accepting keys.</summary>
+        public bool IsShown => shown;
+        /// <summary>Label of the [Enter] action on the card, or null if none.</summary>
+        public string ContinueLabel { get; private set; }
         private readonly CertificateCard certificate = new CertificateCard();
         private string certGrade, certRank;
         private int certScore, certPar;
@@ -46,7 +59,9 @@ namespace Cyverse.UI
             string grantedLine = "Access Granted — Level: Employee",
             string nextMissionText = "Level 1 — Cyber Defense  (in development)",
             string replaySuffix = "Level 0",
-            int parScore = 550)
+            int parScore = 550,
+            string continueLabel = null,
+            System.Action continueAction = null)
         {
             if (card == null) Build(headerText);
 
@@ -54,6 +69,13 @@ namespace Cyverse.UI
             canReload = scene.IsValid() && !string.IsNullOrEmpty(scene.name);
             string hub = Core.SceneCatalog.Preferred("Hub");
             canHub = Application.CanStreamedLevelBeLoaded(hub) && scene.name != hub;
+
+            // Continue: the level's own next step when it has one, else the Hub.
+            this.continueAction = continueAction;
+            ContinueLabel = continueAction != null
+                ? (string.IsNullOrEmpty(continueLabel) ? "Continue" : continueLabel)
+                : canHub ? "Continue to the Hub" : null;
+            TaskCelebration.Dismiss(); // its banner would sit on the card's header
 
             int m = Mathf.FloorToInt(seconds / 60f);
             int s = Mathf.FloorToInt(seconds % 60f);
@@ -114,9 +136,11 @@ namespace Cyverse.UI
                 sb.AppendLine("<size=22><color=#E5A823><b>ALL MISSIONS COMPLETE — your certificate is ready.</b></color></size>");
             }
             var keys = new System.Collections.Generic.List<string>();
+            if (ContinueLabel != null) keys.Add($"<color=#FFFFFF><b>[Enter]  {ContinueLabel}</b></color>");
             if (certAvailable) keys.Add("[C]  Certificate");
             if (canReload) keys.Add($"[R]  Replay {replaySuffix}");
-            if (canHub) keys.Add("[H]  Return to Hub");
+            // [H] is only listed when Continue goes somewhere else.
+            if (canHub && continueAction != null) keys.Add("[H]  Hub");
             if (keys.Count > 0)
             {
                 sb.AppendLine();
@@ -130,6 +154,24 @@ namespace Cyverse.UI
             card.SetActive(true);
             UiMotion.PanelIn(card, null, 0.96f);
             shown = true;
+            shownAt = Time.unscaledTime;
+        }
+
+        /// <summary>Takes the card's [Enter] action: the level's next step, or
+        /// the Hub. Public so automated playthroughs can drive it.</summary>
+        public void Continue()
+        {
+            if (!shown || ContinueLabel == null) return;
+            if (continueAction != null) continueAction();
+            else LoadHub();
+        }
+
+        private static void LoadHub()
+        {
+            if (ScreenFader.Instance != null)
+                ScreenFader.Instance.FadeToBlackThen(() => SceneManager.LoadScene(Core.SceneCatalog.Preferred("Hub")));
+            else
+                SceneManager.LoadScene(Core.SceneCatalog.Preferred("Hub"));
         }
 
         /// <summary>Opens the prototype certificate for finishing the whole
@@ -153,12 +195,10 @@ namespace Cyverse.UI
             else if (canReload && Input.GetKeyDown(KeyCode.R))
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             else if (canHub && Input.GetKeyDown(KeyCode.H))
-            {
-                if (ScreenFader.Instance != null)
-                    ScreenFader.Instance.FadeToBlackThen(() => SceneManager.LoadScene(Core.SceneCatalog.Preferred("Hub")));
-                else
-                    SceneManager.LoadScene(Core.SceneCatalog.Preferred("Hub"));
-            }
+                LoadHub();
+            else if ((Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) &&
+                     (Application.isBatchMode || Time.unscaledTime - shownAt >= ContinueGuardSeconds))
+                Continue();
         }
 
         /// <summary>

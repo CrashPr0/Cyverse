@@ -51,6 +51,18 @@ namespace Cyverse.UI
             if (!instance.playing) instance.StartCoroutine(instance.Run());
         }
 
+        /// <summary>Drops any queued or showing banner. The results card calls
+        /// this so a last "task complete" never lands on top of it.</summary>
+        public static void Dismiss()
+        {
+            if (instance == null) return;
+            instance.StopAllCoroutines();
+            instance.pending.Clear();
+            instance.playing = false;
+            if (instance.group != null) instance.group.gameObject.SetActive(false);
+            if (HudUI.Instance != null) HudUI.Instance.RelayoutToasts();
+        }
+
         /// <summary>The task's name without the list's step number ("2. ") or
         /// progress count ("(3/3)"), which read oddly on a finished task.</summary>
         private static string Clean(string label)
