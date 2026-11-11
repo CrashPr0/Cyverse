@@ -80,7 +80,7 @@ namespace Cyverse.Interaction
                 busy = true;
                 TypingChallenge.Instance.ShowPhoneOtp(
                     "SOMETHING YOU KNOW",
-                    "Your Spartan Authenticator phone shows today's verification code. Type it in, then press ENTER.",
+                    "Type the secret passcode only you know, then press ENTER. New here? Your starter passcode is on your phone.",
                     passcode,
                     ok => { busy = false; if (ok) Clear(); });
             }

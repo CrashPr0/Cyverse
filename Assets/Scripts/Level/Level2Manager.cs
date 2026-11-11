@@ -72,7 +72,12 @@ namespace Cyverse.Level
             if (siem != null) siem.Completed += OnSiemCompleted;
             if (playbook != null) playbook.Completed += OnTaskCompleted;
             if (locker != null) locker.Sealed += OnEvidenceSealed;
-            if (exam != null) exam.Completed += CompleteLevel;
+            if (exam != null)
+            {
+                exam.Completed += CompleteLevel;
+                exam.lockedMessage = () =>
+                    "Finish the SOC investigations, evidence locker and IR playbook first.";
+            }
 
             briefing = scene.briefing;
             // The shipped Level 2 is a saved scene with its slides serialized in
@@ -218,7 +223,7 @@ namespace Cyverse.Level
                 new Color(0.90f, 0.66f, 0.14f), 24);
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast(
-                    "EVIDENCE SEIZED — pick up the SEIZED DEVICE at WS-03 and lock it in the EVIDENCE LOCKER on the north wall.",
+                    "EVIDENCE SEIZED",
                     GuideGold);
         }
 
@@ -239,8 +244,7 @@ namespace Cyverse.Level
             if (forensicsDoor != null) forensicsDoor.SetUnlocked(true); // re-evaluates the gate
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast(
-                    "EVIDENCE LOCKED — the device is waiting for you in the Digital Forensics Lab. " +
-                    "Finish the SOC tasks, then take the Forensics Lab door to hand it off.",
+                    "EVIDENCE LOCKED — it goes to the Forensics Lab next",
                     new Color(0.30f, 1f, 0.45f));
             OnTaskCompleted();
         }
@@ -369,23 +373,24 @@ namespace Cyverse.Level
 
         private string NextActionText()
         {
-            string step = $"Step {CurrentStep} of {TotalSteps + 1} — ";
+            // Verb + place, short. The step count is shown by the HUD, and
+            // how to do it (which key) is on the prompt at the object.
             if (IsCarryingSeizedDevice)
-                return step + "Evidence: carry the SEIZED DEVICE to the EVIDENCE LOCKER on the north wall, then press E  (E anywhere else puts it down)";
+                return "Lock the SEIZED DEVICE in the EVIDENCE LOCKER on the north wall";
             if (Carryable.Carried != null)
             {
                 if (playbook != null && !playbook.IsComplete)
-                    return step + (playbook.IsExpectedCard(Carryable.Carried)
-                        ? $"Carry {Carryable.Carried.itemName} to STEP {playbook.NextSlot}  (E anywhere else puts it down)"
-                        : $"Next is {playbook.NextStep}, not {Carryable.Carried.itemName} — press E away from the steps to put it down");
-                return $"Carrying {Carryable.Carried.itemName}  (E away from a slot puts it down)";
+                    return playbook.IsExpectedCard(Carryable.Carried)
+                        ? $"Place {Carryable.Carried.itemName} on STEP {playbook.NextSlot}"
+                        : $"Put this card down: {playbook.NextStep} comes next";
+                return $"Carrying {Carryable.Carried.itemName}";
             }
             if (EvidencePending)
-                return step + "Evidence: pick up the SEIZED DEVICE at WS-03 and lock it in the EVIDENCE LOCKER (north wall)";
+                return "Pick up the SEIZED DEVICE at WS-03, then lock it in the EVIDENCE LOCKER";
             if (siem != null && !siem.IsComplete)
-                return step + $"SOC: review the Alert Board, flag a row, then verify its workstation  ({siem.ScenarioIndex}/{siem.ScenarioCount})";
+                return $"Flag an alert on the ALERT BOARD, then check its workstation  ({siem.ScenarioIndex}/{siem.ScenarioCount})";
             if (playbook != null && !playbook.IsComplete)
-                return step + $"IR Playbook: pick up {playbook.NextStep} from the rack, then place it on STEP {playbook.NextSlot}  ({playbook.Placed}/{playbook.Total})";
+                return $"Take {playbook.NextStep} from the rack to STEP {playbook.NextSlot}  ({playbook.Placed}/{playbook.Total})";
             return $"Complete the defense tasks  ({TasksDone}/{TotalTasks})";
         }
 
@@ -398,26 +403,34 @@ namespace Cyverse.Level
             HudUI.Instance.ShowObjective(text);
         }
 
+        private void SetStep(int step, string text)
+        {
+            string key = step + "|" + text;
+            if (HudUI.Instance == null || key == lastObjective) return;
+            lastObjective = key;
+            HudUI.Instance.ShowStep(step, TotalSteps + 1, text);
+        }
+
         private void UpdateObjective()
         {
             if (HudUI.Instance == null) return;
             switch (CurrentPhase)
             {
                 case Phase.Watch:
-                    SetObjective($"Step 1 of {TotalSteps + 1} — Watch the defense briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
-                    HudUI.Instance.SetProgress(0, Mathf.Max(1, TotalSteps), "▶");
+                    SetStep(1, "Watch the defense briefing");
+                    HudUI.Instance.SetProgress(0, TotalSteps + 1);
                     break;
                 case Phase.Tasks:
-                    SetObjective(NextActionText());
-                    HudUI.Instance.SetProgress(TasksDone, TotalSteps);
+                    SetStep(CurrentStep, NextActionText());
+                    HudUI.Instance.SetProgress(TasksDone + 1, TotalSteps + 1);
                     break;
                 case Phase.Exam:
-                    SetObjective($"Step {CurrentStep} of {TotalSteps + 1} — Pass the Certification Exam");
-                    HudUI.Instance.SetProgress(TotalTasks, TotalSteps);
+                    SetStep(CurrentStep, "Pass the Certification Exam");
+                    HudUI.Instance.SetProgress(TotalTasks + 1, TotalSteps + 1);
                     break;
                 case Phase.Complete:
                     SetObjective("LEVEL 2 COMPLETE");
-                    HudUI.Instance.SetProgress(TotalSteps, Mathf.Max(1, TotalSteps), "✓");
+                    HudUI.Instance.SetProgress(1, 1);
                     break;
             }
         }

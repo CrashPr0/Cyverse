@@ -235,7 +235,7 @@ namespace Cyverse.UI
             title.fontStyle = FontStyle.Bold;
             var tr = title.rectTransform;
             Stretch(tr, new Vector2(38f, 0f), new Vector2(-4f, 0f));
-            title.text = "AUTHENTICATOR";
+            title.text = "MY PASSCODE";
         }
 
         private static void BuildCodeCard(Transform root, PhoneScreenUi ui)
@@ -249,7 +249,7 @@ namespace Cyverse.UI
             var label = MakeText(r, "OtpLabel", 10, TextAnchor.MiddleCenter);
             label.color = new Color(0.50f, 0.80f, 0.90f);
             TopBand(label.rectTransform, -10f, 18f, 6f);
-            label.text = "DAILY VERIFICATION CODE";
+            label.text = "SECRET PASSCODE  ·  MEMORIZE IT";
 
             ui.Code = MakeText(r, "OtpCode", 40, TextAnchor.MiddleCenter);
             ui.Code.fontStyle = FontStyle.Bold;

@@ -148,13 +148,13 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Review:
-                    HudUI.Instance.ShowObjective(
-                        $"Objective: Review all stations  ({ReviewedCount}/{stations.Count})");
+                    HudUI.Instance.ShowStep(1, 2,
+                        $"Review each glowing station  ({ReviewedCount}/{stations.Count})");
                     HudUI.Instance.SetProgress(ReviewedCount, stations.Count);
                     break;
                 case Phase.Authenticate:
-                    HudUI.Instance.ShowObjective("Objective: Authenticate at the Security Scanner");
-                    HudUI.Instance.SetProgress(stations.Count, stations.Count, "✓");
+                    HudUI.Instance.ShowStep(2, 2, "Authenticate at the Security Scanner");
+                    HudUI.Instance.SetProgress(stations.Count, stations.Count + 1);
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 0 COMPLETE");

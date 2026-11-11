@@ -84,7 +84,11 @@ namespace Cyverse.Level
             if (specialist != null) specialist.BriefingStarted += UpdateGuidance;
             if (sorting != null) sorting.Completed += OnTaskCompleted;
             if (audit != null) audit.Completed += OnTaskCompleted;
-            if (exam != null) exam.Completed += CompleteLevel;
+            if (exam != null)
+            {
+                exam.Completed += CompleteLevel;
+                exam.lockedMessage = ExamLockedMessage;
+            }
 
             legacyStations.AddRange(scene.legacyStations);
             briefing = scene.briefing;
@@ -96,6 +100,20 @@ namespace Cyverse.Level
 
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
             UpdateObjective();
+        }
+
+        /// <summary>Names what is still open in THIS level when the player
+        /// tries the locked exam.</summary>
+        private string ExamLockedMessage()
+        {
+            if (CurrentPhase == Phase.Watch) return "Watch the briefing first.";
+            var left = new List<string>();
+            if (badge != null && !badge.IsEnrolled) left.Add("ID badge");
+            if (gauntlet != null && !gauntlet.IsComplete) left.Add("MFA Vault");
+            if (sorting != null && !sorting.IsComplete) left.Add("Data Triage");
+            if (audit != null && !audit.IsComplete) left.Add("Audit Hunt");
+            return left.Count == 0 ? "Finish this level's tasks first."
+                : "Still to do before the exam: " + string.Join(", ", left) + ".";
         }
 
         /// <summary>Closest return door to the player (levels have one per room).</summary>
@@ -254,8 +272,30 @@ namespace Cyverse.Level
 
         /// <summary>Closest task the player hasn't finished — so the beacon
         /// never sends them across the room past something they could do.</summary>
+        private Component beaconFocus;
+
+        private bool IsDone(Component task) =>
+            task == null ||
+            (task == gauntlet && gauntlet.IsComplete) ||
+            (task == sorting && sorting.IsComplete) ||
+            (task == audit && audit.IsComplete);
+
         private Transform NearestUnfinished(out string action)
         {
+            // Stay on the task the marker already chose until it is finished.
+            // Re-picking the nearest every tick made the marker switch targets
+            // while the player was still walking to the first one.
+            if (beaconFocus != null && !IsDone(beaconFocus))
+            {
+                if (beaconFocus == gauntlet)
+                {
+                    action = NeedsMfaBriefing ? "TALK TO THE MFA SPECIALIST" : "CLEAR THE MFA VAULT";
+                    return NeedsMfaBriefing && specialist != null ? specialist.transform : gauntlet.transform;
+                }
+                action = beaconFocus == sorting ? "FILE THE DATA CRATES" : "FIND THE AUDIT ANOMALY";
+                return beaconFocus.transform;
+            }
+
             var cam = Camera.main;
             Vector3 from = cam != null ? cam.transform.position : Vector3.zero;
 
@@ -283,6 +323,10 @@ namespace Cyverse.Level
             if (sorting != null && !sorting.IsComplete) Consider(sorting, "FILE THE DATA CRATES");
             if (audit != null && !audit.IsComplete) Consider(audit, "FIND THE AUDIT ANOMALY");
 
+            beaconFocus = best == null ? null
+                : sorting != null && best == sorting.transform ? (Component)sorting
+                : audit != null && best == audit.transform ? (Component)audit
+                : gauntlet;
             action = bestLabel;
             return best;
         }
@@ -340,24 +384,31 @@ namespace Cyverse.Level
         /// key to press — the HUD line should never make the player guess.</summary>
         private string NextActionText()
         {
+            // Verb + place, short. How to do it (which key) is on the prompt
+            // that appears when the player aims at the thing.
             if (badge != null && !badge.IsEnrolled)
-                return hard
-                    ? "Find the ENROLLMENT kiosk — press E to create your ID badge"
-                    : "Follow the marker to the ENROLLMENT kiosk — press E to create your ID badge";
+                return "Create your ID badge at the ENROLLMENT kiosk";
 
             if (CarryingToken)
-                return "Carry the token to the TOKEN SLOT by the vault — press E to insert it  (E away from the slot puts it down)";
+                return "Insert the token in the TOKEN SLOT by the vault";
             if (Carryable.Carried != null)
-                return $"Carrying {Carryable.Carried.itemName} — press E on the role that should have access  (E away from a role puts it down)";
+                return $"Give {Carryable.Carried.itemName} to the role that should have access";
 
-            if (gauntlet != null && !gauntlet.IsComplete && NeedsMfaBriefing)
-                return "MFA Vault: first talk to the MFA SPECIALIST by the vault — press E";
-            if (gauntlet != null && !gauntlet.IsComplete)
-                return $"MFA Vault: verify all three factors  ({gauntlet.ClearedCount}/3) — passcode terminal, token, biometric scanner";
-            if (sorting != null && !sorting.IsComplete)
-                return $"Data Triage: press E to pick up a crate, then E on the role that should have access  ({sorting.Delivered}/{sorting.Total})";
-            if (audit != null && !audit.IsComplete)
-                return $"Audit Hunt: press E to open the log full screen, arrow keys to move, E to flag the anomaly  ({audit.Solved}/{audit.Rounds})";
+            // Name the task the marker is on, so the line and the marker agree.
+            Component focus = beaconFocus;
+            if (focus == null || IsDone(focus))
+                focus = gauntlet != null && !gauntlet.IsComplete ? (Component)gauntlet
+                      : sorting != null && !sorting.IsComplete ? (Component)sorting
+                      : audit != null && !audit.IsComplete ? (Component)audit : null;
+
+            if (focus == gauntlet && gauntlet != null)
+                return NeedsMfaBriefing
+                    ? "Talk to the MFA SPECIALIST by the vault"
+                    : $"Verify all three factors at the MFA VAULT  ({gauntlet.ClearedCount}/3)";
+            if (focus == sorting && sorting != null)
+                return $"Give each data crate to the right role at DATA TRIAGE  ({sorting.Delivered}/{sorting.Total})";
+            if (focus == audit && audit != null)
+                return $"Flag the odd entry in the AUDIT LOG  ({audit.Solved}/{audit.Rounds})";
 
             return $"Complete the training tasks  ({TasksDone}/{TotalTasks})";
         }
@@ -374,14 +425,23 @@ namespace Cyverse.Level
             HudUI.Instance.ShowObjective(text);
         }
 
+        /// <summary>Briefing is step 1, each task one step, the exam last.</summary>
+        private void SetStep(int step, string text)
+        {
+            string key = step + "|" + text;
+            if (key == lastObjective) return;
+            lastObjective = key;
+            HudUI.Instance.ShowStep(step, TotalSteps + 1, text);
+        }
+
         private void UpdateObjective()
         {
             if (HudUI.Instance == null) return;
             switch (CurrentPhase)
             {
                 case Phase.Watch:
-                    SetObjective($"Objective: Watch the security briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
-                    HudUI.Instance.SetProgress(0, Mathf.Max(1, TotalSteps), "▶");
+                    SetStep(1, "Watch the security briefing");
+                    HudUI.Instance.SetProgress(0, TotalSteps + 1);
                     break;
                 case Phase.Tasks:
                     if (legacyStations.Count > 0)
@@ -393,17 +453,17 @@ namespace Cyverse.Level
                     }
                     else
                     {
-                        SetObjective(NextActionText());
-                        HudUI.Instance.SetProgress(TasksDone, TotalSteps);
+                        SetStep(TasksDone + 2, NextActionText());
+                        HudUI.Instance.SetProgress(TasksDone + 1, TotalSteps + 1);
                     }
                     break;
                 case Phase.Exam:
-                    SetObjective("Objective: Pass the Certification Exam");
-                    HudUI.Instance.SetProgress(TotalTasks, TotalSteps);
+                    SetStep(TotalSteps + 1, "Pass the Certification Exam");
+                    HudUI.Instance.SetProgress(TotalTasks + 1, TotalSteps + 1);
                     break;
                 case Phase.Complete:
                     SetObjective("LEVEL 1 COMPLETE");
-                    HudUI.Instance.SetProgress(TotalSteps, Mathf.Max(1, TotalSteps), "✓");
+                    HudUI.Instance.SetProgress(1, 1);
                     break;
             }
         }

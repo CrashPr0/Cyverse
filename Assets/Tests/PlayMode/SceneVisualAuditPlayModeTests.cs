@@ -76,7 +76,10 @@ namespace Cyverse.Tests
             Assert.That(GameObject.Find("DropZone_HR_MANAGER"), Is.Not.Null);
             Assert.That(GameObject.Find("DropZone_SYSADMIN"), Is.Not.Null);
 
-            GameObject authenticator = GameObject.Find("Label_AUTHENTICATOR");
+            // The phone's nameplate ("MY PHONE"; scenes saved earlier still
+            // carry the old "AUTHENTICATOR" plate).
+            GameObject authenticator = GameObject.Find("Label_MY_PHONE");
+            if (authenticator == null) authenticator = GameObject.Find("Label_AUTHENTICATOR");
             GameObject passcode = GameObject.Find("Label_PASSCODE");
             Assert.That(authenticator, Is.Not.Null);
             Assert.That(passcode, Is.Not.Null);

@@ -1,5 +1,6 @@
 using UnityEngine;
 using Cyverse.Core;
+using Cyverse.Interaction;
 using Cyverse.Player;
 using Cyverse.UI;
 
@@ -44,11 +45,39 @@ namespace Cyverse.Level
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
 
             int done = LevelProgress.CompletedStoryLevels();
+            HubDoor next = NextStoryDoor();
             if (HudUI.Instance != null)
             {
-                HudUI.Instance.ShowObjective($"Choose a level  ·  {done}/4 complete");
+                // Point at the one door that moves the story on. "Choose a
+                // level" is only true once every level is open.
+                if (next != null)
+                    HudUI.Instance.ShowObjective(
+                        (done == 0 ? "Start with " : "Next: ") + next.displayName + "  ·  follow the marker");
+                else
+                    HudUI.Instance.ShowObjective(done >= 4
+                        ? "All 4 levels complete  ·  replay any level"
+                        : $"Choose a level  ·  {done}/4 complete");
                 HudUI.Instance.SetProgress(done, 4);
             }
+            if (next != null)
+                ObjectiveBeacon.Ensure().PointAt(next.transform,
+                    "LEVEL " + next.levelIndex, new Color(0.90f, 0.66f, 0.14f));
+        }
+
+        /// <summary>The door of the first story level that is open but not yet
+        /// finished, or null when there is none (all done, or the next one is
+        /// still locked).</summary>
+        private static HubDoor NextStoryDoor()
+        {
+            for (int level = 1; level <= 4; level++)
+            {
+                if (LevelProgress.IsCompleted(level)) continue;
+                if (!LevelProgress.IsUnlocked(level)) return null;
+                foreach (HubDoor door in FindObjectsOfType<HubDoor>())
+                    if (door.IsStoryDoorFor(level)) return door;
+                return null;
+            }
+            return null;
         }
     }
 }

@@ -286,7 +286,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Briefing:
-                    HudUI.Instance.ShowObjective($"Objective: Watch the controlled attack briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
+                    HudUI.Instance.ShowStep(1, 5, "Watch the attack briefing");
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 4 COMPLETE");
@@ -299,11 +299,10 @@ namespace Cyverse.Level
                     // telemetry. Keeping that summary out of the objective
                     // banner prevents a duplicate timer and leaves the next
                     // action readable at narrow WebGL aspect ratios.
-                    HudUI.Instance.ShowObjective($"Objective: Run {name}  ({CompletedCount}/4){timer}");
+                    HudUI.Instance.ShowStep(CurrentStationIndex + 2, 5, $"Run {name} at its game machine{timer}");
                     break;
             }
-            HudUI.Instance.SetProgress(CurrentPhase == Phase.Complete ? 4 : CompletedCount, 4,
-                CurrentPhase == Phase.Briefing ? ">" : CurrentPhase == Phase.Complete ? "OK" : null);
+            HudUI.Instance.SetProgress(CurrentPhase == Phase.Complete ? 4 : CompletedCount, 4);
             UpdateMeter();
             UpdateTaskList();
         }

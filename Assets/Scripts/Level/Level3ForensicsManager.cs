@@ -131,8 +131,8 @@ namespace Cyverse.Level
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast(
                     CurrentPhase == Phase.Watch
-                        ? "DEVICE RETRIEVED — watch the analyst briefing to open the lab, then take it to EVIDENCE INTAKE."
-                        : "DEVICE RETRIEVED — take it to EVIDENCE INTAKE and complete the custody form.",
+                        ? "DEVICE RETRIEVED"
+                        : "DEVICE RETRIEVED — next stop: EVIDENCE INTAKE",
                     new Color(0.30f, 1f, 0.55f));
             UpdateObjective();
         }
@@ -327,6 +327,9 @@ namespace Cyverse.Level
             UpdateObjective();
         }
 
+        // locker, briefing, custody form, analysis, report, knowledge check
+        private const int StepTotal = 6;
+
         private void UpdateObjective()
         {
             if (HudUI.Instance == null) return;
@@ -343,35 +346,38 @@ namespace Cyverse.Level
             {
                 case Phase.Watch:
                     if (!retrieved)
-                        HudUI.Instance.ShowObjective(
-                            "Objective: Retrieve the seized device from the EVIDENCE LOCKER  (south wall, by the entrance)");
+                        HudUI.Instance.ShowStep(1, StepTotal,
+                            "Take the seized device from the EVIDENCE LOCKER by the entrance");
                     else
-                        HudUI.Instance.ShowObjective($"Objective: Watch the analyst briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
-                    HudUI.Instance.SetProgress(workflowDone, workflowTotal, "▶");
+                        HudUI.Instance.ShowStep(2, StepTotal, "Watch the analyst briefing");
+                    HudUI.Instance.SetProgress(workflowDone, workflowTotal);
                     break;
                 case Phase.Investigate:
                     if (!retrieved)
-                        HudUI.Instance.ShowObjective(
-                            "Objective: Retrieve the seized device from the EVIDENCE LOCKER  (south wall, by the entrance)");
+                        HudUI.Instance.ShowStep(1, StepTotal,
+                            "Take the seized device from the EVIDENCE LOCKER by the entrance");
                     else if (!custodyComplete)
-                        HudUI.Instance.ShowObjective(
-                            $"Objective: Log the device at EVIDENCE INTAKE: fill in the chain-of-custody form  ({custodyForm.SelectedCount}/{custodyForm.FieldCount} blanks)");
+                        HudUI.Instance.ShowStep(3, StepTotal,
+                            $"Fill in the custody form at EVIDENCE INTAKE  ({custodyForm.SelectedCount}/{custodyForm.FieldCount})");
                     else if (AcquisitionPending)
-                        HudUI.Instance.ShowObjective(
-                            "Objective: Dock the device at the ANALYZE EVIDENCE desk to copy its data  (E at the desk)");
+                        HudUI.Instance.ShowStep(4, StepTotal,
+                            "Dock the device at the ANALYZE EVIDENCE desk");
                     else
-                        HudUI.Instance.ShowObjective($"Objective: Work {caseName} at the ANALYZE EVIDENCE desk  ({done}/{total})");
+                        HudUI.Instance.ShowStep(4, StepTotal,
+                            $"Work {caseName} at the ANALYZE EVIDENCE desk  ({done}/{total})");
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal);
                     break;
                 case Phase.Report:
-                    HudUI.Instance.ShowObjective(InKnowledgeCheck
-                        ? $"Objective: Answer the knowledge check  ({KnowledgeCheckQuestion + 1}/{Level3KnowledgeCheck.Questions.Length})"
-                        : "Objective: Submit the final forensic report at the FORENSIC REPORT desk");
-                    HudUI.Instance.SetProgress(workflowDone, workflowTotal, "!");
+                    if (InKnowledgeCheck)
+                        HudUI.Instance.ShowStep(6, StepTotal,
+                            $"Answer the knowledge check  ({KnowledgeCheckQuestion + 1}/{Level3KnowledgeCheck.Questions.Length})");
+                    else
+                        HudUI.Instance.ShowStep(5, StepTotal, "Submit the report at the FORENSIC REPORT desk");
+                    HudUI.Instance.SetProgress(workflowDone, workflowTotal);
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 3 COMPLETE");
-                    HudUI.Instance.SetProgress(workflowTotal, workflowTotal, "[OK]");
+                    HudUI.Instance.SetProgress(workflowTotal, workflowTotal);
                     break;
             }
             UpdateTaskList(done, total, custodyComplete, retrieved);

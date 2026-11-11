@@ -54,6 +54,10 @@ namespace Cyverse.Interaction
 
         /// <summary>True when interacting would actually load the target scene.</summary>
         public bool IsOpen => Unlocked;
+
+        /// <summary>This is the Hub's normal (not Hard) door into a story level.</summary>
+        public bool IsStoryDoorFor(int level) =>
+            mode == Mode.LevelGate && !IsHard && !InDevelopment && levelIndex == level;
         private bool Completed => mode == Mode.LevelGate &&
             (IsHard ? HardMode.IsCleared(hardLevel) : LevelProgress.IsCompleted(levelIndex));
 

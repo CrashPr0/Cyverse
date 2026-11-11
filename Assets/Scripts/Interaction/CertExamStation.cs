@@ -38,6 +38,10 @@ namespace Cyverse.Interaction
         public bool CanInteract => !IsComplete;
         public string Prompt => active ? "Take the Certification Exam" : "Certification Exam  (locked)";
 
+        /// <summary>What the level still needs before the exam opens. Each
+        /// level supplies its own, so the message names tasks that exist there.</summary>
+        [System.NonSerialized] public System.Func<string> lockedMessage;
+
         void Awake()
         {
             NormalizeScreen();
@@ -102,7 +106,9 @@ namespace Cyverse.Interaction
             {
                 if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
                 if (HudUI.Instance != null)
-                    HudUI.Instance.ShowToast("Finish the SOC investigations, evidence locker and IR playbook first.", new Color(1f, 0.55f, 0.4f));
+                    HudUI.Instance.ShowToast(
+                        lockedMessage != null ? lockedMessage() : "Finish this level's tasks first.",
+                        new Color(1f, 0.55f, 0.4f));
                 return;
             }
 
