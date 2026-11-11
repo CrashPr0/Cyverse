@@ -81,12 +81,18 @@ namespace Cyverse.UI
             int s = Mathf.FloorToInt(seconds % 60f);
 
             // Persistent best score (gamification: something to beat on replay).
-            int best = PlayerPrefs.GetInt("cv_best", 0);
-            bool newBest = score > best;
-            if (newBest)
+            // Kept per level (and per Hard copy): a 1800-point level must not
+            // set a bar that a 550-point level can never beat.
+            string bestKey = BestKeyPrefix + (canReload ? scene.name : "level") +
+                (Core.HardMode.Active ? "_hard" : string.Empty);
+            int previousBest = PlayerPrefs.GetInt(bestKey, 0);
+            int best = previousBest;
+            // "New best" only means something once there is an earlier run.
+            bool newBest = previousBest > 0 && score > previousBest;
+            if (score > best)
             {
                 best = score;
-                PlayerPrefs.SetInt("cv_best", best);
+                PlayerPrefs.SetInt(bestKey, best);
                 PlayerPrefs.Save();
             }
 
@@ -105,7 +111,6 @@ namespace Cyverse.UI
                         : pct >= 0.55f ? "Security Analyst"
                         : "Security Recruit";
 
-            int percentile = PercentileFor(score, par);
             certAvailable = CertificateCard.EarnedBy(headerText, LevelProgress.CompletedStoryLevels());
             certScore = score;
             certPar = parScore;
@@ -119,12 +124,12 @@ namespace Cyverse.UI
             sb.AppendLine($"Security Clearance Rating:  <color=#E5A823><b>{grade}</b></color>   Rank:  <color=#E5A823><b>{rank}</b></color>");
             sb.AppendLine();
             sb.AppendLine($"Final Score:  <b><color=#5BC8FF>{score}</color></b>  <size=20><color=#8FB8CC>/ {parScore} par</color></size>");
-            sb.AppendLine($"Best Score:  {best}" + (newBest ? "  <color=#E5A823><b>NEW BEST!</b></color>" : ""));
+            if (previousBest > 0)
+                sb.AppendLine($"Best for this level:  {best}" + (newBest ? "  <color=#E5A823><b>NEW BEST!</b></color>" : ""));
             sb.AppendLine($"Best Streak:  {ScoreSystem.BestStreak} correct in a row");
             sb.AppendLine();
             sb.AppendLine($"Knowledge Check:  {quizCorrect} / {quizTotal} correct");
             sb.AppendLine($"Time:  {m}:{s:00}");
-            sb.AppendLine($"<size=22>You scored better than <color=#5BC8FF><b>{percentile}%</b></color> of recruits</size>");
             if (!string.IsNullOrEmpty(nextMissionText))
             {
                 sb.AppendLine();
@@ -201,31 +206,9 @@ namespace Cyverse.UI
                 Continue();
         }
 
-        /// <summary>
-        /// Serverless "you scored better than X% of recruits": models a
-        /// bell-curve of scores relative to the level's par rather than
-        /// calling out to a leaderboard. Clamped to
-        /// 1–99 so the message always reads as encouragement, never as "worst
-        /// of everyone."
-        /// </summary>
-        private static int PercentileFor(int score, float par)
-        {
-            // Curve scales with the level: an average recruit lands near 55%
-            // of par, one standard deviation is ~17% of it.
-            float mean = par * 0.55f, stdDev = Mathf.Max(1f, par * 0.17f);
-            float z = (score - mean) / stdDev;
-            float cdf = NormalCdf(z);
-            return Mathf.Clamp(Mathf.RoundToInt(cdf * 100f), 1, 99);
-        }
-
-        /// <summary>Abramowitz-Stegun approximation of the standard normal CDF.</summary>
-        private static float NormalCdf(float z)
-        {
-            float t = 1f / (1f + 0.2316419f * Mathf.Abs(z));
-            float d = 0.3989423f * Mathf.Exp(-z * z / 2f);
-            float prob = d * t * (0.3193815f + t * (-0.3565638f + t * (1.781478f + t * (-1.821256f + t * 1.330274f))));
-            return z > 0f ? 1f - prob : prob;
-        }
+        /// <summary>Best-score keys: this prefix plus the scene name, plus
+        /// "_hard" for a Hard copy.</summary>
+        public const string BestKeyPrefix = "cv_best_";
 
         private void Build(string headerText)
         {

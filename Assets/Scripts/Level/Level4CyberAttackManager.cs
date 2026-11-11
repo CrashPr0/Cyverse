@@ -385,7 +385,8 @@ namespace Cyverse.Level
                 grantedLine = result,
                 nextMissionText = "Campaign complete — replay to improve your stealth score.",
                 replaySuffix = "Level 4",
-                parScore = 1400,
+                // A flawless run scores 1280 (308 + 316 + 332 + 324).
+                parScore = 1280,
             });
         }
 
