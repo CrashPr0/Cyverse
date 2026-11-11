@@ -506,6 +506,7 @@ namespace Cyverse.Level
             for (int i = 0; i < prizes.Length; i++)
                 BlockKit.Batch("Prizes_" + i, t, Plain(prizeColours[i] * 0.8f), prizes[i]);
             var muzzles = new List<CombineInstance>();
+            var faces = new List<CombineInstance>();
             for (int k = 0; k < 5; k++)
             {
                 Vector3 seat = new Vector3(-1.8f + k * 0.9f, 2.02f, 1.1f);
@@ -513,8 +514,10 @@ namespace Cyverse.Level
                 AddPlushBear(bear, seat);
                 BlockKit.Batch("Plush", t, Plain(prizeColours[k % 4] * 0.85f), bear);
                 muzzles.Add(PlushMuzzle(seat));
+                AddPlushFace(faces, seat);
             }
-            BlockKit.Batch("PlushMuzzles", t, Plain(new Color(0.96f, 0.93f, 0.86f)), muzzles);
+            BlockKit.Batch("PlushMuzzles", t, Glow(new Color(1f, 0.9f, 0.74f), 0.4f), muzzles);
+            BlockKit.Batch("PlushFaces", t, Plain(new Color(0.05f, 0.04f, 0.05f)), faces);
 
             // The free USB bowl, nearest the room.
             BlockKit.Block("UsbBowl", t, new Vector3(1.4f, 1.005f, -0.1f), Vector3.zero, 0f, 0.1f,
@@ -733,6 +736,8 @@ namespace Cyverse.Level
                     new Vector2(0.48f, 0.42f), new Vector2(0.48f, 0.42f), 0.02f, CabinetBody, solid: true);
                 BlockKit.MeshPart("Deck", cab, BlockKit.CubeMesh, new Vector3(0f, 1.032f, -0.493f),
                     new Vector3(-12f, 0f, 0f), CabinetTrim, scale: new Vector3(0.96f, 0.07f, 0.41f));
+                BlockKit.MeshPart("DeckFront", cab, BlockKit.CubeMesh, new Vector3(0f, 0.975f, -0.69f),
+                    new Vector3(-12f, 0f, 0f), CabinetTrim, scale: new Vector3(0.96f, 0.1f, 0.03f));
                 BlockKit.Box("Hood", cab, new Vector3(0f, 2.225f, 0.045f), new Vector3(0.96f, 0.03f, 0.72f), CabinetBody);
                 BlockKit.Block("Upper", cab, new Vector3(0f, 0f, 0.08f), Vector3.zero, 1.0f, 2.22f,
                     new Vector2(0.48f, 0.34f), new Vector2(0.48f, 0.3f), 0.02f, CabinetBody);
@@ -755,8 +760,8 @@ namespace Cyverse.Level
 
                 // Control panel: chrome lip, joystick, six buttons in two rows
                 // and a lit 1P START.
-                BlockKit.MeshPart("PanelLip", cab, BlockKit.CubeMesh, new Vector3(0f, 0.99f, -0.705f),
-                    new Vector3(-12f, 0f, 0f), Chrome, scale: new Vector3(0.96f, 0.06f, 0.015f));
+                BlockKit.MeshPart("PanelLip", cab, BlockKit.CubeMesh, new Vector3(0f, 0.975f, -0.712f),
+                    new Vector3(-12f, 0f, 0f), Chrome, scale: new Vector3(0.96f, 0.035f, 0.012f));
                 BuildKit.SpawnLocal(PrimitiveType.Cylinder, "StickBase", cab, new Vector3(-0.24f, 1.075f, -0.47f),
                     new Vector3(-12f, 0f, 0f), new Vector3(0.09f, 0.008f, 0.09f), Chrome, false);
                 BuildKit.SpawnLocal(PrimitiveType.Cylinder, "Stick", cab, new Vector3(-0.24f, 1.12f, -0.47f),

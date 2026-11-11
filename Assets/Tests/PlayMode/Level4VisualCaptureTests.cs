@@ -84,9 +84,9 @@ namespace Cyverse.Tests
                 ("model-foosball", new Vector3(1.7f, 1.65f, 13.7f), new Vector3(0f, 0.85f, 15.6f), 50f),
                 ("model-bar-stools", new Vector3(-6.6f, 1.6f, -9.6f), new Vector3(-4.7f, 1.3f, -6f), 60f),
                 ("model-beanbags", new Vector3(-11.4f, 1.6f, -5.6f), new Vector3(-14f, 0.3f, -9.2f), 55f),
-                ("model-lan-chairs", new Vector3(7.6f, 1.6f, 15.0f), new Vector3(10.6f, 0.9f, 18.2f), 55f),
+                ("model-lan-chairs", new Vector3(13.8f, 1.5f, 16.9f), new Vector3(10.6f, 0.9f, 17.9f), 50f),
                 ("model-prizes", new Vector3(-4f, 1.7f, 15.4f), new Vector3(-4f, 1.7f, 19f), 55f),
-                ("model-console-lounge", new Vector3(-10.0f, 1.7f, 14.4f), new Vector3(-12.2f, 0.6f, 17.8f), 55f),
+                ("model-console-lounge", new Vector3(-15.2f, 1.7f, 14.6f), new Vector3(-12.0f, 0.6f, 17.8f), 60f),
                 ("model-ping-pong", new Vector3(9.6f, 1.6f, -9.4f), new Vector3(12f, 0.8f, -12f), 50f),
             };
             foreach (var view in decorViews)
@@ -122,6 +122,11 @@ namespace Cyverse.Tests
                 yield return null;
                 Assert.That(Capture(camera, Path.Combine(output,
                     "Level4_CyberAttack__model-station-" + i + "-close.png")), Is.True);
+                PositionPlayerView(camera, station.position + side * 3.9f - ahead * 0.5f + Vector3.up * 1.3f,
+                    station.position + side * 1.25f + ahead * 0.35f + Vector3.up * 1.2f);
+                yield return null;
+                Assert.That(Capture(camera, Path.Combine(output,
+                    "Level4_CyberAttack__model-station-" + i + "-profile.png")), Is.True);
             }
 
             // Include one normal gameplay frame with the overlay canvases so
