@@ -171,9 +171,8 @@ namespace Cyverse.Level
             }
             else if (CurrentPhase == Phase.Complete)
             {
-                exitDoor = exitDoor != null ? exitDoor : LevelSceneLookup.NearestExit();
-                target = exitDoor != null ? exitDoor.transform : null;
-                action = "RETURN TO THE HUB";
+                // The results card owns the screen; nowhere to walk.
+                target = null;
             }
             else if (stations != null && CurrentStationIndex >= 0 && CurrentStationIndex < stations.Length)
             {
@@ -292,7 +291,7 @@ namespace Cyverse.Level
                     HudUI.Instance.ShowObjective($"Objective: Watch the controlled attack briefing  (E to play, {Cyverse.Core.GameInput.ScrubLabel} to scrub)");
                     break;
                 case Phase.Complete:
-                    HudUI.Instance.ShowObjective("LEVEL 4 COMPLETE — exit to the Hub");
+                    HudUI.Instance.ShowObjective("LEVEL 4 COMPLETE");
                     break;
                 default:
                     string name = CurrentStationIndex < scenarios.Length
@@ -357,7 +356,6 @@ namespace Cyverse.Level
                 new TaskListPanel.Task("Escalate privileges", completed[1], active && CurrentStationIndex == 1),
                 new TaskListPanel.Task("Extract data", completed[2], active && CurrentStationIndex == 2),
                 new TaskListPanel.Task("Cover tracks", completed[3], active && CurrentStationIndex == 3),
-                new TaskListPanel.Task("Return to Hub", IsLevelComplete, IsLevelComplete),
             });
         }
 

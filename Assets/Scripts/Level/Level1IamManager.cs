@@ -242,9 +242,7 @@ namespace Cyverse.Level
                     break;
 
                 case Phase.Complete:
-                    var nearest = NearestExit();
-                    if (nearest != null) { t = nearest.transform; action = "RETURN TO THE HUB"; }
-                    break;
+                    break; // the results card owns the screen; nowhere to walk
             }
 
             if (t != null) beacon.PointAt(t, action, GuideGold);
@@ -404,7 +402,7 @@ namespace Cyverse.Level
                     HudUI.Instance.SetProgress(TotalTasks, TotalSteps);
                     break;
                 case Phase.Complete:
-                    SetObjective("LEVEL 1 COMPLETE — exit to the Hub");
+                    SetObjective("LEVEL 1 COMPLETE");
                     HudUI.Instance.SetProgress(TotalSteps, Mathf.Max(1, TotalSteps), "✓");
                     break;
             }

@@ -24,6 +24,10 @@ namespace Cyverse.Level
             public string nextMissionText;
             public string replaySuffix;
             public int parScore;
+            /// <summary>Optional: what [Enter] on the results card does instead
+            /// of returning to the Hub, and how the card labels it.</summary>
+            public string continueLabel;
+            public System.Action continueAction;
         }
 
         public static void ResetScene(bool clearCarried)
@@ -75,6 +79,9 @@ namespace Cyverse.Level
                 LevelProgress.MarkCompleted(completion.levelNumber);
             }
             GameState.LevelComplete = true;
+            // The player is frozen behind the results card from here on, so
+            // nothing should still be pointing them at a door to walk to.
+            ObjectiveBeacon.Ensure().Hide();
             FirstPersonController.LockCursor(false);
             if (completion.exitDoor != null) completion.exitDoor.SetUnlocked(true);
 
@@ -99,7 +106,9 @@ namespace Cyverse.Level
                     completion.grantedLine,
                     completion.nextMissionText,
                     completion.replaySuffix,
-                    parScore);
+                    parScore,
+                    completion.continueLabel,
+                    completion.continueAction);
         }
 
         private static void Ensure<T>(GameObject host) where T : MonoBehaviour
