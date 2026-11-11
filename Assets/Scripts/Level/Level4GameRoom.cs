@@ -487,24 +487,18 @@ namespace Cyverse.Level
             // Shelves on the wall behind (local z 1.3 is the wall).
             foreach (float x in new[] { -2.3f, 2.3f })
                 BlockKit.Box("Upright", t, new Vector3(x, 1.05f, 1.1f), new Vector3(0.06f, 2.1f, 0.4f), CabinetTrim);
-            var prizes = new[] { new List<CombineInstance>(), new List<CombineInstance>(), new List<CombineInstance>(), new List<CombineInstance>() };
+            var bins = new PrizeBins();
             var rnd = new System.Random(7);
             for (int shelf = 0; shelf < 3; shelf++)
             {
                 float y = 0.9f + shelf * 0.55f;
                 BlockKit.Slab("Shelf", t, new Vector3(0f, y, 1.1f), new Vector3(4.6f, 0.04f, 0.4f), 0.005f, Counter);
-                if (shelf == 2) continue; // the top shelf holds the plushies
-                for (int k = 0; k < 9; k++)
-                {
-                    float w = 0.2f + (float)rnd.NextDouble() * 0.16f;
-                    float h = 0.18f + (float)rnd.NextDouble() * 0.2f;
-                    prizes[(k + shelf) % 4].Add(BlockKit.Piece(BlockKit.CubeMesh,
-                        new Vector3(-2.0f + k * 0.5f, y + 0.02f + h * 0.5f, 1.1f), Vector3.zero, new Vector3(w, h, 0.26f)));
-                }
+                // Toys on the lower two shelves; the top one holds the plushies.
+                if (shelf < 2) BuildPrizeShelf(bins, y + 0.02f, 1.1f, shelf * 5);
             }
+            BuildCounterPrizes(bins, new Vector3(-0.45f, 1.005f, 0.05f), new Vector3(-1.1f, 1.005f, -0.05f));
+            bins.Build(t);
             Color[] prizeColours = { Magenta, Teal, Lemon, Violet };
-            for (int i = 0; i < prizes.Length; i++)
-                BlockKit.Batch("Prizes_" + i, t, Plain(prizeColours[i] * 0.8f), prizes[i]);
             var muzzles = new List<CombineInstance>();
             var faces = new List<CombineInstance>();
             for (int k = 0; k < 5; k++)
@@ -520,8 +514,8 @@ namespace Cyverse.Level
             BlockKit.Batch("PlushFaces", t, Plain(new Color(0.05f, 0.04f, 0.05f)), faces);
 
             // The free USB bowl, nearest the room.
-            BlockKit.Block("UsbBowl", t, new Vector3(1.4f, 1.005f, -0.1f), Vector3.zero, 0f, 0.1f,
-                new Vector2(0.16f, 0.16f), new Vector2(0.22f, 0.22f), 0.01f, Plain(Teal * 0.6f));
+            BlockKit.MeshPart("UsbBowl", t, Flare, new Vector3(1.4f, 1.005f, -0.1f), Vector3.zero, Plain(Teal * 0.6f),
+                scale: new Vector3(0.44f, 0.1f, 0.44f));
             var sticks = new List<CombineInstance>();
             for (int i = 0; i < 9; i++)
                 sticks.Add(BlockKit.Piece(BlockKit.CubeMesh,

@@ -86,6 +86,8 @@ namespace Cyverse.Tests
                 ("model-beanbags", new Vector3(-11.4f, 1.6f, -5.6f), new Vector3(-14f, 0.3f, -9.2f), 55f),
                 ("model-lan-chairs", new Vector3(13.8f, 1.5f, 16.9f), new Vector3(10.6f, 0.9f, 17.9f), 50f),
                 ("model-prizes", new Vector3(-4f, 1.7f, 15.4f), new Vector3(-4f, 1.7f, 19f), 55f),
+                ("model-prizes-close", new Vector3(-4.6f, 1.7f, 17.25f), new Vector3(-4.6f, 1.5f, 19.3f), 60f),
+                ("model-prizes-angle", new Vector3(-2.2f, 1.7f, 17.1f), new Vector3(-4.6f, 1.45f, 19.3f), 55f),
                 ("model-console-lounge", new Vector3(-8.4f, 1.6f, 16.3f), new Vector3(-11.6f, 0.6f, 17.9f), 60f),
                 ("model-ping-pong", new Vector3(9.6f, 1.6f, -9.4f), new Vector3(12f, 0.8f, -12f), 50f),
             };
