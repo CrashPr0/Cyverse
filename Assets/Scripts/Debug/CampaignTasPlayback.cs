@@ -463,6 +463,7 @@ namespace Cyverse.Testing
         {
             lastMoveSucceeded = false;
             Show(keys, action);
+            Cyverse.Level.HubOnboarding.Cancel();
             foreach (var controls in FindObjectsOfType<ControlsOverlay>()) Destroy(controls);
             var controlsCard = GameObject.Find("ControlsOverlay");
             if (controlsCard != null) Destroy(controlsCard);

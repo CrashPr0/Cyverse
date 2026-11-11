@@ -23,6 +23,7 @@ namespace Cyverse.UI
         private GameObject panel;
         private Text promptText;
         private Text callsignText;
+        private Text subtitleText, blurbText, noteText;
         private Action onBegin;
 
         private string callsignBuffer;
@@ -36,9 +37,20 @@ namespace Cyverse.UI
             Active = false;
         }
 
-        public void Show(Action begin)
+        /// <summary>Shows the title screen. The optional strings let the Hub
+        /// use it as the game's opening screen; omitted, it keeps Level 0's
+        /// original onboarding wording.</summary>
+        public void Show(Action begin, string subtitle = null, string blurb = null,
+            string prompt = null, string note = null)
         {
             if (panel == null) Build();
+            if (panel != null)
+            {
+                if (subtitle != null && subtitleText != null) subtitleText.text = subtitle;
+                if (blurb != null && blurbText != null) blurbText.text = blurb;
+                if (prompt != null && promptText != null) promptText.text = prompt;
+                if (noteText != null) noteText.text = note ?? string.Empty;
+            }
             if (panel == null)
             {
                 // A HUD-less diagnostic scene cannot display the title. It
@@ -164,10 +176,10 @@ namespace Cyverse.UI
             var title = MakeText("Title", "CYVERSE", 110, FontStyle.Bold, HudUI.Accent, new Vector2(0, 170));
             HudUI.AddOutline(title);
 
-            MakeText("Subtitle", "Cybersecurity Onboarding — Level 0", 30, FontStyle.Normal,
+            subtitleText = MakeText("Subtitle", "Cybersecurity Onboarding — Level 0", 30, FontStyle.Normal,
                 new Color(0.85f, 0.92f, 1f), new Vector2(0, 95));
 
-            MakeText("Blurb",
+            blurbText = MakeText("Blurb",
                 "Learn Identification & Access Management, the CIA Triad,\nand the NICE workforce roles — then authenticate to join CyberVerse.",
                 22, FontStyle.Normal, new Color(0.55f, 0.65f, 0.78f), new Vector2(0, 40));
 
@@ -183,6 +195,9 @@ namespace Cyverse.UI
 
             MakeText("Hint", "In-game:   WASD move   ·   Mouse look   ·   E interact   ·   G glossary   ·   Esc settings",
                 20, FontStyle.Normal, new Color(0.45f, 0.55f, 0.68f), new Vector2(0, -185));
+
+            noteText = MakeText("Note", "", 18, FontStyle.Normal,
+                new Color(0.80f, 0.70f, 0.45f), new Vector2(0, -235));
 
             MakeText("Credit", "San José State University  ·  CyberVerse Project",
                 18, FontStyle.Normal, new Color(0.40f, 0.48f, 0.60f), new Vector2(0, -300));

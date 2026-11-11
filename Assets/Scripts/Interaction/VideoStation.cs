@@ -11,8 +11,11 @@ namespace Cyverse.Interaction
 {
     /// <summary>
     /// The in-game briefing TV for the level template:
-    ///   - E plays/pauses (and replays after the end)
-    ///   - Left/Right arrows scrub while the player is near
+    ///   - video: E plays/pauses (and replays after the end), and the
+    ///     Left/Right arrows scrub while the player is near
+    ///   - slides: the player sets the pace. E moves to the next slide and
+    ///     finishes on the last one; nothing advances on a timer, so nobody
+    ///     waits and nobody loses a slide mid-read
     ///   - a progress bar under the screen shows position
     ///   - <see cref="FirstCompleted"/> fires the first time playback reaches
     ///     the end — the level manager uses it to unlock the door
@@ -218,9 +221,48 @@ namespace Cyverse.Interaction
             text.rectTransform.sizeDelta = worldBounds * 10f;
         }
 
-        public string Prompt => playing ? "Pause Briefing"
-            : AtEnd ? "Replay Briefing"
-            : HasCompletedOnce ? "Play Briefing" : "Play Security Briefing";
+        public string Prompt
+        {
+            get
+            {
+                if (SlideMode)
+                {
+                    if (AtEnd) return "Replay briefing";
+                    int idx = SlideIndexAt(time);
+                    return idx >= slides.Length - 1
+                        ? "Finish briefing"
+                        : $"Next slide  ({idx + 1} of {slides.Length})";
+                }
+                return playing ? "Pause Briefing"
+                    : AtEnd ? "Replay Briefing"
+                    : HasCompletedOnce ? "Play Briefing" : "Play Security Briefing";
+            }
+        }
+
+        /// <summary>Text slides rather than a video: paced by the player.</summary>
+        private bool SlideMode => !useVideo && slides != null && slides.Length > 0;
+
+        /// <summary>Index of the slide showing (0-based), or -1 for a video.</summary>
+        public int CurrentSlide => SlideMode ? SlideIndexAt(time) : -1;
+
+        private int SlideIndexAt(float t)
+        {
+            for (int i = 0; i < slides.Length; i++)
+            {
+                float d = Mathf.Max(0.5f, slides[i].duration);
+                if (t < d || i == slides.Length - 1) return i;
+                t -= d;
+            }
+            return 0;
+        }
+
+        private float SlideStart(int index)
+        {
+            float start = 0f;
+            for (int i = 0; i < index && i < slides.Length; i++)
+                start += Mathf.Max(0.5f, slides[i].duration);
+            return start;
+        }
         public bool CanInteract => true;
 
         private float Duration
@@ -272,6 +314,30 @@ namespace Cyverse.Interaction
             if (Sfx.Instance != null) Sfx.Instance.PlayClick();
             controlsRevealed = true;
 
+            if (SlideMode)
+            {
+                Speech.Cancel();
+                if (AtEnd)
+                {
+                    Seek(0f);
+                }
+                else
+                {
+                    int next = SlideIndexAt(time) + 1;
+                    if (next >= slides.Length)
+                    {
+                        time = Duration;
+                        OnReachedEnd();
+                        RefreshScreen();
+                        return;
+                    }
+                    Seek(SlideStart(next));
+                }
+                RefreshScreen();
+                SpeakSlide(SlideIndexAt(time));
+                return;
+            }
+
             if (playing) { SetPlaying(false); return; }
             if (AtEnd) Seek(0f);
             SetPlaying(true);
@@ -299,10 +365,14 @@ namespace Cyverse.Interaction
             bool watching = near && !Core.GameState.AnyMenuOpen && LookedAt(cam);
             if (watching)
             {
-                lookedAtFrame = Time.frameCount;
+                // Only a video claims the arrow keys for scrubbing; with
+                // slides they keep moving the player.
+                if (!SlideMode) lookedAtFrame = Time.frameCount;
                 if (HudUI.Instance != null) HudUI.Instance.SuppressCrosshair();
+                // The first slide is read aloud once the player looks at it.
+                if (SlideMode && !AtEnd) SpeakSlide(SlideIndexAt(time));
             }
-            if (near && !Core.GameState.AnyMenuOpen)
+            if (near && !Core.GameState.AnyMenuOpen && !SlideMode)
             {
                 float scrub = Core.GameInput.ScrubAxis(watching);
                 if (scrub != 0f)
@@ -372,11 +442,15 @@ namespace Cyverse.Interaction
                 // The HUD already tells a first-time player how to start. Keep
                 // the detailed playback controls hidden until playback has
                 // actually been used, avoiding two prompts in the same lane.
-                bool showControls = controlsRevealed || playing || HasCompletedOnce;
+                bool showControls = SlideMode || controlsRevealed || playing || HasCompletedOnce;
                 if (controlsText.gameObject.activeSelf != showControls)
                     controlsText.gameObject.SetActive(showControls);
                 // The scrub keys follow the movement-keys setting.
-                string controls = $"E play/pause  ·  {Core.GameInput.ScrubLabel} scrub";
+                string controls = SlideMode
+                    ? (AtEnd ? "BRIEFING COMPLETE  ·  E to replay"
+                        : $"SLIDE {SlideIndexAt(time) + 1} OF {slides.Length}  ·  E " +
+                          (SlideIndexAt(time) >= slides.Length - 1 ? "to finish" : "for the next slide"))
+                    : $"E play/pause  ·  {Core.GameInput.ScrubLabel} scrub";
                 if (showControls && controlsText.text != controls) controlsText.text = controls;
             }
 
@@ -390,15 +464,7 @@ namespace Cyverse.Interaction
             if (useVideo || slides == null || slides.Length == 0) return;
 
             // Which slide is the clock inside?
-            float t = time;
-            int idx = 0;
-            for (int i = 0; i < slides.Length; i++)
-            {
-                float d = Mathf.Max(0.5f, slides[i].duration);
-                if (t < d || i == slides.Length - 1) { idx = i; break; }
-                t -= d;
-            }
-            if (playing) SpeakSlide(idx);
+            int idx = SlideIndexAt(time);
             if (idx == lastSlide) return;
             lastSlide = idx;
 

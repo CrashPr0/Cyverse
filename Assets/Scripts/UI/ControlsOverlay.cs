@@ -17,6 +17,11 @@ namespace Cyverse.UI
         // Show the controls card every session by default (good for classroom /
         // kiosk play). Set true to only show it the first time on a machine.
         public bool onlyFirstTime = false;
+        /// <summary>Show the card unasked when a scene starts. Off: the Hub
+        /// teaches the controls by doing on first arrival, and a card over
+        /// the view at the start of every room taught keys before the player
+        /// had a use for them. H / F1 still open it at any time.</summary>
+        public bool showAtStart = false;
         public float minDisplaySeconds = 3f;  // stays at least this long
         public float autoHideSeconds = 6f;
 
@@ -36,7 +41,7 @@ namespace Cyverse.UI
 
             Build();
             lastMouse = Input.mousePosition;
-            if (seen && group != null) Close(); // still reachable with H / F1
+            if ((seen || !showAtStart) && group != null) Close(); // still reachable with H / F1
         }
 
         void Update()
