@@ -6,10 +6,11 @@ namespace Cyverse.Level
 {
     /// <summary>
     /// Level 3 — Digital Forensics (a seized phone, two cases): the standard
-    /// two-room template, but the task room is a forensic lab built around ONE
-    /// deep interactable — the Evidence Explorer at the analysis desk — plus
-    /// ambient dressing (wall TVs, evidence pinboard sign, server racks come
-    /// from the shared furnishings). Palette: analyst green.
+    /// two-room template. The task room is a forensic lab with three stations
+    /// (01 Evidence Intake, 02 Analyze Evidence with the Evidence Explorer,
+    /// 03 Forensic Report; Level3ForensicsPolish builds and labels them) plus
+    /// ambient dressing (wall TVs here; server racks and plants come from the
+    /// shared furnishings). Palette: analyst green.
     /// </summary>
     public static class Level3ForensicsSceneFactory
     {

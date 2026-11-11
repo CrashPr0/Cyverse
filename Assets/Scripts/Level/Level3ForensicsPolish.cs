@@ -9,8 +9,9 @@ namespace Cyverse.Level
 {
     /// <summary>
     /// WebGL-conscious finish layer for the procedurally generated Forensics
-    /// Lab. It turns the single-terminal room into a visible workflow:
-    /// acquire evidence, analyze it, correlate findings, then report.
+    /// Lab. It turns the single-terminal room into a visible workflow of
+    /// three numbered stations: 01 Evidence Intake, 02 Analyze Evidence and
+    /// 03 Forensic Report.
     /// Decorative geometry is collider-free and safe to rebuild per scene.
     /// </summary>
     [DefaultExecutionOrder(200)]
@@ -38,7 +39,6 @@ namespace Cyverse.Level
         private Material furnitureMaterial;
         private Material floorMaterial;
         private Material greenMaterial;
-        private Material goldMaterial;
         private TMP_Text reportStatus;
         private TMP_Text intakeStatus;
         private ForensicsConsole console;
@@ -148,26 +148,12 @@ namespace Cyverse.Level
             if (GameObject.Find(RootName) != null) return;
             GameObject root = new GameObject(RootName);
 
-            BuildWorkflowHeader(root.transform);
             BuildAnalysisZone(root.transform);
             BuildAcquisitionZone(root.transform);
             BuildReportingZone(root.transform);
             BuildWorkflowPath(root.transform);
             BuildFillLights(root.transform);
             PolishInvestigationDesk();
-        }
-
-        private void BuildWorkflowHeader(Transform root)
-        {
-            // Centred in the wall bay between Column_N-16 and Column_N-8: on
-            // the centre line the x=0 column and the exit door's housing
-            // covered the words, and the next bay has the server row's tray
-            // rods in front of it.
-            CreateWorldText(root, "DF_WorkflowHeader", new Vector3(-12f, 4.05f, 19.18f),
-                "ACQUIRE   ›   ANALYZE   ›   REPORT",
-                Palette.Tint("Level3", new Color(0.72f, 1f, 0.82f)), 0.055f, 120f, 34f);
-            SpawnCube("DF_HeaderRail", root, new Vector3(-12f, 3.62f, 19.28f),
-                new Vector3(5.2f, 0.045f, 0.055f), GreenMaterial());
         }
 
         private void BuildAnalysisZone(Transform root)
@@ -370,7 +356,7 @@ namespace Cyverse.Level
         private void RefreshIntake()
         {
             if (intakeStatus == null) return;
-            string source = SocProgress.TryGetEvidence(out var evidence) ? evidence.computer : "TRAINING IMAGE";
+            string source = SocProgress.TryGetEvidence(out var evidence) ? evidence.computer : "TRAINING";
             bool complete = custodyForm != null && custodyForm.IsComplete;
             intakeStatus.text = complete
                 ? $"{source} IMAGE  ·  CUSTODY ACCEPTED  [OK]"
@@ -505,13 +491,6 @@ namespace Cyverse.Level
             if (greenMaterial == null)
                 greenMaterial = BuildKit.MakeEmissive(Palette.Tint("Level3", new Color(0.24f, 0.92f, 0.50f)), 0.85f);
             return greenMaterial;
-        }
-
-        private Material GoldMaterial()
-        {
-            if (goldMaterial == null)
-                goldMaterial = BuildKit.MakeEmissive(new Color(0.90f, 0.64f, 0.22f), 0.8f);
-            return goldMaterial;
         }
     }
 }
