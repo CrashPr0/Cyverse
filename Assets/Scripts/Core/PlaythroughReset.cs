@@ -47,6 +47,9 @@ namespace Cyverse.Core
         /// <summary>Security+ terminal keys, suffixed with the role name.</summary>
         public const string SecPlusBestPrefix = "cv_secplus_best_";
 
+        /// <summary>Best score per level, suffixed with the scene name.</summary>
+        public const string BestScorePrefix = "cv_best_";
+
         public const int MaxLevel = 4;
 
         /// <summary>Runs before any scene (and so before ScenarioRoster's
@@ -68,6 +71,16 @@ namespace Cyverse.Core
 
             foreach (string role in System.Enum.GetNames(typeof(Cyverse.Level.NiceRole)))
                 PlayerPrefs.DeleteKey(SecPlusBestPrefix + role);
+
+            // Per-level best scores are keyed by scene name (see ResultsScreen).
+            int sceneCount = UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings;
+            for (int i = 0; i < sceneCount; i++)
+            {
+                string scene = System.IO.Path.GetFileNameWithoutExtension(
+                    UnityEngine.SceneManagement.SceneUtility.GetScenePathByBuildIndex(i));
+                PlayerPrefs.DeleteKey(BestScorePrefix + scene);
+                PlayerPrefs.DeleteKey(BestScorePrefix + scene + "_hard");
+            }
 
             PlayerPrefs.Save();
         }

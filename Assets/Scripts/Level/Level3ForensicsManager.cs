@@ -435,7 +435,8 @@ namespace Cyverse.Level
                 grantedLine = "Case Closed — Digital Forensics Certified",
                 nextMissionText = "Level 4 — Cyber Attack is now unlocked in the Hub.",
                 replaySuffix = "Level 3",
-                parScore = 1800,
+                // 1800 for the casework plus 5 x 100 for the knowledge check.
+                parScore = 1800 + Level3KnowledgeCheck.Questions.Length * 100,
             });
         }
     }

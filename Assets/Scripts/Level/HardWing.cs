@@ -154,6 +154,9 @@ namespace Cyverse.Level
         {
             foreach (HardDoor d in Doors())
             {
+                // A door that can never open reads as broken. Hard copies
+                // that are not built yet get no door at all.
+                if (string.IsNullOrEmpty(d.scene)) continue;
                 // rotY -90 faces the door east, back into the wing (as the
                 // Orientation door on the Hub's own west wall).
                 HubDoor door = HubDoor.Build(new Vector3(WestX + 0.3f, 0f, d.z), -90f,

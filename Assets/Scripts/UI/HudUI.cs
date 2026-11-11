@@ -516,6 +516,18 @@ namespace Cyverse.UI
 
         private void BuildScore()
         {
+            // A dark plate keeps the score readable over bright ceilings and
+            // beams. Built first so it draws behind the text.
+            var plate = new GameObject("ScorePlate", typeof(RectTransform), typeof(Image));
+            plate.transform.SetParent(Canvas.transform, false);
+            var plateImage = plate.GetComponent<Image>();
+            plateImage.color = new Color(0.03f, 0.05f, 0.08f, 0.62f);
+            plateImage.raycastTarget = false;
+            var plateRt = plate.GetComponent<RectTransform>();
+            plateRt.anchorMin = plateRt.anchorMax = plateRt.pivot = new Vector2(1f, 1f);
+            plateRt.anchoredPosition = new Vector2(-16f, -16f);
+            plateRt.sizeDelta = new Vector2(236f, 44f);
+
             scoreText = CreateText("Score", Canvas.transform, 26, TextAnchor.UpperRight);
             var rt = scoreText.rectTransform;
             rt.anchorMin = new Vector2(1f, 1f);
