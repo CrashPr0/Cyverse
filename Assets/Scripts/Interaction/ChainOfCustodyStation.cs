@@ -94,8 +94,6 @@ namespace Cyverse.Interaction
             DiegeticCustodyReadout readout = DiegeticCustodyReadout.Attach(custodyScreen);
             if (readout != null && ChainOfCustodyForm.Instance != null)
                 ChainOfCustodyForm.Instance.BindDiegeticReadout(readout);
-            BuildKit.MakeLabel(root.transform, new Vector3(0.62f, 1.18f, -0.56f),
-                "CUSTODY FORM\nCLICK E TO OPEN", accent, 0.016f, billboard: false);
             BuildKit.MakeSign(root.transform, position + new Vector3(0f, 2.25f, 0f),
                 "01  EVIDENCE INTAKE", accent, 0.028f);
             BuildKit.AddAimCollider(root, 2.4f, 3.0f);

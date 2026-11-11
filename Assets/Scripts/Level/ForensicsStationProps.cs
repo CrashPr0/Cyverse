@@ -220,7 +220,7 @@ namespace Cyverse.Level
                 new Vector3(0.22f, 0.006f, 0.06f), f.glow);
         }
 
-        // ---- 04 Forensic Report ------------------------------------------------
+        // ---- 03 Forensic Report ------------------------------------------------
 
         /// <summary>Forensic Report: desk dress, a stand under the report
         /// monitor, a keyboard, a stack of case folders and a report printer.</summary>
