@@ -121,10 +121,7 @@ namespace Cyverse.Level
                     : manager.CurrentPhase == Level4CyberAttackManager.Phase.CoverTracks
                         ? "COVER TRACKS"
                         : "BYPASS MFA";
-            string timer = manager.TimeExpired
-                ? "  ·  OVERTIME"
-                : "  ·  T-" + Mathf.FloorToInt(manager.TimeRemaining / 60f) + ":" +
-                  Mathf.FloorToInt(manager.TimeRemaining % 60f).ToString("00");
+            string timer = manager.TimerSuffix("  ·  ");
             SetStatus("STAGE " + stage + " / 4  ·  " + stageName + timer);
         }
 
