@@ -15,7 +15,7 @@ namespace Cyverse.Quiz
         public string question;
         public string[] options;    // exactly 3
         public int correctIndex;    // 0..2
-        public string explanation;  // shown when the answer is wrong
+        public string explanation;  // shown after answering, right or wrong
 
         public QuizQuestion(string question, string[] options, int correctIndex, string explanation)
         {
@@ -52,8 +52,11 @@ namespace Cyverse.Quiz
     /// <summary>
     /// Gamified assessment: shows a styled multiple-choice card, answered with
     /// the 1/2/3 keys. Awards points (more for a correct first answer), gives
-    /// immediate feedback, then reports back via callback. Keyboard-only, so it
-    /// needs no EventSystem and stays accessible.
+    /// immediate feedback, then reports back via callback. The feedback (with
+    /// the explanation) stays up until the player presses Enter or Space, so
+    /// it can actually be read; automated playthroughs and batch runs move on
+    /// after <see cref="feedbackSeconds"/> instead. Keyboard-only, so it needs
+    /// no EventSystem and stays accessible.
     /// </summary>
     public class QuizSystem : MonoBehaviour, IGameplayActionTarget
     {
@@ -74,6 +77,16 @@ namespace Cyverse.Quiz
         private QuizQuestion current;
         private Action<bool> onAnswered;
         private bool awaitingInput;
+        private bool awaitingContinue;
+        private bool lastAnswerCorrect;
+        private bool automatedAnswer;
+        private float continueAt;
+        // A key still down from answering must not also dismiss the feedback.
+        private const float ContinueGuardSeconds = 0.4f;
+
+        /// <summary>Feedback is on screen, waiting for the player to continue.</summary>
+        public bool IsAwaitingContinue => awaitingContinue;
+        private bool AutoAdvance => Application.isBatchMode || skipReadDelay || automatedAnswer;
         private float acceptInputAt;
         private Action onMessageDone;
         private bool messageOpen;
@@ -143,6 +156,14 @@ namespace Cyverse.Quiz
                     GameplayActions.TryApply(this, GameplayAction.Choose(0));
                 return;
             }
+            if (awaitingContinue)
+            {
+                if (Time.unscaledTime >= continueAt &&
+                    (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) ||
+                     Input.GetKeyDown(KeyCode.Space)))
+                    FinishQuestion();
+                return;
+            }
             if (!awaitingInput || !ReadDelayOver) return;
             if (feedbackText.text == ReadingText) feedbackText.text = PromptText;
 
@@ -162,6 +183,11 @@ namespace Cyverse.Quiz
                 CloseMessage();
                 return true;
             }
+            if (action.Kind == GameplayActionKind.Choose && awaitingContinue)
+            {
+                FinishQuestion();
+                return true;
+            }
             if (action.Kind != GameplayActionKind.Choose || !awaitingInput || !ReadDelayOver || current == null ||
                 current.options == null || action.Index < 0 || action.Index >= current.options.Length)
                 return false;
@@ -176,7 +202,9 @@ namespace Cyverse.Quiz
             if (current == null || !awaitingInput) return false;
             bool previous = skipReadDelay;
             skipReadDelay = true;
+            automatedAnswer = true;
             bool applied = GameplayActions.TryApply(this, GameplayAction.Choose(current.correctIndex), actor);
+            automatedAnswer = false;
             skipReadDelay = previous;
             return applied;
         }
@@ -209,7 +237,8 @@ namespace Cyverse.Quiz
                 ScoreSystem.Add(awarded);
 
                 string comboTag = mult > 1f ? $"  <color=#E5A823><b>COMBO x{mult:0.#}!</b></color>" : "";
-                feedbackText.text = $"<color=#4CE087><b>Correct!</b>  +{awarded} points</color>{comboTag}";
+                string why = string.IsNullOrEmpty(current.explanation) ? "" : $"  <color=#CFE8D8>{current.explanation}</color>";
+                feedbackText.text = $"<color=#4CE087><b>Correct!</b>  +{awarded} points</color>{comboTag}{why}";
 
                 if (Sfx.Instance != null) Sfx.Instance.PlayStreak(ScoreSystem.Streak);
                 if (mult > 1f && UI.HudUI.Instance != null)
@@ -225,12 +254,27 @@ namespace Cyverse.Quiz
             }
 
             bodyText.text = BodyFor(current, choice);
-            StartCoroutine(CloseAfterFeedback(correct));
+            lastAnswerCorrect = correct;
+            if (AutoAdvance)
+            {
+                StartCoroutine(CloseAfterFeedback());
+                return;
+            }
+            bodyText.text += "<size=22><color=#8FB8CC>Press Enter or Space to continue</color></size>";
+            continueAt = Time.unscaledTime + ContinueGuardSeconds;
+            awaitingContinue = true;
         }
 
-        private IEnumerator CloseAfterFeedback(bool correct)
+        private IEnumerator CloseAfterFeedback()
         {
             yield return new WaitForSecondsRealtime(feedbackSeconds);
+            FinishQuestion();
+        }
+
+        private void FinishQuestion()
+        {
+            bool correct = lastAnswerCorrect;
+            awaitingContinue = false;
             card.SetActive(false);
             modal?.Close();
             modal = null;

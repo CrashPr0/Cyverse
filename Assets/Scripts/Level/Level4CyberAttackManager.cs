@@ -229,8 +229,6 @@ namespace Cyverse.Level
             }
             if (station.StationIndex > CurrentStationIndex)
                 HudUI.Instance.ShowToast("That stage is locked — follow the simulated attack chain in order.", Gold);
-            else if (IsStationComplete(station))
-                HudUI.Instance.ShowToast("Stage complete — use the checklist to review what the defense should catch.", SafeGreen);
         }
 
         public bool TryResolve(CyberAttackStation station, int optionIndex)

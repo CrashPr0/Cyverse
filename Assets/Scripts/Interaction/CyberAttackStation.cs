@@ -28,8 +28,18 @@ namespace Cyverse.Interaction
         private TMP_Text situationText;
         private TMP_Text feedbackText;
         private TMP_Text meterText;
+        private TMP_Text controlsText;
         private Button[] optionButtons;
         private bool open;
+        // The lesson card: the same panel with the choices swapped for what
+        // the player did and which defense stops it. Shown after a correct
+        // pick made by a person (automated routes skip straight on), and when
+        // a finished machine is reopened for review.
+        private bool lessonOpen;
+        private bool fromPlayer;
+
+        /// <summary>The lesson card is on screen.</summary>
+        public bool LessonOpen => open && lessonOpen;
         private bool screenLive;
         private int openedFrame = -1;
         private ModalSession.Lease modal;
@@ -64,7 +74,8 @@ namespace Cyverse.Interaction
             if (manager == null) return;
             if (!manager.CanAttempt(this))
             {
-                manager.ExplainUnavailable(this);
+                if (manager.IsStationComplete(this)) OpenLesson(review: true);
+                else manager.ExplainUnavailable(this);
                 return;
             }
             OpenPanel();
@@ -82,6 +93,8 @@ namespace Cyverse.Interaction
                 out modal, releaseCursor: true)) return;
 
             open = true;
+            lessonOpen = false;
+            SetLessonLayout(false);
             openedFrame = Time.frameCount;
             panel.SetActive(true);
             // The in-panel telemetry below is easier to read while choosing;
@@ -111,14 +124,30 @@ namespace Cyverse.Interaction
         {
             if (!screenLive && manager != null && manager.ScenarioStarted) RefreshWorldLabel();
             if (!open || Time.frameCount == openedFrame) return;
+            if (lessonOpen)
+            {
+                if (GameInput.CancelDown || Input.GetKeyDown(KeyCode.Return) ||
+                    Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space))
+                    Close();
+                return;
+            }
             if (GameInput.CancelDown)
                 GameplayActions.TryApply(this, GameplayAction.Cancel());
             else if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
-                GameplayActions.TryApply(this, GameplayAction.Choose(0));
+                PlayerChoose(0);
             else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
-                GameplayActions.TryApply(this, GameplayAction.Choose(1));
+                PlayerChoose(1);
             else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3))
-                GameplayActions.TryApply(this, GameplayAction.Choose(2));
+                PlayerChoose(2);
+        }
+
+        /// <summary>A choice made by a person (key or click), as opposed to an
+        /// automated route: a correct one stays up as the lesson card.</summary>
+        private void PlayerChoose(int index)
+        {
+            fromPlayer = true;
+            try { GameplayActions.TryApply(this, GameplayAction.Choose(index)); }
+            finally { fromPlayer = false; }
         }
 
         public bool TryApply(GameplayAction action, GameObject actor)
@@ -126,6 +155,12 @@ namespace Cyverse.Interaction
             if (!open) return false;
             if (action.Kind == GameplayActionKind.Cancel)
             {
+                Close();
+                return true;
+            }
+            if (lessonOpen)
+            {
+                // Any further input on the lesson card just moves on.
                 Close();
                 return true;
             }
@@ -144,13 +179,80 @@ namespace Cyverse.Interaction
             bool resolved = manager.TryResolve(this, optionIndex);
             if (resolved)
             {
-                Close();
+                if (fromPlayer) ShowLesson(review: false);
+                else Close();
                 return;
             }
 
             feedbackText.text = manager.LastFeedback;
             feedbackText.color = new Color(1f, 0.48f, 0.34f);
             RefreshMeter();
+        }
+
+        /// <summary>Reopens a finished machine on its lesson card.</summary>
+        private void OpenLesson(bool review)
+        {
+            if (open || manager == null) return;
+            if (panel == null) BuildPanel();
+            if (panel == null || manager.ScenarioFor(this) == null) return;
+            if (!ModalSession.TryOpen(this, ModalSession.Channel.Quiz,
+                out modal, releaseCursor: true)) return;
+
+            open = true;
+            openedFrame = Time.frameCount;
+            panel.SetActive(true);
+            Level4ExfiltrationMeter.Instance?.SetVisible(false);
+            ShowLesson(review);
+            UiMotion.PanelIn(panel, null, 0.985f);
+        }
+
+        private void ShowLesson(bool review)
+        {
+            Level4CyberAttackContent.StationScenario scenario = manager.ScenarioFor(this);
+            if (scenario == null) { Close(); return; }
+
+            lessonOpen = true;
+            SetLessonLayout(true);
+            titleText.text = scenario.title + (review ? "  //  REVIEW" : "  //  STAGE COMPLETE");
+            objectiveText.text = scenario.objective;
+            situationText.text = scenario.situation;
+            string move = scenario.options != null && scenario.correctOption >= 0 &&
+                scenario.correctOption < scenario.options.Length
+                ? scenario.options[scenario.correctOption] : string.Empty;
+            feedbackText.color = Color.white;
+            feedbackText.text =
+                "<color=#4CE087><b>WHAT WORKED</b></color>\n" + move + "\n\n" +
+                "<color=#4CE087>" + scenario.successMessage + "</color>\n\n" +
+                "<color=#E5A823><b>THE DEFENSE THAT STOPS IT</b></color>\n" + scenario.lesson;
+            RefreshMeter();
+        }
+
+        /// <summary>Swaps the panel between the choices and the lesson card:
+        /// the lesson text takes over the space the three options use.</summary>
+        private void SetLessonLayout(bool lesson)
+        {
+            if (optionButtons != null)
+                foreach (Button button in optionButtons)
+                    if (button != null && lesson) button.gameObject.SetActive(false);
+            if (feedbackText != null)
+            {
+                if (lesson)
+                {
+                    SetRect(feedbackText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 1f),
+                        new Vector2(42f, 95f), new Vector2(-42f, -254f));
+                    feedbackText.alignment = TextAlignmentOptions.TopLeft;
+                }
+                else
+                {
+                    SetRect(feedbackText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f),
+                        new Vector2(42f, 95f), new Vector2(-42f, 145f));
+                    feedbackText.alignment = TextAlignmentOptions.MidlineLeft;
+                }
+            }
+            if (controlsText != null)
+                controlsText.text = lesson
+                    ? "PRESS ENTER OR SPACE TO CONTINUE     ·     SYNTHETIC DATA ONLY"
+                    : "CLICK A CHOICE OR PRESS 1 / 2 / 3     ·     ESC / TAB CLOSE     ·     SYNTHETIC DATA ONLY";
         }
 
         public void CloseForManager()
@@ -162,6 +264,7 @@ namespace Cyverse.Interaction
         {
             if (!open) return;
             open = false;
+            lessonOpen = false;
             if (panel != null) panel.SetActive(false);
             Level4ExfiltrationMeter.Instance?.SetVisible(true);
             modal?.Close();
@@ -243,8 +346,7 @@ namespace Cyverse.Interaction
                 SetRect(choice.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(1f, 1f),
                     new Vector2(40f, top - choiceHeight), new Vector2(-40f, top));
                 int captured = i;
-                choice.onClick.AddListener(() => GameplayActions.TryApply(this,
-                    GameplayAction.Choose(captured)));
+                choice.onClick.AddListener(() => PlayerChoose(captured));
             }
 
             feedbackText = MakeText("Feedback", 19f, TextAlignmentOptions.MidlineLeft);
@@ -261,6 +363,7 @@ namespace Cyverse.Interaction
             SetRect(controls.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f),
                 new Vector2(42f, 12f), new Vector2(-42f, 43f));
             controls.text = "CLICK A CHOICE OR PRESS 1 / 2 / 3     ·     ESC / TAB CLOSE     ·     SYNTHETIC DATA ONLY";
+            controlsText = controls;
             controls.color = new Color(0.60f, 0.74f, 0.82f);
 
             panel.SetActive(false);
