@@ -163,8 +163,8 @@ namespace Cyverse.Level
         /// marquee overhanging it, and a straight back.</summary>
         private static readonly Vector2[] ArcadeProfile =
         {
-            new Vector2(-0.44f, 0f), new Vector2(-0.44f, 0.86f), new Vector2(-0.72f, 0.925f), new Vector2(-0.72f, 1.03f),
-            new Vector2(-0.38f, 1.105f), new Vector2(-0.24f, 1.90f), new Vector2(-0.33f, 1.97f), new Vector2(-0.33f, 2.25f),
+            new Vector2(-0.44f, 0f), new Vector2(-0.44f, 0.86f), new Vector2(-0.75f, 0.915f), new Vector2(-0.75f, 1.045f),
+            new Vector2(-0.38f, 1.125f), new Vector2(-0.24f, 1.90f), new Vector2(-0.33f, 1.97f), new Vector2(-0.33f, 2.25f),
             new Vector2(0.42f, 2.25f), new Vector2(0.42f, 0f),
         };
 
@@ -227,12 +227,16 @@ namespace Cyverse.Level
             // Guards on the two sides that face the prizes.
             Pane(m, "ChuteGuardSide", at + new Vector3(-size * 0.5f, 0.21f, 0f), 90f, new Vector2(size, 0.42f));
             Pane(m, "ChuteGuardBack", at + new Vector3(0f, 0.21f, size * 0.5f), 0f, new Vector2(size, 0.42f));
-            BlockKit.Batch("ChuteGuardTrim", m, BrightSteel, new List<CombineInstance>
+            // Lit edges, so the clear walls read in the dark box.
+            var edges = new List<CombineInstance>
             {
-                BlockKit.Piece(BlockKit.CubeMesh, at + new Vector3(-size * 0.5f, 0.42f, 0f), Vector3.zero, new Vector3(0.014f, 0.014f, size)),
-                BlockKit.Piece(BlockKit.CubeMesh, at + new Vector3(0f, 0.42f, size * 0.5f), Vector3.zero, new Vector3(size, 0.014f, 0.014f)),
-                BlockKit.Piece(BlockKit.CubeMesh, at + new Vector3(-size * 0.5f, 0.21f, size * 0.5f), Vector3.zero, new Vector3(0.014f, 0.42f, 0.014f)),
-            });
+                BlockKit.Piece(BlockKit.CubeMesh, at + new Vector3(-size * 0.5f, 0.42f, 0f), Vector3.zero, new Vector3(0.012f, 0.012f, size)),
+                BlockKit.Piece(BlockKit.CubeMesh, at + new Vector3(0f, 0.42f, size * 0.5f), Vector3.zero, new Vector3(size, 0.012f, 0.012f)),
+            };
+            foreach (Vector2 corner in new[] { new Vector2(-1f, -1f), new Vector2(-1f, 1f), new Vector2(1f, 1f) })
+                edges.Add(BlockKit.Piece(BlockKit.CubeMesh, at + new Vector3(corner.x * size * 0.5f, 0.21f, corner.y * size * 0.5f),
+                    Vector3.zero, new Vector3(0.012f, 0.42f, 0.012f)));
+            BlockKit.Batch("ChuteGuardEdges", m, Glow(Teal, 1.1f), edges);
         }
 
         // ---- Bar ----------------------------------------------------------------
@@ -321,8 +325,8 @@ namespace Cyverse.Level
                 new Ring(1.4f, 0.18f, 0.052f, 0.335f, 0f, 4f), new Ring(1.5f, 0.13f, 0.045f, 0.345f, 0f, 4f),
             }, 20, 3, "ChairBack")), Vector3.zero, Vector3.zero, shell);
 
-            BlockKit.Slab("HeadPillow", c, new Vector3(0f, 1.36f, 0.265f), new Vector3(0.22f, 0.11f, 0.05f), 0.02f, trim);
-            BlockKit.Slab("LumbarPillow", c, new Vector3(0f, 0.8f, 0.2f), new Vector3(0.3f, 0.14f, 0.06f), 0.025f, trim);
+            BlockKit.MeshPart("HeadPillow", c, SphereMesh, new Vector3(0f, 1.36f, 0.27f), Vector3.zero, trim, scale: new Vector3(0.25f, 0.13f, 0.09f));
+            BlockKit.MeshPart("LumbarPillow", c, SphereMesh, new Vector3(0f, 0.8f, 0.21f), Vector3.zero, trim, scale: new Vector3(0.33f, 0.16f, 0.11f));
             var arms = new List<CombineInstance>();
             foreach (float x in new[] { -0.3f, 0.3f })
             {
@@ -352,10 +356,10 @@ namespace Cyverse.Level
             foreach (float x in new[] { -1f, 1f })
                 foreach (float z in new[] { -1f, 1f })
                 {
-                    BlockKit.Block("Leg", t, new Vector3(x * 0.6f, 0f, z * 0.33f), new Vector3(z * 7f, 0f, -x * 7f), 0.02f, 0.62f,
+                    BlockKit.Block("Leg", t, new Vector3(x * 0.6f, 0f, z * 0.33f), new Vector3(-z * 7f, 0f, x * 7f), 0.02f, 0.62f,
                         new Vector2(0.035f, 0.035f), new Vector2(0.055f, 0.055f), 0.008f, wood);
                     BlockKit.MeshPart("Foot", t, Shared("foosFoot", () => CharacterMesh.Prism(12, 0.045f, 0.035f, 0f, 0.022f, "FoosFoot")),
-                        new Vector3(x * 0.65f, 0f, z * 0.385f), Vector3.zero, BrightSteel);
+                        new Vector3(x * 0.6f, 0f, z * 0.33f), Vector3.zero, CabinetTrim);
                 }
             BlockKit.Block("Box", t, Vector3.zero, Vector3.zero, 0.56f, floorY,
                 new Vector2(halfX - 0.05f, halfZ - 0.05f), new Vector2(halfX + 0.02f, halfZ + 0.02f), 0.015f, wood, solid: true);

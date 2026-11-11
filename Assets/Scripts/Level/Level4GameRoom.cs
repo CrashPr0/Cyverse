@@ -516,7 +516,7 @@ namespace Cyverse.Level
                 muzzles.Add(PlushMuzzle(seat));
                 AddPlushFace(faces, seat);
             }
-            BlockKit.Batch("PlushMuzzles", t, Glow(new Color(1f, 0.9f, 0.74f), 0.4f), muzzles);
+            BlockKit.Batch("PlushMuzzles", t, Glow(new Color(1f, 0.8f, 0.58f), 0.3f), muzzles);
             BlockKit.Batch("PlushFaces", t, Plain(new Color(0.05f, 0.04f, 0.05f)), faces);
 
             // The free USB bowl, nearest the room.
