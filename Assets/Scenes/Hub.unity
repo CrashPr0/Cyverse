@@ -1978,7 +1978,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 153534385}
-  m_Text: ORIENTATION (DEMO)
+  m_Text: ORIENTATION (OPTIONAL)
   m_OffsetZ: 0
   m_CharacterSize: 0.032
   m_LineSpacing: 1
@@ -18891,7 +18891,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mode: 0
   sceneName: Level0
-  displayName: Orientation (Demo)
+  displayName: Orientation (optional)
   levelIndex: 0
 --- !u!4 &1249347461
 Transform:
@@ -24050,7 +24050,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1626286511}
-  m_Text: ORIENTATION (DEMO)
+  m_Text: ORIENTATION (OPTIONAL)
   m_OffsetZ: 0
   m_CharacterSize: 0.022
   m_LineSpacing: 1

@@ -207,6 +207,9 @@ namespace Cyverse.Level
             if (sign != null)
             {
                 foreach (var b in sign.GetComponents<Billboard>()) Destroy(b);
+                // A mounted sign must not bob: the bob remembers where the
+                // sign started and would pull it back behind its plate.
+                foreach (var fx in sign.GetComponents<SignFX>()) fx.enabled = false;
                 Transform halo = sign.Find("Halo");
                 if (halo != null) halo.gameObject.SetActive(false);
                 sign.localRotation = Quaternion.identity;

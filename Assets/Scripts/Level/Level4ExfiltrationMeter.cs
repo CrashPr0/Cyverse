@@ -195,7 +195,8 @@ namespace Cyverse.Level
             panelRect.anchorMin = new Vector2(1f, 1f);
             panelRect.anchorMax = new Vector2(1f, 1f);
             panelRect.pivot = new Vector2(1f, 1f);
-            panelRect.anchoredPosition = new Vector2(-28f, -92f);
+            // Below the objective banner (which ends at y -102), not across its end.
+            panelRect.anchoredPosition = new Vector2(-28f, -114f);
             panelRect.sizeDelta = new Vector2(430f, 208f);
 
             Image background = panel.GetComponent<Image>();
@@ -264,10 +265,9 @@ namespace Cyverse.Level
             fillRect.offsetMax = Vector2.zero;
             Image fillImage = fill.GetComponent<Image>();
             fillImage.color = color;
-            fillImage.type = Image.Type.Filled;
-            fillImage.fillMethod = Image.FillMethod.Horizontal;
-            fillImage.fillOrigin = (int)Image.OriginHorizontal.Left;
-            fillImage.fillAmount = 0f;
+            // Width comes from the anchors (see SetFill). A sprite-less Image
+            // ignores fillAmount and always draws full.
+            fillRect.anchorMax = new Vector2(0f, 1f);
             fillImage.raycastTarget = false;
             return fillImage;
         }
@@ -275,8 +275,8 @@ namespace Cyverse.Level
         private void RefreshBars()
         {
             if (dataFill == null || detectionFill == null) return;
-            dataFill.fillAmount = shownData;
-            detectionFill.fillAmount = shownDetection;
+            SetFill(dataFill, shownData);
+            SetFill(detectionFill, shownDetection);
             dataValue.text = Mathf.RoundToInt(shownData * 100f) + "%";
             detectionValue.text = Mathf.RoundToInt(shownDetection * 100f) + "%";
 
@@ -285,6 +285,11 @@ namespace Cyverse.Level
                 : Color.Lerp(AlertAmber, AlertRose, (shownDetection - 0.45f) / 0.55f);
             detectionFill.color = detectionColor;
             detectionValue.color = detectionColor;
+        }
+
+        private static void SetFill(Image fill, float amount01)
+        {
+            fill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(amount01), 1f);
         }
 
         private static Image CreateImage(string name, Transform parent, Color color)

@@ -372,6 +372,9 @@ namespace Cyverse.Level
                     if (InKnowledgeCheck)
                         HudUI.Instance.ShowStep(6, StepTotal,
                             $"Answer the knowledge check  ({KnowledgeCheckQuestion + 1}/{Level3KnowledgeCheck.Questions.Length})");
+                    else if (ReportSubmitted)
+                        // The short pause before the first question.
+                        HudUI.Instance.ShowStep(6, StepTotal, "Answer the knowledge check");
                     else
                         HudUI.Instance.ShowStep(5, StepTotal, "Submit the report at the FORENSIC REPORT desk");
                     HudUI.Instance.SetProgress(workflowDone, workflowTotal);

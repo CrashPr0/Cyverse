@@ -105,6 +105,9 @@ namespace Cyverse.Level
         {
             startTime = Time.time; // don't count time spent on the title screen
 
+            // The next-step line would sit empty under its heading until the
+            // intro ends.
+            if (HudUI.Instance != null) HudUI.Instance.ShowObjective("Listen to the security guard");
             if (DialogueManager.Instance != null)
                 DialogueManager.Instance.Play(Level0Content.Intro(), UpdateObjective);
             else

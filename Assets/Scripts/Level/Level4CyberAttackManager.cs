@@ -254,7 +254,8 @@ namespace Cyverse.Level
                 WrongAttempts++;
                 DetectionPercent = Mathf.Clamp(DetectionPercent + scenario.detectionPenalty, 0, 100);
                 LastFeedback = $"SIMULATION DETECTED  +{scenario.detectionPenalty}% caught — {scenario.lesson}";
-                if (HudUI.Instance != null) HudUI.Instance.ShowToast("Caught — read which defense spotted that choice.", AttackOrange);
+                // No toast: the station panel is open and shows this itself,
+                // and a toast would land on top of its title.
                 UpdateObjective();
                 ProgressChanged?.Invoke();
                 return false;
@@ -265,8 +266,6 @@ namespace Cyverse.Level
             ExfiltrationPercent = Mathf.Clamp(ExfiltrationPercent + scenario.dataGain, 0, 100);
             ScoreSystem.Add(Mathf.RoundToInt(220f + scenario.dataGain * 4f - DetectionPercent * 0.35f));
             LastFeedback = scenario.successMessage + "  " + scenario.lesson;
-            if (HudUI.Instance != null)
-                HudUI.Instance.ShowToast(scenario.successMessage, SafeGreen);
             if (stations != null && CurrentStationIndex < stations.Length && stations[CurrentStationIndex] != null)
                 BurstFX.SpawnAbove(stations[CurrentStationIndex].transform, SafeGreen, 26, minimumHeight: 2.0f);
 

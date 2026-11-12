@@ -262,7 +262,8 @@ namespace Cyverse.Quiz
                 StartCoroutine(CloseAfterFeedback());
                 return;
             }
-            bodyText.text += "<size=22><color=#8FB8CC>Press Enter or Space to continue</color></size>";
+            // Under the explanation, so the eye reads the why before the key.
+            feedbackText.text += "\n<size=20><color=#8FB8CC>Press Enter or Space to continue</color></size>";
             continueAt = Time.unscaledTime + ContinueGuardSeconds;
             awaitingContinue = true;
         }
@@ -334,12 +335,12 @@ namespace Cyverse.Quiz
             bodyText = MakeText(card.transform, "Body", 26, TextAnchor.UpperLeft);
             var brt = bodyText.rectTransform;
             brt.anchorMin = new Vector2(0, 0); brt.anchorMax = new Vector2(1, 1);
-            brt.offsetMin = new Vector2(50, 90); brt.offsetMax = new Vector2(-50, -84);
+            brt.offsetMin = new Vector2(50, 108); brt.offsetMax = new Vector2(-50, -84);
 
             feedbackText = MakeText(card.transform, "Feedback", 24, TextAnchor.MiddleCenter);
             var frt = feedbackText.rectTransform;
             frt.anchorMin = new Vector2(0, 0); frt.anchorMax = new Vector2(1, 0); frt.pivot = new Vector2(0.5f, 0);
-            frt.sizeDelta = new Vector2(-60, 70); frt.anchoredPosition = new Vector2(0, 12);
+            frt.sizeDelta = new Vector2(-60, 96); frt.anchoredPosition = new Vector2(0, 8);
 
             card.SetActive(false);
         }
