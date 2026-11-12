@@ -11,8 +11,9 @@ namespace Cyverse.Level
     /// <summary>
     /// Progression and scoring for Level 4's closed-world cyber-attack
     /// simulation. Reconnaissance is covered by the briefing; the run is a
-    /// timed sequence of four conceptual stations: bypass MFA, escalate
-    /// privileges, extract data, and cover tracks. The manager deliberately
+    /// sequence of four conceptual stations: spot the social-engineering
+    /// lure, bypass MFA, escalate privileges, and map where network attacks
+    /// land. The manager deliberately
     /// contains no networking,
     /// process-launching or exploit code; stations only resolve authored
     /// choices against synthetic scenarios.
@@ -22,10 +23,10 @@ namespace Cyverse.Level
         public enum Phase
         {
             Briefing,
+            SpotThePhish,
             BypassMfa,
             EscalatePrivileges,
-            ExtractData,
-            CoverTracks,
+            NetworkAttack,
             Complete,
         }
 
@@ -117,7 +118,7 @@ namespace Cyverse.Level
         {
             if (CurrentPhase != Phase.Briefing) return;
             // Recon is context in the briefing, not a fifth completion gate.
-            CurrentPhase = Phase.BypassMfa;
+            CurrentPhase = Phase.SpotThePhish;
             ScenarioStarted = true;
             activeElapsedSeconds = 0f;
             if (taskDoor != null) taskDoor.Unlock();
@@ -277,7 +278,7 @@ namespace Cyverse.Level
             else
             {
                 CurrentStationIndex++;
-                CurrentPhase = (Phase)((int)Phase.BypassMfa + CurrentStationIndex);
+                CurrentPhase = (Phase)((int)Phase.SpotThePhish + CurrentStationIndex);
             }
 
             UpdateObjective();
@@ -356,10 +357,10 @@ namespace Cyverse.Level
             list.Show(new List<TaskListPanel.Task>
             {
                 new TaskListPanel.Task("Watch briefing", active, !active),
-                new TaskListPanel.Task("Phish Frenzy · bypass MFA", completed[0], active && CurrentStationIndex == 0),
-                new TaskListPanel.Task("Access Grabber · escalate", completed[1], active && CurrentStationIndex == 1),
-                new TaskListPanel.Task("Data Vending · extract data", completed[2], active && CurrentStationIndex == 2),
-                new TaskListPanel.Task("High Score Log · cover tracks", completed[3], active && CurrentStationIndex == 3),
+                new TaskListPanel.Task("Spot the Phish · scams", completed[0], active && CurrentStationIndex == 0),
+                new TaskListPanel.Task("Phish Frenzy · bypass MFA", completed[1], active && CurrentStationIndex == 1),
+                new TaskListPanel.Task("Access Grabber · escalate", completed[2], active && CurrentStationIndex == 2),
+                new TaskListPanel.Task("Network Attack · map it", completed[3], active && CurrentStationIndex == 3),
             });
         }
 

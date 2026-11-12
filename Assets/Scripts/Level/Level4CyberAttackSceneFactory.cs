@@ -84,22 +84,18 @@ namespace Cyverse.Level
         public static void BuildAttackFloor()
         {
             BuildKit.MakeSign(null, new Vector3(0f, 4.15f, 19.20f),
-                "BYPASS MFA  ›  ESCALATE PRIVILEGES", new Color(1f, 0.72f, 0.55f), 0.045f);
+                "SPOT THE PHISH  ›  BYPASS MFA", new Color(1f, 0.72f, 0.55f), 0.045f);
             BuildKit.MakeSign(null, new Vector3(0f, 3.55f, 19.16f),
-                "EXTRACT DATA  ›  COVER TRACKS", new Color(0.72f, 0.86f, 0.92f), 0.026f);
+                "ESCALATE PRIVILEGES  ›  NETWORK ATTACK", new Color(0.72f, 0.86f, 0.92f), 0.026f);
 
-            Level4CyberAttackContent.StationKind[] kinds =
-            {
-                Level4CyberAttackContent.StationKind.BypassMfa,
-                Level4CyberAttackContent.StationKind.EscalatePrivileges,
-                Level4CyberAttackContent.StationKind.ExtractData,
-                Level4CyberAttackContent.StationKind.CoverTracks,
-            };
+            // Play order. Each machine keeps its spot on the floor, so the
+            // route runs back-left, front-left, front-right, back-right.
+            Level4CyberAttackContent.StationKind[] kinds = Level4CyberAttackContent.PlayOrder;
             Vector3[] positions =
             {
+                new Vector3(-10.5f, 0f, 14.0f),
                 new Vector3(-10.5f, 0f, 8.0f),
                 new Vector3(10.5f, 0f, 8.0f),
-                new Vector3(-10.5f, 0f, 14.0f),
                 new Vector3(10.5f, 0f, 14.0f),
             };
             Vector3 inwardFocus = new Vector3(0f, 0f, 11f);

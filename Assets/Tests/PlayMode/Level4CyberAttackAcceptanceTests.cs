@@ -72,10 +72,10 @@ namespace Cyverse.Tests
             }
 
             Assert.That(kinds, Has.Count.EqualTo(4));
-            Assert.That(GetStationTitle(stations, 0), Does.Contain("BYPASS MFA"));
-            Assert.That(GetStationTitle(stations, 1), Does.Contain("ESCALATE PRIVILEGES"));
-            Assert.That(GetStationTitle(stations, 2), Does.Contain("EXTRACT DATA"));
-            Assert.That(GetStationTitle(stations, 3), Does.Contain("COVER TRACKS"));
+            Assert.That(GetStationTitle(stations, 0), Does.Contain("SPOT THE PHISH"));
+            Assert.That(GetStationTitle(stations, 1), Does.Contain("BYPASS MFA"));
+            Assert.That(GetStationTitle(stations, 2), Does.Contain("ESCALATE PRIVILEGES"));
+            Assert.That(GetStationTitle(stations, 3), Does.Contain("NETWORK ATTACK"));
         }
 
         [UnityTest]
@@ -207,7 +207,7 @@ namespace Cyverse.Tests
 
             PropertyInfo stationIndexProperty = stationType.GetProperty("StationIndex");
             PropertyInfo stationKindProperty = stationType.GetProperty("Kind");
-            string[] expectedKinds = { "BypassMfa", "EscalatePrivileges", "ExtractData", "CoverTracks" };
+            string[] expectedKinds = { "SpotThePhish", "BypassMfa", "EscalatePrivileges", "NetworkAttack" };
             foreach (Object station in stations)
             {
                 Component stationComponent = (Component)station;
@@ -230,7 +230,7 @@ namespace Cyverse.Tests
             // the end starts the timer and unlocks the first station.
             Assert.That(GameplayActionTestDriver.Scrub(briefing, float.MaxValue), Is.True);
             yield return null;
-            Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(), Is.EqualTo("BypassMfa"));
+            Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(), Is.EqualTo("SpotThePhish"));
 
             // Open the first choice screen and assert every control stays
             // inside the modal. This catches inverted top anchors, which once

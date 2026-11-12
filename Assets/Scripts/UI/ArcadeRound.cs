@@ -349,7 +349,7 @@ namespace Cyverse.UI
             overlay.transform.SetParent(Field, false);
             Fill(overlay.GetComponent<RectTransform>());
             var shade = overlay.GetComponent<Image>();
-            shade.color = new Color(0.01f, 0.01f, 0.02f, 0.88f);
+            shade.color = new Color(0.01f, 0.01f, 0.02f, 0.95f);
             shade.raycastTarget = false;
             overlayText = Label(overlay.transform, "OverlayText", string.Empty, 22f, Color.white);
             Fill(overlayText.rectTransform, 30f);

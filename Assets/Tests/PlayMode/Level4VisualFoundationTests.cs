@@ -25,10 +25,10 @@ namespace Cyverse.Tests
             yield return null;
             yield return null;
 
+            Assert.That(GameObject.Find("L4_ZonePad_spot-the-phish"), Is.Not.Null);
             Assert.That(GameObject.Find("L4_ZonePad_bypass-mfa"), Is.Not.Null);
             Assert.That(GameObject.Find("L4_ZonePad_escalate-privileges"), Is.Not.Null);
-            Assert.That(GameObject.Find("L4_ZonePad_extract-data"), Is.Not.Null);
-            Assert.That(GameObject.Find("L4_ZonePad_cover-tracks"), Is.Not.Null);
+            Assert.That(GameObject.Find("L4_ZonePad_network-attack"), Is.Not.Null);
 
             Type meterType = FindType("Cyverse.Level.Level4ExfiltrationMeter");
             Component meter = UnityEngine.Object.FindObjectOfType(meterType) as Component;

@@ -121,7 +121,7 @@ namespace Cyverse.Interaction
                     if (label != null) label.text = $"[{i + 1}]  {scenario.options[i]}";
                 }
             }
-            feedbackText.text = "Choose the simulated action that stays inside the rules of engagement.";
+            feedbackText.text = scenario.hint;
             feedbackText.color = new Color(0.72f, 0.86f, 0.92f);
             RefreshMeter();
             UiMotion.PanelIn(panel, null, 0.985f);
@@ -208,6 +208,14 @@ namespace Cyverse.Interaction
             ArcadeRound launched;
             switch (Kind)
             {
+                case Level4CyberAttackContent.StationKind.SpotThePhish:
+                    if (panel != null) panel.SetActive(false);
+                    launched = ArcadeRound.Launch<SpotPhishRound>(OnRoundDone);
+                    break;
+                case Level4CyberAttackContent.StationKind.NetworkAttack:
+                    if (panel != null) panel.SetActive(false);
+                    launched = ArcadeRound.Launch<NetworkAttackRound>(OnRoundDone);
+                    break;
                 case Level4CyberAttackContent.StationKind.BypassMfa:
                     if (panel != null) panel.SetActive(false);
                     launched = ArcadeRound.Launch<MailRunRound>(OnRoundDone);
