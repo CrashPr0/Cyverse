@@ -34,6 +34,16 @@ namespace Cyverse.Level
                 stations[i].Configure(manager, i, scenarios[scenarioIndex].kind);
             }
 
+            // From the spawn the floating SECURITY BRIEFING sign sat across the
+            // GAME ROOM marquee behind it. The marker and the next-step line
+            // already point at the briefing here.
+            VideoStation briefingScreen = Object.FindObjectOfType<VideoStation>();
+            if (briefingScreen != null)
+            {
+                Transform briefingSign = briefingScreen.transform.Find("Sign_SECURITY_BRIEFING");
+                if (briefingSign != null) briefingSign.gameObject.SetActive(false);
+            }
+
             HubDoor.EnsureReachableExit(2f, new Color(0.90f, 0.66f, 0.14f));
             return new Bindings
             {

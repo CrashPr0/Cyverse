@@ -115,6 +115,8 @@ namespace Cyverse.UI
             rt.anchorMin = new Vector2(1f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(1f, 1f);
+            // Starts under the score and drifts down and away. It used to
+            // rise through the score digits.
             rt.anchoredPosition = new Vector2(-30, -66);
             rt.sizeDelta = new Vector2(200, 40);
             StartCoroutine(ScorePopupRoutine(t));
@@ -129,7 +131,7 @@ namespace Cyverse.UI
             {
                 e += Time.unscaledDeltaTime;
                 float p = e / duration;
-                t.rectTransform.anchoredPosition = start + Vector2.up * (46f * UiMotion.OutCubic(p));
+                t.rectTransform.anchoredPosition = start + Vector2.down * (30f * UiMotion.OutCubic(p));
                 var c = t.color;
                 c.a = 1f - p * p;
                 t.color = c;
@@ -272,7 +274,11 @@ namespace Cyverse.UI
             interactActive = active;
             if (active)
             {
-                if (!string.IsNullOrEmpty(action)) interactLabel.text = action;
+                if (!string.IsNullOrEmpty(action) && interactLabel.text != action)
+                {
+                    interactLabel.text = action;
+                    SizeInteractPlate();
+                }
                 if (!string.IsNullOrEmpty(key)) badgeLetter.text = key;
             }
         }
@@ -387,6 +393,7 @@ namespace Cyverse.UI
             rt.sizeDelta = new Vector2(960f, 40f);
             rt.sizeDelta = new Vector2(960f,
                 Mathf.Clamp(t.preferredHeight + 8f, 40f, 86f));
+            AddToastPlate(t);
             activeToasts.Add(t);
             CompactToastRows();
             // Rise into its row from just below: never across the objective.
@@ -413,9 +420,34 @@ namespace Cyverse.UI
             }
         }
 
+        private const string ToastPlateName = "Plate";
+        private const float ToastPlateAlpha = 0.66f;
+
+        /// <summary>A dark plate behind a toast so it reads over bright rooms.
+        /// It is a child of the text, so it moves and dies with it; its own
+        /// canvas sorts it behind the HUD text instead of on top.</summary>
+        private void AddToastPlate(Text toast)
+        {
+            var plate = new GameObject(ToastPlateName, typeof(RectTransform), typeof(Image), typeof(Canvas));
+            plate.transform.SetParent(toast.transform, false);
+            var rt = plate.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+            float width = Mathf.Min(toast.preferredWidth, toast.rectTransform.sizeDelta.x) + 44f;
+            rt.sizeDelta = new Vector2(width, toast.rectTransform.sizeDelta.y + 6f);
+            rt.anchoredPosition = Vector2.zero;
+            var image = plate.GetComponent<Image>();
+            image.color = new Color(0.03f, 0.05f, 0.08f, ToastPlateAlpha);
+            image.raycastTarget = false;
+            var canvas = plate.GetComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = Canvas.sortingOrder - 1;
+        }
+
         private IEnumerator ToastRoutine(Text t, Color baseColor)
         {
             const float hold = 1.7f, fade = 0.4f;
+            Transform plateT = t != null ? t.transform.Find(ToastPlateName) : null;
+            Image plate = plateT != null ? plateT.GetComponent<Image>() : null;
             UiMotion.FadeIn(t, UiMotion.Base);
             yield return new WaitForSecondsRealtime(hold);
             float e = 0f;
@@ -423,8 +455,15 @@ namespace Cyverse.UI
             {
                 e += Time.unscaledDeltaTime;
                 var c = baseColor;
-                c.a = baseColor.a * (1f - UiMotion.InOutCubic(Mathf.Clamp01(e / fade)));
+                float left = 1f - UiMotion.InOutCubic(Mathf.Clamp01(e / fade));
+                c.a = baseColor.a * left;
                 t.color = c;
+                if (plate != null)
+                {
+                    Color pc = plate.color;
+                    pc.a = ToastPlateAlpha * left;
+                    plate.color = pc;
+                }
                 yield return null;
             }
             activeToasts.Remove(t);
@@ -685,6 +724,18 @@ namespace Cyverse.UI
             interactGroup.alpha = 0f;
             container.SetActive(false);
 
+            // A dark plate behind the badge and label, sized to the label
+            // each time it changes (see SizeInteractPlate).
+            var promptPlate = new GameObject("PromptPlate", typeof(RectTransform), typeof(Image));
+            promptPlate.transform.SetParent(container.transform, false);
+            interactPlate = promptPlate.GetComponent<RectTransform>();
+            interactPlate.anchorMin = interactPlate.anchorMax = new Vector2(0.5f, 0.5f);
+            interactPlate.pivot = new Vector2(0f, 0.5f);
+            interactPlate.anchoredPosition = new Vector2(-192f, 0f);
+            var promptPlateImage = promptPlate.GetComponent<Image>();
+            promptPlateImage.color = new Color(0.03f, 0.05f, 0.08f, 0.6f);
+            promptPlateImage.raycastTarget = false;
+
             // Key badge (the "large E").
             var badge = new GameObject("KeyBadge", typeof(RectTransform), typeof(Image));
             badge.transform.SetParent(container.transform, false);
@@ -717,6 +768,17 @@ namespace Cyverse.UI
             // "Place SECURITY TOKEN — TOKEN SLOT".
             ilrt.sizeDelta = new Vector2(600, 58);
             interactLabel.text = "Interact";
+            SizeInteractPlate();
+        }
+
+        private RectTransform interactPlate;
+
+        private void SizeInteractPlate()
+        {
+            if (interactPlate == null || interactLabel == null) return;
+            // Badge (from -179) + gap + label + padding.
+            float label = Mathf.Min(interactLabel.preferredWidth, 600f);
+            interactPlate.sizeDelta = new Vector2(82f + label + 22f, 72f);
         }
 
         private void BuildCrosshair()
