@@ -1015,7 +1015,7 @@ namespace Cyverse.Level
             BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", p, new Vector3(0f, 1.52f, 0.565f), Vector3.zero,
                 new Vector3(0.72f, 0.66f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, Teal, 0.55f)), false);
             BlockKit.Slab("Topper", p, new Vector3(0f, 2.08f, 0.66f), new Vector3(0.82f, 0.26f, 0.16f), 0.02f, CabinetBody);
-            Marquee(p, new Vector3(0f, 2.08f, 0.57f), new Vector2(0.74f, 0.18f), "ROOT ACCESS", Magenta, 1.05f);
+            Marquee(p, new Vector3(0f, 2.08f, 0.57f), new Vector2(0.74f, 0.18f), "NET ATTACK", Magenta, 1.05f);
 
             // High-score board on a stand beside the table.
             var board = new GameObject("HighScoreBoard").transform;

@@ -72,10 +72,10 @@ namespace Cyverse.Tests
             }
 
             Assert.That(kinds, Has.Count.EqualTo(4));
-            Assert.That(GetStationTitle(stations, 0), Does.Contain("BYPASS MFA"));
-            Assert.That(GetStationTitle(stations, 1), Does.Contain("ESCALATE PRIVILEGES"));
-            Assert.That(GetStationTitle(stations, 2), Does.Contain("EXTRACT DATA"));
-            Assert.That(GetStationTitle(stations, 3), Does.Contain("COVER TRACKS"));
+            Assert.That(GetStationTitle(stations, 0), Does.Contain("SPOT THE PHISH"));
+            Assert.That(GetStationTitle(stations, 1), Does.Contain("BYPASS MFA"));
+            Assert.That(GetStationTitle(stations, 2), Does.Contain("ESCALATE PRIVILEGES"));
+            Assert.That(GetStationTitle(stations, 3), Does.Contain("NETWORK ATTACK"));
         }
 
         [UnityTest]

@@ -141,7 +141,7 @@ namespace Cyverse.UI
             var officeEdge = office.gameObject.AddComponent<Outline>();
             officeEdge.effectColor = new Color(0.62f, 0.72f, 0.82f, 0.35f);
             officeEdge.effectDistance = new Vector2(1.5f, 1.5f);
-            TMP_Text officeLabel = Label(office, "Label", "OFFICE NETWORK", 13f, Dim, TextAlignmentOptions.TopLeft);
+            TMP_Text officeLabel = Label(office, "Label", "OFFICE NETWORK", 15f, new Color(0.66f, 0.74f, 0.82f), TextAlignmentOptions.TopLeft);
             officeLabel.rectTransform.offsetMin = new Vector2(10f, 0f);
             officeLabel.rectTransform.offsetMax = new Vector2(0f, -6f);
             officeLabel.characterSpacing = 3f;
@@ -150,7 +150,7 @@ namespace Cyverse.UI
             Color wire = new Color(0.55f, 0.66f, 0.78f, 0.7f);
             Box(field, "Link_DevicesRouter", wire, new Vector2(-190f, -62f), new Vector2(68f, 4f));
             Box(field, "Link_RouterCloud", wire, new Vector2(150f, -62f), new Vector2(148f, 4f));
-            TMP_Text internet = Label(field, "Internet", "INTERNET", 13f, Dim);
+            TMP_Text internet = Label(field, "Internet", "INTERNET", 15f, new Color(0.66f, 0.74f, 0.82f));
             Place(internet.rectTransform, new Vector2(150f, -42f), new Vector2(140f, 22f));
             internet.characterSpacing = 3f;
 
@@ -201,7 +201,7 @@ namespace Cyverse.UI
             Place(title.rectTransform, new Vector2(0f, -38f), new Vector2(NodeSize.x - 16f, 24f));
             title.characterSpacing = 2f;
             title.enableWordWrapping = false;
-            TMP_Text sub = Label(node, "Sub", subtitle, 13f, Dim);
+            TMP_Text sub = Label(node, "Sub", subtitle, 15f, new Color(0.66f, 0.74f, 0.82f));
             Place(sub.rectTransform, new Vector2(0f, -62f), new Vector2(NodeSize.x - 16f, 22f));
 
             nodes[i] = node;
@@ -291,8 +291,6 @@ namespace Cyverse.UI
             if (Phase != State.Playing || step != Step.Ask || target < 0 || target > 2) return;
             picked = target;
             bool right = target == (int)Attacks[index].target;
-            results[index] = right;
-            if (right) correct++;
             if (!right)
             {
                 UiMotion.Shake(nodes[target], 7f);
@@ -311,6 +309,8 @@ namespace Cyverse.UI
             Attack a = Attacks[index];
             int hit = (int)a.target;
             bool right = picked == hit;
+            results[index] = right;
+            if (right) correct++;
             packet.gameObject.SetActive(false);
             step = Step.Reveal;
             stepTime = 0f;
@@ -343,6 +343,8 @@ namespace Cyverse.UI
         private void End()
         {
             if (Phase != State.Playing) return;
+            Flash(string.Empty, 0.01f);
+            explainText.text = string.Empty;
             int tickets = correct * TicketsPerCorrect + (correct == Attacks.Length ? PerfectBonus : 0);
             bool won = correct >= CorrectToWin;
             Finish(won, tickets, won ? "NETWORK MAPPED" : "KEEP PRACTICING",
@@ -378,7 +380,7 @@ namespace Cyverse.UI
         private void RefreshStatus()
         {
             var dots = new System.Text.StringBuilder();
-            int answered = index + (step == Step.Ask ? 0 : 1);
+            int answered = index + (step == Step.Reveal ? 1 : 0);
             for (int i = 0; i < Attacks.Length; i++)
                 dots.Append(i >= answered ? "<color=#3A4654>●</color> "
                     : results[i] ? "<color=#4CE087>●</color> " : "<color=#FF6A60>●</color> ");

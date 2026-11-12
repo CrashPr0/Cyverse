@@ -192,7 +192,7 @@ namespace Cyverse.UI
             scamButton = MakeCall(column, "Scam", "<b>[1]  SCAM</b>", new Color(0.74f, 0.20f, 0.17f, 1f), new Vector2(0f, 128f), () => Answer(true));
             legitButton = MakeCall(column, "Legit", "<b>[2]  LEGIT</b>", new Color(0.13f, 0.55f, 0.31f, 1f), new Vector2(0f, 52f), () => Answer(false));
 
-            columnText = Label(column, "Clues", string.Empty, 15f, Ink, TextAlignmentOptions.TopLeft);
+            columnText = Label(column, "Clues", string.Empty, 16f, Ink, TextAlignmentOptions.TopLeft);
             Place(columnText.rectTransform, new Vector2(0f, -110f), new Vector2(284f, 226f));
             columnText.lineSpacing = 4f;
 
@@ -278,6 +278,7 @@ namespace Cyverse.UI
         private void End()
         {
             if (Phase != State.Playing) return;
+            Flash(string.Empty, 0.01f);
             int tickets = correct * TicketsPerCorrect + (correct == Messages.Length ? PerfectBonus : 0);
             bool won = correct >= CorrectToWin;
             Finish(won, tickets, won ? "SHARP EYES" : "KEEP PRACTICING",
