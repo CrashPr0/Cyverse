@@ -37,6 +37,14 @@ namespace Cyverse.Interaction
         // a finished machine is reopened for review.
         private bool lessonOpen;
         private bool fromPlayer;
+        // The arcade round a person plays after a correct pick, if this
+        // machine has one. The choice panel hides while it runs and comes
+        // back as the lesson card when it ends.
+        private ArcadeRound round;
+        private int roundEndedFrame = -1;
+
+        /// <summary>An arcade round is on screen for this machine.</summary>
+        public bool RoundPlaying => round != null;
 
         /// <summary>The lesson card is on screen.</summary>
         public bool LessonOpen => open && lessonOpen;
@@ -124,6 +132,9 @@ namespace Cyverse.Interaction
         {
             if (!screenLive && manager != null && manager.ScenarioStarted) RefreshWorldLabel();
             if (!open || Time.frameCount == openedFrame) return;
+            // The round reads its own keys; the key that ended it must not
+            // also dismiss the lesson card it hands back to.
+            if (round != null || Time.frameCount == roundEndedFrame) return;
             if (lessonOpen)
             {
                 if (GameInput.CancelDown || Input.GetKeyDown(KeyCode.Return) ||
@@ -152,7 +163,7 @@ namespace Cyverse.Interaction
 
         public bool TryApply(GameplayAction action, GameObject actor)
         {
-            if (!open) return false;
+            if (!open || round != null) return false;
             if (action.Kind == GameplayActionKind.Cancel)
             {
                 Close();
@@ -179,14 +190,50 @@ namespace Cyverse.Interaction
             bool resolved = manager.TryResolve(this, optionIndex);
             if (resolved)
             {
-                if (fromPlayer) ShowLesson(review: false);
-                else Close();
+                // Automated routes skip both the round and the lesson card.
+                if (!fromPlayer) Close();
+                else if (!StartRound()) ShowLesson(review: false);
                 return;
             }
 
             feedbackText.text = manager.LastFeedback;
             feedbackText.color = new Color(1f, 0.48f, 0.34f);
             RefreshMeter();
+        }
+
+        /// <summary>Launches this machine's arcade round, if it has one.</summary>
+        private bool StartRound()
+        {
+            if (!ArcadeRoundsEnabled) return false;
+            ArcadeRound launched;
+            switch (Kind)
+            {
+                case Level4CyberAttackContent.StationKind.EscalatePrivileges:
+                    if (panel != null) panel.SetActive(false);
+                    launched = ArcadeRound.Launch<ClawDropRound>(OnRoundDone);
+                    break;
+                default:
+                    return false;
+            }
+            // Launch hands straight back when there is nothing to draw on.
+            if (launched != null) round = launched;
+            return true;
+        }
+
+        /// <summary>Off switch for the arcade rounds (tests that only check
+        /// the lesson flow can turn them off).</summary>
+        public static bool ArcadeRoundsEnabled = true;
+
+        private void OnRoundDone(ArcadeRound finished)
+        {
+            round = null;
+            roundEndedFrame = Time.frameCount;
+            if (!open || panel == null) return;
+            panel.SetActive(true);
+            ShowLesson(review: false);
+            if (finished != null && !finished.Skipped && finished.Tickets > 0)
+                feedbackText.text += $"\n\n<color=#FFC838><b>+{finished.Tickets} PRIZE TICKETS</b></color>";
+            UiMotion.PanelIn(panel, null, 0.985f);
         }
 
         /// <summary>Reopens a finished machine on its lesson card.</summary>
@@ -263,6 +310,7 @@ namespace Cyverse.Interaction
         private void Close()
         {
             if (!open) return;
+            if (round != null) { round.Abort(); round = null; }
             open = false;
             lessonOpen = false;
             if (panel != null) panel.SetActive(false);
@@ -421,6 +469,7 @@ namespace Cyverse.Interaction
 
         private void OnDestroy()
         {
+            if (round != null) round.Abort();
             modal?.Close();
         }
 
