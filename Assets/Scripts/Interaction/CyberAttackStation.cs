@@ -208,6 +208,10 @@ namespace Cyverse.Interaction
             ArcadeRound launched;
             switch (Kind)
             {
+                case Level4CyberAttackContent.StationKind.BypassMfa:
+                    if (panel != null) panel.SetActive(false);
+                    launched = ArcadeRound.Launch<MailRunRound>(OnRoundDone);
+                    break;
                 case Level4CyberAttackContent.StationKind.EscalatePrivileges:
                     if (panel != null) panel.SetActive(false);
                     launched = ArcadeRound.Launch<ClawDropRound>(OnRoundDone);
