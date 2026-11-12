@@ -65,34 +65,35 @@ namespace Cyverse.Level
             }
         }
 
+        // In play order (StationSpec i labels CyberAttackStation_{i+1}).
         private static readonly StationSpec[] Stations =
         {
             new StationSpec(
+                "spot-the-phish",
+                "01  SPOT THE PHISH",
+                "SCAM OR LEGIT?  ·  SOCIAL ENGINEERING",
+                new[] { "SpotThePhish", "Spot the Phish", "Social", "Scam" },
+                new Vector3(-10.5f, 0f, 14f),
+                AttackRose),
+            new StationSpec(
                 "bypass-mfa",
-                "01  PHISH FRENZY",
+                "02  PHISH FRENZY",
                 "ARCADE  ·  BYPASS MFA",
                 new[] { "BypassMfa", "Bypass MFA", "InitialAccess", "Initial", "Phishing" },
                 new Vector3(-10.5f, 0f, 8f),
                 AttackCyan),
             new StationSpec(
                 "escalate-privileges",
-                "02  ACCESS GRABBER",
+                "03  ACCESS GRABBER",
                 "CLAW MACHINE  ·  ESCALATE PRIVILEGES",
                 new[] { "EscalatePrivileges", "Escalate Privileges", "Lateral", "Privilege", "Escalation" },
                 new Vector3(10.5f, 0f, 8f),
                 AttackAmber),
             new StationSpec(
-                "extract-data",
-                "03  DATA VENDING",
-                "VENDING  ·  EXTRACT DATA",
-                new[] { "ExtractData", "Extract Data", "Exfil", "Exfiltration", "Data" },
-                new Vector3(-10.5f, 0f, 14f),
-                AttackRose),
-            new StationSpec(
-                "cover-tracks",
-                "04  HIGH SCORE LOG",
-                "PINBALL  ·  COVER TRACKS",
-                new[] { "CoverTracks", "Cover Tracks", "Persistence", "Tracks", "Audit" },
+                "network-attack",
+                "04  NETWORK ATTACK",
+                "PINBALL  ·  WHERE ATTACKS LAND",
+                new[] { "NetworkAttack", "Network Attack", "Network", "Router" },
                 new Vector3(10.5f, 0f, 14f),
                 new Color(1.00f, 0.55f, 0.18f)),
         };
@@ -220,8 +221,10 @@ namespace Cyverse.Level
                 bool duplicateRoute =
                     (text.IndexOf("BYPASS MFA", StringComparison.OrdinalIgnoreCase) >= 0 &&
                      text.IndexOf("ESCALATE PRIVILEGES", StringComparison.OrdinalIgnoreCase) >= 0) ||
-                    (text.IndexOf("EXTRACT DATA", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                     text.IndexOf("COVER TRACKS", StringComparison.OrdinalIgnoreCase) >= 0);
+                    (text.IndexOf("SPOT THE PHISH", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                     text.IndexOf("BYPASS MFA", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                    (text.IndexOf("ESCALATE PRIVILEGES", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                     text.IndexOf("NETWORK ATTACK", StringComparison.OrdinalIgnoreCase) >= 0);
                 if (duplicateWorkflow || duplicateRules || duplicateRoute)
                     label.gameObject.SetActive(false);
             }

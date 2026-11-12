@@ -207,7 +207,7 @@ namespace Cyverse.Tests
 
             PropertyInfo stationIndexProperty = stationType.GetProperty("StationIndex");
             PropertyInfo stationKindProperty = stationType.GetProperty("Kind");
-            string[] expectedKinds = { "BypassMfa", "EscalatePrivileges", "ExtractData", "CoverTracks" };
+            string[] expectedKinds = { "SpotThePhish", "BypassMfa", "EscalatePrivileges", "NetworkAttack" };
             foreach (Object station in stations)
             {
                 Component stationComponent = (Component)station;
@@ -230,7 +230,7 @@ namespace Cyverse.Tests
             // the end starts the timer and unlocks the first station.
             Assert.That(GameplayActionTestDriver.Scrub(briefing, float.MaxValue), Is.True);
             yield return null;
-            Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(), Is.EqualTo("BypassMfa"));
+            Assert.That(managerType.GetProperty("CurrentPhase").GetValue(manager).ToString(), Is.EqualTo("SpotThePhish"));
 
             // Open the first choice screen and assert every control stays
             // inside the modal. This catches inverted top anchors, which once

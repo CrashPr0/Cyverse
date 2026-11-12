@@ -114,13 +114,8 @@ namespace Cyverse.Level
             }
 
             int stage = Mathf.Clamp(manager.CurrentStationIndex + 1, 1, 4);
-            string stageName = manager.CurrentPhase == Level4CyberAttackManager.Phase.EscalatePrivileges
-                ? "ESCALATE PRIVILEGES"
-                : manager.CurrentPhase == Level4CyberAttackManager.Phase.ExtractData
-                    ? "EXTRACT DATA"
-                    : manager.CurrentPhase == Level4CyberAttackManager.Phase.CoverTracks
-                        ? "COVER TRACKS"
-                        : "BYPASS MFA";
+            string stageName = Level4CyberAttackContent.DisplayName(
+                Level4CyberAttackContent.PlayOrder[stage - 1]).ToUpperInvariant();
             string timer = manager.TimerSuffix("  ·  ");
             SetStatus("STAGE " + stage + " / 4  ·  " + stageName + timer);
         }

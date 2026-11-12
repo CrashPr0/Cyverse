@@ -584,7 +584,7 @@ namespace Cyverse.Level
             {
                 case Level4CyberAttackContent.StationKind.BypassMfa: return BuildArcadeRow(station);
                 case Level4CyberAttackContent.StationKind.EscalatePrivileges: return BuildClawMachine(station);
-                case Level4CyberAttackContent.StationKind.ExtractData: return BuildVendingWall(station);
+                case Level4CyberAttackContent.StationKind.SpotThePhish: return BuildVendingWall(station);
                 default: return BuildPinball(station);
             }
         }

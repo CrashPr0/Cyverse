@@ -11,9 +11,10 @@ using Object = UnityEngine.Object;
 namespace Cyverse.Tests
 {
     /// <summary>
-    /// The arcade round on ACCESS GRABBER (Level 4, station 2): a person's
-    /// correct pick launches the claw round, every way out of it (win, loss,
-    /// Esc) lands on the lesson card, and automated routes never see it.
+    /// The arcade rounds on Level 4's machines (SPOT THE PHISH, PHISH FRENZY,
+    /// ACCESS GRABBER, NETWORK ATTACK): a person's correct pick launches the
+    /// machine's round, every way out of it (win, loss, Esc) lands on the
+    /// lesson card, and automated routes never see it.
     /// The capture test writes screenshots when
     /// CYVERSE_LEVEL4_VISUAL_CAPTURE=1 (output: CYVERSE_LEVEL4_VISUAL_OUTPUT).
     /// </summary>
@@ -51,8 +52,8 @@ namespace Cyverse.Tests
         [UnityTest]
         public IEnumerator PlayerPick_LaunchesClawRound_AndWinLandsOnLesson()
         {
-            yield return LoadAndReachStationTwo();
-            Component station = Station(1);
+            yield return LoadAndReach("EscalatePrivileges");
+            Component station = StationOf("EscalatePrivileges");
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
             yield return null;
             PlayerChooseCorrect(station);
@@ -62,7 +63,7 @@ namespace Cyverse.Tests
             Assert.That(round.GetType().Name, Is.EqualTo("ClawDropRound"));
             Assert.That((bool)StationType.GetProperty("RoundPlaying").GetValue(station), Is.True);
             Assert.That(ChoicePanel(station).activeSelf, Is.False, "The choice panel hides while the round runs.");
-            Assert.That(CurrentStationIndex(), Is.EqualTo(2), "The pick itself already counts; the round is a bonus.");
+            Assert.That(CurrentStationIndex(), Is.EqualTo(3), "The pick itself already counts; the round is a bonus.");
 
             round.GetType().GetMethod("CompleteForTest").Invoke(round, new object[] { true });
             yield return null;
@@ -81,8 +82,8 @@ namespace Cyverse.Tests
         [UnityTest]
         public IEnumerator EscFromRound_SkipsToLessonWithoutTickets()
         {
-            yield return LoadAndReachStationTwo();
-            Component station = Station(1);
+            yield return LoadAndReach("EscalatePrivileges");
+            Component station = StationOf("EscalatePrivileges");
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
             yield return null;
             PlayerChooseCorrect(station);
@@ -106,20 +107,20 @@ namespace Cyverse.Tests
         [UnityTest]
         public IEnumerator AutomatedChoice_NeverStartsARound()
         {
-            yield return LoadAndReachStationTwo();
-            Component station = Station(1);
+            yield return LoadAndReach("EscalatePrivileges");
+            Component station = StationOf("EscalatePrivileges");
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
             Assert.That(GameplayActionTestDriver.Choose(station, CorrectOption(station)), Is.True);
             yield return null;
             Assert.That(ActiveRound(), Is.Null, "Automated routes (tests, replay) skip the round.");
-            Assert.That(CurrentStationIndex(), Is.EqualTo(2));
+            Assert.That(CurrentStationIndex(), Is.EqualTo(3));
         }
 
         [UnityTest]
         public IEnumerator ClawGrabsGoldCard_WhenDroppedOverIt()
         {
-            yield return LoadAndReachStationTwo();
-            Component station = Station(1);
+            yield return LoadAndReach("EscalatePrivileges");
+            Component station = StationOf("EscalatePrivileges");
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
             yield return null;
             PlayerChooseCorrect(station);
@@ -155,7 +156,7 @@ namespace Cyverse.Tests
             if (Environment.GetEnvironmentVariable("CYVERSE_LEVEL4_VISUAL_CAPTURE") != "1")
                 yield break;
 
-            yield return LoadAndReachStationTwo();
+            yield return LoadAndReach("EscalatePrivileges");
             string output = Environment.GetEnvironmentVariable("CYVERSE_LEVEL4_VISUAL_OUTPUT");
             if (string.IsNullOrWhiteSpace(output))
                 output = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Build", "VisualQA", "level4-captures");
@@ -163,7 +164,7 @@ namespace Cyverse.Tests
 
             Camera camera = Camera.main;
             Assert.That(camera, Is.Not.Null);
-            Component station = Station(1);
+            Component station = StationOf("EscalatePrivileges");
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
             for (int i = 0; i < 20; i++) yield return null;
             ToCameraCanvases(camera);
@@ -212,8 +213,8 @@ namespace Cyverse.Tests
         [UnityTest]
         public IEnumerator MailRun_PlayerPickOnPhishFrenzy_LaunchesAndWinLandsOnLesson()
         {
-            yield return LoadAndReachStationOne();
-            Component station = Station(0);
+            yield return LoadAndReach("BypassMfa");
+            Component station = StationOf("BypassMfa");
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
             yield return null;
             PlayerChooseCorrect(station);
@@ -221,7 +222,7 @@ namespace Cyverse.Tests
             Assert.That(round, Is.Not.Null, "A person's correct pick on PHISH FRENZY should start Mail Run.");
             Assert.That(round.GetType().Name, Is.EqualTo("MailRunRound"));
             Assert.That(ChoicePanel(station).activeSelf, Is.False);
-            Assert.That(CurrentStationIndex(), Is.EqualTo(1));
+            Assert.That(CurrentStationIndex(), Is.EqualTo(2));
 
             round.GetType().GetMethod("CompleteForTest").Invoke(round, new object[] { true });
             yield return null;
@@ -234,8 +235,8 @@ namespace Cyverse.Tests
         [UnityTest]
         public IEnumerator MailRun_SendUnderTestMailbox_Lands_AndFiveHitsPlayThePhone()
         {
-            yield return LoadAndReachStationOne();
-            Component station = Station(0);
+            yield return LoadAndReach("BypassMfa");
+            Component station = StationOf("BypassMfa");
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
             yield return null;
             PlayerChooseCorrect(station);
@@ -280,13 +281,13 @@ namespace Cyverse.Tests
             if (Environment.GetEnvironmentVariable("CYVERSE_LEVEL4_VISUAL_CAPTURE") != "1")
                 yield break;
 
-            yield return LoadAndReachStationOne();
+            yield return LoadAndReach("BypassMfa");
             string output = Environment.GetEnvironmentVariable("CYVERSE_LEVEL4_VISUAL_OUTPUT");
             if (string.IsNullOrWhiteSpace(output))
                 output = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Build", "VisualQA", "level4-captures");
             Directory.CreateDirectory(output);
             Camera camera = Camera.main;
-            Component station = Station(0);
+            Component station = StationOf("BypassMfa");
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
             yield return null;
             PlayerChooseCorrect(station);
@@ -338,12 +339,258 @@ namespace Cyverse.Tests
             Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-mail-lesson.png"));
         }
 
+        // ---- SPOT THE PHISH -------------------------------------------------------------
+
+        [UnityTest]
+        public IEnumerator SpotPhish_IsFirst_AndAllRightCallsWinWithTickets()
+        {
+            yield return LoadAndReach("SpotThePhish");
+            Component station = StationOf("SpotThePhish");
+            Assert.That((int)StationType.GetProperty("StationIndex").GetValue(station), Is.EqualTo(0),
+                "The scam-or-legit machine leads the level.");
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            PlayerChooseCorrect(station);
+            Component round = ActiveRound();
+            Assert.That(round, Is.Not.Null);
+            Assert.That(round.GetType().Name, Is.EqualTo("SpotPhishRound"));
+            Assert.That(CurrentStationIndex(), Is.EqualTo(1));
+            Type type = round.GetType();
+
+            // The first two messages are the fake job post and the hijacked friend.
+            Array messages = (Array)type.GetField("Messages").GetValue(null);
+            string first = (string)messages.GetValue(0).GetType().GetField("app").GetValue(messages.GetValue(0));
+            string second = (string)messages.GetValue(1).GetType().GetField("body").GetValue(messages.GetValue(1));
+            StringAssert.Contains("JOB", first);
+            StringAssert.Contains("code", second);
+
+            type.GetMethod("StartForTest").Invoke(round, null);
+            int count = messages.Length;
+            for (int i = 0; i < count; i++)
+            {
+                Assert.That((int)type.GetProperty("Index").GetValue(round), Is.EqualTo(i));
+                bool scam = (bool)type.GetProperty("CurrentIsScam").GetValue(round);
+                type.GetMethod("AnswerForTest").Invoke(round, new object[] { scam });
+                Assert.That((bool)type.GetProperty("Revealing").GetValue(round), Is.True);
+                yield return null;
+                type.GetMethod("NextForTest").Invoke(round, null);
+                yield return null;
+            }
+            Assert.That(type.GetProperty("Phase").GetValue(round).ToString(), Is.EqualTo("Result"));
+            Assert.That((bool)type.GetProperty("Won").GetValue(round), Is.True);
+            Assert.That((int)type.GetProperty("Correct").GetValue(round), Is.EqualTo(count));
+            Assert.That((int)type.GetProperty("Tickets").GetValue(round), Is.EqualTo(count * 4 + 10));
+            type.GetMethod("CompleteForTest").Invoke(round, new object[] { true });
+            yield return null;
+            Assert.That((bool)StationType.GetProperty("LessonOpen").GetValue(station), Is.True);
+            Assert.That(GameplayActionTestDriver.Cancel(station), Is.True);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator SpotPhish_WrongCallsLose_ButStillLandOnLesson()
+        {
+            yield return LoadAndReach("SpotThePhish");
+            Component station = StationOf("SpotThePhish");
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            PlayerChooseCorrect(station);
+            Component round = ActiveRound();
+            Type type = round.GetType();
+            type.GetMethod("StartForTest").Invoke(round, null);
+            int count = ((Array)type.GetField("Messages").GetValue(null)).Length;
+            for (int i = 0; i < count; i++)
+            {
+                bool scam = (bool)type.GetProperty("CurrentIsScam").GetValue(round);
+                type.GetMethod("AnswerForTest").Invoke(round, new object[] { !scam });
+                type.GetMethod("NextForTest").Invoke(round, null);
+            }
+            Assert.That((bool)type.GetProperty("Won").GetValue(round), Is.False);
+            Assert.That((int)type.GetProperty("Correct").GetValue(round), Is.EqualTo(0));
+            type.GetMethod("CompleteForTest").Invoke(round, new object[] { false });
+            yield return null;
+            Assert.That((bool)StationType.GetProperty("LessonOpen").GetValue(station), Is.True);
+        }
+
+        // ---- NETWORK ATTACK -----------------------------------------------------------
+
+        [UnityTest]
+        public IEnumerator NetworkAttack_IsLast_AndPlacingEveryAttackWins()
+        {
+            yield return LoadAndReach("NetworkAttack");
+            Component station = StationOf("NetworkAttack");
+            Assert.That((int)StationType.GetProperty("StationIndex").GetValue(station), Is.EqualTo(3));
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            PlayerChooseCorrect(station);
+            Component round = ActiveRound();
+            Assert.That(round, Is.Not.Null);
+            Assert.That(round.GetType().Name, Is.EqualTo("NetworkAttackRound"));
+            Type type = round.GetType();
+
+            // Only the three attack points.
+            Array attacks = (Array)type.GetField("Attacks").GetValue(null);
+            var seen = new System.Collections.Generic.HashSet<string>();
+            foreach (object attack in attacks)
+                seen.Add(attack.GetType().GetField("target").GetValue(attack).ToString());
+            Assert.That(seen, Is.EquivalentTo(new[] { "Endpoint", "Router", "Cloud" }));
+
+            type.GetMethod("StartForTest").Invoke(round, null);
+            for (int i = 0; i < attacks.Length; i++)
+            {
+                int target = (int)type.GetProperty("CurrentTarget").GetValue(round);
+                type.GetMethod("PickForTest").Invoke(round, new object[] { target });
+                float waited = 0f;
+                while (waited < 3f && !(bool)type.GetProperty("Revealing").GetValue(round))
+                {
+                    waited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                Assert.That((bool)type.GetProperty("Revealing").GetValue(round), Is.True,
+                    "The attack should fly to its target and show the defense.");
+                type.GetMethod("NextForTest").Invoke(round, null);
+                yield return null;
+            }
+            Assert.That(type.GetProperty("Phase").GetValue(round).ToString(), Is.EqualTo("Result"));
+            Assert.That((bool)type.GetProperty("Won").GetValue(round), Is.True);
+            Assert.That((int)type.GetProperty("Tickets").GetValue(round), Is.EqualTo(attacks.Length * 4 + 12));
+            type.GetMethod("CompleteForTest").Invoke(round, new object[] { true });
+            yield return null;
+            Assert.That((bool)StationType.GetProperty("LessonOpen").GetValue(station), Is.True);
+            // The last machine finishes the level once the lesson closes.
+            Assert.That(GameplayActionTestDriver.Cancel(station), Is.True);
+            float wait = 0f;
+            object manager = Manager();
+            while (wait < 3f && manager.GetType().GetProperty("CurrentPhase").GetValue(manager).ToString() != "Complete")
+            {
+                wait += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Assert.That(manager.GetType().GetProperty("CurrentPhase").GetValue(manager).ToString(), Is.EqualTo("Complete"));
+        }
+
+        [UnityTest]
+        public IEnumerator NetworkAttack_WrongPickCountsAsMiss()
+        {
+            yield return LoadAndReach("NetworkAttack");
+            Component station = StationOf("NetworkAttack");
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            PlayerChooseCorrect(station);
+            Component round = ActiveRound();
+            Type type = round.GetType();
+            type.GetMethod("StartForTest").Invoke(round, null);
+            int target = (int)type.GetProperty("CurrentTarget").GetValue(round);
+            type.GetMethod("PickForTest").Invoke(round, new object[] { (target + 1) % 3 });
+            type.GetMethod("LandForTest").Invoke(round, null);
+            Assert.That((bool)type.GetProperty("Revealing").GetValue(round), Is.True);
+            Assert.That((int)type.GetProperty("Correct").GetValue(round), Is.EqualTo(0));
+            type.GetMethod("SkipForTest").Invoke(round, null);
+            yield return null;
+            Assert.That((bool)StationType.GetProperty("LessonOpen").GetValue(station), Is.True);
+        }
+
+        [UnityTest]
+        [Timeout(120000)]
+        public IEnumerator CapturesNewRoundStates()
+        {
+            if (Environment.GetEnvironmentVariable("CYVERSE_LEVEL4_VISUAL_CAPTURE") != "1")
+                yield break;
+            string output = Environment.GetEnvironmentVariable("CYVERSE_LEVEL4_VISUAL_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output))
+                output = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Build", "VisualQA", "level4-captures");
+            Directory.CreateDirectory(output);
+
+            // SPOT THE PHISH
+            yield return LoadAndReach("SpotThePhish");
+            Camera camera = Camera.main;
+            Component station = StationOf("SpotThePhish");
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            for (int i = 0; i < 30; i++) yield return null;
+            ToCameraCanvases(camera);
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-phish-question.png"));
+            PlayerChooseCorrect(station);
+            Component round = ActiveRound();
+            Type type = round.GetType();
+            for (int i = 0; i < 30; i++) yield return null;
+            ToCameraCanvases(camera);
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-phish-attract.png"));
+            type.GetMethod("StartForTest").Invoke(round, null);
+            int count = ((Array)type.GetField("Messages").GetValue(null)).Length;
+            for (int m = 0; m < count; m++)
+            {
+                for (int i = 0; i < 20; i++) yield return null;
+                Capture(camera, Path.Combine(output, $"Level4_CyberAttack__arcade-phish-{m + 1}-ask.png"));
+                bool scam = (bool)type.GetProperty("CurrentIsScam").GetValue(round);
+                // One wrong call so the NOT QUITE state is on record.
+                type.GetMethod("AnswerForTest").Invoke(round, new object[] { m == 2 ? !scam : scam });
+                for (int i = 0; i < 20; i++) yield return null;
+                Capture(camera, Path.Combine(output, $"Level4_CyberAttack__arcade-phish-{m + 1}-clues.png"));
+                type.GetMethod("NextForTest").Invoke(round, null);
+            }
+            for (int i = 0; i < 30; i++) yield return null;
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-phish-result.png"));
+            type.GetMethod("CompleteForTest").Invoke(round, new object[] { true });
+            for (int i = 0; i < 20; i++) yield return null;
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-phish-lesson.png"));
+            GameplayActionTestDriver.Cancel(station);
+            yield return null;
+
+            // NETWORK ATTACK
+            for (int k = 1; k < 3; k++)
+            {
+                Component before = Station(k);
+                Assert.That(GameplayActionTestDriver.Interact(before), Is.True);
+                Assert.That(GameplayActionTestDriver.Choose(before, CorrectOption(before)), Is.True);
+                yield return null;
+                yield return null;
+            }
+            station = StationOf("NetworkAttack");
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            for (int i = 0; i < 30; i++) yield return null;
+            ToCameraCanvases(camera);
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-net-question.png"));
+            PlayerChooseCorrect(station);
+            round = ActiveRound();
+            type = round.GetType();
+            for (int i = 0; i < 30; i++) yield return null;
+            ToCameraCanvases(camera);
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-net-attract.png"));
+            type.GetMethod("StartForTest").Invoke(round, null);
+            int attacks = ((Array)type.GetField("Attacks").GetValue(null)).Length;
+            for (int a = 0; a < attacks; a++)
+            {
+                for (int i = 0; i < 20; i++) yield return null;
+                if (a < 2) Capture(camera, Path.Combine(output, $"Level4_CyberAttack__arcade-net-{a + 1}-ask.png"));
+                int target = (int)type.GetProperty("CurrentTarget").GetValue(round);
+                type.GetMethod("PickForTest").Invoke(round, new object[] { a == 1 ? (target + 1) % 3 : target });
+                for (int i = 0; i < 8; i++) yield return null;
+                if (a == 0) Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-net-1-packet.png"));
+                float waited = 0f;
+                while (waited < 3f && !(bool)type.GetProperty("Revealing").GetValue(round))
+                {
+                    waited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                for (int i = 0; i < 20; i++) yield return null;
+                if (a < 3) Capture(camera, Path.Combine(output, $"Level4_CyberAttack__arcade-net-{a + 1}-reveal.png"));
+                type.GetMethod("NextForTest").Invoke(round, null);
+            }
+            for (int i = 0; i < 30; i++) yield return null;
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-net-result.png"));
+            type.GetMethod("CompleteForTest").Invoke(round, new object[] { true });
+            for (int i = 0; i < 20; i++) yield return null;
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-net-lesson.png"));
+        }
+
         // ---- Helpers ------------------------------------------------------------------
 
         private static Type StationType => FindType("Cyverse.Interaction.CyberAttackStation");
         private static Type RoundType() => FindType("Cyverse.UI.ArcadeRound");
 
-        private static IEnumerator LoadAndReachStationOne()
+        /// <summary>Loads Level 4, ends the briefing, and clears the machines
+        /// before the one of <paramref name="kind"/> by automated picks.</summary>
+        private static IEnumerator LoadAndReach(string kind)
         {
             SceneManager.LoadScene("Level4_CyberAttack", LoadSceneMode.Single);
             yield return null;
@@ -354,17 +601,18 @@ namespace Cyverse.Tests
             Assert.That(GameplayActionTestDriver.Scrub(briefing, float.MaxValue), Is.True);
             yield return null;
             Assert.That(CurrentStationIndex(), Is.EqualTo(0));
-        }
 
-        private static IEnumerator LoadAndReachStationTwo()
-        {
-            yield return LoadAndReachStationOne();
-            Component first = Station(0);
-            Assert.That(GameplayActionTestDriver.Interact(first), Is.True);
-            Assert.That(GameplayActionTestDriver.Choose(first, CorrectOption(first)), Is.True);
-            yield return null;
-            yield return null;
-            Assert.That(CurrentStationIndex(), Is.EqualTo(1));
+            Component target = StationOf(kind);
+            int targetIndex = (int)StationType.GetProperty("StationIndex").GetValue(target);
+            for (int i = 0; i < targetIndex; i++)
+            {
+                Component before = Station(i);
+                Assert.That(GameplayActionTestDriver.Interact(before), Is.True);
+                Assert.That(GameplayActionTestDriver.Choose(before, CorrectOption(before)), Is.True);
+                yield return null;
+                yield return null;
+            }
+            Assert.That(CurrentStationIndex(), Is.EqualTo(targetIndex));
         }
 
         private static Component Station(int index)
@@ -373,6 +621,15 @@ namespace Cyverse.Tests
             foreach (Object candidate in Object.FindObjectsOfType(StationType))
                 if ((int)stationIndex.GetValue(candidate) == index) return candidate as Component;
             Assert.Fail("No Level 4 station " + index);
+            return null;
+        }
+
+        private static Component StationOf(string kind)
+        {
+            PropertyInfo stationKind = StationType.GetProperty("Kind");
+            foreach (Object candidate in Object.FindObjectsOfType(StationType))
+                if (stationKind.GetValue(candidate).ToString() == kind) return candidate as Component;
+            Assert.Fail("No Level 4 station of kind " + kind);
             return null;
         }
 
