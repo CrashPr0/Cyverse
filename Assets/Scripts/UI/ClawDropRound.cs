@@ -55,7 +55,7 @@ namespace Cyverse.UI
         private Card held;
         private bool slipping;
         private Claw claw;
-        private float clawX, headY, sway, swayAmp, swayPhase, stateTime, prongAngle;
+        private float clawX, headY, sway, stateTime, prongAngle;
         private int dropsLeft;
         private int revealStep;
         private float lockout;
@@ -88,7 +88,8 @@ namespace Cyverse.UI
             Box(cab, "RailShadow", new Color(0f, 0f, 0f, 0.4f), new Vector2(8f, RailY - 6f), new Vector2(CabWidth - 40f, 4f));
 
             RectTransform chute = Box(cab, "Chute", new Color(0.02f, 0.02f, 0.03f, 1f), new Vector2(ChuteX, -168f), new Vector2(78f, 84f));
-            var chuteEdge = chute.gameObject.AddComponent<Outline>();
+            chuteRect = chute;
+            chuteEdge = chute.gameObject.AddComponent<Outline>();
             chuteEdge.effectColor = new Color(1f, 0.78f, 0.22f, 0.8f);
             chuteEdge.effectDistance = new Vector2(2f, 2f);
             TMP_Text chuteLabel = Label(chute, "ChuteLabel", "PRIZE\nCHUTE", 13f, new Color(1f, 0.78f, 0.22f, 0.8f));
@@ -236,12 +237,27 @@ namespace Cyverse.UI
 
         // ---- Play -------------------------------------------------------------------
 
+        // Motion tuning. The claw hangs from the trolley on a damped spring,
+        // so starting, stopping and carrying all make it swing a little.
+        private const float TrolleyAccel = 1500f;
+        private const float SwayStiffness = 30f, SwayDamping = 2.2f, SwayFromAccel = 0.022f;
+        private const float DropTime = 0.85f, LiftTime = 1.0f, LiftPause = 0.14f, CloseTime = 0.34f;
+
+        private float trolleyVel, swayVel, idlePhase;
+        private float cardAngle, cardAngleVel, cardLag, cardLagVel, fallVel;
+        private float landBounce, chuteFlash, glowShown = 1f;
+        private float[] wiggle;
+        private RectTransform chuteRect;
+        private Outline chuteEdge;
+
         protected override void BeginPlay()
         {
             dropsLeft = DropsPerRound;
             clawX = 0f;
+            trolleyVel = 0f;
             headY = RestY;
-            swayAmp = 4f;
+            sway = 0f;
+            swayVel = 0f;
             prongAngle = OpenAngle;
             claw = Claw.Aim;
             lockout = 0.25f;
@@ -251,62 +267,134 @@ namespace Cyverse.UI
 
         protected override void TickPlay(float dt)
         {
+            dt = Mathf.Min(dt, 0.05f);
             stateTime += dt;
             if (lockout > 0f) lockout -= dt;
-            if (goldGlow != null)
-                goldGlow.GetComponent<Image>().color = new Color(1f, 0.78f, 0.22f, 0.14f + 0.10f * Mathf.Sin(Time.unscaledTime * 5f));
+            float accel = 0f;
 
             switch (claw)
             {
-                case Claw.Aim: TickAim(dt); break;
-                case Claw.Drop:
-                    headY -= DropSpeed * dt;
-                    if (headY <= GrabY) { headY = GrabY; Enter(Claw.Close); }
-                    break;
+                case Claw.Aim: accel = TickAim(dt); break;
+                case Claw.Drop: TickDrop(); break;
                 case Claw.Close:
-                    prongAngle = Mathf.MoveTowards(prongAngle, ClosedAngle, 90f * dt);
-                    if (stateTime > 0.32f) { TryGrab(); Enter(Claw.Lift); }
+                {
+                    float t = Mathf.Clamp01(stateTime / CloseTime);
+                    // Snap shut with a little overshoot, like a sprung claw.
+                    prongAngle = Mathf.LerpUnclamped(OpenAngle, ClosedAngle, UiMotion.OutBack(t));
+                    if (stateTime > CloseTime + 0.06f) { TryGrab(); Enter(Claw.Lift); }
                     break;
+                }
                 case Claw.Lift: TickLift(dt); break;
-                case Claw.Carry:
-                    clawX = Mathf.MoveTowards(clawX, ChuteX, CarrySpeed * dt);
-                    sway = Mathf.MoveTowards(sway, 0f, 30f * dt);
-                    if (Mathf.Approximately(clawX, ChuteX)) Enter(Claw.Release);
-                    break;
+                case Claw.Carry: accel = TickCarry(dt); break;
                 case Claw.Release: TickRelease(dt); break;
                 case Claw.Reveal: TickReveal(); break;
             }
 
-            if (claw == Claw.Aim || claw == Claw.Drop)
-            {
-                // A loose pendulum: it swings more after you move it and
-                // settles while you wait.
-                swayPhase += dt * 3.1f;
-                sway = swayAmp * Mathf.Sin(swayPhase);
-            }
-            if (held != null && !slipping && (claw == Claw.Lift || claw == Claw.Carry))
-            {
-                held.rt.anchoredPosition = new Vector2(HeadX + 0f, headY - 62f);
-                held.rt.localRotation = Quaternion.Euler(0f, 0f, sway * 0.6f);
-            }
+            StepSway(dt, accel);
+            StepHeldCard(dt);
+            StepEffects(dt);
             Layout();
         }
 
         private float HeadX => clawX + sway;
 
-        private void TickAim(float dt)
+        private void StepSway(float dt, float accel)
+        {
+            // Damped pendulum, pushed by the trolley's acceleration; a slow
+            // idle drift keeps it alive while you line up a shot.
+            float force = -SwayStiffness * sway - SwayDamping * swayVel - accel * SwayFromAccel;
+            if (claw == Claw.Aim) { idlePhase += dt * 2.6f; force += Mathf.Sin(idlePhase) * 9f; }
+            swayVel += force * dt;
+            sway = Mathf.Clamp(sway + swayVel * dt, -24f, 24f);
+        }
+
+        private void StepHeldCard(float dt)
+        {
+            if (held == null || slipping || (claw != Claw.Lift && claw != Claw.Carry)) return;
+            // The card trails the claw: it tips against the swing and
+            // bobs on the lift-off before settling.
+            float targetAngle = Mathf.Clamp(-swayVel * 0.5f + sway * 0.4f, -20f, 20f);
+            cardAngleVel += ((targetAngle - cardAngle) * 160f - cardAngleVel * 11f) * dt;
+            cardAngle += cardAngleVel * dt;
+            cardLagVel += (-cardLag * 220f - cardLagVel * 13f) * dt;
+            cardLag += cardLagVel * dt;
+            held.rt.anchoredPosition = new Vector2(HeadX, headY - 62f + cardLag);
+            held.rt.localRotation = Quaternion.Euler(0f, 0f, cardAngle);
+        }
+
+        private void StepEffects(float dt)
+        {
+            landBounce = Mathf.MoveTowards(landBounce, 0f, dt * 4.5f);
+            chuteFlash = Mathf.MoveTowards(chuteFlash, 0f, dt * 2.2f);
+            if (chuteEdge != null)
+                chuteEdge.effectColor = Color.Lerp(new Color(1f, 0.78f, 0.22f, 0.8f), new Color(1f, 0.95f, 0.7f, 1f), chuteFlash);
+
+            if (cards != null && wiggle != null)
+                for (int i = 0; i < cards.Length; i++)
+                {
+                    Card card = cards[i];
+                    if (card.taken || card == held || wiggle[i] <= 0f) continue;
+                    wiggle[i] = Mathf.MoveTowards(wiggle[i], 0f, dt * 2.2f);
+                    float jiggle = Mathf.Sin(wiggle[i] * 38f) * wiggle[i] * 7f;
+                    card.rt.localRotation = Quaternion.Euler(0f, 0f, card.tilt + jiggle);
+                    card.rt.anchoredPosition = new Vector2(card.slotX, CardY + Mathf.Abs(jiggle) * 0.5f);
+                }
+
+            if (goldGlow != null)
+            {
+                Card gold = null;
+                foreach (Card c in cards) if (c.gold) gold = c;
+                bool inPile = gold != null && !gold.taken && (held != gold || slipping || claw == Claw.Close);
+                glowShown = Mathf.MoveTowards(glowShown, inPile ? 1f : 0f, dt * 4f);
+                float pulse = 0.14f + 0.10f * Mathf.Sin(Time.unscaledTime * 5f);
+                goldGlow.GetComponent<Image>().color = new Color(1f, 0.78f, 0.22f, pulse * glowShown);
+            }
+        }
+
+        private float TickAim(float dt)
         {
             float input = 0f;
             if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) input -= 1f;
             if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D)) input += 1f;
-            clawX = Mathf.Clamp(clawX + input * MoveSpeed * dt, MinX + 40f, MaxX);
-            swayAmp = input != 0f ? Mathf.Min(15f, swayAmp + dt * 26f) : Mathf.Max(3f, swayAmp - dt * 7f);
+            float before = trolleyVel;
+            trolleyVel = Mathf.MoveTowards(trolleyVel, input * MoveSpeed, TrolleyAccel * dt);
+            float x = clawX + trolleyVel * dt;
+            clawX = Mathf.Clamp(x, MinX + 40f, MaxX);
+            if (!Mathf.Approximately(x, clawX)) trolleyVel = 0f;
+            float accel = dt > 0f ? (trolleyVel - before) / dt : 0f;
 
             if (lockout <= 0f && Input.GetKeyDown(KeyCode.Space))
             {
                 ResetMap();
                 if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+                // Stopping dead to drop gives the claw one last swing.
+                accel -= trolleyVel / Mathf.Max(dt, 0.016f) * 0.35f;
+                trolleyVel = 0f;
                 Enter(Claw.Drop);
+            }
+            return accel;
+        }
+
+        private void TickDrop()
+        {
+            float t = Mathf.Clamp01(stateTime / DropTime);
+            // Falls faster as it goes, then brakes just above the pile.
+            float eased = t < 0.8f ? 0.85f * (t / 0.8f) * (t / 0.8f) : 0.85f + 0.15f * UiMotion.OutCubic((t - 0.8f) / 0.2f);
+            headY = Mathf.Lerp(RestY, GrabY, eased);
+            if (t < 1f) return;
+            headY = GrabY;
+            landBounce = 1f;
+            JostleCardsNear(HeadX);
+            Enter(Claw.Close);
+        }
+
+        private void JostleCardsNear(float x)
+        {
+            if (wiggle == null || wiggle.Length != cards.Length) wiggle = new float[cards.Length];
+            for (int i = 0; i < cards.Length; i++)
+            {
+                float d = Mathf.Abs(cards[i].slotX - x);
+                if (!cards[i].taken && d < 110f) wiggle[i] = Mathf.Max(wiggle[i], 1f - d / 110f);
             }
         }
 
@@ -336,8 +424,11 @@ namespace Cyverse.UI
             held.rt.SetAsLastSibling();
             head.SetAsLastSibling();
             // A grab off-centre holds for a moment, then slips.
-            slipping = false;
             heldLoose = bestDist > FirmGrip;
+            cardAngle = held.tilt;
+            cardAngleVel = 0f;
+            cardLag = 0f;
+            cardLagVel = -120f;
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
         }
 
@@ -346,41 +437,87 @@ namespace Cyverse.UI
 
         private void TickLift(float dt)
         {
-            headY = Mathf.MoveTowards(headY, RestY, LiftSpeed * dt);
-            if (held != null && heldLoose && !slipping && headY > -10f)
+            // A beat of strain before the cable takes the weight.
+            float t = Mathf.Clamp01((stateTime - LiftPause) / LiftTime);
+            float strain = stateTime < LiftPause ? Mathf.Sin(stateTime / LiftPause * Mathf.PI) * -3f : 0f;
+            headY = Mathf.Lerp(GrabY, RestY, UiMotion.InOutCubic(t)) + strain;
+            float grip = held != null ? ClosedAngle + 7f : ClosedAngle;
+            if (stateTime < LiftPause) prongAngle = Mathf.MoveTowards(prongAngle, grip, 80f * dt);
+
+            if (held != null && heldLoose && !slipping && t > 0.45f)
             {
                 slipping = true;
                 slipY = held.rt.anchoredPosition.y;
+                fallVel = 0f;
+                prongAngle = OpenAngle * 0.6f;
                 Flash("<color=#FF8A6A><b>It slipped!</b></color> Grab it nearer the middle of the card.");
                 if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
             }
             if (slipping && held != null)
             {
-                slipY = Mathf.MoveTowards(slipY, CardY, 520f * dt);
-                held.rt.anchoredPosition = new Vector2(held.slotX, slipY);
-                held.rt.localRotation = Quaternion.Euler(0f, 0f, held.tilt);
-                if (Mathf.Approximately(slipY, CardY)) { held = null; slipping = false; }
+                fallVel += 1900f * dt;
+                slipY = Mathf.Max(CardY, slipY - fallVel * dt);
+                held.rt.anchoredPosition = new Vector2(Mathf.MoveTowards(held.rt.anchoredPosition.x, held.slotX, 300f * dt), slipY);
+                cardAngle = Mathf.MoveTowardsAngle(cardAngle, held.tilt, 60f * dt);
+                held.rt.localRotation = Quaternion.Euler(0f, 0f, cardAngle);
+                if (Mathf.Approximately(slipY, CardY))
+                {
+                    held.rt.anchoredPosition = new Vector2(held.slotX, CardY);
+                    JostleCardsNear(held.slotX);
+                    held = null;
+                    slipping = false;
+                }
             }
-            if (!Mathf.Approximately(headY, RestY) || slipping) return;
+            if (t < 1f || slipping) return;
 
-            prongAngle = Mathf.MoveTowards(prongAngle, OpenAngle, 90f * dt);
-            if (held != null) Enter(Claw.Carry);
-            else if (dropsLeft <= 0) Lose();
-            else { prongAngle = OpenAngle; Enter(Claw.Aim); }
+            if (held != null) { trolleyVel = 0f; Enter(Claw.Carry); }
+            else
+            {
+                prongAngle = Mathf.MoveTowards(prongAngle, OpenAngle, 120f * dt);
+                if (dropsLeft <= 0) Lose();
+                else if (prongAngle >= OpenAngle - 0.5f) Enter(Claw.Aim);
+            }
+        }
+
+        private float TickCarry(float dt)
+        {
+            float before = trolleyVel;
+            // Speeds up, then eases in over the chute.
+            float desired = Mathf.Clamp((ChuteX - clawX) * 4f, -CarrySpeed, CarrySpeed);
+            trolleyVel = Mathf.MoveTowards(trolleyVel, desired, TrolleyAccel * dt);
+            clawX += trolleyVel * dt;
+            if (Mathf.Abs(ChuteX - clawX) < 1.5f && Mathf.Abs(trolleyVel) < 25f && stateTime > 0.3f)
+            {
+                clawX = ChuteX;
+                trolleyVel = 0f;
+                fallVel = 0f;
+                Enter(Claw.Release);
+            }
+            return dt > 0f ? (trolleyVel - before) / dt : 0f;
         }
 
         private void TickRelease(float dt)
         {
-            prongAngle = Mathf.MoveTowards(prongAngle, OpenAngle, 120f * dt);
+            prongAngle = Mathf.Lerp(ClosedAngle + 7f, OpenAngle, UiMotion.OutCubic(Mathf.Clamp01(stateTime / 0.25f)));
             if (held == null) return;
+            if (stateTime < 0.08f) return;
+            fallVel += 1800f * dt;
             Vector2 p = held.rt.anchoredPosition;
-            p.y = Mathf.MoveTowards(p.y, -170f, 420f * dt);
+            p.y -= fallVel * dt;
+            p.x = Mathf.MoveTowards(p.x, ChuteX, 200f * dt);
             held.rt.anchoredPosition = p;
-            if (p.y > -169f) return;
+            cardAngle = Mathf.MoveTowards(cardAngle, 0f, 90f * dt);
+            held.rt.localRotation = Quaternion.Euler(0f, 0f, cardAngle);
+            // Shrinks as it drops into the hole.
+            float into = Mathf.InverseLerp(-120f, -180f, p.y);
+            held.rt.localScale = Vector3.one * Mathf.Lerp(1f, 0.55f, into);
+            if (p.y > -180f) return;
 
             held.taken = true;
             held.rt.gameObject.SetActive(false);
-            if (held.gold && goldGlow != null) goldGlow.gameObject.SetActive(false);
+            chuteFlash = 1f;
+            if (chuteRect != null) UiMotion.Pulse(chuteRect, 0.1f);
+            if (Sfx.Instance != null) Sfx.Instance.PlayClick();
             revealStep = 0;
             Enter(Claw.Reveal);
         }
@@ -396,7 +533,10 @@ namespace Cyverse.UI
                     if (Sfx.Instance != null) Sfx.Instance.PlayClick();
                     revealStep++;
                     if (revealStep == held.rooms.Length)
+                    {
                         mapCaption.text = "<color=#FFC838><b>SVC-BACKUP opens every room</b></color>, right down to the finance vault.";
+                        UiMotion.FadeIn(mapCaption, UiMotion.Base);
+                    }
                 }
                 if (revealStep >= held.rooms.Length && stateTime > 0.22f * held.rooms.Length + 1.1f) Win();
                 return;
@@ -406,6 +546,7 @@ namespace Cyverse.UI
             {
                 foreach (int room in held.rooms) LightRoom(room, new Color(0.30f, 0.70f, 0.95f));
                 mapCaption.text = $"<b>{held.name}</b> opens {RoomList(held.rooms)}. <color=#FF8A6A>Dead end.</color>";
+                UiMotion.FadeIn(mapCaption, UiMotion.Base);
                 revealStep = 1;
             }
             if (stateTime < 1.4f) return;
@@ -450,8 +591,9 @@ namespace Cyverse.UI
         {
             foreach (Card card in cards)
                 if (card.gold && !card.taken) clawX = card.slotX;
-            swayAmp = 0f;
             sway = 0f;
+            swayVel = 0f;
+            trolleyVel = 0f;
             Layout();
         }
 
@@ -479,6 +621,8 @@ namespace Cyverse.UI
             if (head == null) return;
             head.anchoredPosition = new Vector2(HeadX, headY);
             head.localRotation = Quaternion.Euler(0f, 0f, -sway * 0.5f);
+            float squash = Mathf.Sin(landBounce * Mathf.PI) * 0.09f;
+            head.localScale = new Vector3(1f + squash, 1f - squash, 1f);
             prongL.localRotation = Quaternion.Euler(0f, 0f, -prongAngle);
             prongR.localRotation = Quaternion.Euler(0f, 0f, prongAngle);
             float top = RailY - 4f;
@@ -514,6 +658,7 @@ namespace Cyverse.UI
             if (roomImages == null || index < 0 || index >= roomImages.Length) return;
             roomImages[index].color = new Color(color.r * 0.45f, color.g * 0.45f, color.b * 0.45f, 1f);
             roomTexts[index].color = Color.white;
+            UiMotion.Pulse(roomImages[index].transform, 0.1f);
         }
 
         private static string RoomList(int[] rooms)
