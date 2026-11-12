@@ -207,8 +207,12 @@ namespace Cyverse.Settings
             // glossary (whose close key is also Esc), a quiz, or the results.
             // The MenuTransitionFrame check stops the Esc press that closed
             // the glossary from also opening settings later this same frame.
-            bool canToggle = (GameState.MenuOpen || !GameState.AnyMenuOpen)
-                             && Time.frameCount != GameState.MenuTransitionFrame;
+            // The two exceptions are screens with no cancel key of their own:
+            // a quiz question and the results card. Settings opens over them
+            // and hands the screen back when it closes.
+            bool canToggle = (GameState.MenuOpen || !GameState.AnyMenuOpen || ModalSession.SettingsOverlayAllowed)
+                             && Time.frameCount != GameState.MenuTransitionFrame
+                             && !(UI.ResultsScreen.Instance != null && UI.ResultsScreen.Instance.CertificateOpen);
             if (GameInput.CancelDown && canToggle)
                 SetMenuOpen(!GameState.MenuOpen);
 

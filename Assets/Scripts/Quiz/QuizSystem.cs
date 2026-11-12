@@ -113,6 +113,7 @@ namespace Cyverse.Quiz
                 answered?.Invoke(false);
                 return;
             }
+            modal.AllowSettingsOverlay();
 
             current = q;
             onAnswered = answered;
@@ -137,6 +138,7 @@ namespace Cyverse.Quiz
                 done?.Invoke();
                 return;
             }
+            modal.AllowSettingsOverlay();
 
             headerText.text = header;
             bodyText.text = body;
