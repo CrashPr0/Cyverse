@@ -275,6 +275,10 @@ namespace Cyverse.Settings
             if (panel != null) panel.SetActive(open);
             if (open)
             {
+                // Settings can open over a quiz question or the results card,
+                // which share this canvas and were built after it. Draw last
+                // so they do not cover it (and so clicks land here).
+                if (panel != null) panel.transform.SetAsLastSibling();
                 if (panel != null) UiMotion.PanelIn(panel, card);
                 resetArmed = false;
                 lastMouse = Input.mousePosition;

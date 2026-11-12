@@ -46,7 +46,7 @@ namespace Cyverse.Level
             Level4CyberAttackContent.ScenarioTimeLimitSeconds - ElapsedSeconds);
         public string LastFeedback { get; private set; } = string.Empty;
         public string MeterSummary =>
-            $"DATA STOLEN  {ExfiltrationPercent:00}%    ·    CAUGHT  {DetectionPercent:00}%" +
+            $"DATA STOLEN  {ExfiltrationPercent}%    ·    CAUGHT  {DetectionPercent}%" +
             TimerSuffix("    ·    ");
 
         /// <summary>Countdown text for the meters; empty in the untimed run.</summary>
