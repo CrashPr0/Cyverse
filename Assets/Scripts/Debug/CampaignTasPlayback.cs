@@ -247,32 +247,53 @@ namespace Cyverse.Testing
                     if (chosen != null) break;
                 }
                 if (chosen == null || slot == null) { Fail("IR playbook wiring stalled."); yield break; }
+                // The rack table runs north-south between the room's west side
+                // and the playbook slots. Walk in lanes around it: a lane west of
+                // the table for the cards, the aisle between the table and the
+                // slots, and a crossing past whichever end of the table is nearer.
+                Bounds table = RackTableBounds(chosen);
                 float routeY = CurrentPlayerY();
-                yield return MovePlayerToPoint(new Vector3(6f, routeY, 14f),
-                    new Vector3(6f, 1.4f, 10f), "D  S", "Return to the playbook aisle");
-                if (!lastMoveSucceeded) yield break;
-                yield return MovePlayerToPoint(new Vector3(6f, routeY, 9.8f),
-                    new Vector3(-1f, 1.4f, 10f), "S", "Walk around the response-card rack");
-                if (!lastMoveSucceeded) yield break;
-                // The rack table runs north-south (x 11.3 to 12.7), so stand in
-                // the aisle west of it, level with the card. Walking to the
-                // card's own x put the target inside the table.
-                yield return MovePlayerToPoint(
-                    new Vector3(chosen.transform.position.x - 1.5f, routeY, chosen.transform.position.z),
-                    chosen.transform.position + Vector3.up, "W  A", "Approach the response-card rack from the aisle");
+                float westLane = table.min.x - 0.8f;
+                float aisle = (table.max.x + slot.transform.position.x) * 0.5f;
+                Vector3 card = chosen.transform.position;
+                Vector3 here = CurrentPlayerPosition();
+                if (here.x > table.max.x)
+                {
+                    float back = CrossingZ(table, here.z, card.z);
+                    yield return MovePlayerToPoint(new Vector3(aisle, routeY, back),
+                        new Vector3(aisle, 1.4f, back), "W", "Walk to the end of the response-card rack");
+                    if (!lastMoveSucceeded) yield break;
+                    yield return MovePlayerToPoint(new Vector3(westLane, routeY, back),
+                        new Vector3(westLane, 1.4f, card.z), "A", "Walk around the response-card rack");
+                    if (!lastMoveSucceeded) yield break;
+                }
+                else
+                {
+                    float entry = table.max.z + 1.45f;
+                    yield return MovePlayerToPoint(new Vector3(westLane, routeY, entry),
+                        new Vector3(westLane, 1.4f, card.z), "D", "Walk to the response-card rack");
+                    if (!lastMoveSucceeded) yield break;
+                }
+                yield return MovePlayerToPoint(new Vector3(westLane, routeY, card.z),
+                    card + Vector3.up, "W  S", "Line up with the response card");
                 if (!lastMoveSucceeded) yield break;
                 yield return MovePlayerTo(chosen.transform, 1.6f, "W", "Walk to response card");
                 if (!lastMoveSucceeded) yield break;
                 Show("E", "Pick up " + chosen.itemName);
                 yield return new WaitForSecondsRealtime(0.4f);
                 GameplayActions.TryApply(chosen, GameplayAction.Interact(), gameObject);
-                yield return MovePlayerToPoint(new Vector3(6f, routeY, 9.8f),
-                    new Vector3(6f, 1.4f, 14f), "D", "Carry card around the rack");
+                Vector3 slotPos = slot.transform.position;
+                float cross = CrossingZ(table, card.z, slotPos.z);
+                yield return MovePlayerToPoint(new Vector3(westLane, routeY, cross),
+                    new Vector3(aisle, 1.4f, cross), "W  S", "Carry card to the end of the rack");
                 if (!lastMoveSucceeded) yield break;
-                yield return MovePlayerToPoint(new Vector3(6f, routeY, 14f),
-                    slot.transform.position + Vector3.up, "W", "Enter the playbook aisle");
+                yield return MovePlayerToPoint(new Vector3(aisle, routeY, cross),
+                    new Vector3(aisle, 1.4f, slotPos.z), "D", "Carry card around the rack");
                 if (!lastMoveSucceeded) yield break;
-                yield return MovePlayerTo(slot.transform, 1.6f, "W", "Carry card to next playbook slot");
+                yield return MovePlayerToPoint(new Vector3(aisle, routeY, slotPos.z),
+                    slotPos + Vector3.up, "W  S", "Enter the playbook aisle");
+                if (!lastMoveSucceeded) yield break;
+                yield return MovePlayerTo(slot.transform, 1.6f, "D", "Carry card to next playbook slot");
                 if (!lastMoveSucceeded) yield break;
                 Show("E", "Place next response step");
                 yield return new WaitForSecondsRealtime(0.4f);
@@ -282,7 +303,27 @@ namespace Cyverse.Testing
 
             float deadline = Time.realtimeSinceStartup + 3f;
             while (manager.CurrentPhase != Level2Manager.Phase.Exam && Time.realtimeSinceStartup < deadline) yield return null;
-            yield return MovePlayerTo(exam.transform, 2f, "W", "Walk to Level 2 certification exam");
+            // The exam desk faces north, and the last playbook slot leaves the
+            // player in the aisle east of the card table: come back along the
+            // open row past the table's north end and stand in front of the desk.
+            Vector3 examFront = exam.transform.position + exam.transform.forward * 2f;
+            GameObject examRack = GameObject.Find("PlaybookRack");
+            Transform examTableT = examRack != null ? examRack.transform.Find("Table") : null;
+            Collider examTable = examTableT != null ? examTableT.GetComponent<Collider>() : null;
+            float examY = CurrentPlayerY();
+            if (examTable != null && CurrentPlayerPosition().x > examTable.bounds.max.x)
+            {
+                float northRow = examTable.bounds.max.z + 1.45f;
+                yield return MovePlayerToPoint(new Vector3(CurrentPlayerPosition().x, examY, northRow),
+                    new Vector3(examFront.x, 1.4f, northRow), "W", "Walk past the end of the response-card rack");
+                if (!lastMoveSucceeded) yield break;
+                yield return MovePlayerToPoint(new Vector3(examFront.x, examY, northRow),
+                    exam.transform.position + Vector3.up, "A", "Walk toward the certification exam");
+                if (!lastMoveSucceeded) yield break;
+            }
+            yield return MovePlayerToPoint(new Vector3(examFront.x, examY, examFront.z),
+                exam.transform.position + Vector3.up * 1.4f, "W", "Walk to Level 2 certification exam");
+            if (!lastMoveSucceeded) yield break;
             Show("E  1  2  3", "Complete certification questions");
             yield return new WaitForSecondsRealtime(1.2f);
             yield return DeterministicGameplayAdapter.CompleteExam(exam, gameObject, 0.20f);
@@ -509,6 +550,26 @@ namespace Cyverse.Testing
                 yield break;
             }
             lastMoveSucceeded = true;
+        }
+
+        /// <summary>The response-card table the card lies on.</summary>
+        private static Bounds RackTableBounds(Carryable card)
+        {
+            GameObject rack = GameObject.Find("PlaybookRack");
+            Transform table = rack != null ? rack.transform.Find("Table") : null;
+            Collider collider = table != null ? table.GetComponent<Collider>() : null;
+            if (collider != null) return collider.bounds;
+            return new Bounds(card.transform.position, new Vector3(1.4f, 1.8f, 10.8f));
+        }
+
+        /// <summary>The open row past the nearer end of the table.</summary>
+        private static float CrossingZ(Bounds table, float fromZ, float toZ) =>
+            (fromZ + toZ) * 0.5f >= table.center.z ? table.max.z + 1.45f : table.min.z - 1.5f;
+
+        private static Vector3 CurrentPlayerPosition()
+        {
+            var controller = FindObjectOfType<FirstPersonController>();
+            return controller != null ? controller.transform.position : Vector3.zero;
         }
 
         private static float CurrentPlayerY()
