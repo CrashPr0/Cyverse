@@ -235,6 +235,24 @@ namespace Cyverse.Testing
             { Fail("The evidence locker did not accept the seized device."); yield break; }
             yield return null;
 
+            // The card rack (x 11.3 to 12.7, z 5.5 to 16.3) stands between the
+            // west side of the room and the step slots on the board at x 17.
+            // Go round its south end once, then work from the aisle between
+            // the rack and the board: take each card from the rack's east
+            // side and carry it straight across to its slot.
+            {
+                float aisleY = CurrentPlayerY();
+                yield return MovePlayerToPoint(new Vector3(6f, aisleY, 14f),
+                    new Vector3(6f, 1.4f, 10f), "D  S", "Return to the playbook aisle");
+                if (!lastMoveSucceeded) yield break;
+                yield return MovePlayerToPoint(new Vector3(6f, aisleY, 4.5f),
+                    new Vector3(6f, 1.4f, 0f), "S", "Walk past the south end of the card rack");
+                if (!lastMoveSucceeded) yield break;
+                yield return MovePlayerToPoint(new Vector3(14f, aisleY, 4.5f),
+                    new Vector3(14f, 1.4f, 10f), "D", "Step into the aisle between the rack and the board");
+                if (!lastMoveSucceeded) yield break;
+            }
+
             while (!playbook.IsComplete)
             {
                 Carryable chosen = null;
@@ -248,17 +266,9 @@ namespace Cyverse.Testing
                 }
                 if (chosen == null || slot == null) { Fail("IR playbook wiring stalled."); yield break; }
                 float routeY = CurrentPlayerY();
-                yield return MovePlayerToPoint(new Vector3(6f, routeY, 14f),
-                    new Vector3(6f, 1.4f, 10f), "D  S", "Return to the playbook aisle");
-                if (!lastMoveSucceeded) yield break;
-                yield return MovePlayerToPoint(new Vector3(6f, routeY, 9.8f),
-                    new Vector3(-1f, 1.4f, 10f), "S", "Walk around the response-card rack");
-                if (!lastMoveSucceeded) yield break;
-                // The rack table runs north-south (x 11.3 to 12.7), so stand in
-                // the aisle west of it, level with the card. Walking to the
-                // card's own x put the target inside the table.
+                // Stand in the aisle east of the rack, level with the card.
                 yield return MovePlayerToPoint(
-                    new Vector3(chosen.transform.position.x - 1.5f, routeY, chosen.transform.position.z),
+                    new Vector3(chosen.transform.position.x + 1.5f, routeY, chosen.transform.position.z),
                     chosen.transform.position + Vector3.up, "W  A", "Approach the response-card rack from the aisle");
                 if (!lastMoveSucceeded) yield break;
                 yield return MovePlayerTo(chosen.transform, 1.6f, "W", "Walk to response card");
@@ -266,12 +276,6 @@ namespace Cyverse.Testing
                 Show("E", "Pick up " + chosen.itemName);
                 yield return new WaitForSecondsRealtime(0.4f);
                 GameplayActions.TryApply(chosen, GameplayAction.Interact(), gameObject);
-                yield return MovePlayerToPoint(new Vector3(6f, routeY, 9.8f),
-                    new Vector3(6f, 1.4f, 14f), "D", "Carry card around the rack");
-                if (!lastMoveSucceeded) yield break;
-                yield return MovePlayerToPoint(new Vector3(6f, routeY, 14f),
-                    slot.transform.position + Vector3.up, "W", "Enter the playbook aisle");
-                if (!lastMoveSucceeded) yield break;
                 yield return MovePlayerTo(slot.transform, 1.6f, "W", "Carry card to next playbook slot");
                 if (!lastMoveSucceeded) yield break;
                 Show("E", "Place next response step");
@@ -282,6 +286,19 @@ namespace Cyverse.Testing
 
             float deadline = Time.realtimeSinceStartup + 3f;
             while (manager.CurrentPhase != Level2Manager.Phase.Exam && Time.realtimeSinceStartup < deadline) yield return null;
+            // Back round the south end of the rack: the exam stands west of it.
+            {
+                float backY = CurrentPlayerY();
+                yield return MovePlayerToPoint(new Vector3(14f, backY, 4.5f),
+                    new Vector3(6f, 1.4f, 4.5f), "S", "Leave the aisle past the south end of the card rack");
+                if (!lastMoveSucceeded) yield break;
+                yield return MovePlayerToPoint(new Vector3(6f, backY, 4.5f),
+                    new Vector3(6f, 1.4f, 14f), "A", "Walk back along the west side of the room");
+                if (!lastMoveSucceeded) yield break;
+                yield return MovePlayerToPoint(new Vector3(6f, backY, 13f),
+                    exam.transform.position + Vector3.up, "W", "Head for the certification exam");
+                if (!lastMoveSucceeded) yield break;
+            }
             yield return MovePlayerTo(exam.transform, 2f, "W", "Walk to Level 2 certification exam");
             Show("E  1  2  3", "Complete certification questions");
             yield return new WaitForSecondsRealtime(1.2f);
