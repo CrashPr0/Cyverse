@@ -50,6 +50,9 @@ namespace Cyverse.UI
 
         public void Hide()
         {
+            // The Esc that closes the certificate must not also open settings
+            // later this frame.
+            if (IsOpen) GameState.MenuTransitionFrame = Time.frameCount;
             if (root != null) root.SetActive(false);
         }
 
