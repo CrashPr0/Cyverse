@@ -246,11 +246,14 @@ namespace Cyverse.UI
             if (open && screen == Screen.Question) ShowQuestion();
         }
 
+        private const int MinAttemptsForBest = 5;
+
         private static string BestKey(NiceRole role) => "cv_secplus_best_" + role;
 
         private static void SaveBest(NiceRole role, int correct, int attempted)
         {
-            if (attempted <= 0) return;
+            // One lucky answer is not a personal best: wait for a real sample.
+            if (attempted < MinAttemptsForBest) return;
             float pct = 100f * correct / attempted;
             float prior = PlayerPrefs.GetFloat(BestKey(role), -1f);
             if (pct > prior)

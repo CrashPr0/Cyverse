@@ -174,7 +174,7 @@ namespace Cyverse.Interaction
             if (IsComplete) return;
             IsComplete = true;
             running = false;
-            if (statusText != null) statusText.text = "CERTIFIED ✓";
+            if (statusText != null) statusText.text = "CERTIFIED";
             if (screenRenderer != null)
                 screenRenderer.sharedMaterial = BuildKit.MakeHologram(new Color(0.90f, 0.66f, 0.14f));
             Completed?.Invoke();

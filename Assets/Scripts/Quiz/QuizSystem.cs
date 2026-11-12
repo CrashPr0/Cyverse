@@ -110,7 +110,9 @@ namespace Cyverse.Quiz
             if (card == null) Build();
             if (!ModalSession.TryOpen(this, ModalSession.Channel.Quiz, out modal))
             {
-                answered?.Invoke(false);
+                // Another panel still owns the screen. Wait for it to close
+                // rather than marking a question the player never saw as wrong.
+                StartCoroutine(AskWhenFree(q, answered, readDelay, header));
                 return;
             }
             modal.AllowSettingsOverlay();
@@ -124,6 +126,25 @@ namespace Cyverse.Quiz
             feedbackText.text = ReadDelayOver ? PromptText : ReadingText;
             card.SetActive(true);
             awaitingInput = true;
+        }
+
+        private IEnumerator AskWhenFree(QuizQuestion q, Action<bool> answered,
+            float readDelay, string header)
+        {
+            float giveUpAt = Time.unscaledTime + 30f;
+            while (Time.unscaledTime < giveUpAt)
+            {
+                yield return null;
+                if (ModalSession.TryOpen(this, ModalSession.Channel.Quiz, out modal))
+                {
+                    // Hand the lease back and take the normal path.
+                    modal.Close();
+                    modal = null;
+                    Ask(q, answered, readDelay, header);
+                    yield break;
+                }
+            }
+            answered?.Invoke(false);
         }
 
         private const string PromptText = "<color=#8FB8CC>Press 1, 2 or 3 to answer</color>";

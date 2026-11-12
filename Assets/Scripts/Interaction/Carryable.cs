@@ -178,7 +178,11 @@ namespace Cyverse.Interaction
                 // Shrink very slightly so a crate resting flush on the floor
                 // is not rejected due to floating-point contact noise.
                 if (!Physics.CheckBox(bounds.center, bounds.extents * 0.96f,
-                                      Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
+                                      Quaternion.identity, ~0, QueryTriggerInteraction.Ignore)
+                    // A spot the player cannot see is a spot they may not be able
+                    // to reach: never set an item down behind a wall or divider.
+                    && !Physics.Linecast(cam.transform.position, bounds.center,
+                                         ~0, QueryTriggerInteraction.Ignore))
                 {
                     dropPosition = candidate;
                     return true;

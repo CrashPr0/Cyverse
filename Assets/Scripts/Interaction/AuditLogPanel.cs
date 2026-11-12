@@ -121,7 +121,7 @@ namespace Cyverse.Interaction
                                   : states[i] == RowState.Wrong ? new Color(0.36f, 0.10f, 0.08f, 0.95f)
                                   : selected ? new Color(accent.r * 0.32f, accent.g * 0.32f, accent.b * 0.32f, 0.95f)
                                   : new Color(0.04f, 0.07f, 0.10f, 0.9f);
-                markers[i].text = selected ? "▶" : "";
+                markers[i].text = selected ? ">" : "";
                 for (int c = 0; c < 5; c++)
                 {
                     cells[i, c].color = c == 0 && !selected && states[i] == RowState.Normal ? Muted : text;
