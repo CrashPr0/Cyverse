@@ -195,6 +195,9 @@ namespace Cyverse.Interaction
             {
                 controlsText.transform.localPosition = new Vector3(0f, 0.55f, -0.30f);
                 ConfigureTextBand(controlsText, new Vector2(3.8f, 0.34f), 23f, 16f);
+                // A dark outline keeps the footer readable over the floor glow.
+                controlsText.outlineColor = new Color32(4, 10, 18, 255);
+                controlsText.outlineWidth = 0.22f;
             }
             if (titleText != null)
             {
