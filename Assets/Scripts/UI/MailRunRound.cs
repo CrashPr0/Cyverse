@@ -58,7 +58,7 @@ namespace Cyverse.UI
         private Mailbox[] boxes;
         private readonly Email[] emails = new Email[3];
         private RectTransform cab, launcher, filter;
-        private float launcherX, launcherVel, cooldown, conveyor, conveyorSpeed;
+        private float launcherX, launcherVel, cooldown, conveyor;
         private float filterX, filterDir = 1f, filterSpeed;
         private float timeLeft, stateTime, launcherKick;
         private int hits, strikes;
@@ -192,7 +192,6 @@ namespace Cyverse.UI
             hits = 0;
             strikes = 0;
             timeLeft = RoundSeconds;
-            conveyorSpeed = 62f;
             filterSpeed = 150f;
             filterX = -200f;
             cooldown = 0.25f;
