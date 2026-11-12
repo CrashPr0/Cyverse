@@ -93,13 +93,13 @@ namespace Cyverse.Level
             new StationScenario(
                 StationKind.EscalatePrivileges,
                 "ACCESS GRABBER  //  ESCALATE PRIVILEGES",
-                "Move from the hacked test computer toward the fake finance vault.",
-                "From the hacked test computer you can reach three accounts. One was set up on purpose with more access than it needs. Which one exposes that mistake without leaving the simulation?",
+                "Get from the test computer you broke into to the fake finance vault.",
+                "One test account was given more access than its job needs. Which move should you make?",
                 new[]
                 {
-                    "Use the test account that was given too much access",
-                    "Guess a real administrator's password until it works",
-                    "Turn off network monitoring so nobody sees you move",
+                    "Use the test account that has too much access",
+                    "Keep guessing a real admin's password",
+                    "Switch off the network alarms",
                 },
                 0,
                 "PIVOT REACHED — one account with too much access opened up far more of the network.",

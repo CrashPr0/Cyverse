@@ -165,7 +165,9 @@ namespace Cyverse.Tests
             Assert.That(camera, Is.Not.Null);
             Component station = Station(1);
             Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
-            yield return null;
+            for (int i = 0; i < 20; i++) yield return null;
+            ToCameraCanvases(camera);
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-claw-question.png"));
             PlayerChooseCorrect(station);
             Component round = ActiveRound();
             Type type = round.GetType();
