@@ -207,12 +207,143 @@ namespace Cyverse.Tests
             Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-claw-lesson.png"));
         }
 
+        // ---- PHISH FRENZY: Mail Run ----------------------------------------------------
+
+        [UnityTest]
+        public IEnumerator MailRun_PlayerPickOnPhishFrenzy_LaunchesAndWinLandsOnLesson()
+        {
+            yield return LoadAndReachStationOne();
+            Component station = Station(0);
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            PlayerChooseCorrect(station);
+            Component round = ActiveRound();
+            Assert.That(round, Is.Not.Null, "A person's correct pick on PHISH FRENZY should start Mail Run.");
+            Assert.That(round.GetType().Name, Is.EqualTo("MailRunRound"));
+            Assert.That(ChoicePanel(station).activeSelf, Is.False);
+            Assert.That(CurrentStationIndex(), Is.EqualTo(1));
+
+            round.GetType().GetMethod("CompleteForTest").Invoke(round, new object[] { true });
+            yield return null;
+            Assert.That(ActiveRound(), Is.Null);
+            Assert.That((bool)StationType.GetProperty("LessonOpen").GetValue(station), Is.True);
+            Assert.That(GameplayActionTestDriver.Cancel(station), Is.True);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator MailRun_SendUnderTestMailbox_Lands_AndFiveHitsPlayThePhone()
+        {
+            yield return LoadAndReachStationOne();
+            Component station = Station(0);
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            PlayerChooseCorrect(station);
+            Component round = ActiveRound();
+            Type type = round.GetType();
+            type.GetMethod("StartForTest").Invoke(round, null);
+            type.GetMethod("LineUpForTest").Invoke(round, null);
+
+            for (int shot = 1; shot <= 5; shot++)
+            {
+                Assert.That((bool)type.GetMethod("SendForTest").Invoke(round, null), Is.True);
+                float waited = 0f;
+                while (waited < 3f && (int)type.GetProperty("Hits").GetValue(round) < shot)
+                {
+                    waited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                Assert.That((int)type.GetProperty("Hits").GetValue(round), Is.EqualTo(shot),
+                    "An email sent straight under the test mailbox should land.");
+            }
+            Assert.That((int)type.GetProperty("Strikes").GetValue(round), Is.EqualTo(0));
+            Assert.That((bool)type.GetProperty("ShowingPhone").GetValue(round), Is.True);
+
+            float wait = 0f;
+            while (wait < 10f && type.GetProperty("Phase").GetValue(round).ToString() != "Result")
+            {
+                wait += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Assert.That(type.GetProperty("Phase").GetValue(round).ToString(), Is.EqualTo("Result"));
+            Assert.That((bool)type.GetProperty("Won").GetValue(round), Is.True);
+            Assert.That((int)type.GetProperty("Tickets").GetValue(round), Is.GreaterThan(20));
+            type.GetMethod("CompleteForTest").Invoke(round, new object[] { true });
+            yield return null;
+            Assert.That((bool)StationType.GetProperty("LessonOpen").GetValue(station), Is.True);
+        }
+
+        [UnityTest]
+        [Timeout(120000)]
+        public IEnumerator CapturesMailRunStates()
+        {
+            if (Environment.GetEnvironmentVariable("CYVERSE_LEVEL4_VISUAL_CAPTURE") != "1")
+                yield break;
+
+            yield return LoadAndReachStationOne();
+            string output = Environment.GetEnvironmentVariable("CYVERSE_LEVEL4_VISUAL_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output))
+                output = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Build", "VisualQA", "level4-captures");
+            Directory.CreateDirectory(output);
+            Camera camera = Camera.main;
+            Component station = Station(0);
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            PlayerChooseCorrect(station);
+            Component round = ActiveRound();
+            Type type = round.GetType();
+            for (int i = 0; i < 60; i++) yield return null;
+            ToCameraCanvases(camera);
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-mail-attract.png"));
+
+            type.GetMethod("StartForTest").Invoke(round, null);
+            for (int i = 0; i < 40; i++) yield return null;
+            type.GetMethod("SendForTest").Invoke(round, null);
+            for (int i = 0; i < 6; i++) yield return null;
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-mail-play.png"));
+
+            type.GetMethod("LineUpForTest").Invoke(round, null);
+            for (int shot = 1; shot <= 5; shot++)
+            {
+                type.GetMethod("SendForTest").Invoke(round, null);
+                float waited = 0f;
+                while (waited < 3f && (int)type.GetProperty("Hits").GetValue(round) < shot)
+                {
+                    waited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+            }
+            string[] shots = { "arcade-mail-phone-prompt", "arcade-mail-phone-approved", "arcade-mail-phone-blocked" };
+            float[] at = { 0.8f, 2.4f, 4.2f };
+            float t = 0f;
+            for (int i = 0; i < shots.Length; i++)
+            {
+                while (t < at[i] && type.GetProperty("Phase").GetValue(round).ToString() == "Playing")
+                {
+                    t += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                Capture(camera, Path.Combine(output, "Level4_CyberAttack__" + shots[i] + ".png"));
+            }
+            float w = 0f;
+            while (w < 6f && type.GetProperty("Phase").GetValue(round).ToString() != "Result")
+            {
+                w += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            for (int i = 0; i < 30; i++) yield return null;
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-mail-result.png"));
+            type.GetMethod("CompleteForTest").Invoke(round, new object[] { true });
+            for (int i = 0; i < 30; i++) yield return null;
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-mail-lesson.png"));
+        }
+
         // ---- Helpers ------------------------------------------------------------------
 
         private static Type StationType => FindType("Cyverse.Interaction.CyberAttackStation");
         private static Type RoundType() => FindType("Cyverse.UI.ArcadeRound");
 
-        private static IEnumerator LoadAndReachStationTwo()
+        private static IEnumerator LoadAndReachStationOne()
         {
             SceneManager.LoadScene("Level4_CyberAttack", LoadSceneMode.Single);
             yield return null;
@@ -222,6 +353,12 @@ namespace Cyverse.Tests
             Assert.That(briefing, Is.Not.Null);
             Assert.That(GameplayActionTestDriver.Scrub(briefing, float.MaxValue), Is.True);
             yield return null;
+            Assert.That(CurrentStationIndex(), Is.EqualTo(0));
+        }
+
+        private static IEnumerator LoadAndReachStationTwo()
+        {
+            yield return LoadAndReachStationOne();
             Component first = Station(0);
             Assert.That(GameplayActionTestDriver.Interact(first), Is.True);
             Assert.That(GameplayActionTestDriver.Choose(first, CorrectOption(first)), Is.True);
