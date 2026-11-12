@@ -269,11 +269,17 @@ namespace Cyverse.Level
         // ---- Guidance (mirrors Level 1) ---------------------------------------
 
         private float guidanceTimer;
+        private bool examPassed;
         void Update()
         {
             guidanceTimer += Time.deltaTime;
             if (guidanceTimer < 0.4f) return;
             guidanceTimer = 0f;
+            // The exam cannot be retaken, so a completion that was refused
+            // goes through as soon as the missing handoff step is done.
+            if (examPassed && CurrentPhase != Phase.Complete && SocProgress.HasAllDfKeys
+                && (locker == null || locker.IsSealed))
+                CompleteLevel();
             UpdateGuidance();
         }
 
@@ -438,6 +444,7 @@ namespace Cyverse.Level
         private void CompleteLevel()
         {
             if (CurrentPhase == Phase.Complete) return;
+            examPassed = true;
             if (!SocProgress.HasAllDfKeys)
             {
                 if (HudUI.Instance != null)

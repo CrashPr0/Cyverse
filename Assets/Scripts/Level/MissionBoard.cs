@@ -43,7 +43,7 @@ namespace Cyverse.Level
                 int level = levels != null && i < levels.Length ? levels[i] : 0;
 
                 if (dev)                                   { tm.text = "IN DEVELOPMENT"; tm.color = Dev; }
-                else if (LevelProgress.IsCompleted(level)) { tm.text = "COMPLETE ✓";     tm.color = Gold; }
+                else if (LevelProgress.IsCompleted(level)) { tm.text = "COMPLETE";       tm.color = Gold; }
                 else if (LevelProgress.IsUnlocked(level))  { tm.text = "READY";          tm.color = Ready; }
                 else                                       { tm.text = "LOCKED";         tm.color = Locked; }
             }

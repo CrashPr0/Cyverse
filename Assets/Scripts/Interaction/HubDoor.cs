@@ -67,7 +67,7 @@ namespace Cyverse.Interaction
             {
                 if (InDevelopment) return $"{displayName}  (in development)";
                 if (!Unlocked) return $"{displayName}  (locked)";
-                return Completed ? $"Enter {displayName}  ✓" : $"Enter {displayName}";
+                return Completed ? $"Enter {displayName}  (completed)" : $"Enter {displayName}";
             }
         }
 

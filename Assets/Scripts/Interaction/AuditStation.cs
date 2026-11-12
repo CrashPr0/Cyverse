@@ -237,7 +237,7 @@ namespace Cyverse.Interaction
                 if (round >= rounds.Length)
                 {
                     IsComplete = true;
-                    headerText.text = "AUDIT CLEAR ✓";
+                    headerText.text = "AUDIT CLEAR";
                     headerText.color = new Color(0.90f, 0.66f, 0.14f);
                     hintText.text = "All anomalies accounted for.";
                     if (highlight != null) highlight.gameObject.SetActive(false);
