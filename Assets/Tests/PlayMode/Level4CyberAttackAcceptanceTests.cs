@@ -79,6 +79,67 @@ namespace Cyverse.Tests
         }
 
         [UnityTest]
+        public IEnumerator CosmeticHud_ExpiresStepsCombinesAwardsAndFitsVendingBrands()
+        {
+            SceneManager.LoadScene("Level4_CyberAttack", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+
+            Type hudType = FindType("Cyverse.UI.HudUI");
+            Component hud = hudType.GetProperty("Instance").GetValue(null) as Component;
+            Canvas hudCanvas = (Canvas)hudType.GetProperty("Canvas").GetValue(hud);
+            GameObject objective = hudCanvas.transform.Find("NextTaskPanel").gameObject;
+            Assert.That(objective.activeSelf, Is.True);
+
+            Type settings = FindType("Cyverse.Settings.AccessibilitySettings");
+            FieldInfo reduceMotion = settings.GetField("ReduceMotion");
+            bool wasReduced = (bool)reduceMotion.GetValue(null);
+            float wasTimeScale = Time.timeScale;
+            try
+            {
+                reduceMotion.SetValue(null, false);
+                Time.timeScale = 0f;
+                // Exercise the Level 4 briefing's real banner lifetime, even
+                // while the game clock is paused.
+                yield return new WaitForSecondsRealtime(6.5f);
+                Assert.That(objective.activeSelf, Is.False, "Level 4 task banners must expire.");
+                hudType.GetMethod("ShowStepFor").Invoke(hud,
+                    new object[] { 2, 5, "Play the next machine", 0.5f });
+                yield return null;
+                Assert.That(objective.activeSelf, Is.True, "A new step must show its banner again.");
+
+                Type scoreType = FindType("Cyverse.Core.ScoreSystem");
+                int before = (int)scoreType.GetProperty("Score").GetValue(null);
+                scoreType.GetMethod("Add").Invoke(null, new object[] { 20 });
+                scoreType.GetMethod("Add").Invoke(null, new object[] { 30 });
+                int awarded = (int)scoreType.GetProperty("Score").GetValue(null) - before;
+                var popups = new List<Text>();
+                foreach (Text text in hudCanvas.GetComponentsInChildren<Text>())
+                    if (text.name == "ScorePopup") popups.Add(text);
+                Assert.That(popups, Has.Count.EqualTo(1), "Rapid awards must not overlap.");
+                Assert.That(popups[0].text, Is.EqualTo("+" + awarded));
+                yield return new WaitForSecondsRealtime(1.2f);
+                Assert.That(hudCanvas.transform.Find("ScorePopup"), Is.Null,
+                    "The combined award must still expire.");
+
+                int brands = 0;
+                foreach (TextMeshPro text in Object.FindObjectsOfType<TextMeshPro>())
+                {
+                    if (text.name != "Brand" || !text.transform.parent.name.StartsWith("VendingMachine")) continue;
+                    text.ForceMeshUpdate();
+                    Assert.That(text.isTextTruncated, Is.False, text.text + " must fit its keypad column.");
+                    brands++;
+                }
+                Assert.That(brands, Is.EqualTo(3));
+            }
+            finally
+            {
+                Time.timeScale = wasTimeScale;
+                reduceMotion.SetValue(null, wasReduced);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Hub_OffersPlayableLevel4AfterLevel3()
         {
             PlayerPrefs.SetInt("cv_done_3", 1);

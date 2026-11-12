@@ -913,7 +913,12 @@ namespace Cyverse.Level
 
                 // Keypad column: brand, display, keys, card reader, coins.
                 BlockKit.Box("Keypad", v, new Vector3(0.45f, 1.2f, -0.43f), new Vector3(0.2f, 1.3f, 0.01f), CabinetTrim);
-                MakeText(v, "Brand", new Vector3(0.45f, 1.72f, -0.44f), brands[i + 1], c, 0.9f, 0.2f, 0.2f).fontStyle = FontStyles.Bold;
+                var brand = MakeText(v, "Brand", new Vector3(0.45f, 1.72f, -0.44f), brands[i + 1], c, 0.9f, 0.2f, 0.2f);
+                brand.fontStyle = FontStyles.Bold;
+                // Fit the full brand to the narrow keypad column.
+                brand.enableAutoSizing = true;
+                brand.fontSizeMin = 0.25f;
+                brand.fontSizeMax = 0.9f;
                 BlockKit.Box("Display", v, new Vector3(0.45f, 1.5f, -0.438f), new Vector3(0.15f, 0.06f, 0.005f), Glow(new Color(0.3f, 1f, 0.5f), 1.2f));
                 var keys = new List<CombineInstance>();
                 for (int r = 0; r < 4; r++)
