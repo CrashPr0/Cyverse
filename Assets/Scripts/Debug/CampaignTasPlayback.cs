@@ -254,7 +254,11 @@ namespace Cyverse.Testing
                 yield return MovePlayerToPoint(new Vector3(6f, routeY, 9.8f),
                     new Vector3(-1f, 1.4f, 10f), "S", "Walk around the response-card rack");
                 if (!lastMoveSucceeded) yield break;
-                yield return MovePlayerToPoint(new Vector3(chosen.transform.position.x, routeY, 9.8f),
+                // The rack table runs north-south (x 11.3 to 12.7), so stand in
+                // the aisle west of it, level with the card. Walking to the
+                // card's own x put the target inside the table.
+                yield return MovePlayerToPoint(
+                    new Vector3(chosen.transform.position.x - 1.5f, routeY, chosen.transform.position.z),
                     chosen.transform.position + Vector3.up, "W  A", "Approach the response-card rack from the aisle");
                 if (!lastMoveSucceeded) yield break;
                 yield return MovePlayerTo(chosen.transform, 1.6f, "W", "Walk to response card");

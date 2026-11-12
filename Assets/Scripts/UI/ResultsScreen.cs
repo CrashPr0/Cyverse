@@ -190,6 +190,8 @@ namespace Cyverse.UI
         void Update()
         {
             if (!shown) return;
+            // Settings can open over the card; its keys are not ours then.
+            if (Core.GameState.MenuOpen || Core.ModalSession.IsTransitionFrame) return;
             if (certificate.IsOpen)
             {
                 if (Input.GetKeyDown(KeyCode.C) || GameInput.CancelDown) certificate.Hide();

@@ -36,8 +36,8 @@ namespace Cyverse.Interaction
 
         public bool CanInteract => alertBoard != null ? !alertBoard.IsComplete : !Isolated;
         public string Prompt => alertBoard != null
-            ? $"Investigate {def?.hostname ?? "workstation"}"
-            : $"Isolate {def?.hostname ?? "workstation"} from the network";
+            ? $"Investigate workstation {def?.hostname}"
+            : $"Isolate workstation {def?.hostname} from the network";
 
         /// <summary>Turns a saved EDR desk into one of the SOC verification
         /// workstations without requiring the visual-pass scene to be rebuilt.</summary>

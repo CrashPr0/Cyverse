@@ -224,7 +224,9 @@ namespace Cyverse.Interaction
             var sb = new StringBuilder();
             sb.AppendLine(scenario.description);
             sb.AppendLine();
-            sb.AppendLine("<color=#5BD9FF><b>      TIME    COMPUTER   USER         ACTIVITY</b></color>");
+            // Columns are placed with <pos>: padding with spaces does not
+            // line up in a proportional font.
+            sb.AppendLine("<color=#5BD9FF><b><pos=4%>TIME<pos=14%>COMPUTER<pos=28%>USER<pos=42%>ACTIVITY</b></color>");
             for (int i = 0; i < scenario.rows.Length; i++)
             {
                 var row = scenario.rows[i];
@@ -234,7 +236,7 @@ namespace Cyverse.Interaction
                 string flag = i == flaggedRow ? "<color=#FF8A78>*</color>" : " ";
                 string computer = wrongRowAttempts >= 2 && i == scenario.triggerRowIndex
                     ? $"<color=#E5A823><b>{row.computer}</b></color>" : row.computer;
-                sb.AppendLine($"{cursor}{flag}  {row.time,-7} {computer,-10} {row.user,-12} {row.activity}");
+                sb.AppendLine($"{cursor}<pos=2%>{flag}<pos=4%>{row.time}<pos=14%>{computer}<pos=28%>{row.user}<pos=42%>{row.activity}");
             }
             bodyText.text = sb.ToString();
             feedbackText.text = string.IsNullOrEmpty(hint)
