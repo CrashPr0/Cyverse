@@ -20,6 +20,13 @@ namespace Cyverse.Level
     ///
     /// It disappears once the player is within a couple of metres — it has
     /// done its job by then, and the interact prompt takes over.
+    ///
+    /// The cube is drawn twice. The hologram pass is depth tested like any
+    /// prop; the "ghost" pass (Cyverse/ObjectiveMarkerGhost) draws only where
+    /// something solid covers the cube. Header signs, hanging panels, props
+    /// and walls used to hide the marker outright — from most angles in the
+    /// Level 4 game room, where every machine has a board above it. Now it
+    /// shows through them as an outlined cube.
     /// </summary>
     public class ObjectiveBeacon : MonoBehaviour
     {
@@ -31,6 +38,7 @@ namespace Cyverse.Level
 
         private Transform cube;
         private Renderer tinted;
+        private Renderer ghost;
 
         // Hide once the player is basically there; the HUD objective line and
         // the interact prompt take over at that range.
@@ -40,6 +48,10 @@ namespace Cyverse.Level
 
         /// <summary>What the beacon is marking, or null.</summary>
         public Transform Target => target;
+
+        /// <summary>The see-through copy of the marker, drawn only where
+        /// geometry covers it. Null if its shader is missing.</summary>
+        public Renderer GhostRenderer => ghost;
 
         /// <summary>True while the marker cube is up (it hides once the player
         /// is close enough that the interact prompt takes over).</summary>
@@ -84,6 +96,7 @@ namespace Cyverse.Level
                 if (m.HasProperty("_Color")) m.SetColor("_Color", color);
                 if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", color * 2f);
             }
+            if (ghost != null) ghost.material.SetColor("_Color", color);
             // Guidance refreshes several times per second; the placement only
             // needs a physics query when its destination actually changes.
             if (placementChanged) markerHeight = CalculateMarkerHeight();
@@ -174,8 +187,26 @@ namespace Cyverse.Level
 
             beacon.cube = cube.transform;
             beacon.tinted = cube.GetComponent<Renderer>();
+            beacon.ghost = BuildGhost(cube.transform);
             beacon.SetVisible(false);
             return beacon;
+        }
+
+        /// <summary>A second copy of the cube that only draws where level
+        /// geometry is in front of it. A child of the cube, so it bobs, spins
+        /// and hides with it.</summary>
+        private static Renderer BuildGhost(Transform cube)
+        {
+            Shader shader = Shader.Find("Cyverse/ObjectiveMarkerGhost");
+            if (shader == null) return null; // marker still works, just not through walls
+
+            var go = BuildKit.SpawnLocal(PrimitiveType.Cube, "MarkerGhost", cube,
+                Vector3.zero, Vector3.zero, Vector3.one,
+                new Material(shader) { name = "ObjectiveMarkerGhost" }, collider: false);
+            var renderer = go.GetComponent<Renderer>();
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return renderer;
         }
     }
 }
