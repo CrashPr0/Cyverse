@@ -31,6 +31,8 @@ namespace Cyverse.UI
         private GameObject captionPanel;
         private Text captionText;
         private GameObject objectivePanel;
+        private CanvasGroup objectiveGroup;
+        private float objectiveHideAt = float.PositiveInfinity;
         private Image objectiveBackground;
         private Outline objectiveOutline;
         private Text objectiveKicker;
@@ -53,6 +55,9 @@ namespace Cyverse.UI
         // Score counter
         private Text scoreText;
         private float scorePop = 1f;
+        private Text scorePopup;
+        private Coroutine scorePopupRoutine;
+        private int scorePopupDelta;
         private float objectivePop = 1f;
         private float objectiveHighlight;
         private readonly List<Text> activeToasts = new List<Text>();
@@ -103,14 +108,21 @@ namespace Cyverse.UI
             }
         }
 
-        /// <summary>Floating "+N" that drifts up from the score counter and fades.</summary>
+        /// <summary>Combine rapid awards into one "+N" below the score counter.</summary>
         private void SpawnScorePopup(int delta)
         {
-            var t = CreateText("ScorePopup", Canvas.transform, 30, TextAnchor.UpperRight);
-            t.fontStyle = FontStyle.Bold;
-            t.color = delta >= 100 ? new Color(0.90f, 0.66f, 0.14f) : Accent; // gold for the big ones
-            t.text = "+" + delta;
-            AddOutline(t);
+            if (scorePopupRoutine != null) StopCoroutine(scorePopupRoutine);
+            if (scorePopup == null)
+            {
+                scorePopupDelta = 0;
+                scorePopup = CreateText("ScorePopup", Canvas.transform, 30, TextAnchor.UpperRight);
+                scorePopup.fontStyle = FontStyle.Bold;
+                AddOutline(scorePopup);
+            }
+            scorePopupDelta += delta;
+            var t = scorePopup;
+            t.color = scorePopupDelta >= 100 ? new Color(0.90f, 0.66f, 0.14f) : Accent;
+            t.text = "+" + scorePopupDelta;
             var rt = t.rectTransform;
             rt.anchorMin = new Vector2(1f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
@@ -119,7 +131,7 @@ namespace Cyverse.UI
             // rise through the score digits.
             rt.anchoredPosition = new Vector2(-30, -66);
             rt.sizeDelta = new Vector2(200, 40);
-            StartCoroutine(ScorePopupRoutine(t));
+            scorePopupRoutine = StartCoroutine(ScorePopupRoutine(t));
         }
 
         private IEnumerator ScorePopupRoutine(Text t)
@@ -138,6 +150,9 @@ namespace Cyverse.UI
                 yield return null;
             }
             if (t != null) Destroy(t.gameObject);
+            scorePopup = null;
+            scorePopupRoutine = null;
+            scorePopupDelta = 0;
         }
 
         void Update()
@@ -196,7 +211,8 @@ namespace Cyverse.UI
             // screen menus put their title bars; step aside while one is up.
             if (objectivePanel != null)
             {
-                bool showObjective = !GameState.AnyMenuOpen;
+                bool showObjective = !GameState.AnyMenuOpen && Time.unscaledTime < objectiveHideAt;
+                objectiveGroup.alpha = Mathf.Clamp01((objectiveHideAt - Time.unscaledTime) / 0.35f);
                 if (objectivePanel.activeSelf != showObjective) objectivePanel.SetActive(showObjective);
             }
 
@@ -315,6 +331,13 @@ namespace Cyverse.UI
             ShowObjectiveCore(text);
         }
 
+        /// <summary>Show a step briefly, then softly fade the banner away.</summary>
+        public void ShowStepFor(int step, int totalSteps, string text, float seconds)
+        {
+            ShowStep(step, totalSteps, text);
+            objectiveHideAt = Time.unscaledTime + seconds;
+        }
+
         public void ShowObjective(string text)
         {
             objectiveStep = 0;
@@ -327,6 +350,8 @@ namespace Cyverse.UI
         private void ShowObjectiveCore(string text)
         {
             PinObjectiveToTop();
+            objectiveHideAt = float.PositiveInfinity;
+            objectiveGroup.alpha = 1f;
             bool hadObjective = !string.IsNullOrEmpty(objectiveRawText);
             bool changed = objectiveRawText != text && hadObjective;
             objectiveRawText = text ?? string.Empty;
@@ -495,6 +520,7 @@ namespace Cyverse.UI
         {
             objectivePanel = new GameObject("NextTaskPanel", typeof(RectTransform), typeof(Image));
             objectivePanel.transform.SetParent(Canvas.transform, false);
+            objectiveGroup = objectivePanel.AddComponent<CanvasGroup>();
             objectiveBackground = objectivePanel.GetComponent<Image>();
             objectiveBackground.color = ObjectiveBackground;
             objectiveBackground.raycastTarget = false;
