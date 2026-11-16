@@ -93,6 +93,20 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       low-pass and reverb, and the room tone is low brown noise. Needs a
       listen on real speakers before sign-off.
 
+- [x] **Level 1 MFA phone seen running** (`DiegeticPhone`, never looked at
+      before). Rendered in Unity on 2026-11-16 with the new
+      `DiegeticPhonePlayModeTests` (`CYVERSE_PHONE_CAPTURE=1` writes the
+      views): it stands upright on its dock left of the passcode terminal,
+      faces the player, and the code is legible from the terminal, from the
+      phone and close up. The always-on half of the test now guards its
+      orientation, size and screen. Notes, not changed: the phone is about
+      20 x 40 cm (large for a phone, chosen for legibility), and from the
+      terminal the dock's "MY PHONE" plate is partly hidden by the dock edge.
+- [x] **`HANDOFF_OPUS.md` brought up to date.** Its co-mingled refactor
+      warning and the held Level 3 `QueryTerminal` up-arrow patch were
+      stale: the refactor was committed on 2026-09-28 and the terminal was
+      removed in PR #11. Placeholder-art notes kept and corrected.
+
 ## Added for release
 
 - [x] **Credits** in Settings (Esc) → Credits. PLACEHOLDER text with the

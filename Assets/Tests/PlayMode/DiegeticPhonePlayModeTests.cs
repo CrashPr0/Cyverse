@@ -20,7 +20,7 @@ namespace Cyverse.Tests
     /// </summary>
     public class DiegeticPhonePlayModeTests
     {
-        private const string SampleCode = "482913";
+        private const string SampleCode = "4829";
 
         [UnityTest]
         [Timeout(30000)]
