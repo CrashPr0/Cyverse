@@ -118,11 +118,16 @@ namespace Cyverse.Level
 
             // Mirror-room copies behind the evidence locker are scenery seen through
             // a window; laying them out would push real signs around.
+            Font font = Cyverse.UI.HudUI.LoadFont();
             foreach (TextMesh text in FindObjectsOfType<TextMesh>(true))
             {
                 if (!text.gameObject.scene.IsValid() || LockerSightline.IsReplica(text.transform)) continue;
                 Renderer renderer = text.GetComponent<Renderer>();
                 if (renderer == null) continue;
+                // Signs saved in a scene still name Unity's built-in font.
+                // The shared material draws from the game font's atlas, so a
+                // sign left on another font would show the wrong glyphs.
+                if (font != null && text.font != font) text.font = font;
                 renderer.sharedMaterial = BuildKit.TextMaterial();
                 Register(text, renderer);
             }

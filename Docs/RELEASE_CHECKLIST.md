@@ -26,15 +26,15 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
 
 ## Release blockers
 
-- [ ] **1. Missing characters in the web build.** The built-in font ships as
+- [x] **1. Missing characters in the web build.** The built-in font ships as
       a 332-character subset with no em dash, arrows, bullet, ellipsis, curly
-      double quotes or box/triangle shapes. Text drawn with it shows gaps:
-      the Settings key hints for "Select" and "Change" are empty boxes, and
-      "Onboarding — Level 0" on the title card reads "Onboarding  Level 0".
-      Affects every HUD line, toast, prompt and 3D sign that uses one of
-      those characters (over 300 uses in code; text drawn with TextMesh Pro
-      is not affected). The editor hides the bug because it falls back to
-      system fonts.
+      double quotes or box/triangle shapes. Text drawn with it showed gaps:
+      the Settings key hints for "Select" and "Change" were empty boxes, and
+      "Onboarding — Level 0" on the title card read "Onboarding  Level 0".
+      Fixed by shipping the game's own font (`Assets/Resources/Fonts`).
+      **Still to confirm in a browser build**: the editor never showed the
+      bug, so the tests prove the font is loaded and complete, not how it
+      looks on screen.
 - [ ] **2. Play Mode tests did not run on pull requests**, only after merge
       to `main`. Fixed by the `PR Checks` workflow (tests, then a WebGL
       build attached to the run).
