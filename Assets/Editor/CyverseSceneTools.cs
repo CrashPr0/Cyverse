@@ -77,13 +77,15 @@ namespace Cyverse.EditorTools
                 "Assets/Scenes/Level0.unity",
                 "Assets/Scenes/Level1_IAM.unity",
                 "Assets/Scenes/Level2_CyberDefense.unity",
-                "Assets/Scenes/Level1.unity",
                 "Assets/Scenes/Level3_Forensics.unity",
                 "Assets/Scenes/Level4_CyberAttack.unity",
             };
 
             var legacyVisualPasses = new HashSet<string>
             {
+                // The first SOC level, replaced by Level2_CyberDefense. Doors
+                // that still name it are routed there by SceneCatalog.
+                "Assets/Scenes/Level1.unity",
                 "Assets/Scenes/Level0 Visual Pass.unity",
                 "Assets/Scenes/Level1_IAM_VisualPass.unity",
                 "Assets/Scenes/Level2_CyberDefense_VisualPass.unity",
