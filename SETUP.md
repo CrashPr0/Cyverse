@@ -5,11 +5,11 @@ This document covers opening, running, and extending the levels.
 
 ## Game flow
 
-The game now boots through a scene chain instead of straight into a level:
+The game boots into the Hub and moves through a scene chain:
 
 ```
-PasswordLock  →  Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → …
- (entry scene)   (level select)           (unlock in order)
+Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → Level 3 → Level 4
+ (entry scene, level select)           (unlock in order)
 ```
 
 - **PasswordLock** — an optional access-code gate, **off in release builds**:

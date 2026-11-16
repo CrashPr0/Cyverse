@@ -34,8 +34,10 @@ is readable.
 For the full released route, choose
 `CyVerse > Testing > Watch Full Campaign TAS (Password to Level 3)`. This
 starts at the password vestibule, enters and crosses the Hub between missions,
-then plays Levels 1, 2, and 3 in order. Level 3 Digital Forensics is currently
-the newest playable level; the Level 4 Hub doorway remains in development.
+then plays Levels 1, 2, and 3 in order. The replay stops there: Level 4 is
+playable but is covered by its own Play Mode tests, not by this route. The
+password vestibule is no longer the game's entry scene, but the replay still
+starts there.
 
 ## Test Runner and command line
 

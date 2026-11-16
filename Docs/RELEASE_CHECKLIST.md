@@ -55,8 +55,8 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       captions still play; Settings → Voiceover turns the computer voice on.
       A browser that already saved the old setting keeps it until Restore
       Defaults is used.
-- [ ] **`CyverseVer1.0.zip`** (7.5 MB, an old WebGL build from July) sits in
-      the repository root. Remove it?
+- [x] **`CyverseVer1.0.zip` removed.** It was a 7.5 MB WebGL build from July
+      in the repository root. It is still in git history.
 - [x] **Company name: San Jose State University.** Product name is now
       "CyVerse".
 
@@ -81,8 +81,9 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       can load it.
 - [ ] Playtest telemetry prints a line to the browser console for every
       event in release builds.
-- [ ] `README.md` and `TESTING.md` describe an older game (Level 0 only;
-      "Level 4 doorway remains in development").
+- [x] `README.md` rewritten for the current game; stale lines in
+      `TESTING.md` and `SETUP.md` corrected. The rest of `SETUP.md` (800
+      lines) has not been reviewed.
 - [ ] Audio: sound effects are already soft, low mallet tones with a
       low-pass and reverb, and the room tone is low brown noise. Needs a
       listen on real speakers before sign-off.

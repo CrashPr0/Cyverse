@@ -1,18 +1,54 @@
 # CyVerse
 
-A web-based (WebGL), desktop, first-person game for teaching foundational
-cybersecurity concepts. No VR — WASD + mouse, browser-friendly, with captions
-and accessibility options.
+A first-person cybersecurity training game that runs in the browser (Unity
+WebGL). Built at San José State University. Keyboard and mouse, no VR, with
+captions and accessibility options.
 
-**Level 0** covers Identification & Access Management (I/AM), the CIA Triad, and
-the NICE Workforce Roles, framed as a new employee ("Cy") being onboarded at
-CyberVerse HQ.
+**Play:** https://crashpr0.github.io/Cyverse/
 
-## Quick start
+## What's in the game
 
-1. Install **Unity 2022.3 LTS**.
+The game opens in the Hub, a level-select room. Levels unlock in order.
+
+| Level | Topic | What you do |
+| --- | --- | --- |
+| Orientation (optional) | I/AM, the CIA Triad, NICE roles | Tour the stations as a new employee, then authenticate. |
+| 1 | Identity & Access | Enroll an ID badge, clear the MFA vault, sort data by role, hunt through an audit log, pass the exam. |
+| 2 | Cyber Defense | Work SOC investigations, lock the seized device in the evidence locker, order the incident response playbook, pass the exam. |
+| 3 | Digital Forensics | Take the device from the evidence locker, log it into custody, analyze the evidence, file the report. |
+| 4 | Cyber Attack | Play the red team in a simulated game room: Spot the Phish, Phish Frenzy, Access Grabber, Network Attack. |
+
+Each page load starts a fresh run: progress is cleared, settings are kept.
+Reload the page to reset between players.
+
+## Controls
+
+| Key | Action |
+| --- | --- |
+| W A S D (or arrows) | Move |
+| Shift | Sprint |
+| Mouse | Look around |
+| E | Interact |
+| Space | Advance dialogue |
+| G | Glossary |
+| H | Controls help |
+| Esc | Settings |
+
+## Run it in the editor
+
+1. Install **Unity 2022.3.40f1**.
 2. Add this folder as a project in Unity Hub and open it.
-3. Open `Assets/Scenes/Level0.unity` and press **Play**.
+3. Open `Assets/Scenes/Hub.unity` and press **Play**.
 
-Full instructions, controls, architecture, and WebGL build steps are in
-[`SETUP.md`](SETUP.md).
+## Tests, builds and deploys
+
+- Pull requests run the Play Mode tests and attach a WebGL build
+  (`.github/workflows/pr-checks.yml`).
+- A push to `main` runs the tests, builds, and publishes to GitHub Pages
+  (`.github/workflows/webgl-deploy.yml`).
+
+## More documentation
+
+- [`SETUP.md`](SETUP.md): architecture, level details, WebGL build and deployment.
+- [`TESTING.md`](TESTING.md): automated playthroughs and running tests locally.
+- [`Docs/RELEASE_CHECKLIST.md`](Docs/RELEASE_CHECKLIST.md): release audit and what is left.
