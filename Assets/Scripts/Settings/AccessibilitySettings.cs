@@ -37,8 +37,10 @@ namespace Cyverse.Settings
         public float MouseSensitivity { get; private set; } = 1f;
         public float FieldOfView { get; private set; } = 60f;
 
-        /// <summary>Browser text-to-speech for unvoiced dialogue (WebGL builds).</summary>
-        public bool TtsEnabled { get; private set; } = true;
+        /// <summary>Browser text-to-speech for unvoiced dialogue (WebGL builds).
+        /// Off unless the player turns it on: it is the computer's synthetic
+        /// voice, and recorded narration and captions cover the same text.</summary>
+        public bool TtsEnabled { get; private set; } = false;
         /// <summary>Speed multiplier for browser text-to-speech (1 = normal).</summary>
         public float VoiceRate { get; private set; } = 1f;
 
@@ -105,7 +107,7 @@ namespace Cyverse.Settings
             Add(new Row
             {
                 Section = "Audio", Label = "Voiceover", Kind = Kind.Choice,
-                Help = "Reads dialogue that has no recorded voice aloud with your browser's voice, at the speed you pick.",
+                Help = "Off by default. Turn on to have your browser's voice read dialogue that has no recorded voice, at the speed you pick.",
                 Value = () => TtsEnabled ? VoiceRateLabel(VoiceRate) : "Off",
                 Step = CycleVoiceover,
             });
@@ -334,7 +336,7 @@ namespace Cyverse.Settings
             MouseSensitivity = 1f;
             FieldOfView = 60f;
             ReduceMotion = false;
-            TtsEnabled = true;
+            TtsEnabled = false;
             VoiceRate = 1f;
             ArrowKeysMove = true;
             InvertColors.Set(false);
@@ -360,7 +362,7 @@ namespace Cyverse.Settings
             MouseSensitivity = PlayerPrefs.GetFloat("cv_mouse", 1f);
             FieldOfView = PlayerPrefs.GetFloat("cv_fov", 60f);
             ReduceMotion = PlayerPrefs.GetInt("cv_reducemotion", 0) == 1;
-            TtsEnabled = PlayerPrefs.GetInt("cv_tts", 1) == 1;
+            TtsEnabled = PlayerPrefs.GetInt("cv_tts", 0) == 1;
             VoiceRate = PlayerPrefs.GetFloat("cv_voicerate", 1f);
             if (Array.IndexOf(VoiceRates, VoiceRate) < 0) VoiceRate = 1f;
             ArrowKeysMove = PlayerPrefs.GetInt("cv_arrowmove", 1) == 1;

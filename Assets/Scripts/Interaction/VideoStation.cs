@@ -484,7 +484,7 @@ namespace Cyverse.Interaction
         {
             if (HasCompletedOnce || !Speech.Available) return;
             var settings = AccessibilitySettings.Instance;
-            if (settings != null && !settings.TtsEnabled) return;
+            if (settings == null || !settings.TtsEnabled) return;
             if (slideSpoken == null || slideSpoken.Length != slides.Length) slideSpoken = new bool[slides.Length];
             if (slideSpoken[idx] || string.IsNullOrEmpty(slides[idx].body)) return;
             slideSpoken[idx] = true;

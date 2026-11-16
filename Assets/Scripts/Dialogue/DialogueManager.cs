@@ -137,7 +137,7 @@ namespace Cyverse.Dialogue
                         voice.Play();
                     }
                     else if (Cyverse.Audio.Speech.Available &&
-                             (AccessibilitySettings.Instance == null || AccessibilitySettings.Instance.TtsEnabled))
+                             AccessibilitySettings.Instance != null && AccessibilitySettings.Instance.TtsEnabled)
                     {
                         // No recorded clip — let the browser read the line aloud.
                         Cyverse.Audio.Speech.Speak(body, AccessibilitySettings.Instance != null ? AccessibilitySettings.Instance.VoiceRate : 1f, PitchFor(line.speaker), voiceVol);
