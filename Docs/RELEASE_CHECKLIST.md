@@ -125,6 +125,65 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       request that touches `Assets/` proves the PR Checks half; the deploy
       half runs on the next merge.
 
+## Visual pass (2026-11-16): ranked, nothing changed yet
+
+Sources: the deployed web build (`0111162`) in headless Chromium, entering
+Hub, Orientation and Levels 2–4 from their doors; and Unity runtime
+captures of every scene and station (`VisualQaRuntimeCaptureTests`).
+Mouse look does not register in headless Chromium, so the web pass saw
+each level from its spawn and the briefing screen; station close-ups come
+from the Unity captures. Level 1 was not entered in the browser (its door
+name contains "/", so it cannot be reached by script).
+
+- [ ] **1. The game is taller than the window on common laptops.** The
+      page sizes the canvas by width only (1280 x 720 under a header), so
+      at a 1366 x 768 screen 144 px (20%) of the game is below the fold, and
+      71 px at 1536 x 864. Captions, the E prompt and the Settings footer
+      sit at the bottom. Fix is page-only: cap the canvas by viewport
+      height.
+- [ ] **2. Briefing slide footer is unreadable** ("SLIDE 1 OF N · E for
+      the next slide"): pale grey over the bright floor, and it is the
+      instruction to progress (Levels 1, 2 and 4).
+- [ ] **3. Patrol drones fly through the briefing reading spot** in
+      Levels 2 and 4 and cover the slide text while the player reads.
+- [ ] **4. Hub and Orientation are very dark**, and from the Hub spawn the
+      door banner captions and mission board rows are too small to read;
+      the mission board is cut off at the left of the spawn view.
+- [ ] **5. Level 1 MFA wording disagrees with itself.** The phone says
+      "MY PASSCODE · SECRET PASSCODE, MEMORIZE IT", the wall board says
+      "DAILY OTP · CHECK YOUR PHONE · code rotates every 24h", and the
+      terminal says "CODE FROM YOUR PHONE". The factor is "something you
+      know", but the signs describe a one-time code (something you have).
+      Wording change; needs the owner's call.
+- [ ] **6. Hanging signs collide with door headers.** Level 2:
+      CERTIFICATION over the FORENSICS LAB door header (two frames
+      overlap). Level 3: "03 FORENSIC REPORT" covers "RETURN TO HUB";
+      RECEPTION hangs in front of the Evidence Locker; the station heading
+      underlines cut through the letters.
+- [ ] **7. Level 1 station labels.** Data Triage crate labels pass through
+      the podium and box lids, and the DATA TRIAGE table plate is
+      unreadable; the vault's KNOW / HAVE / ARE captions and
+      "LOCKED · 0 OF 3" are tiny.
+- [ ] **8. Level 2 small text.** The IR playbook step list and card
+      captions are too small, and the Unity capture shows gaps in
+      "CONTAINMENT" and "ERADICATION" and em dashes drawn as "– –" on the
+      workstation monitors. The web build draws em dashes correctly on the
+      briefing board, so this may be editor-only; check at a workstation in
+      a browser.
+- [ ] **9. HUD task list** (top left) is small, and unticked lines are grey
+      on teal, low contrast at 1280 px wide.
+- [ ] **10. Orientation asks for the callsign again**, so a player who
+      starts walking types "WWWEEE" into it. Known; left as is earlier.
+- [ ] **11. MFA phone** "MY PHONE" plate partly hidden from the terminal
+      (see above).
+- [ ] **12. PasswordLock** renders from inside a black slab in the Unity
+      capture. Doesn't ship as the entry scene; matters only if the gate
+      returns.
+
+Not checked: whether ← / → in the Level 3 Evidence Explorer type a stray
+character into its search box in the browser (the old `QueryTerminal`
+bug); audio; frame rate on real hardware.
+
 ## Added for release
 
 - [x] **Credits** in Settings (Esc) → Credits. PLACEHOLDER text with the
