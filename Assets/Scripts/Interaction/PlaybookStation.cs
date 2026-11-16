@@ -288,7 +288,7 @@ namespace Cyverse.Interaction
                 guide = BuildKit.MakeLabel(transform, new Vector3(0f, 2.45f, 0.3f),
                     "1  PREPARATION   >   2  DETECTION   >   3  CONTAINMENT\n" +
                     "4  ERADICATION   >   5  RECOVERY   >   6  LESSONS LEARNED",
-                    new Color(0.90f, 0.95f, 1f), 0.024f, billboard: false);
+                    new Color(0.90f, 0.95f, 1f), 0.028f, billboard: false);
                 guide.gameObject.name = "PlaybookSequenceGuide";
             }
             else
@@ -296,7 +296,7 @@ namespace Cyverse.Interaction
                 guide = guideTransform.GetComponent<TextMesh>();
                 if (guide != null)
                 {
-                    guide.characterSize = 0.024f;
+                    guide.characterSize = 0.028f;
                     guide.transform.localPosition = new Vector3(0f, 2.45f, 0.3f);
                     Billboard billboard = guide.GetComponent<Billboard>();
                     if (billboard != null) billboard.enabled = false;
@@ -330,7 +330,7 @@ namespace Cyverse.Interaction
             {
                 if (!label.text.Contains("RESPONSE CARDS")) continue;
                 label.text = "SHUFFLED CARDS  —  E TO PICK UP";
-                label.characterSize = 0.013f;
+                label.characterSize = 0.018f;
                 label.transform.localPosition = new Vector3(0f, 2.35f, 0f);
                 Billboard billboard = label.GetComponent<Billboard>();
                 if (billboard != null) billboard.enabled = false;
