@@ -32,12 +32,13 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       the Settings key hints for "Select" and "Change" were empty boxes, and
       "Onboarding — Level 0" on the title card read "Onboarding  Level 0".
       Fixed by shipping the game's own font (`Assets/Resources/Fonts`).
-      **Still to confirm in a browser build**: the editor never showed the
-      bug, so the tests prove the font is loaded and complete, not how it
-      looks on screen.
-- [ ] **2. Play Mode tests did not run on pull requests**, only after merge
-      to `main`. Fixed by the `PR Checks` workflow (tests, then a WebGL
-      build attached to the run).
+      Confirmed on the deployed build in headless Chromium: the em dash,
+      arrows and bullets now draw.
+- [x] **2. Play Mode tests did not run on pull requests**, only after merge
+      to `main`. Fixed by the `PR Checks` workflow
+      (`.github/workflows/pr-checks.yml`): every pull request that touches
+      `Assets/`, `Packages/` or `ProjectSettings/` runs the Play Mode tests,
+      then a WebGL build attached as the `webgl-build` artifact.
 - [x] **3. Web page text was left over from an earlier version.** The loading
       screen said "Loading Level 0 — Onboarding" (the game opens on the
       access terminal) and the tab title was "CyVerse — Cyverse". The landing
@@ -108,9 +109,10 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
 - [x] **Look input is clamped per frame** (30 degrees), so a pointer-lock
       jump or a long frame can no longer snap the view to the ceiling.
 
-**Not seen running**: the credits card, the certificate save and the ring
-change have passed CI at most; none has been looked at in a browser.
+**Seen running** on the deployed build (headless Chromium): the game
+starts in the Hub, Credits opens, Start Over resets the run, no console
+errors. **Not seen running**: the certificate save and the ring change.
 
 ## Done
 
-Nothing merged yet.
+- PR #53 (squash `0111162`) merged the release pass above and is deployed.
