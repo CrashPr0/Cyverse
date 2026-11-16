@@ -90,13 +90,13 @@ namespace Cyverse.UI
             UiMotion.PanelIn(card);
             if (phone)
             {
-                feedbackText.text = "<color=#8FB8CC>TYPE THE CODE FROM YOUR PHONE\nENTER submit   ·   ESC / TAB step away</color>";
+                feedbackText.text = "<color=#8FB8CC>TYPE YOUR SECRET PASSCODE\nENTER submit   ·   ESC / TAB step away</color>";
                 // The card can cover the in-world phone, so its own phone
                 // panel always shows the code too; the in-world phone lights up
                 // with it as well.
                 phonePanel.SetActive(true);
                 phoneCodeText.text = expectedAnswer;
-                phoneStatusText.text = "<color=#8FB8CC>DAILY OTP  ·  SPARTAN</color>";
+                phoneStatusText.text = "<color=#8FB8CC>STARTER PASSCODE  ·  SPARTAN</color>";
                 phoneUi.RefreshClock();
                 phoneRect.anchoredPosition = PhoneHidden;
                 phoneSlideRoutine = StartCoroutine(SlideInPhone());
@@ -104,7 +104,7 @@ namespace Cyverse.UI
                 if (diegetic != null)
                 {
                     diegetic.ShowCode(expectedAnswer);
-                    diegetic.SetStatus("<color=#8FB8CC>DAILY OTP  ·  SPARTAN</color>");
+                    diegetic.SetStatus("<color=#8FB8CC>STARTER PASSCODE  ·  SPARTAN</color>");
                 }
             }
             else

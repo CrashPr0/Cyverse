@@ -91,7 +91,7 @@ namespace Cyverse.Tests
             Shoot(camera, output, "0-dark-from-terminal", terminal + new Vector3(-0.3f, 1.6f, -1.2f), s);
 
             phone.GetType().GetMethod("ShowCode").Invoke(phone, new object[] { SampleCode });
-            phone.GetType().GetMethod("SetStatus").Invoke(phone, new object[] { "<color=#8FB8CC>DAILY OTP  ·  SPARTAN</color>" });
+            phone.GetType().GetMethod("SetStatus").Invoke(phone, new object[] { "<color=#8FB8CC>STARTER PASSCODE  ·  SPARTAN</color>" });
             yield return null;
 
             // Where the player stands to use the passcode terminal, looking at it.
