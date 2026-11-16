@@ -29,6 +29,9 @@ namespace Cyverse.Player
         private CharacterController controller;
         private Transform cam;
         private float pitch;
+
+        /// <summary>Most the view may turn in a single frame, in degrees.</summary>
+        private const float MaxLookPerFrame = 30f;
         private float verticalVelocity;
         private float stepDistance;
 
@@ -77,6 +80,14 @@ namespace Cyverse.Player
 
             float mouseX = Input.GetAxis("Mouse X") * sens;
             float mouseY = Input.GetAxis("Mouse Y") * sens;
+
+            // One frame can deliver a huge mouse delta: browsers report a jump
+            // when pointer lock is granted, and a long frame adds up every
+            // movement made during it. Unclamped, that snaps the view to the
+            // ceiling or spins it round. No hand moves the mouse this far in
+            // one frame, so normal play never reaches the limit.
+            mouseX = Mathf.Clamp(mouseX, -MaxLookPerFrame, MaxLookPerFrame);
+            mouseY = Mathf.Clamp(mouseY, -MaxLookPerFrame, MaxLookPerFrame);
 
             transform.Rotate(Vector3.up * mouseX);
 

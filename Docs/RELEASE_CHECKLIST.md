@@ -105,6 +105,9 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       keyboard and mouse and asked before the download starts. Tested
       locally on desktop, an emulated phone and with WebGL 2 disabled.
 
+- [x] **Look input is clamped per frame** (30 degrees), so a pointer-lock
+      jump or a long frame can no longer snap the view to the ceiling.
+
 **Not seen running**: the credits card, the certificate save and the ring
 change have passed CI at most; none has been looked at in a browser.
 
