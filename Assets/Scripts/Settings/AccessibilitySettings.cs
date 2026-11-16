@@ -74,6 +74,22 @@ namespace Cyverse.Settings
         private int selected;
         private bool resetArmed;
         private bool startOverArmed;
+        private GameObject creditsCard;
+        private bool creditsOpen;
+
+        /// <summary>The credits shown from the settings menu. PLACEHOLDER:
+        /// the full team list is still to come; edit this text to add it.</summary>
+        public const string CreditsText =
+            "<size=30><b>CyVerse</b></size>\n" +
+            "A cybersecurity training game from San José State University\n\n" +
+            "<color=#8FB8CC>DEVELOPMENT</color>\n" +
+            "Christopher Anthony Velez\n\n" +
+            "<color=#8FB8CC>WITH THANKS TO</color>\n" +
+            "The CyberVerse Project team at San José State University\n" +
+            "Full team credits are being collected and will appear here.\n\n" +
+            "<color=#8FB8CC>BUILT WITH</color>\n" +
+            "Unity  ·  Liberation Sans (SIL Open Font License)\n" +
+            "Models by Brick Project Studio, Akduman, JustPlay and HQP Studios";
         private Vector3 lastMouse;
 
         private GameObject panel;
@@ -164,6 +180,13 @@ namespace Cyverse.Settings
                     else { startOverArmed = true; resetArmed = false; }
                 },
             });
+            Add(new Row
+            {
+                Section = null, Label = "Credits", Kind = Kind.Action,
+                Help = "Who made CyVerse.",
+                Value = () => "",
+                Step = _ => ShowCredits(true),
+            });
         }
 
         private void Add(Row row) => rows.Add(row);
@@ -234,6 +257,20 @@ namespace Cyverse.Settings
 
             if (!GameState.MenuOpen || panel == null) return;
 
+            // The credits card replaces the settings card until dismissed.
+            if (creditsOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) ||
+                    Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Backspace) ||
+                    Input.GetMouseButtonDown(0))
+                {
+                    ShowCredits(false);
+                    if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+                }
+                lastMouse = Input.mousePosition;
+                return;
+            }
+
             if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) Select(selected - 1);
             else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) Select(selected + 1);
             else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) Change(-1);
@@ -298,6 +335,7 @@ namespace Cyverse.Settings
                 if (panel != null) UiMotion.PanelIn(panel, card);
                 resetArmed = false;
                 startOverArmed = false;
+                ShowCredits(false);
                 lastMouse = Input.mousePosition;
                 if (Sfx.Instance != null) Sfx.Instance.PlayClick();
                 Refresh();
@@ -343,6 +381,45 @@ namespace Cyverse.Settings
             at = (at + (dir >= 0 ? 1 : 3)) % 4;
             if (at == 0) Level.LightingDirector.ChooseAuto();
             else Level.LightingDirector.Choose((Level.LightingDirector.Tier)(3 - at));
+        }
+
+        /// <summary>Swaps the settings card for the credits card and back.</summary>
+        private void ShowCredits(bool show)
+        {
+            if (show && creditsCard == null) BuildCredits();
+            creditsOpen = show && creditsCard != null;
+            if (creditsCard != null) creditsCard.SetActive(creditsOpen);
+            if (card != null) card.gameObject.SetActive(!creditsOpen);
+        }
+
+        private void BuildCredits()
+        {
+            if (panel == null) return;
+            Color accent = HudUI.Accent;
+            const float width = 920f, height = 600f;
+            creditsCard = NewImage("CreditsCard", panel.transform, new Color(0.012f, 0.03f, 0.05f, 0.97f));
+            var rt = creditsCard.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(width, height);
+            rt.anchoredPosition = new Vector2(0f, -28f);
+            HudUI.StylePanel(creditsCard, new Color(0.012f, 0.03f, 0.05f, 0.97f), accent);
+
+            Text title = NewText("Title", rt, "CREDITS", 34, accent, TextAnchor.MiddleLeft, FontStyle.Bold);
+            Place(title.rectTransform, 48f, -24f, 400f, 44f);
+            var rule = NewImage("Rule", rt, new Color(accent.r, accent.g, accent.b, 0.25f));
+            Place(rule.GetComponent<RectTransform>(), 48f, -74f, width - 96f, 1f);
+
+            Text body = NewText("Body", rt, CreditsText, 22, new Color(0.90f, 0.94f, 0.98f),
+                TextAnchor.UpperCenter, FontStyle.Normal);
+            body.supportRichText = true;
+            body.horizontalOverflow = HorizontalWrapMode.Wrap;
+            body.verticalOverflow = VerticalWrapMode.Overflow;
+            Place(body.rectTransform, 48f, -100f, width - 96f, height - 180f);
+
+            Text hint = NewText("Hint", rt, "Enter or click to go back   ·   Esc to resume the game", 18, Muted,
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            Place(hint.rectTransform, 48f, -(height - 58f), width - 96f, 36f);
         }
 
         /// <summary>Wipes the playthrough and reloads the Hub, which opens on
@@ -469,7 +546,7 @@ namespace Cyverse.Settings
             panel = NewImage("SettingsBackdrop", HudUI.Instance.Canvas.transform, new Color(0f, 0.01f, 0.02f, 0.72f));
             Stretch(panel.GetComponent<RectTransform>());
 
-            const float width = 920f, rowHeight = 36f, rowGap = 3f, sectionHeight = 28f, sectionGap = 4f;
+            const float width = 920f, rowHeight = 34f, rowGap = 3f, sectionHeight = 28f, sectionGap = 4f;
             const float top = 92f, helpHeight = 48f, footer = 64f;
             int sections = 0;
             string last = null;

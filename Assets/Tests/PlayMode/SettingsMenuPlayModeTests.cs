@@ -23,7 +23,7 @@ namespace Cyverse.Tests
         {
             "Master_Volume", "Voice_Volume", "Sound_Effects", "Voiceover", "Graphics", "Field_of_View",
             "Look_Sensitivity", "Move_With", "Caption_Size", "Reduce_Motion", "Invert_Colors", "Restore_Defaults",
-            "Start_Over"
+            "Start_Over", "Credits"
         };
 
         [UnityTest]
