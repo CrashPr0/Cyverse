@@ -65,9 +65,11 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
 
 ## Polish
 
-- [ ] Progress ring and "STEP n OF m" disagree: Level 1 shows 0/6 beside a
-      seven-line task list, Level 3 shows 0/14 beside "STEP 1 OF 6", Level 4
-      shows 0/4 beside "STEP 1 OF 5".
+- [x] Progress ring and "STEP n OF m" disagreed in Level 3 (0/14 beside
+      "STEP 1 OF 6") and Level 4 (0/4 beside "STEP 1 OF 5"). The ring now
+      counts the same steps as the banner. Level 1's seven-line list beside
+      six steps is unchanged: the MFA Specialist talk is a line but not a
+      step.
 - [x] Task list style differed by level: Level 2 numbered its lines, the
       others did not. Level 2 now matches.
 - [x] Level 0's title card called it "Cybersecurity Onboarding — Level 0"
@@ -80,8 +82,7 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       changes the objective text recorded in playtest telemetry.
 - [x] Leftover "in development" wording in defaults (`ResultsScreen.Show`,
       legacy `Level1Manager`).
-- [ ] The legacy `Level1` scene still ships in the build although nothing
-      can load it.
+- [x] The legacy `Level1` scene no longer ships in the build.
 - [ ] Playtest telemetry prints a line to the browser console for every
       event in release builds.
 - [x] `README.md` rewritten for the current game; stale lines in
@@ -90,6 +91,22 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
 - [ ] Audio: sound effects are already soft, low mallet tones with a
       low-pass and reverb, and the room tone is low brown noise. Needs a
       listen on real speakers before sign-off.
+
+## Added for release
+
+- [x] **Credits** in Settings (Esc) → Credits. PLACEHOLDER text with the
+      developer's name; the full team list goes in
+      `AccessibilitySettings.CreditsText`.
+- [x] **Certificate can be saved** as a PNG from the browser ([S] or the
+      Save Image button). Its "prototype" labels now read "training"; it
+      still says it is not an official credential.
+- [x] **Game page notice**: no WebGL 2 gets an explanation instead of a
+      stuck loading bar; a touch-only device is told the game needs a
+      keyboard and mouse and asked before the download starts. Tested
+      locally on desktop, an emulated phone and with WebGL 2 disabled.
+
+**Not seen running**: the credits card, the certificate save and the ring
+change have passed CI at most; none has been looked at in a browser.
 
 ## Done
 
