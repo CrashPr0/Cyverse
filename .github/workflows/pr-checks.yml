@@ -61,6 +61,11 @@ jobs:
       - name: Run Unity Play Mode tests
         uses: game-ci/unity-test-runner@v4
         env:
+          # The action looks up the latest game-ci CLI release through the
+          # GitHub API and only signs that request when GITHUB_TOKEN is in
+          # the environment. Unsigned, it shares the runner's IP rate limit
+          # and fails at random with "GitHub API returned 403".
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
