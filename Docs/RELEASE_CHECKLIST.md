@@ -125,7 +125,7 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       request that touches `Assets/` proves the PR Checks half; the deploy
       half runs on the next merge.
 
-## Visual pass (2026-11-16): ranked, nothing changed yet
+## Visual pass (2026-11-16)
 
 Sources: the deployed web build (`0111162`) in headless Chromium, entering
 Hub, Orientation and Levels 2–4 from their doors; and Unity runtime
@@ -135,43 +135,60 @@ each level from its spawn and the briefing screen; station close-ups come
 from the Unity captures. Level 1 was not entered in the browser (its door
 name contains "/", so it cannot be reached by script).
 
-- [ ] **1. The game is taller than the window on common laptops.** The
+- [x] **1. The game is taller than the window on common laptops.** The
       page sizes the canvas by width only (1280 x 720 under a header), so
       at a 1366 x 768 screen 144 px (20%) of the game is below the fold, and
       71 px at 1536 x 864. Captions, the E prompt and the Settings footer
       sit at the bottom. Fix is page-only: cap the canvas by viewport
-      height.
-- [ ] **2. Briefing slide footer is unreadable** ("SLIDE 1 OF N · E for
+      height. **Fixed**: the canvas now fits the window height too (checked
+      at 1366 x 657, 1536 x 730, 1280 x 600 and 800 x 500: nothing hidden).
+- [x] **2. Briefing slide footer is unreadable** ("SLIDE 1 OF N · E for
       the next slide"): pale grey over the bright floor, and it is the
-      instruction to progress (Levels 1, 2 and 4).
-- [ ] **3. Patrol drones fly through the briefing reading spot** in
+      instruction to progress (Levels 1, 2 and 4). **Fixed**: dark plate
+      behind it, white text, gold E.
+- [x] **3. Patrol drones fly through the briefing reading spot** in
       Levels 2 and 4 and cover the slide text while the player reads.
-- [ ] **4. Hub and Orientation are very dark**, and from the Hub spawn the
+      It was the guide drone: standing at the board, the objective marker
+      sits above the view, so after 30 s the drone flew in to point the
+      way. **Fixed**: it stays away within 4.5 m of the objective.
+- [x] **4. Hub and Orientation are very dark**, and from the Hub spawn the
       door banner captions and mission board rows are too small to read;
       the mission board is cut off at the left of the spawn view.
-- [ ] **5. Level 1 MFA wording disagrees with itself.** The phone says
+      **Fixed**: ambient raised to the other levels' level
+      (`LightingDirector.RaiseAmbient`), banner words 50% bigger. The
+      mission board was not moved (baked Hub scene).
+- [x] **5. Level 1 MFA wording disagrees with itself.** The phone says
       "MY PASSCODE · SECRET PASSCODE, MEMORIZE IT", the wall board says
       "DAILY OTP · CHECK YOUR PHONE · code rotates every 24h", and the
       terminal says "CODE FROM YOUR PHONE". The factor is "something you
       know", but the signs describe a one-time code (something you have).
-      Wording change; needs the owner's call.
+      **Fixed** (owner let us decide): wall board "YOUR PASSCODE · ONLY YOU
+      KNOW IT · new here? your starter passcode is on your phone",
+      terminal "ENTER YOUR PASSCODE", card "TYPE YOUR SECRET PASSCODE",
+      phone status "STARTER PASSCODE".
 - [ ] **6. Hanging signs collide with door headers.** Level 2:
       CERTIFICATION over the FORENSICS LAB door header (two frames
       overlap). Level 3: "03 FORENSIC REPORT" covers "RETURN TO HUB";
       RECEPTION hangs in front of the Evidence Locker; the station heading
-      underlines cut through the letters.
-- [ ] **7. Level 1 station labels.** Data Triage crate labels pass through
+      underlines cut through the letters. **Not changed**: these line up
+      only from some spots (the signs are metres in front of the doors).
+      Lowering CERTIFICATION breaks its wall-light clearance test, and
+      Level 3's layout stays as is by owner decision.
+- [x] **7. Level 1 station labels.** Data Triage crate labels pass through
       the podium and box lids, and the DATA TRIAGE table plate is
       unreadable; the vault's KNOW / HAVE / ARE captions and
-      "LOCKED · 0 OF 3" are tiny.
-- [ ] **8. Level 2 small text.** The IR playbook step list and card
+      "LOCKED · 0 OF 3" are tiny. **Fixed**: vault captions about 40%
+      bigger and brighter. Crate labels unchanged (the shared carry label
+      also sits on the Level 2 card rack).
+- [x] **8. Level 2 small text.** The IR playbook step list and card
       captions are too small, and the Unity capture shows gaps in
       "CONTAINMENT" and "ERADICATION" and em dashes drawn as "– –" on the
       workstation monitors. The web build draws em dashes correctly on the
       briefing board, so this may be editor-only; check at a workstation in
-      a browser.
-- [ ] **9. HUD task list** (top left) is small, and unticked lines are grey
-      on teal, low contrast at 1280 px wide.
+      a browser. **Fixed**: step list and rack caption bigger.
+- [x] **9. HUD task list** (top left) is small, and unticked lines are grey
+      on teal, low contrast at 1280 px wide. **Fixed**: brighter unticked
+      lines on a darker backing.
 - [ ] **10. Orientation asks for the callsign again**, so a player who
       starts walking types "WWWEEE" into it. Known; left as is earlier.
 - [ ] **11. MFA phone** "MY PHONE" plate partly hidden from the terminal
