@@ -32,6 +32,14 @@ namespace Cyverse.Core
             }
         }
 
+        /// <summary>Drops the cached callsign so the next read comes from
+        /// storage again (used when a new playthrough starts mid-session).</summary>
+        public static void ForgetCached()
+        {
+            callsign = null;
+            loaded = false;
+        }
+
         /// <summary>Raw saved value (may be empty) for pre-filling the entry field.</summary>
         public static string SavedRaw => PlayerPrefs.GetString(PrefKey, "");
 

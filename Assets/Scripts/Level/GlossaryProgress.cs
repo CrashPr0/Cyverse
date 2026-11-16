@@ -15,6 +15,10 @@ namespace Cyverse.Level
         private const string PrefKey = "cv_glossary_unlocked";
         private static HashSet<int> unlocked;
 
+        /// <summary>Drops the cached unlock set so the next read comes from
+        /// storage again (used when a new playthrough starts mid-session).</summary>
+        public static void ForgetCached() => unlocked = null;
+
         private static void EnsureLoaded()
         {
             if (unlocked != null) return;

@@ -19,7 +19,7 @@ The game opens in the Hub, a level-select room. Levels unlock in order.
 | 4 | Cyber Attack | Play the red team in a simulated game room: Spot the Phish, Phish Frenzy, Access Grabber, Network Attack. |
 
 Each page load starts a fresh run: progress is cleared, settings are kept.
-Reload the page to reset between players.
+To reset between players, reload the page or use Settings (Esc) → Start Over.
 
 ## Controls
 

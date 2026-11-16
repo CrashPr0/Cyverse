@@ -48,9 +48,12 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
 - [x] **Access code gate: removed.** The game opens in the Hub. The
       access-code scene still ships and can be made the entry scene again
       in Build Settings to gate a private build.
-- [x] **Progress reset: kept.** Every page load starts a fresh run, which
-      is what study sessions need between participants. Reloading the page
-      is the reset; settings (volume, captions, graphics) are kept.
+- [x] **Progress reset: kept, plus Start Over.** Every page load starts a
+      fresh run, which is what study sessions need between participants.
+      Settings (Esc) → Start Over does the same without a reload: it erases
+      progress, scores and the callsign, picks the next culprit profile,
+      and returns to the title card. Settings are kept, and a
+      `playthrough_reset` event is written to the playtest telemetry.
 - [x] **Browser text-to-speech: off by default.** Recorded narration and
       captions still play; Settings → Voiceover turns the computer voice on.
       A browser that already saved the old setting keeps it until Restore

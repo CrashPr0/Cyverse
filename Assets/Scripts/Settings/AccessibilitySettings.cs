@@ -73,6 +73,7 @@ namespace Cyverse.Settings
         private readonly List<Row> rows = new List<Row>();
         private int selected;
         private bool resetArmed;
+        private bool startOverArmed;
         private Vector3 lastMouse;
 
         private GameObject panel;
@@ -147,8 +148,21 @@ namespace Cyverse.Settings
             {
                 Section = null, Label = "Restore Defaults", Kind = Kind.Action,
                 Help = "Puts every setting back to how the game started.",
+                On = () => resetArmed,
                 Value = () => resetArmed ? "Press again to confirm" : "",
-                Step = _ => { if (resetArmed) RestoreDefaults(); resetArmed = !resetArmed; },
+                Step = _ => { if (resetArmed) RestoreDefaults(); resetArmed = !resetArmed; startOverArmed = false; },
+            });
+            Add(new Row
+            {
+                Section = null, Label = "Start Over", Kind = Kind.Action,
+                Help = "Erases all progress, scores and the callsign, and returns to the title screen for a new player. Settings are kept.",
+                On = () => startOverArmed,
+                Value = () => startOverArmed ? "Press again to confirm" : "",
+                Step = _ =>
+                {
+                    if (startOverArmed) { startOverArmed = false; StartOver(); }
+                    else { startOverArmed = true; resetArmed = false; }
+                },
             });
         }
 
@@ -283,6 +297,7 @@ namespace Cyverse.Settings
                 if (panel != null) panel.transform.SetAsLastSibling();
                 if (panel != null) UiMotion.PanelIn(panel, card);
                 resetArmed = false;
+                startOverArmed = false;
                 lastMouse = Input.mousePosition;
                 if (Sfx.Instance != null) Sfx.Instance.PlayClick();
                 Refresh();
@@ -300,6 +315,7 @@ namespace Cyverse.Settings
             if (next == selected) return;
             selected = next;
             resetArmed = false;
+            startOverArmed = false;
             if (sound && Sfx.Instance != null) Sfx.Instance.PlayClick();
             Refresh();
         }
@@ -327,6 +343,24 @@ namespace Cyverse.Settings
             at = (at + (dir >= 0 ? 1 : 3)) % 4;
             if (at == 0) Level.LightingDirector.ChooseAuto();
             else Level.LightingDirector.Choose((Level.LightingDirector.Tier)(3 - at));
+        }
+
+        /// <summary>Wipes the playthrough and reloads the Hub, which opens on
+        /// the title card again. Same result as reloading the page, without
+        /// leaving fullscreen or re-downloading the game.</summary>
+        private void StartOver()
+        {
+            SetMenuOpen(false);
+            Speech.Cancel();
+            PlaythroughReset.StartNewPlaythrough();
+            Time.timeScale = 1f;
+            string hub = SceneCatalog.Preferred("Hub");
+            if (!Application.CanStreamedLevelBeLoaded(hub)) return;
+            if (ScreenFader.Instance != null)
+                ScreenFader.Instance.FadeToBlackThen(
+                    () => UnityEngine.SceneManagement.SceneManager.LoadScene(hub));
+            else
+                UnityEngine.SceneManagement.SceneManager.LoadScene(hub);
         }
 
         private void RestoreDefaults()
@@ -419,7 +453,7 @@ namespace Cyverse.Settings
                     case Kind.Action:
                         row.ValueText.text = row.Value();
                         row.ValueText.color = Warn;
-                        row.LabelText.color = resetArmed ? Warn : sel ? accent : Muted;
+                        row.LabelText.color = row.On != null && row.On() ? Warn : sel ? accent : Muted;
                         break;
                 }
             }
@@ -435,7 +469,7 @@ namespace Cyverse.Settings
             panel = NewImage("SettingsBackdrop", HudUI.Instance.Canvas.transform, new Color(0f, 0.01f, 0.02f, 0.72f));
             Stretch(panel.GetComponent<RectTransform>());
 
-            const float width = 920f, rowHeight = 38f, rowGap = 3f, sectionHeight = 28f, sectionGap = 4f;
+            const float width = 920f, rowHeight = 36f, rowGap = 3f, sectionHeight = 28f, sectionGap = 4f;
             const float top = 92f, helpHeight = 48f, footer = 64f;
             int sections = 0;
             string last = null;

@@ -173,6 +173,17 @@ namespace Cyverse.Level
         }
 
         /// <summary>
+        /// Picks the profile for a playthrough that starts mid-session (the
+        /// Start Over setting), by the same rules as a launch.  Call after
+        /// the saved playthrough has been cleared.
+        /// </summary>
+        public static void BeginNewPlaythrough()
+        {
+            sessionInitialized = false;
+            BeginStartupSession();
+        }
+
+        /// <summary>
         /// Called when a player build launches and by the access-code scene.
         /// See the class summary for the rules.  Idempotent per application
         /// run.
