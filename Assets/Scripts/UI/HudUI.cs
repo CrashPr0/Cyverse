@@ -366,6 +366,10 @@ namespace Cyverse.UI
 
         private int objectiveStep, objectiveStepTotal;
 
+        /// <summary>The step number last shown by ShowStep (0 when the
+        /// banner is not showing a step).</summary>
+        public int CurrentStep => objectiveStep;
+
         private void ShowObjectiveCore(string text)
         {
             PinObjectiveToTop();

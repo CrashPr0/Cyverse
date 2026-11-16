@@ -311,7 +311,12 @@ namespace Cyverse.Level
                     HudUI.Instance.ShowStepFor(CurrentStationIndex + 2, 5, $"Play {name}", 6f);
                     break;
             }
-            HudUI.Instance.SetProgress(CurrentPhase == Phase.Complete ? 4 : CompletedCount, 4);
+            // The ring counts the same five steps as the banner: the briefing
+            // and the four machines.
+            HudUI.Instance.SetProgress(
+                CurrentPhase == Phase.Complete ? 5
+                : CurrentPhase == Phase.Briefing ? 0
+                : Mathf.Clamp(CurrentStationIndex + 1, 1, 4), 5);
             UpdateMeter();
             UpdateTaskList();
         }
