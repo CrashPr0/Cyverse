@@ -115,6 +115,16 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       stale: the refactor was committed on 2026-09-28 and the terminal was
       removed in PR #11. Placeholder-art notes kept and corrected.
 
+- [x] **CI actions moved off Node 20** (GitHub is retiring it):
+      `actions/checkout` v5, `actions/cache` v5, `actions/upload-artifact`
+      v6, `game-ci/unity-builder` v5 (v5 only dropped the cloud-runner
+      inputs, which these workflows don't use). `game-ci/unity-test-runner@v4`
+      and `peaceiris/actions-gh-pages@v4` already run on Node 24. Left on
+      Node 20: `game-ci/unity-request-activation-file@v2` in the single-use
+      activation workflow (no newer release). **Not yet run**: the first pull
+      request that touches `Assets/` proves the PR Checks half; the deploy
+      half runs on the next merge.
+
 ## Added for release
 
 - [x] **Credits** in Settings (Esc) → Credits. PLACEHOLDER text with the

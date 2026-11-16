@@ -33,7 +33,7 @@ jobs:
           unityVersion: 2022.3.40f1
 
       - name: Upload activation file
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.getManualLicenseFile.outputs.filePath }}
           path: ${{ steps.getManualLicenseFile.outputs.filePath }}
