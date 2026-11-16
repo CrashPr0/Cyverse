@@ -7,11 +7,12 @@ using Cyverse.Core;
 namespace Cyverse.UI
 {
     /// <summary>
-    /// Prototype certificate for finishing the whole game, offered only on the
+    /// Certificate for finishing the whole game, offered only on the
     /// results card of the last story level once Levels 1-4 are all complete
     /// ([C] or the button). Names the player's callsign, the program, the
     /// final mission's score and rating, and today's date. Drawn on the HUD
-    /// canvas like the results card; nothing is saved or printed yet.
+    /// canvas like the results card. In the browser it can be saved as a PNG
+    /// ([S] or the button); it is a training keepsake, not a credential.
     /// </summary>
     public sealed class CertificateCard
     {
@@ -26,6 +27,13 @@ namespace Cyverse.UI
         private Text recipient, scoreLine, dateLine;
 
         public bool IsOpen => root != null && root.activeSelf;
+
+        /// <summary>Raised by the Save button; the owner captures the frame.</summary>
+        public Action SaveRequested;
+
+        /// <summary>File name for the saved picture, from the callsign.</summary>
+        public static string FileName =>
+            "cyverse-certificate-" + Regex.Replace(PlayerIdentity.Callsign ?? "", "[^A-Za-z0-9]", "") + ".png";
 
         public const string ProgramName = "the CyVerse Security Training Program";
         public const string ProgramLevels =
@@ -91,17 +99,26 @@ namespace Cyverse.UI
             seal.rectTransform.anchoredPosition = new Vector2(0f, -240f);
             Image sealInner = PhoneScreenUi.RoundedImage("SealInner", seal.rectTransform, Navy, 52f);
             sealInner.rectTransform.sizeDelta = new Vector2(104f, 104f);
-            Text sealText = Label(seal.rectTransform, "SealText", "CYVERSE\n<size=12>PROTOTYPE</size>", 17, Gold, 0f, FontStyle.Bold);
+            Text sealText = Label(seal.rectTransform, "SealText", "CYVERSE\n<size=12>TRAINING</size>", 17, Gold, 0f, FontStyle.Bold);
             sealText.rectTransform.sizeDelta = new Vector2(104f, 60f);
 
             Label(sheet, "Prototype",
-                "Prototype certificate  ·  not an official credential", 15, InkSoft, -322f, FontStyle.Italic);
+                "Training certificate  ·  not an official credential", 15, InkSoft, -322f, FontStyle.Italic);
 
             Button close = MakeButton(root.transform, "Close", "CLOSE   [C] / Esc");
             var crt = (RectTransform)close.transform;
-            crt.anchoredPosition = new Vector2(0f, -400f);
+            crt.anchoredPosition = new Vector2(CanvasImage.Supported ? 140f : 0f, -400f);
             close.onClick.AddListener(Hide);
             UiMotion.AddPress(close);
+
+            // Saving goes through the browser, so it is only offered there.
+            if (CanvasImage.Supported)
+            {
+                Button save = MakeButton(root.transform, "Save", "SAVE IMAGE   [S]");
+                ((RectTransform)save.transform).anchoredPosition = new Vector2(-140f, -400f);
+                save.onClick.AddListener(() => SaveRequested?.Invoke());
+                UiMotion.AddPress(save);
+            }
 
             root.SetActive(false);
         }

@@ -339,9 +339,6 @@ namespace Cyverse.Level
             string caseName = console != null && console.ActiveCase != null ? console.ActiveCase.title : "the case";
             bool custodyComplete = custodyForm == null || custodyForm.IsComplete;
             bool retrieved = DeviceRetrieved;
-            // device retrieval + custody + case questions + report submission
-            int workflowTotal = total + 3;
-            int workflowDone = done + (retrieved ? 1 : 0) + (custodyComplete ? 1 : 0) + (ReportSubmitted ? 1 : 0);
 
             switch (CurrentPhase)
             {
@@ -351,7 +348,8 @@ namespace Cyverse.Level
                             "Take the seized device from the EVIDENCE LOCKER by the entrance");
                     else
                         HudUI.Instance.ShowStep(2, StepTotal, "Watch the analyst briefing");
-                    HudUI.Instance.SetProgress(workflowDone, workflowTotal);
+                    // The ring counts the same steps as the banner.
+                    HudUI.Instance.SetProgress(Mathf.Max(0, HudUI.Instance.CurrentStep - 1), StepTotal);
                     break;
                 case Phase.Investigate:
                     if (!retrieved)
@@ -366,7 +364,8 @@ namespace Cyverse.Level
                     else
                         HudUI.Instance.ShowStep(4, StepTotal,
                             $"Work {caseName} at the ANALYZE EVIDENCE desk  ({done}/{total})");
-                    HudUI.Instance.SetProgress(workflowDone, workflowTotal);
+                    // The ring counts the same steps as the banner.
+                    HudUI.Instance.SetProgress(Mathf.Max(0, HudUI.Instance.CurrentStep - 1), StepTotal);
                     break;
                 case Phase.Report:
                     if (InKnowledgeCheck)
@@ -377,11 +376,12 @@ namespace Cyverse.Level
                         HudUI.Instance.ShowStep(6, StepTotal, "Answer the knowledge check");
                     else
                         HudUI.Instance.ShowStep(5, StepTotal, "Submit the report at the FORENSIC REPORT desk");
-                    HudUI.Instance.SetProgress(workflowDone, workflowTotal);
+                    // The ring counts the same steps as the banner.
+                    HudUI.Instance.SetProgress(Mathf.Max(0, HudUI.Instance.CurrentStep - 1), StepTotal);
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 3 COMPLETE");
-                    HudUI.Instance.SetProgress(workflowTotal, workflowTotal);
+                    HudUI.Instance.SetProgress(StepTotal, StepTotal);
                     break;
             }
             UpdateTaskList(done, total, custodyComplete, retrieved);

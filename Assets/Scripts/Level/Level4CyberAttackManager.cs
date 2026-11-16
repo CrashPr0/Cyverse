@@ -292,7 +292,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Briefing:
-                    HudUI.Instance.ShowStepFor(1, 5, "Watch the attack briefing", 6f);
+                    HudUI.Instance.ShowStepFor(1, 5, "Walk up to the screen and press E to watch the attack briefing", 6f);
                     break;
                 case Phase.Complete:
                     HudUI.Instance.ShowObjective("LEVEL 4 COMPLETE");
@@ -311,7 +311,12 @@ namespace Cyverse.Level
                     HudUI.Instance.ShowStepFor(CurrentStationIndex + 2, 5, $"Play {name}", 6f);
                     break;
             }
-            HudUI.Instance.SetProgress(CurrentPhase == Phase.Complete ? 4 : CompletedCount, 4);
+            // The ring counts the same five steps as the banner: the briefing
+            // and the four machines.
+            HudUI.Instance.SetProgress(
+                CurrentPhase == Phase.Complete ? 5
+                : CurrentPhase == Phase.Briefing ? 0
+                : Mathf.Clamp(CurrentStationIndex + 1, 1, 4), 5);
             UpdateMeter();
             UpdateTaskList();
         }
@@ -356,7 +361,7 @@ namespace Cyverse.Level
             bool active = CurrentPhase != Phase.Briefing;
             list.Show(new List<TaskListPanel.Task>
             {
-                new TaskListPanel.Task("Watch briefing", active, !active),
+                new TaskListPanel.Task("Watch the briefing", active, !active),
                 new TaskListPanel.Task("Spot the Phish · scams", completed[0], active && CurrentStationIndex == 0),
                 new TaskListPanel.Task("Phish Frenzy · bypass MFA", completed[1], active && CurrentStationIndex == 1),
                 new TaskListPanel.Task("Access Grabber · escalate", completed[2], active && CurrentStationIndex == 2),

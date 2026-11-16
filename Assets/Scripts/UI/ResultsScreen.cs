@@ -57,7 +57,7 @@ namespace Cyverse.UI
         public void Show(int score, int quizCorrect, int quizTotal, float seconds,
             string headerText = "LEVEL 0 COMPLETE",
             string grantedLine = "Access Granted — Level: Employee",
-            string nextMissionText = "Level 1 — Cyber Defense  (in development)",
+            string nextMissionText = null,
             string replaySuffix = "Level 0",
             int parScore = 550,
             string continueLabel = null,
@@ -184,7 +184,31 @@ namespace Cyverse.UI
         public void ShowCertificate()
         {
             if (!shown || card == null || !certAvailable) return;
+            certificate.SaveRequested = SaveCertificate;
             certificate.Show(card.transform.parent, certScore, certPar, certGrade, certRank);
+        }
+
+        private bool savingCertificate;
+
+        private void SaveCertificate()
+        {
+            if (savingCertificate || !CanvasImage.Supported || !certificate.IsOpen) return;
+            StartCoroutine(SaveCertificateAtEndOfFrame());
+        }
+
+        /// <summary>The browser can only read the canvas back in the frame it
+        /// was drawn, so the save waits for this frame to finish rendering.</summary>
+        private System.Collections.IEnumerator SaveCertificateAtEndOfFrame()
+        {
+            savingCertificate = true;
+            yield return new WaitForEndOfFrame();
+            bool saved = CanvasImage.Save(CertificateCard.FileName);
+            savingCertificate = false;
+            if (Audio.Sfx.Instance != null)
+            {
+                if (saved) Audio.Sfx.Instance.PlayConfirm();
+                else Audio.Sfx.Instance.PlayDeny();
+            }
         }
 
         void Update()
@@ -195,6 +219,7 @@ namespace Cyverse.UI
             if (certificate.IsOpen)
             {
                 if (Input.GetKeyDown(KeyCode.C) || GameInput.CancelDown) certificate.Hide();
+                else if (Input.GetKeyDown(KeyCode.S)) SaveCertificate();
                 return;
             }
             if (certAvailable && Input.GetKeyDown(KeyCode.C))

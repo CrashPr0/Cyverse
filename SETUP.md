@@ -5,14 +5,17 @@ This document covers opening, running, and extending the levels.
 
 ## Game flow
 
-The game now boots through a scene chain instead of straight into a level:
+The game boots into the Hub and moves through a scene chain:
 
 ```
-PasswordLock  →  Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → …
- (entry scene)   (level select)           (unlock in order)
+Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → Level 3 → Level 4
+ (entry scene, level select)           (unlock in order)
 ```
 
-- **PasswordLock** — the first thing a player sees, and fully **diegetic**:
+- **PasswordLock** — an optional access-code gate, **off in release builds**:
+  the game now opens in the Hub. The scene still ships, so to gate a build
+  (a private beta, say) move it to the top of *File → Build Settings*. When
+  it is the entry scene it is the first thing a player sees, fully **diegetic**:
   a 3D security vestibule (fixed camera with idle sway) where the login
   prompt renders on a physical terminal monitor, the memo is a plaque
   beside it, and the gate to the Hub is a real door that slides open on
@@ -615,7 +618,8 @@ volume channels, a **Voiceover (TTS)** toggle, **caption text scaling**,
 **Reduce Motion** (freezes shader animation, hologram spin, HUD pulses, and
 screen fades for photosensitivity).
 
-**Text-to-speech:** in WebGL builds, any dialogue line without a recorded
+**Text-to-speech:** off by default (Settings → Voiceover turns it on). When
+on, in WebGL builds, any dialogue line without a recorded
 clip is read aloud through the browser's Web Speech API
 (`Assets/Plugins/WebGL/WebSpeech.jslib`) — free, key-less, and
 offline-capable via the player's local OS voices, with per-speaker pitch

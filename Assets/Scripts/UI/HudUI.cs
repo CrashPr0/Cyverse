@@ -241,10 +241,29 @@ namespace Cyverse.UI
             crosshairScale = 3.2f; // Update eases it back to the resting size
         }
 
+        /// <summary>Resources path of the game's own font (see the README
+        /// beside it).</summary>
+        public const string FontResource = "Fonts/CyverseSans";
+
+        private static Font loadedFont;
+
+        /// <summary>
+        /// The font for HUD text and for 3D signs that are not TextMesh Pro.
+        ///
+        /// Not Unity's built-in font: in a WebGL build that one is a small
+        /// subset with no em dash, arrows, bullet or ellipsis, so those
+        /// characters drew as gaps or empty boxes in the browser (the editor
+        /// hides this by falling back to system fonts). The game's own font
+        /// carries them. The built-in font remains as a fallback so text
+        /// still draws if the asset is ever missing.
+        /// </summary>
         public static Font LoadFont()
         {
-            Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (loadedFont != null) return loadedFont;
+            Font f = Resources.Load<Font>(FontResource);
+            if (f == null) f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            loadedFont = f;
             return f;
         }
 
@@ -346,6 +365,10 @@ namespace Cyverse.UI
         }
 
         private int objectiveStep, objectiveStepTotal;
+
+        /// <summary>The step number last shown by ShowStep (0 when the
+        /// banner is not showing a step).</summary>
+        public int CurrentStep => objectiveStep;
 
         private void ShowObjectiveCore(string text)
         {

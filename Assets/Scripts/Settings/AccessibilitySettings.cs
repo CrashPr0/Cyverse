@@ -37,8 +37,10 @@ namespace Cyverse.Settings
         public float MouseSensitivity { get; private set; } = 1f;
         public float FieldOfView { get; private set; } = 60f;
 
-        /// <summary>Browser text-to-speech for unvoiced dialogue (WebGL builds).</summary>
-        public bool TtsEnabled { get; private set; } = true;
+        /// <summary>Browser text-to-speech for unvoiced dialogue (WebGL builds).
+        /// Off unless the player turns it on: it is the computer's synthetic
+        /// voice, and recorded narration and captions cover the same text.</summary>
+        public bool TtsEnabled { get; private set; } = false;
         /// <summary>Speed multiplier for browser text-to-speech (1 = normal).</summary>
         public float VoiceRate { get; private set; } = 1f;
 
@@ -71,6 +73,23 @@ namespace Cyverse.Settings
         private readonly List<Row> rows = new List<Row>();
         private int selected;
         private bool resetArmed;
+        private bool startOverArmed;
+        private GameObject creditsCard;
+        private bool creditsOpen;
+
+        /// <summary>The credits shown from the settings menu. PLACEHOLDER:
+        /// the full team list is still to come; edit this text to add it.</summary>
+        public const string CreditsText =
+            "<size=30><b>CyVerse</b></size>\n" +
+            "A cybersecurity training game from San José State University\n\n" +
+            "<color=#8FB8CC>DEVELOPMENT</color>\n" +
+            "Christopher Anthony Velez\n\n" +
+            "<color=#8FB8CC>WITH THANKS TO</color>\n" +
+            "The CyberVerse Project team at San José State University\n" +
+            "Full team credits are being collected and will appear here.\n\n" +
+            "<color=#8FB8CC>BUILT WITH</color>\n" +
+            "Unity  ·  Liberation Sans (SIL Open Font License)\n" +
+            "Models by Brick Project Studio, Akduman, JustPlay and HQP Studios";
         private Vector3 lastMouse;
 
         private GameObject panel;
@@ -105,7 +124,7 @@ namespace Cyverse.Settings
             Add(new Row
             {
                 Section = "Audio", Label = "Voiceover", Kind = Kind.Choice,
-                Help = "Reads dialogue that has no recorded voice aloud with your browser's voice, at the speed you pick.",
+                Help = "Off by default. Turn on to have your browser's voice read dialogue that has no recorded voice, at the speed you pick.",
                 Value = () => TtsEnabled ? VoiceRateLabel(VoiceRate) : "Off",
                 Step = CycleVoiceover,
             });
@@ -145,8 +164,28 @@ namespace Cyverse.Settings
             {
                 Section = null, Label = "Restore Defaults", Kind = Kind.Action,
                 Help = "Puts every setting back to how the game started.",
+                On = () => resetArmed,
                 Value = () => resetArmed ? "Press again to confirm" : "",
-                Step = _ => { if (resetArmed) RestoreDefaults(); resetArmed = !resetArmed; },
+                Step = _ => { if (resetArmed) RestoreDefaults(); resetArmed = !resetArmed; startOverArmed = false; },
+            });
+            Add(new Row
+            {
+                Section = null, Label = "Start Over", Kind = Kind.Action,
+                Help = "Erases all progress, scores and the callsign, and returns to the title screen for a new player. Settings are kept.",
+                On = () => startOverArmed,
+                Value = () => startOverArmed ? "Press again to confirm" : "",
+                Step = _ =>
+                {
+                    if (startOverArmed) { startOverArmed = false; StartOver(); }
+                    else { startOverArmed = true; resetArmed = false; }
+                },
+            });
+            Add(new Row
+            {
+                Section = null, Label = "Credits", Kind = Kind.Action,
+                Help = "Who made CyVerse.",
+                Value = () => "",
+                Step = _ => ShowCredits(true),
             });
         }
 
@@ -218,6 +257,20 @@ namespace Cyverse.Settings
 
             if (!GameState.MenuOpen || panel == null) return;
 
+            // The credits card replaces the settings card until dismissed.
+            if (creditsOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) ||
+                    Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Backspace) ||
+                    Input.GetMouseButtonDown(0))
+                {
+                    ShowCredits(false);
+                    if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+                }
+                lastMouse = Input.mousePosition;
+                return;
+            }
+
             if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) Select(selected - 1);
             else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) Select(selected + 1);
             else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) Change(-1);
@@ -281,6 +334,8 @@ namespace Cyverse.Settings
                 if (panel != null) panel.transform.SetAsLastSibling();
                 if (panel != null) UiMotion.PanelIn(panel, card);
                 resetArmed = false;
+                startOverArmed = false;
+                ShowCredits(false);
                 lastMouse = Input.mousePosition;
                 if (Sfx.Instance != null) Sfx.Instance.PlayClick();
                 Refresh();
@@ -298,6 +353,7 @@ namespace Cyverse.Settings
             if (next == selected) return;
             selected = next;
             resetArmed = false;
+            startOverArmed = false;
             if (sound && Sfx.Instance != null) Sfx.Instance.PlayClick();
             Refresh();
         }
@@ -327,6 +383,63 @@ namespace Cyverse.Settings
             else Level.LightingDirector.Choose((Level.LightingDirector.Tier)(3 - at));
         }
 
+        /// <summary>Swaps the settings card for the credits card and back.</summary>
+        private void ShowCredits(bool show)
+        {
+            if (show && creditsCard == null) BuildCredits();
+            creditsOpen = show && creditsCard != null;
+            if (creditsCard != null) creditsCard.SetActive(creditsOpen);
+            if (card != null) card.gameObject.SetActive(!creditsOpen);
+        }
+
+        private void BuildCredits()
+        {
+            if (panel == null) return;
+            Color accent = HudUI.Accent;
+            const float width = 920f, height = 600f;
+            creditsCard = NewImage("CreditsCard", panel.transform, new Color(0.012f, 0.03f, 0.05f, 0.97f));
+            var rt = creditsCard.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(width, height);
+            rt.anchoredPosition = new Vector2(0f, -28f);
+            HudUI.StylePanel(creditsCard, new Color(0.012f, 0.03f, 0.05f, 0.97f), accent);
+
+            Text title = NewText("Title", rt, "CREDITS", 34, accent, TextAnchor.MiddleLeft, FontStyle.Bold);
+            Place(title.rectTransform, 48f, -24f, 400f, 44f);
+            var rule = NewImage("Rule", rt, new Color(accent.r, accent.g, accent.b, 0.25f));
+            Place(rule.GetComponent<RectTransform>(), 48f, -74f, width - 96f, 1f);
+
+            Text body = NewText("Body", rt, CreditsText, 22, new Color(0.90f, 0.94f, 0.98f),
+                TextAnchor.UpperCenter, FontStyle.Normal);
+            body.supportRichText = true;
+            body.horizontalOverflow = HorizontalWrapMode.Wrap;
+            body.verticalOverflow = VerticalWrapMode.Overflow;
+            Place(body.rectTransform, 48f, -100f, width - 96f, height - 180f);
+
+            Text hint = NewText("Hint", rt, "Enter or click to go back   ·   Esc to resume the game", 18, Muted,
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            Place(hint.rectTransform, 48f, -(height - 58f), width - 96f, 36f);
+        }
+
+        /// <summary>Wipes the playthrough and reloads the Hub, which opens on
+        /// the title card again. Same result as reloading the page, without
+        /// leaving fullscreen or re-downloading the game.</summary>
+        private void StartOver()
+        {
+            SetMenuOpen(false);
+            Speech.Cancel();
+            PlaythroughReset.StartNewPlaythrough();
+            Time.timeScale = 1f;
+            string hub = SceneCatalog.Preferred("Hub");
+            if (!Application.CanStreamedLevelBeLoaded(hub)) return;
+            if (ScreenFader.Instance != null)
+                ScreenFader.Instance.FadeToBlackThen(
+                    () => UnityEngine.SceneManagement.SceneManager.LoadScene(hub));
+            else
+                UnityEngine.SceneManagement.SceneManager.LoadScene(hub);
+        }
+
         private void RestoreDefaults()
         {
             MasterVolume = VoiceVolume = SfxVolume = 1f;
@@ -334,7 +447,7 @@ namespace Cyverse.Settings
             MouseSensitivity = 1f;
             FieldOfView = 60f;
             ReduceMotion = false;
-            TtsEnabled = true;
+            TtsEnabled = false;
             VoiceRate = 1f;
             ArrowKeysMove = true;
             InvertColors.Set(false);
@@ -360,7 +473,7 @@ namespace Cyverse.Settings
             MouseSensitivity = PlayerPrefs.GetFloat("cv_mouse", 1f);
             FieldOfView = PlayerPrefs.GetFloat("cv_fov", 60f);
             ReduceMotion = PlayerPrefs.GetInt("cv_reducemotion", 0) == 1;
-            TtsEnabled = PlayerPrefs.GetInt("cv_tts", 1) == 1;
+            TtsEnabled = PlayerPrefs.GetInt("cv_tts", 0) == 1;
             VoiceRate = PlayerPrefs.GetFloat("cv_voicerate", 1f);
             if (Array.IndexOf(VoiceRates, VoiceRate) < 0) VoiceRate = 1f;
             ArrowKeysMove = PlayerPrefs.GetInt("cv_arrowmove", 1) == 1;
@@ -417,7 +530,7 @@ namespace Cyverse.Settings
                     case Kind.Action:
                         row.ValueText.text = row.Value();
                         row.ValueText.color = Warn;
-                        row.LabelText.color = resetArmed ? Warn : sel ? accent : Muted;
+                        row.LabelText.color = row.On != null && row.On() ? Warn : sel ? accent : Muted;
                         break;
                 }
             }
@@ -433,7 +546,7 @@ namespace Cyverse.Settings
             panel = NewImage("SettingsBackdrop", HudUI.Instance.Canvas.transform, new Color(0f, 0.01f, 0.02f, 0.72f));
             Stretch(panel.GetComponent<RectTransform>());
 
-            const float width = 920f, rowHeight = 38f, rowGap = 3f, sectionHeight = 28f, sectionGap = 4f;
+            const float width = 920f, rowHeight = 34f, rowGap = 3f, sectionHeight = 28f, sectionGap = 4f;
             const float top = 92f, helpHeight = 48f, footer = 64f;
             int sections = 0;
             string last = null;

@@ -13,8 +13,9 @@ namespace Cyverse.Level
     /// What counts as a playthrough
     /// ----------------------------
     /// The game has no "new game" button, so a playthrough is defined at the
-    /// one place every run passes through: the password/startup scene
-    /// (<see cref="BeginStartupSession"/>).
+    /// one place every run passes through: the launch of the game
+    /// (<see cref="BeginStartupSession"/>, called once when a player build
+    /// starts, and by the access-code scene when that is the entry scene).
     ///  - Empty storage (first visit, cleared site data, private window):
     ///    a RANDOM profile is picked.  This used to be profile 0 ("d.chen")
     ///    every time, which is why every new visitor saw the same name.
@@ -157,8 +158,35 @@ namespace Cyverse.Level
         }
 
         /// <summary>
-        /// Called by the password/startup scene.  See the class summary for
-        /// the rules.  Idempotent per application run.
+        /// A player build opens straight into the Hub, so the playthrough's
+        /// profile is picked here, once per launch.  It runs after
+        /// PlaythroughReset (SubsystemRegistration) has cleared the previous
+        /// run and before any scene reads <see cref="Current"/>.  In the
+        /// editor a scene opened directly resumes the saved profile instead
+        /// (<see cref="EnsureSession"/>), so tests stay deterministic.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void BeginPlayerBuildSession()
+        {
+            if (Application.isEditor) return;
+            BeginStartupSession();
+        }
+
+        /// <summary>
+        /// Picks the profile for a playthrough that starts mid-session (the
+        /// Start Over setting), by the same rules as a launch.  Call after
+        /// the saved playthrough has been cleared.
+        /// </summary>
+        public static void BeginNewPlaythrough()
+        {
+            sessionInitialized = false;
+            BeginStartupSession();
+        }
+
+        /// <summary>
+        /// Called when a player build launches and by the access-code scene.
+        /// See the class summary for the rules.  Idempotent per application
+        /// run.
         /// </summary>
         public static void BeginStartupSession()
         {

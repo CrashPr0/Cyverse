@@ -1,0 +1,135 @@
+# CyVerse — pull request checks.
+#
+# Runs the Play Mode tests on every pull request that touches the Unity
+# project, then makes a WebGL build and attaches it to the run, so a change is
+# proven to pass the tests AND to build for the browser before it reaches main.
+# Nothing is published from here: webgl-deploy.yml still owns the gh-pages
+# branch and only runs on main.
+#
+# The WebGL build is downloadable from the run page (Artifacts → webgl-build).
+# To try it, unzip it and serve the folder over HTTP, e.g.
+#   python3 -m http.server --directory WebGL 8000
+#
+# LICENCE NOTE: these jobs activate the same Unity Personal licence as
+# webgl-deploy.yml. The two jobs here run one after the other, but a pull
+# request run can overlap a deploy from main. If a run fails at "activate
+# license", re-run it once the other workflow has finished.
+name: PR Checks
+
+on:
+  pull_request:
+    paths:
+      - 'Assets/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - '.github/workflows/pr-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+# A new push to the same pull request replaces the run in progress.
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playmode-tests:
+    # Pull requests from forks get no secrets, so Unity could not activate.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    # Same pinned image as webgl-deploy.yml.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # Restore only: main's runs keep the cache fresh, and saving a 250 MB
+      # Library per pull request push would crowd out those entries.
+      - name: Restore Library cache
+        uses: actions/cache/restore@v4
+        with:
+          path: Library
+          key: Library-Tests-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-${{ github.sha }}
+          restore-keys: |
+            Library-Tests-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-
+            Library-Tests-
+
+      - name: Run Unity Play Mode tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          # The action looks up the latest game-ci CLI release through the
+          # GitHub API and only signs that request when GITHUB_TOKEN is in
+          # the environment. Unsigned, it shares the runner's IP rate limit
+          # and fails at random with "GitHub API returned 403".
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          testMode: playmode
+          artifactsPath: test-results
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Play Mode test results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-playmode-results
+          path: test-results
+
+  webgl-build:
+    needs: playmode-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Restore Library cache
+        uses: actions/cache/restore@v4
+        with:
+          path: Library
+          key: Library-WebGL-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-${{ github.sha }}
+          restore-keys: |
+            Library-WebGL-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-
+            Library-WebGL-
+
+      - name: Build WebGL
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+
+      - name: Check the build
+        run: |
+          set -euo pipefail
+          GAME=build/WebGL/WebGL
+          test -f "$GAME/index.html" || { echo "::error::No $GAME/index.html — the WebGL build produced nothing."; exit 1; }
+          if compgen -G "$GAME/Build/*.br" > /dev/null || compgen -G "$GAME/Build/*.gz" > /dev/null; then
+            echo "::error::Build has .br/.gz files; GitHub Pages needs Decompression Fallback on (see webgl-deploy.yml)."
+            exit 1
+          fi
+          ls -l "$GAME/Build"
+          {
+            echo "### WebGL build size"
+            echo '```'
+            ls -l "$GAME/Build" | awk 'NR>1 {printf "%8.2f MB  %s\n", $5/1048576, $9}'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload WebGL build
+        uses: actions/upload-artifact@v4
+        with:
+          name: webgl-build
+          path: build/WebGL
+          retention-days: 7

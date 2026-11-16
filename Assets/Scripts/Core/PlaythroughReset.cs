@@ -60,6 +60,24 @@ namespace Cyverse.Core
             ClearSavedPlaythrough();
         }
 
+        /// <summary>
+        /// Starts a new playthrough without reloading the page: the same
+        /// wipe as a launch, plus the state a launch gets for free because
+        /// the program starts empty (cached callsign and glossary, the
+        /// culprit profile). The caller then loads the Hub, which resets
+        /// score and Hard mode and shows the title card again. Built for
+        /// study sessions, where the next participant sits down at a game
+        /// the last one left running.
+        /// </summary>
+        public static void StartNewPlaythrough()
+        {
+            ClearSavedPlaythrough();
+            PlayerIdentity.ForgetCached();
+            Cyverse.Level.GlossaryProgress.ForgetCached();
+            Cyverse.Level.ScenarioRoster.BeginNewPlaythrough();
+            PlaytestMetrics.Record("playthrough_reset", "source=settings");
+        }
+
         public static void ClearSavedPlaythrough()
         {
             foreach (string key in Keys)

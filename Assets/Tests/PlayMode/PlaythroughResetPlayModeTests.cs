@@ -56,6 +56,50 @@ namespace Cyverse.Tests
         }
 
         [Test]
+        public void StartNewPlaythrough_WipesProgressForgetsTheCallsignAndRotatesTheCulprit()
+        {
+            Type reset = Type.GetType("Cyverse.Core.PlaythroughReset, Assembly-CSharp");
+            Type identity = Type.GetType("Cyverse.Core.PlayerIdentity, Assembly-CSharp");
+            Type roster = Type.GetType("Cyverse.Level.ScenarioRoster, Assembly-CSharp");
+            const BindingFlags Hidden = BindingFlags.NonPublic | BindingFlags.Static;
+            FieldInfo initialized = roster.GetField("sessionInitialized", Hidden);
+            FieldInfo index = roster.GetField("sessionIndex", Hidden);
+            object initializedWas = initialized.GetValue(null), indexWas = index.GetValue(null);
+            PropertyInfo callsign = identity.GetProperty("Callsign");
+
+            try
+            {
+                // A finished-looking run by a named player, on profile 2.
+                callsign.SetValue(null, "TESTER");
+                PlayerPrefs.SetInt("cv_done_1", 1);
+                PlayerPrefs.SetInt("cv_done_4", 1);
+                PlayerPrefs.SetFloat("cv_master", 0.4f);
+                PlayerPrefs.SetInt("cv_scenario_roster_index", 2);
+                PlayerPrefs.Save();
+                initialized.SetValue(null, true);
+                index.SetValue(null, 2);
+
+                reset.GetMethod("StartNewPlaythrough", BindingFlags.Public | BindingFlags.Static).Invoke(null, null);
+
+                Assert.That(PlayerPrefs.HasKey("cv_done_1"), Is.False, "Level progress should be cleared.");
+                Assert.That(PlayerPrefs.HasKey("cv_done_4"), Is.False);
+                Assert.That(PlayerPrefs.HasKey("cv_callsign"), Is.False, "The saved callsign should be cleared.");
+                Assert.That(callsign.GetValue(null), Is.EqualTo(identity.GetField("DefaultCallsign").GetValue(null)),
+                    "The last player's callsign must not carry over in memory.");
+                Assert.That(PlayerPrefs.GetFloat("cv_master", -1f), Is.EqualTo(0.4f).Within(0.001f),
+                    "Settings should be kept.");
+                Assert.That((bool)initialized.GetValue(null), Is.True, "A profile should be picked for the new run.");
+                Assert.That((int)index.GetValue(null), Is.Not.EqualTo(2),
+                    "The new run should rotate to a different culprit.");
+            }
+            finally
+            {
+                initialized.SetValue(null, initializedWas);
+                index.SetValue(null, indexWas);
+            }
+        }
+
+        [Test]
         public void ClearSavedPlaythrough_RunsOnEveryLaunch()
         {
             Type reset = Type.GetType("Cyverse.Core.PlaythroughReset, Assembly-CSharp");
