@@ -60,18 +60,20 @@ namespace Cyverse.EditorTools
         }
 
         /// <summary>Registers the full scene flow in Build Settings, in load
-        /// order: PasswordLock (entry) → Hub → the levels. Existing non-CyVerse
-        /// entries are preserved after them.</summary>
+        /// order: Hub (entry) → the levels. PasswordLock, the optional
+        /// access-code gate, stays in the build but is no longer the entry
+        /// scene; move it to the top of Build Settings to gate a build.
+        /// Existing non-CyVerse entries are preserved after them.</summary>
         [MenuItem("CyVerse/Add Scenes To Build Settings")]
         public static void AddScenesToBuildSettings()
         {
             string[] wanted =
             {
-                // PasswordLock stays first — it is the build's entry scene.
+                // The Hub is first: it is the build's entry scene.
                 // Bootstrap scenes are the production source of truth. Legacy
                 // visual-pass assets deliberately stay out of player builds.
-                "Assets/Scenes/PasswordLock.unity",
                 "Assets/Scenes/Hub.unity",
+                "Assets/Scenes/PasswordLock.unity",
                 "Assets/Scenes/Level0.unity",
                 "Assets/Scenes/Level1_IAM.unity",
                 "Assets/Scenes/Level2_CyberDefense.unity",
@@ -103,7 +105,7 @@ namespace Cyverse.EditorTools
 
             EditorBuildSettings.scenes = list.ToArray();
             Debug.Log($"CyVerse: Build Settings now has {list.Count} scenes " +
-                      "(PasswordLock first — it's the game's entry point).");
+                      "(Hub first — it's the game's entry point).");
         }
     }
 }
