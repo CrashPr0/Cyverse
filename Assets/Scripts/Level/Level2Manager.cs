@@ -356,22 +356,21 @@ namespace Cyverse.Level
 
             var tasks = new List<TaskListPanel.Task>();
             bool watched = CurrentPhase != Phase.Watch;
-            int n = 1;
-            tasks.Add(new TaskListPanel.Task($"{n++}. Watch the briefing", watched, !watched));
+            tasks.Add(new TaskListPanel.Task("Watch the briefing", watched, !watched));
 
             if (siem != null)
                 tasks.Add(new TaskListPanel.Task(
-                    $"{n++}. SOC investigations  ({siem.CompletedScenarios}/{siem.ScenarioCount})",
+                    $"SOC investigations  ({siem.CompletedScenarios}/{siem.ScenarioCount})",
                     siem.IsComplete, watched && !siem.IsComplete));
             if (locker != null)
-                tasks.Add(new TaskListPanel.Task($"{n++}. Lock the seized device in the evidence locker",
+                tasks.Add(new TaskListPanel.Task("Lock the seized device in the evidence locker",
                     locker.IsSealed, SocDone && watched && !locker.IsSealed));
             if (playbook != null)
                 tasks.Add(new TaskListPanel.Task(
-                    $"{n++}. IR playbook  ({playbook.Placed}/{playbook.Total} steps)",
+                    $"IR playbook  ({playbook.Placed}/{playbook.Total} steps)",
                     playbook.IsComplete, watched && PlaybookUnlocked() && !playbook.IsComplete));
             if (exam != null)
-                tasks.Add(new TaskListPanel.Task($"{n++}. Certification Exam",
+                tasks.Add(new TaskListPanel.Task("Certification Exam",
                     exam.IsComplete, CurrentPhase == Phase.Exam));
 
             list.Show(tasks);
@@ -423,7 +422,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Watch:
-                    SetStep(1, "Watch the defense briefing");
+                    SetStep(1, "Walk up to the screen and press E to watch the defense briefing");
                     HudUI.Instance.SetProgress(0, TotalSteps + 1);
                     break;
                 case Phase.Tasks:

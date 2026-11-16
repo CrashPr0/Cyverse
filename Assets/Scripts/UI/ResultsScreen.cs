@@ -57,7 +57,7 @@ namespace Cyverse.UI
         public void Show(int score, int quizCorrect, int quizTotal, float seconds,
             string headerText = "LEVEL 0 COMPLETE",
             string grantedLine = "Access Granted — Level: Employee",
-            string nextMissionText = "Level 1 — Cyber Defense  (in development)",
+            string nextMissionText = null,
             string replaySuffix = "Level 0",
             int parScore = 550,
             string continueLabel = null,

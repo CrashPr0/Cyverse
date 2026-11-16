@@ -176,7 +176,7 @@ namespace Cyverse.UI
             var title = MakeText("Title", "CYVERSE", 110, FontStyle.Bold, HudUI.Accent, new Vector2(0, 170));
             HudUI.AddOutline(title);
 
-            subtitleText = MakeText("Subtitle", "Cybersecurity Onboarding — Level 0", 30, FontStyle.Normal,
+            subtitleText = MakeText("Subtitle", "Orientation", 30, FontStyle.Normal,
                 new Color(0.85f, 0.92f, 1f), new Vector2(0, 95));
 
             blurbText = MakeText("Blurb",
@@ -189,7 +189,7 @@ namespace Cyverse.UI
             MakeText("CallsignHint", "Type to choose your callsign", 16, FontStyle.Normal,
                 new Color(0.45f, 0.55f, 0.68f), new Vector2(0, -68));
 
-            promptText = MakeText("Prompt", "[ ENTER ]  Begin Onboarding", 32, FontStyle.Bold,
+            promptText = MakeText("Prompt", "[ ENTER ]  Begin Orientation", 32, FontStyle.Bold,
                 new Color(0.90f, 0.66f, 0.14f), new Vector2(0, -125)); // Spartan gold
             HudUI.AddOutline(promptText);
 

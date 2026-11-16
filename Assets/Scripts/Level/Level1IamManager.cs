@@ -440,7 +440,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Watch:
-                    SetStep(1, "Watch the security briefing");
+                    SetStep(1, "Walk up to the screen and press E to watch the security briefing");
                     HudUI.Instance.SetProgress(0, TotalSteps + 1);
                     break;
                 case Phase.Tasks:

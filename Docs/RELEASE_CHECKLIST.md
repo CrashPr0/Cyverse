@@ -57,22 +57,25 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       Defaults is used.
 - [ ] **`CyverseVer1.0.zip`** (7.5 MB, an old WebGL build from July) sits in
       the repository root. Remove it?
-- [ ] **Company name.** The build is stamped "DefaultCompany" (Player
-      Settings → Company Name).
+- [x] **Company name: San Jose State University.** Product name is now
+      "CyVerse".
 
 ## Polish
 
 - [ ] Progress ring and "STEP n OF m" disagree: Level 1 shows 0/6 beside a
       seven-line task list, Level 3 shows 0/14 beside "STEP 1 OF 6", Level 4
       shows 0/4 beside "STEP 1 OF 5".
-- [ ] Task list style differs by level: Level 2 numbers its lines, the
-      others do not.
-- [ ] Level 0 shows the full title card and asks for the callsign again when
-      entered from the Hub.
-- [ ] Briefings: "E for the next slide" shows from the spawn point, but E
-      only works once the player has walked up to the screen. Say so in the
-      first objective.
-- [ ] Leftover "in development" wording in defaults (`ResultsScreen.Show`,
+- [x] Task list style differed by level: Level 2 numbered its lines, the
+      others did not. Level 2 now matches.
+- [x] Level 0's title card called it "Cybersecurity Onboarding — Level 0"
+      while the Hub door calls it Orientation. The card now says Orientation.
+      It still asks for the callsign again; left as is.
+- [x] Briefings: "E for the next slide" shows from the spawn point, but E
+      only works once the player has walked up to the screen. The first
+      objective in Levels 1, 2 and 4 now says "Walk up to the screen and
+      press E to watch the ... briefing". Note for study analysis: this
+      changes the objective text recorded in playtest telemetry.
+- [x] Leftover "in development" wording in defaults (`ResultsScreen.Show`,
       legacy `Level1Manager`).
 - [ ] The legacy `Level1` scene still ships in the build although nothing
       can load it.

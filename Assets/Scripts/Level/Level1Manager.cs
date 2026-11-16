@@ -171,7 +171,7 @@ namespace Cyverse.Level
                     Time.time - startTime,
                     headerText: "LEVEL 2 COMPLETE",
                     grantedLine: "Certification Confirmed — SOC Analyst",
-                    nextMissionText: "Level 3 — Digital Forensics  (in development)",
+                    nextMissionText: "Level 3 — Digital Forensics is now unlocked in the Hub.",
                     replaySuffix: "Level 2",
                     parScore: 550);
         }
