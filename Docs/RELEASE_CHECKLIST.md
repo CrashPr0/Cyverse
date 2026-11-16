@@ -42,22 +42,23 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       screen said "Loading Level 0 — Onboarding" (the game opens on the
       access terminal) and the tab title was "CyVerse — Cyverse". The landing
       page listed Level 4 as "in development" and described an older Level 3.
-      Still open: the build is stamped company "DefaultCompany" (Player
-      Settings → Company Name), which the owner should set.
 
-## Decisions needed from the owner
+## Owner decisions
 
-- [ ] **Access code gate.** The game opens on a "CLOSED BETA" passcode
-      screen. Keep it for release, or open the game to everyone?
-- [ ] **Progress is wiped on every page load** (by design: "Play in one
-      sitting"). A reload or a browser crash mid-campaign loses everything.
-      Keep, or save progress between visits?
-- [ ] **Browser text-to-speech is on by default** and reads briefing slides
-      and unvoiced dialogue in the computer's synthetic voice. Only the MFA
-      and NICE lines have recorded narration. This is the one synthetic
-      sound left in the game. Default it to off, or keep it?
+- [x] **Access code gate: removed.** The game opens in the Hub. The
+      access-code scene still ships and can be made the entry scene again
+      in Build Settings to gate a private build.
+- [x] **Progress reset: kept.** Every page load starts a fresh run, which
+      is what study sessions need between participants. Reloading the page
+      is the reset; settings (volume, captions, graphics) are kept.
+- [x] **Browser text-to-speech: off by default.** Recorded narration and
+      captions still play; Settings → Voiceover turns the computer voice on.
+      A browser that already saved the old setting keeps it until Restore
+      Defaults is used.
 - [ ] **`CyverseVer1.0.zip`** (7.5 MB, an old WebGL build from July) sits in
       the repository root. Remove it?
+- [ ] **Company name.** The build is stamped "DefaultCompany" (Player
+      Settings → Company Name).
 
 ## Polish
 
@@ -68,6 +69,9 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       others do not.
 - [ ] Level 0 shows the full title card and asks for the callsign again when
       entered from the Hub.
+- [ ] Briefings: "E for the next slide" shows from the spawn point, but E
+      only works once the player has walked up to the screen. Say so in the
+      first objective.
 - [ ] Leftover "in development" wording in defaults (`ResultsScreen.Show`,
       legacy `Level1Manager`).
 - [ ] The legacy `Level1` scene still ships in the build although nothing
@@ -78,8 +82,7 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       "Level 4 doorway remains in development").
 - [ ] Audio: sound effects are already soft, low mallet tones with a
       low-pass and reverb, and the room tone is low brown noise. Needs a
-      listen on real speakers before sign-off; no code change planned
-      beyond the text-to-speech decision above.
+      listen on real speakers before sign-off.
 
 ## Done
 
