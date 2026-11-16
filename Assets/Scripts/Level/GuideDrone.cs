@@ -74,7 +74,10 @@ namespace Cyverse.Level
             if (cam != null && beacon != null && beacon.MarkerShown && !menuUp)
             {
                 marker = beacon.MarkerPosition;
-                bool inView = MarkerInView(cam, marker, beacon.Target);
+                // Standing at the objective (reading a briefing board, say)
+                // the marker can sit above the top of the view; that is not
+                // lost, and a drone there would cover what is being read.
+                bool inView = AtTarget(cam, beacon.Target) || MarkerInView(cam, marker, beacon.Target);
                 // Behind a wall, point the way to walk (along the floor trail's
                 // route) rather than straight through the wall at the marker.
                 if (!inView && GuideTrail.Instance != null &&
@@ -136,6 +139,15 @@ namespace Cyverse.Level
                 float pulse = 1f + Mathf.Sin(Time.time * 7f) * 0.12f;
                 pointer.localScale = new Vector3(1f, 1f, pulse);
             }
+        }
+
+        /// <summary>The player is within a few steps of the objective itself.</summary>
+        private static bool AtTarget(Camera cam, Transform target)
+        {
+            if (target == null) return false;
+            Vector3 d = target.position - cam.transform.position;
+            d.y = 0f;
+            return d.sqrMagnitude < 4.5f * 4.5f;
         }
 
         /// <summary>The marker is on screen and nothing solid stands between
