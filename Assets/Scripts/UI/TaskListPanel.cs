@@ -67,7 +67,7 @@ namespace Cyverse.UI
                 else if (t.current)
                     sb.Append($"<color=#E5A823>  >  <b>{t.label}</b></color>\n");
                 else
-                    sb.Append($"<color=#7E93A6>  [ ]  {t.label}</color>\n");
+                    sb.Append($"<color=#B4C3D1>  [ ]  {t.label}</color>\n");
             }
             bodyText.text = sb.ToString();
             FitToContent(tasks.Count);
@@ -113,7 +113,7 @@ namespace Cyverse.UI
             rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = new Vector2(24f, -150f); // below the progress ring
             rt.sizeDelta = new Vector2(390f, 220f);
-            HudUI.StylePanel(panel, new Color(0.02f, 0.04f, 0.07f, 0.72f), HudUI.Accent);
+            HudUI.StylePanel(panel, new Color(0.02f, 0.04f, 0.07f, 0.86f), HudUI.Accent);
             panel.AddComponent<RectMask2D>();
 
             var textGo = new GameObject("Body", typeof(RectTransform));

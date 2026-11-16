@@ -148,7 +148,7 @@ namespace Cyverse.Interaction
                     "PASSCODE", new Color(0.95f, 0.98f, 1f), 0.012f);
                 MfaProps.BuildCodeSlots(root.transform, accent);
                 TextMesh hint = BuildKit.MakeLabel(root.transform, new Vector3(0f, 1.2f, -0.08f),
-                    "CODE FROM YOUR PHONE", new Color(0.70f, 0.82f, 0.90f), 0.0055f, style: FontStyle.Normal);
+                    "ENTER YOUR PASSCODE", new Color(0.70f, 0.82f, 0.90f), 0.0055f, style: FontStyle.Normal);
                 hint.gameObject.name = "ScreenHint";
             }
             else

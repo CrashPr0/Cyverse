@@ -47,6 +47,7 @@ namespace Cyverse.Level
             LiftCoreSign();
             foreach (HubDoor door in FindObjectsOfType<HubDoor>()) HubPolish.Door(door);
             HubPolish.AmbientDrones();
+            LightingDirector.RaiseAmbient(new Color(0.22f, 0.25f, 0.32f));
         }
 
         // ---- Review stations ----------------------------------------------------

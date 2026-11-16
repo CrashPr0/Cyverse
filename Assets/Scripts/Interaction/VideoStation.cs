@@ -194,7 +194,17 @@ namespace Cyverse.Interaction
             if (controlsText != null)
             {
                 controlsText.transform.localPosition = new Vector3(0f, 0.55f, -0.30f);
-                ConfigureTextBand(controlsText, new Vector2(3.8f, 0.34f), 23f, 16f);
+                ConfigureTextBand(controlsText, new Vector2(3.8f, 0.34f), 26f, 18f);
+                controlsText.color = new Color(0.95f, 0.98f, 1f);
+                controlsText.richText = true;
+                // The footer hangs below the frame, where the bright floor
+                // shows through behind it. A dark plate gives it a backing.
+                if (transform.Find("FooterPlate") == null)
+                {
+                    Child(transform, PrimitiveType.Cube, "FooterPlate",
+                        new Vector3(0f, 0.55f, -0.255f), new Vector3(4.0f, 0.38f, 0.02f),
+                        BuildKit.MakeStandard(new Color(0.02f, 0.03f, 0.05f), 0.2f, 0f), false);
+                }
                 // A dark outline keeps the footer readable over the floor glow.
                 // The shader draws an outline only with its keyword on; setting
                 // the width alone does nothing.
@@ -453,8 +463,8 @@ namespace Cyverse.Interaction
                     controlsText.gameObject.SetActive(showControls);
                 // The scrub keys follow the movement-keys setting.
                 string controls = SlideMode
-                    ? (AtEnd ? "BRIEFING COMPLETE  ·  E to replay"
-                        : $"SLIDE {SlideIndexAt(time) + 1} OF {slides.Length}  ·  E " +
+                    ? (AtEnd ? "BRIEFING COMPLETE  ·  <color=#E5A823><b>E</b></color> to replay"
+                        : $"SLIDE {SlideIndexAt(time) + 1} OF {slides.Length}  ·  <color=#E5A823><b>E</b></color> " +
                           (SlideIndexAt(time) >= slides.Length - 1 ? "to finish" : "for the next slide"))
                     : $"E play/pause  ·  {Core.GameInput.ScrubLabel} scrub";
                 if (showControls && controlsText.text != controls) controlsText.text = controls;

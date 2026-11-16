@@ -83,7 +83,12 @@
     }
     #unity-wrap {
       position: relative;
-      width: min(100%, 1280px);
+      /* Fit the window both ways: the header, footer and padding take
+         about 160 px, so on a 1366 x 768 laptop the whole game (captions
+         and prompts at the bottom included) stays on screen instead of
+         running 20% below the fold. Very short windows keep a 560 px
+         minimum and scroll. */
+      width: max(min(100%, 560px), min(100%, 1280px, calc((100vh - 160px) * 16 / 9)));
       aspect-ratio: 16 / 9;
       background: #000;
       box-shadow: 0 0 0 1px rgba(229, 168, 35, 0.35), 0 24px 60px rgba(0, 0, 0, 0.6);

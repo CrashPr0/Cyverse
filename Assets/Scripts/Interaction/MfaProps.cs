@@ -106,12 +106,12 @@ namespace Cyverse.Interaction
                 Slab("Receiver_" + i, root, new Vector3(-w - 0.17f, y, -0.45f), new Vector3(0.30f, 0.24f, 0.16f), 0.03f, trim);
                 Slab("FactorLight_" + i, root, new Vector3(-w - 0.52f, y, -0.33f), new Vector3(0.14f, 0.14f, 0.05f), 0.02f, lampOff);
                 BuildKit.MakeLabel(root, new Vector3(-w - 0.66f, y + 0.035f, -0.32f), FactorWords[i],
-                    accent, 0.016f, anchor: TextAnchor.MiddleRight);
-                BuildKit.MakeLabel(root, new Vector3(-w - 0.66f, y - 0.075f, -0.32f), FactorHints[i],
-                    new Color(0.62f, 0.72f, 0.80f), 0.010f, anchor: TextAnchor.MiddleRight, style: FontStyle.Normal);
+                    accent, 0.022f, anchor: TextAnchor.MiddleRight);
+                BuildKit.MakeLabel(root, new Vector3(-w - 0.66f, y - 0.10f, -0.32f), FactorHints[i],
+                    new Color(0.78f, 0.86f, 0.92f), 0.013f, anchor: TextAnchor.MiddleRight, style: FontStyle.Normal);
             }
 
-            TextMesh status = BuildKit.MakeLabel(root, new Vector3(0f, 3.78f, -0.31f), StatusText(0), accent, 0.013f);
+            TextMesh status = BuildKit.MakeLabel(root, new Vector3(0f, 3.78f, -0.31f), StatusText(0), accent, 0.018f);
             status.gameObject.name = "VaultStatus";
 
             BuildVaultDoor(root, accent, trim, recess, chrome);

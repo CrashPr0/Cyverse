@@ -34,30 +34,32 @@ Hub  →  Level 1 (I/AM) → Level 2 (Cyber Defense) → Level 3 → Level 4
   > nothing more. Anything genuinely private must be protected by the host
   > (itch.io restricted page, HTTP basic auth, a private link), not by this
   > scene.
-- **Hub** — a level-select room. Four doors on the east wall (Level 1 I/AM,
-  Level 2 Cyber Defense, Levels 3–4 in development) plus an optional
-  **Orientation** door on the west wall that loads the original Level 0 demo.
-  Doors unlock in order: finishing Level *N* unlocks Level *N+1*
-  (`Core/LevelProgress.cs`, persisted in PlayerPrefs). A concierge NPC
-  comments on your progress.
+- **Hub** — a level-select room. Four doors on the east wall (Level 1
+  Identity & Access, Level 2 Cyber Defense, Level 3 Digital Forensics,
+  Level 4 Cyber Attack) plus an optional **Orientation** door on the west
+  wall that loads Level 0. Doors unlock in order: finishing Level *N*
+  unlocks Level *N+1* (`Core/LevelProgress.cs`). A concierge NPC comments on
+  your progress, and a first-visit onboarding asks for a callsign and walks
+  the player through look, walk and talk.
+- **Fresh run on every load.** Each page reload (or entering Play mode)
+  wipes progress, unlocks, scores, the callsign and the glossary
+  (`Core/PlaythroughReset.cs`); settings are kept. Settings (Esc) →
+  **Start Over** does the same without a reload, for study sessions.
 - **Levels** — every level connects back: each has a gold **Return to Hub**
-  door (self-added on the south wall in Level 0 / Cyber Defense, so even
-  hand-saved scenes gain it), results screens offer **[R] replay / [H] return
-  to Hub**, and all scene changes fade to black instead of hard-cutting.
+  door, the results card's **[Enter] Continue** goes to the Hub (Level 2
+  goes straight on to the Forensics Lab), and all scene changes fade to
+  black instead of hard-cutting.
 
 ### Visual-pass scenes
 
-Several levels exist twice: a **procedural** scene (a lone bootstrap that
-generates the room at Play time) and an artist-authored **visual pass** with
-real models and hand-placed lighting — `Level0 Visual Pass`,
-`Level1_IAM_VisualPass`. `Core/SceneCatalog.cs` maps a base scene name to the
-best version present in Build Settings, and **`HubDoor` resolves through it at
-runtime**, so a door saved pointing at `Level1_IAM` automatically loads the
-visual pass without anyone re-editing the Hub. If a visual pass is missing
-from the build, it silently falls back to the procedural scene.
-
-To add a visual pass for another level, name it `<BaseName>_VisualPass`, add
-it to the chain in `SceneCatalog.Variants`, and register it in Build Settings.
+`Level0 Visual Pass`, `Level1_IAM_VisualPass` and
+`Level2_CyberDefense_VisualPass` are earlier hand-dressed copies of their
+levels. **They no longer ship**: `Core/SceneCatalog.cs` now maps every
+variant (and the legacy `Level1` name) back to the maintained scene, and
+**CyVerse → Add Scenes To Build Settings** leaves them out. Level art is
+added by load-time polish passes (`HubPolish`, `Level0Polish`,
+`Level2SocPolish`, `Level3ForensicsPolish`, `LevelCohesion` last) and by the
+prefab hook below, not by editing these copies.
 
 ### Art prefabs (preferred over baking art into a scene)
 
@@ -103,16 +105,15 @@ the gameplay stations (badge kiosk, MFA vault, audit board, forensic desk).
 
 **Required once per machine:** run the menu **CyVerse → Add Scenes To Build
 Settings**. Scene loading (`SceneManager.LoadScene`) only works for scenes
-registered in Build Settings; the menu registers the whole chain in the right
-order (PasswordLock first, so it's also the entry scene of a build). If you
-skip this, doors show a toast telling you to run it instead of failing silently.
+registered in Build Settings; the menu registers the seven shipping scenes
+in order (Hub first, so it is the entry scene of a build, then PasswordLock,
+Level0, Level1_IAM, Level2_CyberDefense, Level3_Forensics,
+Level4_CyberAttack). If you skip this, doors show a toast telling you to run
+it instead of failing silently.
 
-Feature status: **Level 0** (Onboarding: I/AM, CIA Triad, NICE Roles) is
-feature-complete; **Level 2 — Cyber Defense** (SIEM, EDR, Incident Response;
-scene file `Level1.unity`, built before the renumbering) is a playable
-blockout — see [below](#level-2-cyber-defense--blockout); **Level 1 — I/AM**
-is a blockout of the new standard level template — see
-[the level template](#level-1-iam--the-standard-level-template).
+Feature status: all five levels (Orientation and Levels 1–4) are playable
+end to end. Most props and all level architecture are still primitive
+block-outs built in code; see `HANDOFF_OPUS.md`.
 
 ## Requirements
 
@@ -127,9 +128,10 @@ is a blockout of the new standard level template — see
 2. Open it with Unity 2022.3.x. Unity will import packages and generate the
    `Library/`, `ProjectSettings/` defaults, and `.meta` files on first launch.
 3. Run the menu **CyVerse → Add Scenes To Build Settings** (once).
-4. To play the full flow, open `Assets/Scenes/PasswordLock.unity` and press
+4. To play the full flow, open `Assets/Scenes/Hub.unity` and press
    **Play**. To jump straight into a level, open its scene instead
-   (`Hub.unity`, `Level0.unity`, `Level1_IAM.unity`, `Level1.unity`).
+   (`Level0.unity`, `Level1_IAM.unity`, `Level2_CyberDefense.unity`,
+   `Level3_Forensics.unity`, `Level4_CyberAttack.unity`).
 
 > **If `Level0.unity` won't open** in your Unity version, you don't need it:
 > create a new empty scene (`File → New Scene → Empty`), add an empty
@@ -145,8 +147,9 @@ that emits one JSON line per meaningful event with the prefix
 attempts, score awards, level results, and runtime errors; it never records the
 player's callsign or typed answers.
 
-- In the Unity Editor or a Development WebGL build, filter the Console/browser
-  Console for **`[PLAYTEST_METRIC]`** and save the lines with the test report.
+- In the Unity Editor or any WebGL build (release builds print them too, on
+  purpose, for research capture), filter the Console/browser Console for
+  **`[PLAYTEST_METRIC]`** and save the lines with the test report.
 - Desktop builds also append to
   `Application.persistentDataPath/cyverse-playtest-metrics.jsonl`.
 - WebGL keeps a bounded JSON snapshot in PlayerPrefs under
@@ -237,8 +240,10 @@ level will follow (the "8-step" template):
    - **Badge Enrollment** (Identification) — a kiosk issues your ID under
      your callsign. Must be done first: every other station refuses you
      until you have a badge, which *is* the lesson.
-   - **MFA Vault** (Authentication) — clear three factors physically: type
-     the daily passcode from the wall memo (something you KNOW), fetch the
+   - **MFA Vault** (Authentication) — first hear the MFA Specialist's
+     briefing, then clear three factors physically: type the secret
+     passcode (something you KNOW; a new player's starter passcode is on
+     the in-world phone beside the terminal, `Interaction/DiegeticPhone.cs`), fetch the
      security token from its charger across the room and slot it (something
      you HAVE — `E` pick up, `Q` put down), and take the biometric pad scan
      (something you ARE). Three lights fill; the vault slides open.
@@ -250,9 +255,9 @@ level will follow (the "8-step" template):
      (role abuse, impossible travel).
    The four knowledge checks now form one **Certification Exam** terminal
    that unlocks after all tasks — the boss check, with streaks/combos.
-8. Completion is **persisted** (`LevelProgress.MarkCompleted(1)`), the results
-   screen shows, and the **exit door back to the Hub unlocks** — where the
-   next level's door is now open.
+8. Completion is recorded (`LevelProgress.MarkCompleted(1)`) for the rest
+   of the run, the results card shows, and **[Enter] Continue** returns to
+   the Hub, where the next level's door is now open.
 
    The carry mechanic (`Interaction/Carryable.cs` + `DropZone.cs`) and the
    typed-answer modal (`UI/TypingChallenge.cs`) are level-agnostic — reuse
@@ -274,8 +279,8 @@ the screen via `VideoPlayer` + RenderTexture with the same unlock/scrub rules.
 
 `Assets/Scenes/Hub.unity` — built by `Level/HubSceneFactory.cs`, editable copy
 via **CyVerse → Build Hub Scene**. Doors are `Interaction/HubDoor.cs`: each
-shows its status on the sign (green READY / red LOCKED / gold COMPLETE / grey
-IN DEVELOPMENT) and loads its scene on `E`.
+shows its status on the sign (green READY / red LOCKED / gold COMPLETE) and
+loads its scene on `E`. The Hub names and marks the next story door.
 
 The hub is furnished as an **atrium**, not an office: a dais + ceiling halo
 under the rotating holo core, lounge seating, plants framing the door bays,
@@ -288,55 +293,36 @@ kept live by `Level/MissionBoard.cs`): it greets the player by callsign,
 shows overall clearance, and lists every door with its current status.
 
 Door → scene mapping lives in one table (`HubSceneFactory.Doors()`) that
-drives the doors, the wayfinding, *and* the mission board — to add Level 3
-later, point its entry at the new scene name and add the scene in
+drives the doors, the wayfinding, *and* the mission board — to add a level,
+point a new entry at its scene name and add the scene in
 `CyverseSceneTools.AddScenesToBuildSettings`; everything else follows.
 
-## Level 3: Digital Forensics — KC7 in engine
+## Level 3: Digital Forensics Lab
 
-`Assets/Scenes/Level3_Forensics.unity` ("Case: Spartan Gold") brings the
-[KC7](https://kc7cyber.com) experience into the game: instead of reading
-about forensics, the player **queries security logs** to work a real
-investigation. Same two-room template; the briefing teaches query syntax,
-and the task room is a SOC floor built around the **Investigation Desk** —
-a full-screen forensic terminal running a mini-KQL:
+`Assets/Scenes/Level3_Forensics.unity` (generated in code) is a forensics
+lab in three stations: **01 Evidence Intake** (fill in the chain-of-custody
+entry for the seized phone), **02 Analyze Evidence** (dock the phone, image
+it through a write blocker, then the **Evidence Explorer**: a Process step
+that sets up the case, then browsing and tagging artifacts on the phone
+image, including a witness's phone under OTHER SOURCES) and **03 Forensic
+Report**. A five-question knowledge check follows the report. Played after
+Level 2, it investigates that level's culprit; entered directly, it uses a
+training device.
 
-```
-Email | where sender == "prizes@spartan-rewards.com" | count
-WebVisits | where url contains "spartan-rewards"
-DnsLookups | distinct domain
-```
+The full walkthrough, answer key and scoring for instructors are in
+[`Docs/Level3-Forensics-Guide.md`](Docs/Level3-Forensics-Guide.md). Code:
+`Forensics/EvidenceExplorer*.cs`, `Forensics/PhoneImage.cs`,
+`Forensics/InvestigationCase.cs`, `Level/Level3Forensics*.cs`.
 
-Operators: `where` (`==`, `!=`, `contains`), `project`, `distinct`,
-`summarize count by <col>` (group + count, biggest first), `sort by <col>
-[desc]` (numeric-aware), `take`, `count` — all case-insensitive, quoted
-strings supported. Terminal commands: `help`, `tables`, `fields <table>`,
-`case`, `hint` (halves that question's points), `answer <value>`, `clear`;
-**TAB autocompletes** table/column/operator names; ↑/↓ cycle command
-history; Esc steps away (progress persists). The sidebar shows live score
-and streak.
+## Level 4: Cyber Attack
 
-**Two cases, both required to finish the level (14 questions total):**
-
-1. **Case: Spartan Gold** (8 questions) — the classic phishing kill-chain
-   pivot: campaign emails → the lure link → who clicked (WebVisits) →
-   payload execution (ProcessEvents) → attacker IP (DnsLookups) → the
-   attacker's *second* domain on the same IP.
-2. **Case 2: Midnight Exfil** (6 questions, unlocked when Case 1 closes) —
-   an insider threat that only shows up in *aggregates*: `summarize` finds
-   the account with anomalous logon volume, `sort` finds the after-hours
-   entry, and FileAccess ties the USB exfiltration to one employee. New
-   tables: LogonEvents, FileAccess.
-
-An **evidence pinboard** in the SOC fills in a card per solved question, so
-investigation progress is visible in the world, not just in the terminal.
-
-First-try answers without hints score full points and build streaks; the
-dataset (7 tables, authored noise included) lives in
-`Forensics/LogDatabase.cs`, the cases in `Forensics/InvestigationCase.cs` —
-educators can add questions or a whole new case without touching engine code
-(`MiniKql.cs` is pure C# and reusable). All 14 answers are machine-verified
-against the dataset.
+`Assets/Scenes/Level4_CyberAttack.unity` (generated in code) is a big-tech
+employee game room where each attack step is an arcade machine: Spot the
+Phish, Phish Frenzy, the claw machine (Access Grabber) and Network Attack.
+A correct pick plays a short bonus round; the normal run is untimed. Spec:
+[`Docs/LEVEL4_CYBER_ATTACK_GAMEPLAY_SPEC.md`](Docs/LEVEL4_CYBER_ATTACK_GAMEPLAY_SPEC.md).
+Finishing Levels 1–4 offers an end-of-game certificate on the Level 4
+results card, which can be saved as a PNG.
 
 ## Level 2: Cyber Defense — gamified
 
@@ -344,13 +330,11 @@ against the dataset.
 Defense**, on the two-room template, with one hands-on mechanic per concept
 instead of review stations:
 
-- **SIEM alert shift** (`Interaction/SiemConsole.cs`) — alerts arrive one at a
-  time on a countdown; triage each with **[1] ESCALATE** / **[2] DISMISS**.
-  Five of the nine are noise. The clock is the point: reading a static list
-  teaches nothing about a SOC, but judging under time pressure with noise
-  outnumbering real incidents *is* alert fatigue. Letting one expire is a miss.
-  The timer only runs while the player is at the desk, so stepping away to
-  think never punishes them.
+- **SOC alert board** (`Interaction/SiemConsole.cs`) — flag one of four
+  event rows, walk to that computer, compare the alert with its live
+  activity, and give a verdict: **[1] IT MATCHES — FALSE ALARM** or
+  **[2] NO MATCH — POSSIBLY REAL**. App names in the data are generic (no
+  real products).
 - **EDR containment** (`Interaction/EndpointStation.cs`) — five workstations
   whose screens always show their running processes. Read them, press `E` to
   isolate the compromised ones (a double-extension `invoice_2026.pdf.exe`, an
@@ -373,15 +357,17 @@ questions are all editable data.
 **Open it:** `Level2_CyberDefense.unity` and press Play, or build an editable
 copy via **CyVerse → Build Level 2 (Cyber Defense) Scene**.
 
-> The Hub's Level 2 door is still serialized as `Level1` (named before the
-> renumbering). `SceneCatalog` resolves it to `Level2_CyberDefense`, so the
-> door upgrades itself. The original `Level1.unity` remains as the fallback.
+> The old `Level1.unity` (the first SOC level) no longer ships;
+> `SceneCatalog` routes any door that still names it to
+> `Level2_CyberDefense`.
 
 ### Grading
 
 Grades are relative to each level's **par score**, not a fixed number — an
 `S` needs 95% of par, `A` 82%, `B` 68%. Pars: Level 0 **550**, Level 1 (I/AM)
-**1100**, Level 2 **1280**, Level 3 (Forensics) **1800**. Pass `parScore:` to
+**1100**, Level 2 **1280**, Level 3 (Forensics) **2300** (1800 plus 100 per
+knowledge-check question), Level 4 **1280**. Hard runs scale par by the
+Hard score multiplier. The best score is kept per level. Pass `parScore:` to
 `ResultsScreen.Show()` when adding a level, or every run will grade as an S.
 
 **How it shares Level 0's foundation — the `BuildKit` refactor:** the parts of
@@ -428,13 +414,16 @@ next iteration once the content and flow are validated.
 | Look              | Mouse           |
 | Interact          | `E`             |
 | Advance dialogue  | `Space`         |
-| Scrub video       | `←` / `→` (near a Briefing Screen) |
+| Next briefing slide | `E` (at the Briefing Screen) |
+| Continue (quiz explanation, results card) | `Enter` |
 | Glossary          | `G`             |
-| Settings / Pause  | `Esc`           |
+| Settings / Pause  | `Esc` (`Tab` when the browser is full screen) |
 
 In the settings menu: **Up/Down** select a row, **Left/Right** adjust the value.
-Adjustable: master volume, voice volume, caption text size, look sensitivity.
-Settings persist between sessions (PlayerPrefs).
+Adjustable: master, voice and SFX volume, voiceover (browser text-to-speech,
+off by default), caption text size, look sensitivity, field of view and
+Reduce Motion. The menu also has **Start Over** and **Credits**. Settings
+persist between sessions (PlayerPrefs) and survive Start Over.
 
 ## How it's built
 
@@ -478,6 +467,7 @@ completion, matching the CyVerse Script.
 | `Interaction/SecurityPlusKiosk.cs`     | The physical Security+ Prep Terminal prop        |
 | `Level/StationSetup.cs`                | Per-station topic/content + completion feedback  |
 | `Editor/Level0SceneBuilder.cs`         | Menu: CyVerse > Build Level 0 Scene             |
+| `Level/Level1*.cs` (no `Iam`), `Interaction/Level1Gate.cs` | The legacy first SOC level; its scene no longer ships |
 | `Level/Level1Content.cs`               | Level 1 narration text (SIEM/EDR/Incident Response) |
 | `Level/Level1Quiz.cs`                  | Level 1 knowledge-check question bank           |
 | `Level/Level1Manager.cs`               | Level 1 phase flow (mirrors Level0Manager)      |
@@ -512,10 +502,9 @@ completion, matching the CyVerse Script.
 | `Interaction/HubDoor.cs`               | Level-select door: status sign + scene loading  |
 | `Level/MissionBoard.cs`                | Hub status board: callsign, clearance, per-level state |
 | `Level/AmbientScreen.cs`               | Wall TV driver: headline ticker + animated chart |
-| `Forensics/LogDatabase.cs`             | KC7 dataset: 5 log tables of the breach story    |
-| `Forensics/MiniKql.cs`                 | Mini-KQL engine: where/project/distinct/take/count |
-| `Forensics/InvestigationCase.cs`       | Case questions, answers, hints + briefing slides |
-| `Forensics/QueryTerminal.cs`           | Full-screen forensic terminal (modal, keyboard)  |
+| `Forensics/EvidenceExplorer*.cs`       | Level 3 Process step + artifact browser (modal) |
+| `Forensics/PhoneImage.cs`              | The seized phone's artifacts                    |
+| `Forensics/InvestigationCase.cs`       | Case findings, answers + briefing slides        |
 | `Interaction/ForensicsConsole.cs`      | Investigation Desk prop; owns case + database    |
 | `Level/Level3Forensics*.cs`            | Level 3 factory / manager / bootstrap            |
 | `Interaction/LockedDoor.cs`            | Sliding door, unlocked by an event              |
@@ -541,9 +530,9 @@ completion, matching the CyVerse Script.
 3. **Authenticate** — once all stations are reviewed, the **Security Scanner**
    activates. Press `E` there for the face scan → *"Access Granted — Level:
    Employee"*, per the CyVerse Script.
-4. **Results** — score, security clearance grade, rank title, percentile vs.
-   other recruits, quiz accuracy, best streak, time, and your persistent
-   **best score** (gold "NEW BEST!" when beaten), with `[R]` to replay.
+4. **Results** — score, security clearance grade, rank title, quiz
+   accuracy, best streak, time, and the **best score** for this level in
+   this run (gold "NEW BEST!" when beaten), with `[Enter]` to continue.
 
 Scoring: station review **+50**, knowledge check **+100** correct / **+25**
 attempted, face scan **+100** (max **550**, before combos). The score counter
@@ -608,9 +597,11 @@ a popping "E" key badge, typewriter dialogue (Space completes, then advances),
 hover-glow on targeted station holograms, floating "+points" popups, particle
 bursts on station review / scan / completion, an animated scan-bar during the
 face scan, pitch-varied footsteps, ambient server blips, drifting patrol
-drones, a fade-from-black on start, and a green ✓ checkmark (a *shape*, not
-colour alone) when a station is reviewed. The results screen awards a themed
-Security Clearance grade (S/A/B/C) and teases Level 1 — Cyber Defense.
+drones, and a fade-from-black on start. The results screen awards a themed
+Security Clearance grade (S/A/B/C). The game ships its own font
+(`Assets/Resources/Fonts/CyverseSans.ttf`, loaded by `HudUI.LoadFont`)
+because Unity's built-in font is a 332-character subset in WebGL builds;
+check new symbols render in a WebGL build before using them.
 
 Accessibility (Esc menu, all persisted): separate **Master / Voice / SFX**
 volume channels, a **Voiceover (TTS)** toggle, **caption text scaling**,
@@ -648,8 +639,8 @@ pauses the game. Reduce Motion uses a global shader float `_CyMotion`.
    Presentation → WebGL Template → CyVerse`. The built game then ships inside
    a branded shell (SJSU Blue `#0055A2` header, Spartan Gold `#E5A823`
    loading bar and accents, fullscreen button, offline-safe system fonts).
-3. Run **CyVerse → Add Scenes To Build Settings** so all six scenes are in
-   the build, PasswordLock first (it's the entry scene).
+3. Run **CyVerse → Add Scenes To Build Settings** so all seven scenes are
+   in the build, Hub first (it's the entry scene).
 4. **Player Settings → Publishing Settings → Compression Format:** `Gzip` with
    **Decompression Fallback** ON. (`Brotli` needs a host that sends
    `Content-Encoding: br`; GitHub Pages does not — see *Web deployment*.)
@@ -732,11 +723,12 @@ rather than queueing.
 > **Before the first automated build, run CyVerse → Add Scenes To Build
 > Settings and commit `ProjectSettings/`.** The cloud build ships exactly the
 > scenes registered there — with a stale list it will happily publish a game
-> missing the Hub, the visual passes and Level 2, on every push.
+> missing levels, on every push.
 
-> Before the first game build, run **CyVerse → Add Scenes To Build Settings**
-> in Unity and commit `ProjectSettings/` — the cloud build ships exactly the
-> scenes registered there.
+**Pull requests** run `.github/workflows/pr-checks.yml` when they touch
+`Assets/`, `Packages/` or `ProjectSettings/`: the Play Mode tests, then a
+WebGL build attached to the run as the `webgl-build` artifact. Both must be
+green before merging, since merging to `main` deploys.
 
 Editing the landing page is just editing `web/index.html`; pushing to `main`
 redeploys it.

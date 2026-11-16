@@ -321,7 +321,7 @@ namespace Cyverse.Interaction
 
             MfaProps.BuildSignStand(memo.transform, new Vector3(0f, 1.85f, 0.03f), new Vector2(1.9f, 0.8f), accent);
             BuildKit.MakeLabel(memo.transform, new Vector3(0f, 1.85f, -0.01f),
-                "DAILY OTP\n<size=30>CHECK YOUR PHONE</size>\n<size=22>code rotates every 24h</size>",
+                "YOUR PASSCODE\n<size=30>ONLY YOU KNOW IT</size>\n<size=22>new here? your starter passcode is on your phone</size>",
                 accent, 0.020f);
         }
     }

@@ -121,6 +121,26 @@ namespace Cyverse.Level
                 if (l.type == LightType.Directional) l.shadows = LightShadows.None;
         }
 
+        /// <summary>Raise a room's ambient to at least <paramref name="level"/>,
+        /// whether or not Ambient() has already turned it into a top-down
+        /// gradient (polish passes and this component start in either order).</summary>
+        public static void RaiseAmbient(Color level)
+        {
+            if (RenderSettings.ambientMode == AmbientMode.Trilight)
+            {
+                Color sky = RenderSettings.ambientEquatorColor;
+                if (sky.r + sky.g + sky.b >= (level.r + level.g + level.b) * 0.95f) return;
+                RenderSettings.ambientSkyColor = new Color(level.r * 1.18f, level.g * 1.22f, level.b * 1.3f);
+                RenderSettings.ambientEquatorColor = level * 0.95f;
+                RenderSettings.ambientGroundColor = new Color(level.r * 0.55f, level.g * 0.52f, level.b * 0.5f);
+                return;
+            }
+            Color a = RenderSettings.ambientLight;
+            if (a.r + a.g + a.b >= level.r + level.g + level.b) return;
+            RenderSettings.ambientMode = AmbientMode.Flat;
+            RenderSettings.ambientLight = level;
+        }
+
         /// <summary>Top-down ambient (brighter from above, darker from below)
         /// around the room's existing ambient level, so shapes read as solid
         /// instead of evenly flat.</summary>
