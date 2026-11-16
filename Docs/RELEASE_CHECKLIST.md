@@ -38,10 +38,12 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
 - [ ] **2. Play Mode tests did not run on pull requests**, only after merge
       to `main`. Fixed by the `PR Checks` workflow (tests, then a WebGL
       build attached to the run).
-- [ ] **3. Web page text is left over from an earlier version.** The loading
-      screen says "Loading Level 0 — Onboarding" (the game opens on the
-      access terminal), the tab title is "CyVerse — Cyverse", and the build
-      is stamped company "DefaultCompany".
+- [x] **3. Web page text was left over from an earlier version.** The loading
+      screen said "Loading Level 0 — Onboarding" (the game opens on the
+      access terminal) and the tab title was "CyVerse — Cyverse". The landing
+      page listed Level 4 as "in development" and described an older Level 3.
+      Still open: the build is stamped company "DefaultCompany" (Player
+      Settings → Company Name), which the owner should set.
 
 ## Decisions needed from the owner
 
