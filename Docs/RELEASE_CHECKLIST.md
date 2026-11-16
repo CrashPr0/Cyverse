@@ -87,8 +87,16 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
 - [ ] Playtest telemetry prints a line to the browser console for every
       event in release builds.
 - [x] `README.md` rewritten for the current game; stale lines in
-      `TESTING.md` and `SETUP.md` corrected. The rest of `SETUP.md` (800
-      lines) has not been reviewed.
+      `TESTING.md` and `SETUP.md` corrected.
+- [x] `SETUP.md` reviewed against the current game (2026-11-16). Fixed:
+      Hub doors and unlocks, the fresh-run reset and Start Over, the
+      visual-pass scenes (no longer shipped), scene order with Hub first,
+      the Level 3 section (still described the removed KQL terminal; now
+      the Evidence Lab, pointing at `Docs/Level3-Forensics-Guide.md`), a new
+      Level 4 section, the Level 2 alert board, Level 1's MFA passcode,
+      pars, controls and settings, results keys, the PR Checks workflow and
+      the web font. Not rewritten: the Level 0 deep-dive and the shader and
+      script-map sections, which still match the code.
 - [ ] Audio: sound effects are already soft, low mallet tones with a
       low-pass and reverb, and the room tone is low brown noise. Needs a
       listen on real speakers before sign-off.
