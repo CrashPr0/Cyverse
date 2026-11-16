@@ -39,6 +39,9 @@ namespace Cyverse.Level
             Banners();
             AmbientDrones();
             StillFloor();
+            // The saved Hub's ambient (0.10) left the floor and walls black
+            // between the door lights; lift it to the other levels' level.
+            LightingDirector.RaiseAmbient(new Color(0.22f, 0.23f, 0.29f));
             // The lounges (couches and rugs) are left as they are: they are
             // being reworked separately in the saved scene.
         }
@@ -367,7 +370,7 @@ namespace Cyverse.Level
                 Transform glyph = Batch("Icon", b, BuildKit.MakeEmissive(new Color(0.95f, 0.97f, 1f), 0.9f), icon);
                 glyph.localPosition = new Vector3(0f, 0.35f, -0.03f);
                 TextMesh word = BuildKit.MakeLabel(b, new Vector3(0f, -0.42f, -0.03f), BannerWords[i % 4],
-                    new Color(0.95f, 0.97f, 1f), 0.027f);
+                    new Color(0.95f, 0.97f, 1f), 0.04f);
                 word.transform.localRotation = Quaternion.identity;
             }
         }
