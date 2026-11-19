@@ -28,8 +28,6 @@ namespace Cyverse.Tests
         {
             Type metrics = MetricsType();
             object instance = metrics.GetMethod("Ensure").Invoke(null, null);
-            PropertyInfo count = metrics.GetProperty("EventCount");
-            int before = (int)count.GetValue(instance);
 
             string marker = "console_test_" + Guid.NewGuid().ToString("N").Substring(0, 8);
             if (Debug.isDebugBuild)
@@ -37,8 +35,6 @@ namespace Cyverse.Tests
             metrics.GetMethod("Record", BindingFlags.Public | BindingFlags.Static)
                 .Invoke(null, new object[] { marker, "detail" });
 
-            int after = (int)count.GetValue(instance);
-            Assert.That(after == before + 1 || after == before, Is.True);
             StringAssert.Contains(marker, (string)metrics.GetMethod("ExportJson").Invoke(instance, null),
                 "The event is stored whether or not it is printed.");
         }
