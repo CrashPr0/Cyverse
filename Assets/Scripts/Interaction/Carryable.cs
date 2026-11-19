@@ -215,6 +215,21 @@ namespace Cyverse.Interaction
             if (tm != null) tm.gameObject.SetActive(visible);
         }
 
+        /// <summary>Out of the player's hands and back to where it started, as
+        /// PutDown leaves an item (label shown, colliders on). Hard mode sends
+        /// misplaced items home with this.</summary>
+        public void ReturnTo(Vector3 position, Quaternion rotation)
+        {
+            transform.SetParent(null, true);
+            transform.SetPositionAndRotation(position, rotation);
+            transform.localScale = Vector3.one;
+            var label = GetComponentInChildren<TextMesh>(true);
+            if (label != null) label.gameObject.SetActive(true);
+            foreach (Collider c in GetComponentsInChildren<Collider>(true))
+                if (c != null) c.enabled = true;
+            if (Carried == this) Carried = null;
+        }
+
         /// <summary>Delivered: remove from the world (drop zones call this).</summary>
         public void Consume()
         {

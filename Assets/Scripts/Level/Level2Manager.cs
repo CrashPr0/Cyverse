@@ -41,6 +41,18 @@ namespace Cyverse.Level
 
         private static readonly Color GuideGold = new Color(0.90f, 0.66f, 0.14f);
 
+        // Hard copy (entered from the Hub's Hard wing): see HardMode. On top of
+        // the shared Hard rules (no beacon, x1.5 score, no sprint while
+        // carrying), the SIEM alerts run on a response clock, the last alert
+        // ends in the ContainSpread mini-game, wrong playbook steps cost
+        // points, and the run is timed against par.
+        private bool hard;
+        public const float HardParSeconds = 420f;
+        public const int HardParBonus = 300;
+        private float completedAt;
+
+        public bool IsHard => hard;
+
         void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(this); return; }
@@ -52,6 +64,7 @@ namespace Cyverse.Level
         void Start()
         {
             startTime = Time.time;
+            hard = HardMode.IsActiveFor(2);
 
             LevelMissionRuntime.EnsureSharedRuntime(gameObject, showEvidenceInventory: true);
 
@@ -195,6 +208,7 @@ namespace Cyverse.Level
             CurrentPhase = Phase.Tasks;
 
             if (taskDoor != null) taskDoor.Unlock();
+            if (hard && siem != null) siem.StartAlertClock();
             if (HudUI.Instance != null)
                 HudUI.Instance.ShowToast("Briefing complete — the SOC floor is open",
                     new Color(0.30f, 1f, 0.45f));
@@ -352,7 +366,7 @@ namespace Cyverse.Level
         private void UpdateTaskList()
         {
             var list = TaskListPanel.Ensure(gameObject);
-            list.SetHeader("CYBER DEFENSE");
+            list.SetHeader(hard ? HardHeader() : "CYBER DEFENSE");
 
             var tasks = new List<TaskListPanel.Task>();
             bool watched = CurrentPhase != Phase.Watch;
@@ -360,7 +374,7 @@ namespace Cyverse.Level
 
             if (siem != null)
                 tasks.Add(new TaskListPanel.Task(
-                    $"SOC investigations  ({siem.CompletedScenarios}/{siem.ScenarioCount})",
+                    $"SOC investigations  ({siem.CompletedScenarios}/{siem.ScenarioCount})" + AlertClockText(),
                     siem.IsComplete, watched && !siem.IsComplete));
             if (locker != null)
                 tasks.Add(new TaskListPanel.Task("Lock the seized device in the evidence locker",
@@ -374,6 +388,24 @@ namespace Cyverse.Level
                     exam.IsComplete, CurrentPhase == Phase.Exam));
 
             list.Show(tasks);
+        }
+
+        /// <summary>The Hard run's clock against par, in the checklist header.</summary>
+        private string HardHeader()
+        {
+            float t = (CurrentPhase == Phase.Complete ? completedAt : Time.time) - startTime;
+            string clock = $"{(int)t / 60}:{(int)t % 60:00}";
+            string colour = t <= HardParSeconds ? "#FFFFFF" : "#FF8866";
+            return $"CYBER DEFENSE HARD  ·  <color={colour}>{clock}</color> / par {(int)HardParSeconds / 60}:{(int)HardParSeconds % 60:00}";
+        }
+
+        /// <summary>Hard: time left to answer the current alert.</summary>
+        private string AlertClockText()
+        {
+            if (siem == null || !siem.AlertClockRunning) return "";
+            int left = Mathf.CeilToInt(Mathf.Max(0f, siem.AlertSecondsLeft));
+            string colour = left > 15 ? "#FFFFFF" : "#FF8866";
+            return $"  <color={colour}>{left / 60}:{left % 60:00}</color>";
         }
 
         private string NextActionText()
@@ -458,6 +490,14 @@ namespace Cyverse.Level
                         new Color(1f, 0.55f, 0.4f));
                 return;
             }
+            completedAt = Time.time;
+            if (hard && completedAt - startTime <= HardParSeconds)
+            {
+                ScoreSystem.Add(HardParBonus);
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast($"UNDER PAR  ·  +{Mathf.RoundToInt(HardParBonus * HardMode.ScoreMultiplier)}",
+                        GuideGold);
+            }
             CurrentPhase = Phase.Complete;
             if (forensicsDoor != null)
             {
@@ -468,7 +508,8 @@ namespace Cyverse.Level
 
             UpdateObjective();
             HubDoor labDoor = forensicsDoor;
-            bool toLab = labDoor != null && ForensicsTransferOpen;
+            // A Hard run ends on its results card; the lab is a Normal-campaign step.
+            bool toLab = !hard && labDoor != null && ForensicsTransferOpen;
             LevelMissionRuntime.Complete(new LevelMissionRuntime.Completion
             {
                 levelNumber = 2,

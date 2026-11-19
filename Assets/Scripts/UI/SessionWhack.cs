@@ -22,7 +22,7 @@ namespace Cyverse.UI
     public class SessionWhack : MonoBehaviour
     {
         public const int KicksToWin = 8;
-        private const float RoundSeconds = 25f;
+        private const float RoundSeconds = 35f;
         private const float IntruderChance = 0.62f;
         private const int PointsPerKick = 20;
 
@@ -74,7 +74,7 @@ namespace Cyverse.UI
             for (int i = 0; i < 9; i++) { tiles[i] = Tile.Empty; Paint(i); }
             kicks = 0;
             timeLeft = RoundSeconds;
-            untilSpawn = 0.6f;
+            untilSpawn = 1f;
             restartIn = 0f;
             running = true;
             Feedback($"Kick <color=#FF6A60><b>{intruder}</b></color> every time it shows up. Leave your coworkers alone.", 3f);
@@ -108,8 +108,8 @@ namespace Cyverse.UI
             }
             if ((untilSpawn -= dt) <= 0f)
             {
-                Spawn(Mathf.Lerp(1.5f, 0.85f, pace));
-                untilSpawn = Mathf.Lerp(0.85f, 0.45f, pace);
+                Spawn(Mathf.Lerp(2.4f, 1.5f, pace));
+                untilSpawn = Mathf.Lerp(1.3f, 0.8f, pace);
             }
 
             for (int i = 0; i < 9; i++)
