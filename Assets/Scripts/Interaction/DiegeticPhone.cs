@@ -84,6 +84,10 @@ namespace Cyverse.Interaction
             return phone;
         }
 
+        /// <summary>Height and text size of the "MY PHONE" plate on the dock front.</summary>
+        public const float NameplateY = 0.90f;
+        public const float NameplateCharacterSize = 0.0055f;
+
         /// <summary>The physical phone: a small stand, an angled body, and the
         /// screen quad the RT is painted onto. Placed on a low dock beside the
         /// passcode terminal so the player reads it as a phone sitting there.</summary>
@@ -150,8 +154,15 @@ namespace Cyverse.Interaction
             // This dock sits immediately beside the passcode terminal, so its
             // caption is a nameplate on the dock's front rather than a floating
             // label: up close a floating one swelled across the vault behind.
-            BuildKit.MakeLabel(transform, new Vector3(0f, 0.86f, -0.15f),
-                "MY PHONE", accent, 0.0075f);
+            // Sized to fit the dock's flat front (about 23 cm between the
+            // bevels): at 0.0075 it overhung both edges and the ends read as
+            // cut off against the bright floor from the terminal. A dark
+            // plate behind it keeps it legible from the side.
+            BuildKit.SpawnLocal(PrimitiveType.Cube, "NameplateBack", transform,
+                new Vector3(0f, NameplateY, -0.140f), Vector3.zero, new Vector3(0.21f, 0.05f, 0.008f),
+                BuildKit.MakeStandard(new Color(0.02f, 0.03f, 0.045f), 0.4f, 0.1f), collider: false);
+            BuildKit.MakeLabel(transform, new Vector3(0f, NameplateY, -0.146f),
+                "MY PHONE", accent, NameplateCharacterSize);
         }
 
         /// <summary>The offscreen render pipeline: a world-space Canvas holding
