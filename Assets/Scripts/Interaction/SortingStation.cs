@@ -184,7 +184,7 @@ namespace Cyverse.Interaction
             if (Cyverse.Core.HardMode.Active && intake.TryGetValue(item.id, out Vector3 home))
             {
                 // Hard: a misfile costs points and the crate goes back to intake.
-                SendBackToIntake(item, home);
+                item.ReturnTo(home, Quaternion.identity);
                 ScoreSystem.Add(-HardMisfilePenalty);
                 if (HudUI.Instance != null)
                     HudUI.Instance.ShowToast(
@@ -196,20 +196,6 @@ namespace Cyverse.Interaction
                 HudUI.Instance.ShowToast(
                     $"DENIED — {zone.zoneName} doesn't need {item.itemName}. Least privilege: access only for those who NEED it.",
                     new Color(1f, 0.55f, 0.4f));
-        }
-
-        /// <summary>Out of the player's hands and back onto its intake bay,
-        /// as Carryable.PutDown leaves an item (label shown, colliders on).</summary>
-        private static void SendBackToIntake(Carryable item, Vector3 home)
-        {
-            item.transform.SetParent(null, true);
-            item.transform.SetPositionAndRotation(home, Quaternion.identity);
-            item.transform.localScale = Vector3.one;
-            var label = item.GetComponentInChildren<TextMesh>(true);
-            if (label != null) label.gameObject.SetActive(true);
-            foreach (Collider c in item.GetComponentsInChildren<Collider>(true))
-                if (c != null) c.enabled = true;
-            if (Carryable.Carried == item) Carryable.ClearCarried();
         }
 
         // ---- Construction ----------------------------------------------------

@@ -43,7 +43,7 @@ namespace Cyverse.Level
         private static HardDoor[] Doors() => new[]
         {
             new HardDoor(1, "Level 1 — Hard", "Level1_IAM", 5f),
-            new HardDoor(2, "Level 2 — Hard", "", -1f),
+            new HardDoor(2, "Level 2 — Hard", "Level2_CyberDefense", -1f),
             new HardDoor(3, "Level 3 — Hard", "", -7f),
             new HardDoor(4, "Level 4 — Hard", "", -13f),
         };

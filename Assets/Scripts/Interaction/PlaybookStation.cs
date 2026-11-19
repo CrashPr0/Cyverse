@@ -40,6 +40,12 @@ namespace Cyverse.Interaction
         private string[] why;
         private int placed;
 
+        /// <summary>Hard: a card dropped on the wrong step costs this and goes
+        /// back to its spot on the rack.</summary>
+        public const int HardWrongStepPenalty = 30;
+        private readonly System.Collections.Generic.Dictionary<string, Pose> rackHome =
+            new System.Collections.Generic.Dictionary<string, Pose>();
+
         private const float SlotSpacing = 2.25f;
 
         /// <summary>Where the board stands on the SOC's east wall: centred on
@@ -76,6 +82,10 @@ namespace Cyverse.Interaction
             steps = Level2Content.PlaybookSteps();
             why = Level2Content.PlaybookWhy();
             ApplyReadableLayout();
+            rackHome.Clear();
+            foreach (Carryable card in FindObjectsOfType<Carryable>())
+                if (card.id.StartsWith("ir_") && Carryable.Carried != card)
+                    rackHome[card.id] = new Pose(card.transform.position, card.transform.rotation);
             foreach (var zone in FindObjectsOfType<DropZone>())
             {
                 if (!zone.zoneName.StartsWith("STEP ")) continue;
@@ -124,6 +134,16 @@ namespace Cyverse.Interaction
         private void OnRejected(DropZone zone, Carryable card, int slot)
         {
             // DropZone already played the deny sound.
+            if (HardMode.Active && rackHome.TryGetValue(card.id, out Pose home))
+            {
+                card.ReturnTo(home.position, home.rotation);
+                ScoreSystem.Add(-HardWrongStepPenalty);
+                if (HudUI.Instance != null)
+                    HudUI.Instance.ShowToast(
+                        $"WRONG STEP  −{HardWrongStepPenalty}  ·  {card.itemName} went back to the rack. STEP {placed + 1} is {NextStep}.",
+                        new Color(1f, 0.55f, 0.4f));
+                return;
+            }
             if (HudUI.Instance == null) return;
             HudUI.Instance.ShowToast(
                 slot > placed

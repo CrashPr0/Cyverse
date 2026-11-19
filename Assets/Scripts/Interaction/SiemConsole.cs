@@ -27,7 +27,7 @@ namespace Cyverse.Interaction
         private int flaggedRow = -1;
         private int wrongRowAttempts;
 
-        private enum PanelMode { Closed, AlertBoard, Verification, ChainOfCustody }
+        private enum PanelMode { Closed, AlertBoard, Verification, ChainOfCustody, Containment }
         private PanelMode mode;
         private GameObject panel;
         private TextMeshProUGUI headerText, bodyText, feedbackText, controlsText;
@@ -37,6 +37,36 @@ namespace Cyverse.Interaction
 
         private TextMesh worldHeader, worldBody, worldHint;
         private Renderer screenRenderer;
+
+        // ---- Hard: the alert clock ----------------------------------------------
+        // Each alert has to be answered within HardAlertSeconds. When the
+        // clock runs out the alert escalates: points off, and the clock
+        // restarts. Game time, so it rests while a panel pauses the game.
+        public const float HardAlertSeconds = 60f;
+        public const int HardEscalationPenalty = 50;
+        private bool alertClockRunning;
+        private float alertSecondsLeft;
+
+        public bool AlertClockRunning => alertClockRunning && !IsComplete;
+        public float AlertSecondsLeft => alertSecondsLeft;
+
+        /// <summary>Hard only: starts the response clock on the current alert.</summary>
+        public void StartAlertClock()
+        {
+            alertClockRunning = true;
+            alertSecondsLeft = HardAlertSeconds;
+        }
+
+        private void TickAlertClock()
+        {
+            if (!AlertClockRunning || mode == PanelMode.Containment) return;
+            alertSecondsLeft -= Time.deltaTime;
+            if (alertSecondsLeft > 0f) return;
+            alertSecondsLeft = HardAlertSeconds;
+            ScoreSystem.Add(-HardEscalationPenalty);
+            if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
+            Toast($"ALERT ESCALATED  −{HardEscalationPenalty}  ·  Answer alerts faster. The clock has restarted.", false);
+        }
 
         public int ScenarioIndex => scenarioIndex;
         public int ScenarioCount => scenarios != null ? scenarios.Length : 0;
@@ -124,6 +154,7 @@ namespace Cyverse.Interaction
 
         void Update()
         {
+            TickAlertClock();
             if (mode == PanelMode.Closed || Time.frameCount == openedFrame) return;
 
             if (mode == PanelMode.AlertBoard)
@@ -279,6 +310,40 @@ namespace Cyverse.Interaction
                 return;
             }
 
+            // Hard: a real compromise has to be contained before the case closes.
+            if (HardMode.Active && verdict == Level2Content.SocVerdict.NoMatchPossibleTruePositive &&
+                scenarioIndex == ScenarioCount - 1)
+            {
+                StartContainment();
+                return;
+            }
+
+            AcceptVerdict();
+        }
+
+        /// <summary>Hard: the malware is already moving from the flagged
+        /// machine. The panel steps aside for the ContainSpread mini-game; a
+        /// win closes the case as normal, giving up leaves the alert open.</summary>
+        private void StartContainment()
+        {
+            mode = PanelMode.Containment;
+            if (panel != null) panel.SetActive(false);
+            ContainSpread.Play(
+                won: () =>
+                {
+                    if (panel != null) panel.SetActive(true);
+                    mode = PanelMode.Verification;
+                    AcceptVerdict();
+                },
+                quit: () =>
+                {
+                    ClosePanel();
+                    Toast("The malware is still spreading. Come back to contain it.", false);
+                });
+        }
+
+        private void AcceptVerdict()
+        {
             ScoreSystem.Add(pointsPerScenario);
             if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
 
@@ -289,6 +354,7 @@ namespace Cyverse.Interaction
                 selectedRow = 0;
                 flaggedRow = -1;
                 wrongRowAttempts = 0;
+                if (alertClockRunning) alertSecondsLeft = HardAlertSeconds;
                 ClosePanel();
                 RefreshWorldDisplay();
                 RefreshWorkstations();
