@@ -57,8 +57,9 @@ namespace Cyverse.Settings
             public Func<bool> On;             // Switch
             public Action<int> Step;          // Left/Right or a click
             public Action<float> SetFraction; // Level: a click along the bar
+            public Action Activate;           // Choice: Enter or a click off the arrows (instead of Step)
 
-            public RectTransform Rect, Bar, LeftArrow;
+            public RectTransform Rect, Bar, LeftArrow, RightArrow;
             public Image Back, Marker, Pill;
             public Text LabelText, ValueText, PillText;
             public Image[] Segments;
@@ -74,6 +75,8 @@ namespace Cyverse.Settings
         private int selected;
         private bool resetArmed;
         private bool startOverArmed;
+        private PlaytestExport.Format exportFormat = PlaytestExport.Format.Csv;
+        private string exportStatus = "";
         private GameObject creditsCard;
         private bool creditsOpen;
 
@@ -182,6 +185,20 @@ namespace Cyverse.Settings
             });
             Add(new Row
             {
+                Section = null, Label = "Export Data", Kind = Kind.Choice,
+                Help = "Saves your playtest data from this browser as a file. ← → pick CSV or JSON, Enter or click saves. Nothing is sent anywhere.",
+                Value = () => exportStatus.Length > 0 ? exportStatus
+                    : exportFormat == PlaytestExport.Format.Csv ? "Save as CSV" : "Save as JSON",
+                Step = _ =>
+                {
+                    exportFormat = exportFormat == PlaytestExport.Format.Csv
+                        ? PlaytestExport.Format.Json : PlaytestExport.Format.Csv;
+                    exportStatus = "";
+                },
+                Activate = () => ExportData(),
+            });
+            Add(new Row
+            {
                 Section = null, Label = "Credits", Kind = Kind.Action,
                 Help = "Who made CyVerse.",
                 Value = () => "",
@@ -190,6 +207,15 @@ namespace Cyverse.Settings
         }
 
         private void Add(Row row) => rows.Add(row);
+
+        /// <summary>Settings → Export Data. Public so tests and study staff
+        /// tooling can trigger the same save.</summary>
+        public bool ExportData()
+        {
+            bool ok = PlaytestExport.Export(exportFormat);
+            exportStatus = ok ? "Saved" : "Could not save";
+            return ok;
+        }
 
         private static readonly float[] VoiceRates = { 0.75f, 1f, 1.25f, 1.5f };
 
@@ -277,7 +303,7 @@ namespace Cyverse.Settings
             else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) Change(1);
             else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) ||
                      Input.GetKeyDown(KeyCode.Space))
-                Change(1);
+                Activate();
 
             HandleMouse();
         }
@@ -307,8 +333,11 @@ namespace Cyverse.Settings
                 else if (row.LeftArrow != null &&
                          RectTransformUtility.RectangleContainsScreenPoint(row.LeftArrow, mouse, null))
                     Change(-1);
-                else
+                else if (row.RightArrow != null && row.Activate != null &&
+                         RectTransformUtility.RectangleContainsScreenPoint(row.RightArrow, mouse, null))
                     Change(1);
+                else
+                    Activate();
                 return;
             }
         }
@@ -335,6 +364,7 @@ namespace Cyverse.Settings
                 if (panel != null) UiMotion.PanelIn(panel, card);
                 resetArmed = false;
                 startOverArmed = false;
+                exportStatus = "";
                 ShowCredits(false);
                 lastMouse = Input.mousePosition;
                 if (Sfx.Instance != null) Sfx.Instance.PlayClick();
@@ -356,6 +386,17 @@ namespace Cyverse.Settings
             startOverArmed = false;
             if (sound && Sfx.Instance != null) Sfx.Instance.PlayClick();
             Refresh();
+        }
+
+        /// <summary>Enter, Space or a click: a row with its own action runs it,
+        /// every other row steps forward.</summary>
+        private void Activate()
+        {
+            Row row = rows[selected];
+            if (row.Activate == null) { Change(1); return; }
+            row.Activate();
+            Refresh();
+            if (Sfx.Instance != null) Sfx.Instance.PlayClick();
         }
 
         private void Change(int dir)
@@ -546,7 +587,7 @@ namespace Cyverse.Settings
             panel = NewImage("SettingsBackdrop", HudUI.Instance.Canvas.transform, new Color(0f, 0.01f, 0.02f, 0.72f));
             Stretch(panel.GetComponent<RectTransform>());
 
-            const float width = 920f, rowHeight = 34f, rowGap = 3f, sectionHeight = 28f, sectionGap = 4f;
+            const float width = 920f, rowHeight = 32f, rowGap = 2f, sectionHeight = 28f, sectionGap = 4f;
             const float top = 92f, helpHeight = 48f, footer = 64f;
             int sections = 0;
             string last = null;
@@ -672,6 +713,7 @@ namespace Cyverse.Settings
                     row.LeftArrow = left.rectTransform;
                     Text right = NewText("Next", row.Rect, "›", 30, Muted, TextAnchor.MiddleCenter, FontStyle.Bold);
                     PlaceRight(right.rectTransform, 18f, 0f, 40f, height);
+                    row.RightArrow = right.rectTransform;
                     row.ValueText = NewText("Value", row.Rect, "", 22, Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
                     PlaceRight(row.ValueText.rectTransform, 58f, 0f, controlWidth - 80f, height);
                     break;

@@ -214,6 +214,11 @@ bug); audio; frame rate on real hardware.
       keyboard and mouse and asked before the download starts. Tested
       locally on desktop, an emulated phone and with WebGL 2 disabled.
 
+- [x] **Export Data** in Settings (Esc): saves the playtest log kept in
+      this browser as CSV or JSON for the study. Nothing is uploaded. Events
+      now carry a `playthrough` number (Start Over starts the next one) and
+      a UTC time. Covered by `PlaytestExportPlayModeTests`.
+
 - [x] **Look input is clamped per frame** (30 degrees), so a pointer-lock
       jump or a long frame can no longer snap the view to the ceiling.
 
