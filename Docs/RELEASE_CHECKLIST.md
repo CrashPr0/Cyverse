@@ -84,8 +84,10 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
 - [x] Leftover "in development" wording in defaults (`ResultsScreen.Show`,
       legacy `Level1Manager`).
 - [x] The legacy `Level1` scene no longer ships in the build.
-- [ ] Playtest telemetry prints a line to the browser console for every
-      event in release builds.
+- [x] Playtest telemetry printed a line to the browser console for every
+      event in release builds. Now only the editor and development builds
+      print them (`PlaytestMetrics.EchoToConsole`); the events are still
+      stored in the browser.
 - [x] `README.md` rewritten for the current game; stale lines in
       `TESTING.md` and `SETUP.md` corrected.
 - [x] `SETUP.md` reviewed against the current game (2026-11-16). Fixed:

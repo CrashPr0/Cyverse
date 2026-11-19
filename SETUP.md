@@ -147,9 +147,9 @@ that emits one JSON line per meaningful event with the prefix
 attempts, score awards, level results, and runtime errors; it never records the
 player's callsign or typed answers.
 
-- In the Unity Editor or any WebGL build (release builds print them too, on
-  purpose, for research capture), filter the Console/browser Console for
-  **`[PLAYTEST_METRIC]`** and save the lines with the test report.
+- In the Unity Editor and development builds, filter the Console/browser
+  Console for **`[PLAYTEST_METRIC]`** and save the lines with the test report.
+  Release builds do not print them; the events are still stored locally.
 - Desktop builds also append to
   `Application.persistentDataPath/cyverse-playtest-metrics.jsonl`.
 - WebGL keeps a bounded JSON snapshot in PlayerPrefs under

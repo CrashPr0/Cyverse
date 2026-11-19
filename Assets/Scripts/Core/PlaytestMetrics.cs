@@ -10,8 +10,8 @@ namespace Cyverse.Core
     /// Small, serverless playtest flight recorder. It deliberately stores only
     /// gameplay telemetry (not the player's callsign or form answers): scene
     /// transitions, objectives, interaction attempts, score changes, results,
-    /// and runtime errors. Every event is emitted as a JSON log line so a
-    /// browser/Unity console capture can be analysed without a backend.
+    /// and runtime errors. Editor and development builds also print every
+    /// event as a JSON log line; release builds keep them in local storage.
     /// </summary>
     public sealed class PlaytestMetrics : MonoBehaviour
     {
@@ -48,6 +48,10 @@ namespace Cyverse.Core
         /// <summary>1 at load; Start Over moves to the next playthrough.</summary>
         public int Playthrough { get; private set; } = 1;
         public int EventCount => events.Count;
+
+        /// <summary>Whether each event is also printed to the console: in the
+        /// editor and development builds only, not in release builds.</summary>
+        public static bool EchoToConsole => Debug.isDebugBuild;
         public string StoragePath => Path.Combine(Application.persistentDataPath, FileName);
 
         private readonly List<MetricEvent> events = new List<MetricEvent>(MaxEvents);
@@ -233,9 +237,11 @@ namespace Cyverse.Core
             events.Add(metric);
             Persist(metric);
 
-            // This prefix makes browser-console filtering and CI log scraping
-            // trivial while keeping the payload machine-readable.
-            Debug.Log("[PLAYTEST_METRIC] " + JsonUtility.ToJson(metric));
+            // Editor and development builds echo each event to the console
+            // (the prefix keeps CI log scraping trivial). Release builds stay
+            // quiet: the events are still stored and can be exported.
+            if (EchoToConsole)
+                Debug.Log("[PLAYTEST_METRIC] " + JsonUtility.ToJson(metric));
         }
 
         private void Persist(MetricEvent metric)
