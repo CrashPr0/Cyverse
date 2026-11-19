@@ -84,13 +84,13 @@ namespace Cyverse.Interaction
             return phone;
         }
 
-        /// <summary>The physical phone: a small stand, an angled body, and the
-        /// screen quad the RT is painted onto. Placed on a low dock beside the
-        /// passcode terminal so the player reads it as a phone sitting there.</summary>
         /// <summary>Height and text size of the "MY PHONE" plate on the dock front.</summary>
         public const float NameplateY = 0.90f;
         public const float NameplateCharacterSize = 0.0055f;
 
+        /// <summary>The physical phone: a small stand, an angled body, and the
+        /// screen quad the RT is painted onto. Placed on a low dock beside the
+        /// passcode terminal so the player reads it as a phone sitting there.</summary>
         private void BuildProp()
         {
             var caseMat = BuildKit.MakeStandard(PhoneScreenUi.CaseColor, 0.35f, 0.25f);
