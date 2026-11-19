@@ -95,7 +95,10 @@ namespace Cyverse.Level
             if (ScreenFader.Instance != null) ScreenFader.Instance.FadeFromBlack();
 
             // Title screen first; the intro dialogue starts once it's dismissed.
-            if (MainMenu.Instance != null)
+            // Skipped when the Hub title already took the callsign this
+            // playthrough: asking twice made players who started walking type
+            // "WWWEEE" into it.
+            if (MainMenu.Instance != null && !PlayerIdentity.HasChosen)
                 MainMenu.Instance.Show(BeginIntro);
             else
                 BeginIntro();

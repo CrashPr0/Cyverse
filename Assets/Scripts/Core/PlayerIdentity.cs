@@ -40,6 +40,11 @@ namespace Cyverse.Core
             loaded = false;
         }
 
+        /// <summary>True once the player has confirmed a callsign this
+        /// playthrough (the Hub title card saves one, even the default), so
+        /// later levels need not ask again.</summary>
+        public static bool HasChosen => !string.IsNullOrEmpty(SavedRaw);
+
         /// <summary>Raw saved value (may be empty) for pre-filling the entry field.</summary>
         public static string SavedRaw => PlayerPrefs.GetString(PrefKey, "");
 
