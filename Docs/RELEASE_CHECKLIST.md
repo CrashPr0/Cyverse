@@ -191,8 +191,10 @@ name contains "/", so it cannot be reached by script).
       lines on a darker backing.
 - [ ] **10. Orientation asks for the callsign again**, so a player who
       starts walking types "WWWEEE" into it. Known; left as is earlier.
-- [ ] **11. MFA phone** "MY PHONE" plate partly hidden from the terminal
-      (see above).
+- [x] **11. MFA phone** "MY PHONE" plate looked cut off from the terminal:
+      the text was wider than the dock's flat front and its ends hung over
+      the bright floor. **Fixed**: smaller text on a dark plate that fits
+      the front (`DiegeticPhonePlayModeTests.Nameplate_FitsTheDockFront_OnADarkPlate`).
 - [ ] **12. PasswordLock** renders from inside a black slab in the Unity
       capture. Doesn't ship as the entry scene; matters only if the gate
       returns.

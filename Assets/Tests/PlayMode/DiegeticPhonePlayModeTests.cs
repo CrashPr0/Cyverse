@@ -59,6 +59,37 @@ namespace Cyverse.Tests
         }
 
         [UnityTest]
+        [Timeout(30000)]
+        public IEnumerator Nameplate_FitsTheDockFront_OnADarkPlate()
+        {
+            Component phone = null;
+            yield return LoadLevel1Phone(c => phone = c);
+            Assert.That(phone, Is.Not.Null);
+
+            Transform label = phone.transform.Find("Label_MY_PHONE");
+            Transform plate = phone.transform.Find("NameplateBack");
+            Assert.That(label, Is.Not.Null, "The dock should carry a MY PHONE nameplate.");
+            Assert.That(plate, Is.Not.Null, "The nameplate should sit on a dark backing plate.");
+
+            Vector3 right = phone.transform.right, forward = phone.transform.forward;
+            Bounds text = label.GetComponent<Renderer>().bounds;
+            Bounds back = plate.GetComponent<Renderer>().bounds;
+            float textWidth = 2f * Mathf.Abs(Vector3.Dot(text.extents, right));
+            float plateWidth = 2f * Mathf.Abs(Vector3.Dot(back.extents, right));
+            Assert.That(textWidth, Is.GreaterThan(0.05f), "The nameplate text should have readable width.");
+            // The dock's flat front between its bevels is about 23 cm wide.
+            Assert.That(plateWidth, Is.LessThanOrEqualTo(0.23f), "The plate should fit the dock's flat front.");
+            Assert.That(textWidth, Is.LessThanOrEqualTo(plateWidth),
+                $"MY PHONE ({textWidth:0.000} m) should fit on its plate ({plateWidth:0.000} m), not overhang the dock.");
+
+            // The player stands on the phone's -Z side: the text must be in front of the plate.
+            float textFront = Vector3.Dot(text.center - phone.transform.position, forward);
+            float plateFront = Vector3.Dot(back.center - phone.transform.position, forward) -
+                               Mathf.Abs(Vector3.Dot(back.extents, forward));
+            Assert.That(textFront, Is.LessThan(plateFront + 0.001f), "The text should sit in front of its plate.");
+        }
+
+        [UnityTest]
         [Timeout(60000)]
         public IEnumerator CapturePhoneViews()
         {
