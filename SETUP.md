@@ -156,8 +156,18 @@ player's callsign or typed answers.
   `cv_playtest_metrics_json`, so it survives a scene change and browser reload
   on the same profile.
 
-Each session has a `sessionId`, and every event includes the active scene,
-elapsed seconds, event name, and compact detail text. This makes a manual
+**Export Data** (Esc → Export Data) saves everything kept in this browser
+as a file: ← / → pick CSV or JSON, Enter or a click saves. It reads the full
+`.jsonl` log (every session on this browser, oldest first) and falls back to
+the current session's trail. On WebGL it is a normal browser download built in
+the page; nothing is uploaded. In the editor it is written to
+`persistentDataPath/exports/`. The CSV columns are `sessionId, playthrough,
+utc, seconds, scene, eventName, detail`.
+
+Each session has a `sessionId`, and every event includes a `playthrough`
+number (1 at page load, +1 at each Start Over, so participants sharing one tab
+stay separate), the UTC time, the active scene, elapsed seconds, event name,
+and compact detail text. This makes a manual
 playtest easy to correlate with a browser crash or a Unity test artifact
 without requiring a telemetry server.
 

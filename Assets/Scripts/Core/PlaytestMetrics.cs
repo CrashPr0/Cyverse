@@ -23,6 +23,12 @@ namespace Cyverse.Core
         public sealed class MetricEvent
         {
             public string sessionId;
+            /// <summary>Which playthrough of this page session the event
+            /// belongs to: 1 at load, +1 at each Settings → Start Over, so
+            /// participants who share one browser tab stay separable.</summary>
+            public int playthrough;
+            /// <summary>Wall-clock time of the event (UTC, ISO 8601).</summary>
+            public string utc;
             public string eventName;
             public string scene;
             public float seconds;
@@ -39,6 +45,8 @@ namespace Cyverse.Core
 
         public static PlaytestMetrics Instance { get; private set; }
         public string SessionId { get; private set; }
+        /// <summary>1 at load; Start Over moves to the next playthrough.</summary>
+        public int Playthrough { get; private set; } = 1;
         public int EventCount => events.Count;
         public string StoragePath => Path.Combine(Application.persistentDataPath, FileName);
 
@@ -158,6 +166,36 @@ namespace Cyverse.Core
             });
         }
 
+        /// <summary>
+        /// Every event this browser has kept, oldest first: the full log
+        /// file (all sessions, not capped) when it can be read, otherwise
+        /// this session's in-memory trail. Nothing here leaves the device.
+        /// </summary>
+        public List<MetricEvent> AllStoredEvents()
+        {
+            var all = new List<MetricEvent>();
+            try
+            {
+                if (File.Exists(StoragePath))
+                {
+                    foreach (string line in File.ReadAllLines(StoragePath))
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        MetricEvent parsed = null;
+                        try { parsed = JsonUtility.FromJson<MetricEvent>(line); }
+                        catch (Exception) { /* skip a torn line from a crashed tab */ }
+                        if (parsed != null && !string.IsNullOrEmpty(parsed.eventName)) all.Add(parsed);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                all.Clear();
+            }
+            if (all.Count == 0) all.AddRange(events);
+            return all;
+        }
+
         public static string ReadStoredJson()
         {
             return PlayerPrefs.GetString(PrefsKey, "");
@@ -178,10 +216,13 @@ namespace Cyverse.Core
         {
             if (shuttingDown && eventName != "session_end") return;
             if (string.IsNullOrEmpty(eventName)) return;
+            if (eventName == "playthrough_reset") Playthrough++;
 
             var metric = new MetricEvent
             {
                 sessionId = SessionId,
+                playthrough = Playthrough,
+                utc = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture),
                 eventName = eventName,
                 scene = SceneManager.GetActiveScene().name,
                 seconds = Mathf.Max(0f, Time.realtimeSinceStartup - sessionStart),
