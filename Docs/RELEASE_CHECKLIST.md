@@ -75,7 +75,7 @@ lock and fullscreen behaviour, and a full hands-on playthrough of each level.
       others did not. Level 2 now matches.
 - [x] Level 0's title card called it "Cybersecurity Onboarding — Level 0"
       while the Hub door calls it Orientation. The card now says Orientation.
-      It still asks for the callsign again; left as is.
+      It no longer asks for the callsign again (see visual pass item 10).
 - [x] Briefings: "E for the next slide" shows from the spawn point, but E
       only works once the player has walked up to the screen. The first
       objective in Levels 1, 2 and 4 now says "Walk up to the screen and
@@ -191,8 +191,10 @@ name contains "/", so it cannot be reached by script).
 - [x] **9. HUD task list** (top left) is small, and unticked lines are grey
       on teal, low contrast at 1280 px wide. **Fixed**: brighter unticked
       lines on a darker backing.
-- [ ] **10. Orientation asks for the callsign again**, so a player who
-      starts walking types "WWWEEE" into it. Known; left as is earlier.
+- [x] **10. Orientation asked for the callsign again**, so a player who
+      started walking typed "WWWEEE" into it. **Fixed**: Orientation skips
+      its title card when the Hub title already took a callsign this
+      playthrough (`Level0CallsignPlayModeTests`).
 - [ ] **11. MFA phone** "MY PHONE" plate partly hidden from the terminal
       (see above).
 - [ ] **12. PasswordLock** renders from inside a black slab in the Unity
