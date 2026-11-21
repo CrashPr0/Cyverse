@@ -109,7 +109,7 @@ namespace Cyverse.Level
             completionShown = false;
             if (!manager.ScenarioStarted)
             {
-                SetStatus("BRIEFING  ·  WATCH THE RULES OF ENGAGEMENT");
+                SetStatus("BRIEFING  ·  WATCH THE ATTACK BRIEFING");
                 return;
             }
 

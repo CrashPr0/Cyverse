@@ -67,8 +67,8 @@ namespace Cyverse.UI
 
         protected override string MachineName => "ACCESS GRABBER";
         protected override string Tagline =>
-            "Grab the <color=#FFC838><b>gold keycard</b></color>: a service account set up with far more access than it needs.\n" +
-            "The map shows every room a card opens.";
+            "The attacker found a backup password. Each card represents an account, not a physical key.\n" +
+            "Grab the <color=#FFC838><b>gold BACKUP ACCOUNT</b></color>: it can read private files it should not access.";
         protected override string PlayKeys => "← / → MOVE     ·     SPACE DROP";
         protected override Color Accent => new Color(0.98f, 0.55f, 0.20f);
 
@@ -124,7 +124,7 @@ namespace Cyverse.UI
 
             var gold = new Card
             {
-                name = "SVC-BACKUP", shortName = "SVC\nBACKUP", gold = true,
+                name = "BACKUP ACCOUNT", shortName = "BACKUP\nACCOUNT", gold = true,
                 rooms = new[] { 0, 1, 2, 3, 4, 5 }, color = new Color(1f, 0.76f, 0.20f),
             };
 
@@ -226,7 +226,7 @@ namespace Cyverse.UI
                 }
             }
 
-            mapCaption = Label(map, "MapCaption", "Drop the claw on a card to see how far it gets.", 15f, Ink);
+            mapCaption = Label(map, "MapCaption", "Cards = account permissions. Rooms = files and systems they can access.", 15f, Ink);
             mapCaption.rectTransform.anchorMin = new Vector2(0f, 0f);
             mapCaption.rectTransform.anchorMax = new Vector2(1f, 0f);
             mapCaption.rectTransform.pivot = new Vector2(0.5f, 0f);
@@ -534,7 +534,7 @@ namespace Cyverse.UI
                     revealStep++;
                     if (revealStep == held.rooms.Length)
                     {
-                        mapCaption.text = "<color=#FFC838><b>SVC-BACKUP opens every room</b></color>, right down to the finance vault.";
+                        mapCaption.text = "<color=#FFC838><b>The backup account has access to every area</b></color>, right down to the finance vault.";
                         UiMotion.FadeIn(mapCaption, UiMotion.Base);
                     }
                 }
@@ -560,16 +560,16 @@ namespace Cyverse.UI
             if (Phase != State.Playing) return;
             int tickets = WinTickets + TicketsPerSpareDrop * Mathf.Max(0, dropsLeft);
             Finish(true, tickets, "ACCESS GRABBED",
-                "The SVC-BACKUP account could open every room, right down to the finance vault.\n" +
-                "<color=#FFC838>With least privilege it would open the backups and nothing else.</color>");
+                "Using the exposed backup password let the attacker read private finance files.\n" +
+                "<color=#FFC838>Least privilege limits this account to the backup access its job needs.</color>");
         }
 
         private void Lose()
         {
             if (Phase != State.Playing) return;
             Finish(false, ConsolationTickets, "OUT OF DROPS",
-                "The gold SVC-BACKUP card stayed in the pile. It was the one account\n" +
-                "with far more access than its job needs, so it was the way in.");
+                "The gold BACKUP ACCOUNT card stayed in the pile. It was the one account\n" +
+                "with unnecessary access. A stolen password could expose private files.");
         }
 
         protected override void ResolveForTest(bool win)
@@ -650,7 +650,7 @@ namespace Cyverse.UI
                 roomTexts[i].color = Dim;
             }
             if (mapCaption != null)
-                mapCaption.text = "Drop the claw on a card to see how far it gets.";
+                mapCaption.text = "Cards = account permissions. Rooms = files and systems they can access.";
         }
 
         private void LightRoom(int index, Color color)

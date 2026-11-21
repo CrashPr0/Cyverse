@@ -322,7 +322,7 @@ namespace Cyverse.Level
             switch (CurrentPhase)
             {
                 case Phase.Briefing:
-                    status = "BRIEFING  ·  WATCH THE RULES OF ENGAGEMENT";
+                    status = "BRIEFING  ·  WATCH THE ATTACK BRIEFING";
                     break;
                 case Phase.Complete:
                     status = "ATTACK COMPLETE  ·  REPORT READY";

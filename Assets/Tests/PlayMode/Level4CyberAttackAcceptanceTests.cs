@@ -279,6 +279,13 @@ namespace Cyverse.Tests
                 Assert.That(stationIndex, Is.InRange(0, expectedKinds.Length - 1));
                 Assert.That(stationKindProperty.GetValue(station).ToString(), Is.EqualTo(expectedKinds[stationIndex]));
 
+                if (stationIndex == 0)
+                {
+                    Assert.That(stationComponent.transform.Find("LanCorner/Desk"), Is.Not.Null,
+                        "Spot the Phish belongs on the message-reading LAN desk.");
+                    Assert.That(stationComponent.transform.Find("VendingMachine"), Is.Null);
+                }
+
                 Vector3 readableDirection = -stationComponent.transform.forward;
                 readableDirection.y = 0f;
                 Vector3 towardCentre = new Vector3(0f, 0f, 11f) - stationComponent.transform.position;
@@ -286,6 +293,14 @@ namespace Cyverse.Tests
                 Assert.That(Vector3.Dot(readableDirection.normalized, towardCentre.normalized),
                     Is.GreaterThan(0.995f), "Every Level 4 monitor must face the shared inward focal point.");
             }
+
+            GameObject vendingCorner = GameObject.Find("VendingCorner");
+            Assert.That(vendingCorner, Is.Not.Null, "Keep the vending models as room scenery.");
+            Assert.That(vendingCorner.GetComponentsInChildren(stationType), Is.Empty,
+                "Decorative vending machines must not launch a lesson.");
+            Assert.That(vendingCorner.transform.Find("VendingMachine"), Is.Not.Null);
+            Assert.That(vendingCorner.transform.Find("VendingMachine_L"), Is.Not.Null);
+            Assert.That(vendingCorner.transform.Find("VendingMachine_R"), Is.Not.Null);
 
             // Send the same scrub action as live briefing input. The event at
             // the end starts the timer and unlocks the first station.

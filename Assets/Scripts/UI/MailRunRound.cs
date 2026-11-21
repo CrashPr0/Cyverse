@@ -6,14 +6,8 @@ using Cyverse.Audio;
 namespace Cyverse.UI
 {
     /// <summary>
-    /// PHISH FRENZY's round (Level 4, bypass MFA): mailboxes slide along the
-    /// top of the cabinet, and only the green TEST MAILBOX is approved for the
-    /// exercise. Slide the launcher with the arrows and send practice phishing
-    /// emails up with Space. A sweeping SPAM FILTER eats emails it touches,
-    /// and hitting a real employee's inbox breaks the rules of engagement.
-    /// Land five before time runs out and the test user's phone shows why it
-    /// worked (a push prompt they tapped Approve on) and what would have
-    /// stopped it (a security key that can't be phished).
+    /// PHISH FRENZY illustrates phishing delivery and an unexpected MFA approval.
+    /// The vulnerable inbox is the arcade target; other users report the lure.
     /// </summary>
     public sealed class MailRunRound : ArcadeRound
     {
@@ -34,7 +28,7 @@ namespace Cyverse.UI
         private const float FilterWidth = 140f;
 
         private static readonly string[] Inboxes =
-            { "A. RIVERA", "HR DESK", "PAYROLL", "K. OSEI", "IT HELP", "D. NGUYEN" };
+            { "REPORTS\nPHISHING", "REPORTS\nPHISHING", "REPORTS\nPHISHING", "REPORTS\nPHISHING", "REPORTS\nPHISHING", "REPORTS\nPHISHING" };
 
         private sealed class Mailbox
         {
@@ -72,8 +66,8 @@ namespace Cyverse.UI
 
         protected override string MachineName => "PHISH FRENZY";
         protected override string Tagline =>
-            "Land practice phishing emails in the <color=#4CE087><b>TEST MAILBOX</b></color> only.\n" +
-            "Real employees' inboxes are out of bounds, and the spam filter eats what it touches.";
+            "Aim for the <color=#4CE087><b>CLICKS LINKS</b></color> inbox: this user trusts the fake sign-in message.\n" +
+            "Other users report the lure. The spam filter blocks messages it catches.";
         protected override string PlayKeys => "← / → MOVE     ·     SPACE SEND";
         protected override Color Accent => new Color(0.22f, 0.82f, 1f);
 
@@ -140,7 +134,7 @@ namespace Cyverse.UI
                 box.rt = Box(cab, "Mailbox_" + i, box.baseColor, Vector2.zero, new Vector2(BoxWidth, BoxHeight));
                 box.body = box.rt.GetComponent<Image>();
                 Box(box.rt, "Slot", new Color(0f, 0f, 0f, 0.55f), new Vector2(0f, -18f), new Vector2(BoxWidth - 30f, 6f));
-                box.label = Label(box.rt, "Name", test ? "<b>TEST\nMAILBOX</b>" : Inboxes[i], 12f,
+                box.label = Label(box.rt, "Name", test ? "<b>CLICKS\nLINKS</b>" : Inboxes[i], 12f,
                     test ? Color.white : new Color(0.72f, 0.78f, 0.86f));
                 box.label.rectTransform.offsetMin = new Vector2(4f, 10f);
                 box.label.rectTransform.offsetMax = new Vector2(-4f, -4f);
@@ -157,7 +151,7 @@ namespace Cyverse.UI
         private void BuildPhone(RectTransform field)
         {
             RectTransform side = Box(field, "PhoneSide", new Color(0.03f, 0.05f, 0.08f, 1f), new Vector2(318f, 0f), new Vector2(276f, CabHeight));
-            TMP_Text heading = Label(side, "Heading", "<b>TEST USER'S PHONE</b>", 16f, Dim);
+            TMP_Text heading = Label(side, "Heading", "<b>TARGET USER'S PHONE</b>", 16f, Dim);
             heading.rectTransform.anchorMin = new Vector2(0f, 1f);
             heading.rectTransform.anchorMax = new Vector2(1f, 1f);
             heading.rectTransform.pivot = new Vector2(0.5f, 1f);
@@ -198,7 +192,7 @@ namespace Cyverse.UI
             step = Step.Play;
             RefreshStatus();
             RefreshPhone();
-            Flash("Line up under the <color=#4CE087><b>green TEST MAILBOX</b></color> and press <b>Space</b>.", 4f);
+            Flash("Line up under the <color=#4CE087><b>green CLICKS LINKS inbox</b></color> and press <b>Space</b>.", 4f);
         }
 
         protected override void TickPlay(float dt)
@@ -237,8 +231,8 @@ namespace Cyverse.UI
 
             if (Phase != State.Playing || step != Step.Play) return;
             if (timeLeft <= 0f)
-                Lose("TIME'S UP", $"{hits} of {HitsToWin} practice emails reached the test mailbox.\n" +
-                    "In a real test, staff who report odd emails and a good spam filter make this hard on purpose.");
+                Lose("TIME'S UP", $"{hits} of {HitsToWin} lures reached the vulnerable inbox.\n" +
+                    "Reporting suspicious messages and filtering email can stop phishing attempts.");
         }
 
         private bool Send()
@@ -300,7 +294,7 @@ namespace Cyverse.UI
             {
                 hits++;
                 if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
-                Flash($"<color=#4CE087><b>Landed!</b></color>  {hits} of {HitsToWin} in the test mailbox.", 1.6f);
+                Flash($"<color=#4CE087><b>Landed!</b></color>  {hits} of {HitsToWin} in the vulnerable inbox.", 1.6f);
                 RefreshPhone();
                 if (hits >= HitsToWin) StartPhone();
             }
@@ -309,10 +303,10 @@ namespace Cyverse.UI
                 strikes++;
                 if (Sfx.Instance != null) Sfx.Instance.PlayDeny();
                 UiMotion.Shake(box.rt, 6f);
-                Flash($"<color=#FF8A6A><b>That's {box.label.text}'s real inbox.</b></color> Out of bounds for this test.", 2.2f);
+                Flash($"<color=#FF8A6A><b>This user reported the lure.</b></color> Defenders were alerted.", 2.2f);
                 if (strikes >= StrikesAllowed)
-                    Lose("OUT OF BOUNDS", "Three emails went to real employees' inboxes.\n" +
-                        "The rules of engagement only allow the approved test mailbox.");
+                    Lose("REPORTED", "Three users reported the suspicious message.\n" +
+                        "Reports help the security team spot and block a phishing campaign.");
             }
             RefreshStatus();
         }
@@ -357,7 +351,7 @@ namespace Cyverse.UI
                 approveButton.gameObject.SetActive(true);
                 approveButton.color = new Color(0.20f, 0.60f, 0.95f, 1f);
                 approveLabel.text = "<b>APPROVE</b>";
-                phoneCaption.text = "The test user clicked the practice link, and a push prompt pops up.";
+                phoneCaption.text = "The user entered their password on the fake page. The attacker tries it on the real site.";
                 UiMotion.Pulse(phone, 0.06f);
             }
             else if (phoneStage == 1 && stateTime > 1.3f)
@@ -365,8 +359,8 @@ namespace Cyverse.UI
                 phoneStage = 2;
                 approveButton.color = new Color(0.30f, 0.88f, 0.53f, 1f);
                 approveLabel.text = "<b>APPROVED</b>";
-                phoneText.text = "<color=#4CE087><b>SIGNED IN</b></color>\n\n<size=13>Test account opened</size>";
-                phoneCaption.text = "<color=#4CE087><b>They tapped Approve.</b></color> A push prompt can be phished.";
+                phoneText.text = "<color=#4CE087><b>SIGNED IN</b></color>\n\n<size=13>Stolen password used</size>";
+                phoneCaption.text = "<color=#4CE087><b>They approved a sign-in they did not start.</b></color> The attacker gets in.";
                 UiMotion.Pulse(approveButton.transform, 0.12f);
                 if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
             }
@@ -392,7 +386,7 @@ namespace Cyverse.UI
             if (Phase != State.Playing) return;
             int tickets = WinTickets + Mathf.Clamp(Mathf.RoundToInt(timeLeft), 0, 20) + (StrikesAllowed - strikes) * 2;
             Finish(true, tickets, "PHISH LANDED",
-                "Five practice emails reached the approved test mailbox, and a push prompt let one in.\n" +
+                "The lure reached the user. A stolen password plus an unexpected approval let the attacker in.\n" +
                 "<color=#FFC838>A security key that can't be phished, a spam filter and staff who report odd emails stop this.</color>");
         }
 
@@ -413,12 +407,12 @@ namespace Cyverse.UI
             else
             {
                 strikes = StrikesAllowed;
-                Lose("OUT OF BOUNDS", "Test loss.");
+                Lose("REPORTED", "Test loss.");
             }
         }
 
         /// <summary>Test hook: freeze the mailboxes and park the filter and
-        /// launcher so a send under the test mailbox lands.</summary>
+        /// launcher so a send under the vulnerable inbox lands.</summary>
         public void LineUpForTest()
         {
             hazardsPaused = true;
@@ -461,7 +455,7 @@ namespace Cyverse.UI
             for (int i = 0; i < StrikesAllowed; i++)
                 strikesText.Append(i < strikes ? "<color=#FF6A60>×</color> " : "<color=#3A4654>×</color> ");
             int seconds = Mathf.CeilToInt(Mathf.Max(0f, timeLeft));
-            SetStatus($"LANDED  {landed}   ·   OUT OF BOUNDS  {strikesText}  ·   0:{seconds:00}");
+            SetStatus($"LANDED  {landed}   ·   REPORTED  {strikesText}  ·   0:{seconds:00}");
         }
 
         private void RefreshPhone()
@@ -469,10 +463,10 @@ namespace Cyverse.UI
             if (phoneText == null) return;
             phoneScreen.color = new Color(0.05f, 0.08f, 0.12f, 1f);
             approveButton.gameObject.SetActive(false);
-            phoneText.text = $"<size=13><color=#9FB4C4>TEST INBOX</color></size>\n\n<size=40><b>{hits}</b></size>\n<size=13>practice emails</size>";
+            phoneText.text = $"<size=13><color=#9FB4C4>TARGET INBOX</color></size>\n\n<size=40><b>{hits}</b></size>\n<size=13>phishing emails</size>";
             phoneCaption.text = hits == 0
-                ? "Only the approved test account takes part in this exercise."
-                : "Each landed email is a chance the test user clicks.";
+                ? "A fake sign-in message tries to steal this user's password."
+                : "Each delivered lure is a chance the user trusts the fake page.";
         }
     }
 }

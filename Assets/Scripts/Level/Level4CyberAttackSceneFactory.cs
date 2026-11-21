@@ -5,7 +5,7 @@ namespace Cyverse.Level
 {
     /// <summary>
     /// Procedural Level 4 scene: one open employee game room. The south end
-    /// is the snack bar, where the rules-of-engagement briefing plays; the
+    /// is the snack bar, where the attack briefing plays; the
     /// north end is the game floor, where the four attack steps are game
     /// machines (see Level4GameRoom). A scrolling GAME ROOM sign on an
     /// archway marks the way in. There is no dividing wall or locked door:

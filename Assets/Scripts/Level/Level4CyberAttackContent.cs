@@ -56,7 +56,7 @@ namespace Cyverse.Level
                 string situation, string[] options, int correctOption,
                 string successMessage, string lesson, int dataGain,
                 int detectionPenalty,
-                string hint = "Choose the simulated action that stays inside the rules of engagement.")
+                string hint = "Choose the answer that explains how the attack works.")
             {
                 this.hint = hint;
                 this.kind = kind;
@@ -82,8 +82,8 @@ namespace Cyverse.Level
                 "One stolen password opens one account. Pivoting means hopping from there to the next computer or account. MFA that can't be phished and least privilege (only the access you need) make that a dead end.", 11f),
             new VideoStation.Slide("WHERE ATTACKS LAND",
                 "On a network, attacks land in three kinds of places: endpoint devices (laptops and phones), the router that links the office to the internet, and the cloud services the company rents. Each one needs its own defense.", 12f),
-            new VideoStation.Slide("RULES OF ENGAGEMENT",
-                "Rules of engagement are the limits on what the red team may do. Stay inside the simulation: no real passwords, outside services or malware. A high score means you found the right weak spot and know which defense should catch it.", 10f),
+            new VideoStation.Slide("YOUR FOUR CHALLENGES",
+                "Spot a scam, see how a stolen password and an unexpected MFA approval can open an account, discover the risk of excessive account permissions, then map attacks across a network. Each game explains the weakness and the defense. Everything happens inside this game.", 10f),
         };
 
         public static StationScenario[] Stations() => new[]
@@ -108,33 +108,33 @@ namespace Cyverse.Level
             new StationScenario(
                 StationKind.BypassMfa,
                 "PHISH FRENZY  //  BYPASS MFA",
-                "Pick a pretend way in to the training company's accounts.",
-                "A test mailbox will accept one of three attempts. The rules allow only a sandboxed (walled-off) exercise with fake data. Which way in shows the risk while staying approved and on the record?",
+                "Recognize how a trick email can lead to an account takeover.",
+                "An email links to a fake school sign-in page. A student enters their password. The attacker uses it on the real site, which sends the student's phone an MFA approval request. What could let the attacker finish signing in?",
                 new[]
                 {
-                    "Reuse a real employee's password leaked from another website",
-                    "Send a practice phishing (trick) email to the approved test mailbox",
-                    "Run an unchecked program on a real work computer",
+                    "The student reports the email and denies the unexpected request",
+                    "The student taps Approve even though they did not start the sign-in",
+                    "The student denies the request and changes the stolen password",
                 },
                 1,
-                "TEST MAILBOX OPENED — the phishing email reached the fake company.",
-                "MFA that can't be phished, spam filters and staff who report odd emails stop a trick email before it gets anyone in.",
+                "ACCOUNT TAKEN OVER — the stolen password and mistaken approval let the attacker sign in.",
+                "Deny sign-in requests you did not start. Report suspicious messages. A passkey or security key checks the website, helping stop fake sign-in pages.",
                 24,
                 12),
             new StationScenario(
                 StationKind.EscalatePrivileges,
                 "ACCESS GRABBER  //  ESCALATE PRIVILEGES",
-                "Get from the test computer you broke into to the fake finance vault.",
-                "One test account was given more access than its job needs. Which move should you make?",
+                "Spot how one stolen account can give an attacker more access.",
+                "An attacker finds a backup account's password exposed on a compromised computer. This account should only save backup copies, but it can also read private finance files. Why is this dangerous?",
                 new[]
                 {
-                    "Use the test account that has too much access",
-                    "Keep guessing a real admin's password",
-                    "Switch off the network alarms",
+                    "The attacker can sign in as the backup account and read files their first account could not",
+                    "Every account automatically gets access to every file after signing in",
+                    "An account used by software cannot be stolen by an attacker",
                 },
                 0,
-                "PIVOT REACHED — one account with too much access opened up far more of the network.",
-                "Least privilege (only the access you need), a walled-off network and extra sign-in checks stop an attacker spreading.",
+                "MORE ACCESS GAINED — the attacker used the exposed account to reach private files.",
+                "Least privilege means giving an account only the access its job needs. Protect account passwords and limit backup access so one stolen account cannot unlock everything.",
                 28,
                 16),
             new StationScenario(
