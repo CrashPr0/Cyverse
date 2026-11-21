@@ -84,7 +84,7 @@ namespace Cyverse.Tests
                 ("model-foosball", new Vector3(1.7f, 1.65f, 13.7f), new Vector3(0f, 0.85f, 15.6f), 50f),
                 ("model-bar-stools", new Vector3(-6.6f, 1.6f, -9.6f), new Vector3(-4.7f, 1.3f, -6f), 60f),
                 ("model-beanbags", new Vector3(-11.4f, 1.6f, -5.6f), new Vector3(-14f, 0.3f, -9.2f), 55f),
-                ("model-lan-chairs", new Vector3(13.8f, 1.5f, 16.9f), new Vector3(10.6f, 0.9f, 17.9f), 50f),
+                ("model-vending-angle", new Vector3(13.8f, 1.5f, 16.9f), new Vector3(10.6f, 1.1f, 18.4f), 50f),
                 ("model-prizes", new Vector3(-4f, 1.7f, 15.4f), new Vector3(-4f, 1.7f, 19f), 55f),
                 ("model-prizes-close", new Vector3(-4.6f, 1.7f, 17.25f), new Vector3(-4.6f, 1.5f, 19.3f), 60f),
                 ("model-prizes-angle", new Vector3(-2.2f, 1.7f, 17.1f), new Vector3(-4.6f, 1.45f, 19.3f), 55f),
@@ -94,7 +94,7 @@ namespace Cyverse.Tests
                 ("model-snack-counter", new Vector3(-4.7f, 1.65f, -8.1f), new Vector3(-4.7f, 1.3f, -5.2f), 60f),
                 ("model-drinks-counter", new Vector3(4.7f, 1.65f, -8.1f), new Vector3(4.7f, 1.3f, -5.2f), 60f),
                 ("model-coffee", new Vector3(4.3f, 1.6f, -7.2f), new Vector3(3.9f, 1.3f, -5.95f), 50f),
-                ("model-lan-desk", new Vector3(10.6f, 1.55f, 16.0f), new Vector3(10.6f, 0.7f, 18.7f), 60f),
+                ("model-vending-wall", new Vector3(10.6f, 1.55f, 16.0f), new Vector3(10.6f, 1.1f, 18.4f), 60f),
                 ("model-console-lounge", new Vector3(-8.4f, 1.6f, 16.3f), new Vector3(-11.6f, 0.6f, 17.9f), 60f),
                 ("model-ping-pong", new Vector3(9.6f, 1.6f, -9.4f), new Vector3(12f, 0.8f, -12f), 50f),
             };

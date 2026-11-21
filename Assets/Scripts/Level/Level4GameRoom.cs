@@ -8,13 +8,13 @@ namespace Cyverse.Level
     /// Level 4 dressed as a big-tech employee game room: the place staff go
     /// to blow off steam, which the red team turns into its attack surface.
     /// Each of the four attack stations is a game machine (arcade cabinet,
-    /// claw machine, vending wall, pinball), and the rest of the room is
+    /// claw machine, LAN computer desk, pinball), and the rest of the room is
     /// decoration around them: a snack bar where the briefing plays, a staff
     /// corkboard full of recon clues, foosball, ping-pong, beanbags, and a
     /// scrolling "GAME ROOM" LED sign on an archway over the centre aisle.
     /// Behind the station rows, the north end holds hoop shooters, a console
-    /// lounge, a prize counter with a bowl of free USB drives, a LAN desk
-    /// with a password on a sticky note, and air hockey.
+    /// lounge, a prize counter with a bowl of free USB drives, a vending
+    /// wall, and air hockey.
     ///
     /// Everything is built from BlockKit pieces at load time. Machine bodies
     /// are built in station-local space with their playable face toward
@@ -91,7 +91,10 @@ namespace Cyverse.Level
             BuildHoopShooter(root, new Vector3(-17.25f, 0f, 18.0f), Teal);
             BuildConsoleLounge(root, new Vector3(-12.6f, 0f, 17.6f));
             BuildPrizeCounter(root, new Vector3(-4.0f, 0f, 18.2f));
-            BuildLanCorner(root, new Vector3(10.6f, 0f, 18.85f));
+            // Keep the vending models as scenery; message-reading lives at
+            // the LAN desk on the game floor.
+            var vendingCorner = Group(root, "VendingCorner", new Vector3(10.6f, 0f, 18.4f), 0f);
+            BuildVendingWall(vendingCorner);
             BuildAirHockeyModel(root, new Vector3(15.2f, 0f, 16.2f));
             PropFactory.BuildPlant(root, new Vector3(-9.2f, 0f, 18.7f));
             PropFactory.BuildPlant(root, new Vector3(18.6f, 0f, 18.6f));
@@ -502,9 +505,9 @@ namespace Cyverse.Level
             WallNeon(t, "Neon_Prizes", new Vector3(0f, 2.7f, 1.25f), 0f, "PRIZE COUNTER", Lemon, 3.0f, new Vector2(3.2f, 0.42f));
         }
 
-        /// <summary>A three-seat LAN desk against the wall. Someone left their
-        /// login on a sticky note on the middle monitor.</summary>
-        private static void BuildLanCorner(Transform parent, Vector3 position)
+        /// <summary>The LAN desk hosts the message-reading challenge. Its
+        /// middle seat stays open so the player can approach the terminal.</summary>
+        private static Screen BuildLanCorner(Transform parent, Vector3 position)
         {
             var t = Group(parent, "LanCorner", position, 0f);
 
@@ -513,7 +516,7 @@ namespace Cyverse.Level
                 BlockKit.Box("DeskLeg", t, new Vector3(x, 0.36f, 0f), new Vector3(0.06f, 0.72f, 0.7f), CabinetBody);
             BlockKit.Box("DeskGlow", t, new Vector3(0f, 0.71f, -0.41f), new Vector3(4.1f, 0.02f, 0.01f), Glow(Teal, 1.4f));
 
-            string[] screens = { "VICTORY", "RESPAWN", "GG" };
+            string[] screens = { "MESSAGES", "INBOX", "JOB POSTS" };
             Color[] colours = { Teal, Magenta, Lemon };
             var cans = new List<CombineInstance>();
             for (int i = 0; i < 3; i++)
@@ -533,15 +536,19 @@ namespace Cyverse.Level
                 cans.Add(BlockKit.Piece(BlockKit.CubeMesh, new Vector3(x - 0.5f, 0.86f, -0.05f), Vector3.zero, new Vector3(0.07f, 0.16f, 0.07f)));
                 BuildPcTower(t, new Vector3(x + 0.45f, 0f, 0.08f), c);
                 BuildHeadset(t, new Vector3(x + 0.52f, 0.78f, -0.1f), c);
-                BuildGamingChairModel(t, new Vector3(x, 0f, -1.05f), 180f + (i - 1) * 12f, c);
+                // Leave the central approach clear for the playable terminal.
+                if (i != 1)
+                    BuildGamingChairModel(t, new Vector3(x, 0f, -1.05f), 180f + (i - 1) * 12f, c);
             }
             BlockKit.Batch("EnergyCans", t, Glow(Lemon, 0.9f), cans);
 
-            BlockKit.Box("StickyNote", t, new Vector3(0.3f, 1.14f, 0.1f), new Vector3(0.18f, 0.14f, 0.004f), Plain(Lemon));
-            MakeText(t, "StickyNote_Text", new Vector3(0.3f, 1.14f, 0.097f), "admin\nSummer24!",
-                new Color(0.10f, 0.08f, 0.12f), 0.26f, 0.17f, 0.13f);
-
-            WallNeon(t, "Neon_Lan", new Vector3(0f, 2.6f, 0.6f), 0f, "LAN PARTY", Teal, 3.6f, new Vector2(2.6f, 0.5f));
+            // Support a readable task display above the three monitors.
+            foreach (float x in new[] { -1.6f, 1.6f })
+                BlockKit.Box("DisplaySupport", t, new Vector3(x, 1.38f, 0.16f),
+                    new Vector3(0.045f, 1.2f, 0.045f), Chrome);
+            BlockKit.Slab("StationDisplay", t, new Vector3(0f, 2.02f, 0.10f),
+                new Vector3(3.4f, 0.55f, 0.04f), 0.01f, DarkGlass);
+            return new Screen { center = new Vector3(0f, 2.02f, 0.07f), pitch = 0f, size = new Vector2(3.3f, 0.5f) };
         }
 
         /// <summary>A neon tube sign on a wall: lit text in a glowing frame on
@@ -584,7 +591,7 @@ namespace Cyverse.Level
             {
                 case Level4CyberAttackContent.StationKind.BypassMfa: return BuildArcadeRow(station);
                 case Level4CyberAttackContent.StationKind.EscalatePrivileges: return BuildClawMachine(station);
-                case Level4CyberAttackContent.StationKind.SpotThePhish: return BuildVendingWall(station);
+                case Level4CyberAttackContent.StationKind.SpotThePhish: return BuildLanCorner(station, Vector3.zero);
                 default: return BuildPinball(station);
             }
         }
@@ -859,9 +866,8 @@ namespace Cyverse.Level
             return new Screen { center = m.localPosition + new Vector3(0f, 0.62f, -0.7f), pitch = 0f, size = new Vector2(1.1f, 0.34f) };
         }
 
-        /// <summary>Three vending machines; the middle one is the station.
-        /// Its glowing delivery slot is the "watched channel" the data leaves
-        /// by. Each has a chrome-framed glass window over lit shelves of
+        /// <summary>Three decorative vending machines. Each has a
+        /// chrome-framed glass window over lit shelves of
         /// mixed snacks with price tags, a keypad column with a card reader,
         /// and its brand on top.</summary>
         private static Screen BuildVendingWall(Transform station)
@@ -936,7 +942,7 @@ namespace Cyverse.Level
                     i == 0 ? Glow(Teal, 1.6f) : DarkGlass);
                 MakeText(v, "PushLabel", new Vector3(-0.12f, 0.3f, -0.444f), "PUSH", i == 0 ? new Color(0.05f, 0.2f, 0.2f) : new Color(0.5f, 0.5f, 0.55f), 0.7f, 0.4f, 0.12f);
 
-                // A lit header across the top carries the station's screen.
+                // Preserve the digital headers as decorative lighting.
                 BlockKit.Slab("Header", v, new Vector3(0f, 2.0f, -0.43f), new Vector3(1.16f, 0.32f, 0.03f), 0.01f, DarkGlass);
                 BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", v, new Vector3(0f, 2.0f, -0.45f), Vector3.zero,
                     new Vector3(1.08f, 0.26f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, c, i == 0 ? 0.55f : 0.35f)), false);
