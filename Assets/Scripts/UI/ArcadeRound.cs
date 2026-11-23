@@ -48,6 +48,9 @@ namespace Cyverse.UI
         protected abstract void TickPlay(float dt);
         /// <summary>Test hook: jump straight to a win or a loss.</summary>
         protected abstract void ResolveForTest(bool win);
+        /// <summary>Lets a round use Esc during play (to close something it
+        /// has open) before Esc skips the round. True when it was used.</summary>
+        protected virtual bool HandleCancel() => false;
 
         protected static readonly Color Ink = new Color(0.86f, 0.93f, 1f);
         protected static readonly Color Dim = new Color(0.45f, 0.54f, 0.64f);
@@ -139,7 +142,7 @@ namespace Cyverse.UI
                     else PulseOverlay();
                     break;
                 case State.Playing:
-                    if (GameInput.CancelDown) { Skip(); return; }
+                    if (GameInput.CancelDown) { if (!HandleCancel()) Skip(); return; }
                     TickPlay(dt);
                     break;
                 case State.Result:

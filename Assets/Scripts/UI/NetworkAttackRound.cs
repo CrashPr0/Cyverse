@@ -13,6 +13,10 @@ namespace Cyverse.UI
     /// clicks (or presses 1, 2 or 3 for) the spot each one hits. Then the map
     /// shows the hit and the defense that stops it. Limited on purpose to
     /// those three attack points.
+    ///
+    /// The full office network map (the one on the pinball backglass) opens
+    /// when play starts and any time after with M or the NETWORK MAP button,
+    /// so players can see where devices, routers and the cloud sit.
     /// </summary>
     public sealed class NetworkAttackRound : ArcadeRound
     {
@@ -83,6 +87,9 @@ namespace Cyverse.UI
         private static readonly Vector2 NodeSize = new Vector2(232f, 168f);
         private static readonly Vector2 AttackerPosition = new Vector2(0f, 120f);
 
+        /// <summary>Resources path of the network map (also on the pinball backglass).</summary>
+        public const string MapResource = "Level4/NetworkDiagram";
+
         private enum Step { Ask, Packet, Reveal }
 
         private int index;
@@ -97,12 +104,14 @@ namespace Cyverse.UI
         private Outline[] nodeEdges;
         private TMP_Text attackTitle, attackText, explainText;
         private RectTransform packet;
+        private GameObject map;
 
         protected override string MachineName => "NETWORK ATTACK";
         protected override string Tagline =>
             "Six attacks are heading for the fake company's network.\n" +
-            "Click where each one lands: <color=#40CCFF><b>DEVICES</b></color>, the <color=#FFB840><b>ROUTER</b></color> or the <color=#B285FF><b>CLOUD</b></color>.";
-        protected override string PlayKeys => "CLICK A TARGET  ·  OR PRESS 1 / 2 / 3";
+            "Click where each one lands: <color=#40CCFF><b>DEVICES</b></color>, the <color=#FFB840><b>ROUTER</b></color> or the <color=#B285FF><b>CLOUD</b></color>.\n" +
+            "<color=#9FB4C4>Press <b>M</b> any time to see the full network map.</color>";
+        protected override string PlayKeys => "CLICK A TARGET  ·  OR PRESS 1 / 2 / 3  ·  M NETWORK MAP";
         protected override Color Accent => new Color(1f, 0.55f, 0.18f);
         protected override Vector2 PanelSize => new Vector2(1060f, 700f);
 
@@ -111,6 +120,7 @@ namespace Cyverse.UI
         public int Correct => correct;
         public bool Revealing => step == Step.Reveal;
         public Target CurrentTarget => Attacks[Mathf.Clamp(index, 0, Attacks.Length - 1)].target;
+        public bool MapOpen => map != null && map.activeSelf;
 
         // ---- Build ------------------------------------------------------------------
 
@@ -170,7 +180,83 @@ namespace Cyverse.UI
             explainText = Label(field, "Explain", string.Empty, 17f, Ink);
             Place(explainText.rectTransform, new Vector2(0f, -205f), new Vector2(940f, 60f));
 
+            // Button for the full network map, in the open space above the cloud.
+            RectTransform mapButton = Box(field, "MapButton", new Color(0.10f, 0.13f, 0.19f, 1f), new Vector2(372f, 92f), new Vector2(220f, 40f));
+            mapButton.GetComponent<Image>().raycastTarget = true;
+            var mapEdge = mapButton.gameObject.AddComponent<Outline>();
+            mapEdge.effectColor = new Color(0.62f, 0.72f, 0.82f, 0.6f);
+            mapEdge.effectDistance = new Vector2(1.5f, 1.5f);
+            var mapClick = mapButton.gameObject.AddComponent<Button>();
+            mapClick.onClick.AddListener(() => ShowMap(true));
+            UiMotion.AddPress(mapClick);
+            TMP_Text mapLabel = Label(mapButton, "Label", "<b>NETWORK MAP</b>  <color=#9FB4C4>[M]</color>", 16f, Ink);
+            mapLabel.characterSpacing = 2f;
+            mapLabel.enableWordWrapping = false;
+
+            BuildMap(field.parent);
+
             ShowAttack(0);
+        }
+
+        /// <summary>The full network map, drawn over the whole round so its
+        /// labels can be read. Hidden until opened.</summary>
+        private void BuildMap(Transform panel)
+        {
+            map = new GameObject("NetworkMap", typeof(RectTransform), typeof(Image), typeof(Button));
+            map.transform.SetParent(panel, false);
+            var rt = map.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(1780f, 960f);
+            rt.anchoredPosition = Vector2.zero;
+            HudUI.StylePanel(map, new Color(0.035f, 0.025f, 0.05f, 0.99f), Accent);
+            map.GetComponent<Image>().raycastTarget = true;
+            map.GetComponent<Button>().onClick.AddListener(() => ShowMap(false));
+
+            TMP_Text title = Label(map.transform, "Title", "<b>THE COMPANY NETWORK</b>", 30f, Accent);
+            Place(title.rectTransform, new Vector2(0f, 438f), new Vector2(1700f, 44f));
+            title.characterSpacing = 6f;
+            title.enableWordWrapping = false;
+
+            Texture2D picture = Resources.Load<Texture2D>(MapResource);
+            float width = 1720f;
+            float height = picture != null ? width * picture.height / picture.width : 768f;
+            var imageGo = new GameObject("Diagram", typeof(RectTransform), typeof(RawImage));
+            imageGo.transform.SetParent(map.transform, false);
+            var raw = imageGo.GetComponent<RawImage>();
+            raw.texture = picture;
+            raw.color = picture != null ? Color.white : new Color(0.1f, 0.1f, 0.12f);
+            raw.raycastTarget = false;
+            Place(raw.rectTransform, new Vector2(0f, 6f), new Vector2(width, height));
+
+            TMP_Text key = Label(map.transform, "Key",
+                "<color=#40CCFF><b>DEVICES</b></color> = PCs, laptops, printers and IoT on the LAN     " +
+                "<color=#FFB840><b>ROUTER</b></color> = the LAN gateway and WAN router     " +
+                "<color=#B285FF><b>CLOUD</b></color> = the cloud network and the databases",
+                19f, Ink);
+            Place(key.rectTransform, new Vector2(0f, -412f), new Vector2(1720f, 30f));
+            key.enableWordWrapping = false;
+            TMP_Text close = Label(map.transform, "Close", "M, SPACE OR CLICK TO CLOSE", 16f, Dim);
+            Place(close.rectTransform, new Vector2(0f, -448f), new Vector2(1720f, 24f));
+            close.characterSpacing = 3f;
+
+            map.SetActive(false);
+        }
+
+        private void ShowMap(bool show)
+        {
+            if (map == null || map.activeSelf == show) return;
+            if (show && Phase != State.Playing) return;
+            map.SetActive(show);
+            map.transform.SetAsLastSibling();
+            if (show) UiMotion.PanelIn(map, null, 0.98f);
+            if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+        }
+
+        protected override bool HandleCancel()
+        {
+            if (!MapOpen) return false;
+            ShowMap(false);
+            return true;
         }
 
         private void BuildNode(RectTransform field, int i, string subtitle)
@@ -259,11 +345,21 @@ namespace Cyverse.UI
             correct = 0;
             ShowAttack(0);
             Flash("Read the attack, then click the part of the network it hits.", 4f);
+            // Start on the full map so players see the network before the attacks.
+            ShowMap(true);
         }
 
         protected override void TickPlay(float dt)
         {
             dt = Mathf.Min(dt, 0.05f);
+            if (MapOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.M) || Input.GetKeyDown(KeyCode.Space) ||
+                    Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+                    ShowMap(false);
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.M) && step != Step.Packet) { ShowMap(true); return; }
             stepTime += dt;
             switch (step)
             {
@@ -289,6 +385,7 @@ namespace Cyverse.UI
         private void Pick(int target)
         {
             if (Phase != State.Playing || step != Step.Ask || target < 0 || target > 2) return;
+            ShowMap(false);
             picked = target;
             bool right = target == (int)Attacks[index].target;
             if (!right)
@@ -343,6 +440,7 @@ namespace Cyverse.UI
         private void End()
         {
             if (Phase != State.Playing) return;
+            ShowMap(false);
             Flash(string.Empty, 0.01f);
             explainText.text = string.Empty;
             int tickets = correct * TicketsPerCorrect + (correct == Attacks.Length ? PerfectBonus : 0);
@@ -408,5 +506,8 @@ namespace Cyverse.UI
 
         /// <summary>Test hook: move on to the next attack.</summary>
         public void NextForTest() => Next();
+
+        /// <summary>Test hook: open or close the network map.</summary>
+        public void ShowMapForTest(bool show) => ShowMap(show);
     }
 }

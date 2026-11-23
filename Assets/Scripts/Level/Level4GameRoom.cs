@@ -1051,7 +1051,7 @@ namespace Cyverse.Level
         }
 
         /// <summary>Texture of the office network map on the pinball backglass.</summary>
-        public const string NetworkDiagramResource = "Level4/NetworkDiagram";
+        public const string NetworkDiagramResource = Cyverse.UI.NetworkAttackRound.MapResource;
 
         /// <summary>The pinball backglass: the network diagram, self-lit so it
         /// reads in the dim room, in a lit frame. <paramref name="width"/> is

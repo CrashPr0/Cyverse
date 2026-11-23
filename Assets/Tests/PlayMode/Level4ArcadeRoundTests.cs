@@ -436,6 +436,12 @@ namespace Cyverse.Tests
             Assert.That(seen, Is.EquivalentTo(new[] { "Endpoint", "Router", "Cloud" }));
 
             type.GetMethod("StartForTest").Invoke(round, null);
+            // Play starts on the full network map (also on the pinball backglass).
+            Assert.That((bool)type.GetProperty("MapOpen").GetValue(round), Is.True,
+                "The network map should open when the round starts.");
+            type.GetMethod("ShowMapForTest").Invoke(round, new object[] { false });
+            Assert.That((bool)type.GetProperty("MapOpen").GetValue(round), Is.False);
+            type.GetMethod("ShowMapForTest").Invoke(round, new object[] { true });
             for (int i = 0; i < attacks.Length; i++)
             {
                 int target = (int)type.GetProperty("CurrentTarget").GetValue(round);
@@ -557,6 +563,10 @@ namespace Cyverse.Tests
             ToCameraCanvases(camera);
             Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-net-attract.png"));
             type.GetMethod("StartForTest").Invoke(round, null);
+            // The full network map opens first; capture it, then close it.
+            for (int i = 0; i < 20; i++) yield return null;
+            Capture(camera, Path.Combine(output, "Level4_CyberAttack__arcade-net-map.png"));
+            type.GetMethod("ShowMapForTest").Invoke(round, new object[] { false });
             int attacks = ((Array)type.GetField("Attacks").GetValue(null)).Length;
             for (int a = 0; a < attacks; a++)
             {
