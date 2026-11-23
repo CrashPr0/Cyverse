@@ -626,12 +626,12 @@ namespace Cyverse.Level
                 buttons.Add(Spindle(new Vector3(sx * 0.378f, 0.9f, -0.6f), new Vector3(0f, 0f, 90f), 0.045f, 0.03f));
             BlockKit.Batch("FlipperButtons", p, Plain(PrizeWhite), buttons);
 
-            // Speakers under the backbox screen.
+            // Speakers either side of the dot-matrix display.
             var grilles = new List<CombineInstance>();
-            foreach (float x in new[] { -0.22f, 0.22f })
+            foreach (float x in new[] { -0.5f, 0.5f })
             {
-                grilles.Add(FacingRing(new Vector3(x, 1.09f, 0.569f), 0.11f, 0.006f));
-                grilles.Add(FacingRing(new Vector3(x, 1.09f, 0.569f), 0.05f, 0.006f));
+                grilles.Add(FacingRing(new Vector3(x, 1.18f, 0.569f), 0.09f, 0.006f));
+                grilles.Add(FacingRing(new Vector3(x, 1.18f, 0.569f), 0.04f, 0.006f));
             }
             BlockKit.Batch("Speakers", p, BrightSteel, grilles);
         }

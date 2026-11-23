@@ -1014,19 +1014,23 @@ namespace Cyverse.Level
             BuildPinballDetail(p, Field);
             Pane(p, "PlayfieldGlass", new Vector3(0f, Field(0f) + 0.07f, 0f), 0f, new Vector2(0.7f, 1.38f), 85f);
 
-            // Backbox on a neck: the station screen, framed with light, and a
-            // topper with the game's name.
+            // Backbox on a neck. Its backglass shows the office network map
+            // (LAN, WAN, database network) that the Network Attack round asks
+            // about, so the box is wide enough to read it. The dot-matrix
+            // display under it is the station screen; the topper names the game.
+            const float boxHalf = 0.66f;
             BlockKit.Block("Neck", p, new Vector3(0f, 0f, 0.66f), Vector3.zero, 0.9f, 1.05f,
                 new Vector2(0.3f, 0.08f), new Vector2(0.3f, 0.08f), 0.01f, CabinetTrim);
             BlockKit.Block("Backbox", p, new Vector3(0f, 0f, 0.66f), Vector3.zero, 1.0f, 1.95f,
-                new Vector2(0.4f, 0.09f), new Vector2(0.4f, 0.09f), 0.02f, CabinetBody);
-            foreach (float sx in new[] { -0.405f, 0.405f })
+                new Vector2(boxHalf, 0.09f), new Vector2(boxHalf, 0.09f), 0.02f, CabinetBody);
+            foreach (float sx in new[] { -boxHalf - 0.005f, boxHalf + 0.005f })
                 BlockKit.Box("BackboxTrim", p, new Vector3(sx, 1.475f, 0.58f), new Vector3(0.012f, 0.92f, 0.02f), Glow(Teal, 1.4f));
-            BlockKit.Box("ScreenSurround", p, new Vector3(0f, 1.52f, 0.568f), new Vector3(0.76f, 0.7f, 0.004f), Glow(Violet, 0.8f));
-            BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", p, new Vector3(0f, 1.52f, 0.565f), Vector3.zero,
-                new Vector3(0.72f, 0.66f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, Teal, 0.55f)), false);
-            BlockKit.Slab("Topper", p, new Vector3(0f, 2.08f, 0.66f), new Vector3(0.82f, 0.26f, 0.16f), 0.02f, CabinetBody);
-            Marquee(p, new Vector3(0f, 2.08f, 0.57f), new Vector2(0.74f, 0.18f), "NET ATTACK", Magenta, 1.05f);
+            NetworkBackglass(p, new Vector3(0f, 1.63f, 0.565f), 1.22f);
+            BlockKit.Box("DmdSurround", p, new Vector3(0f, 1.18f, 0.568f), new Vector3(0.66f, 0.17f, 0.004f), Glow(Violet, 0.8f));
+            BuildKit.SpawnLocal(PrimitiveType.Quad, "MonitorScreen", p, new Vector3(0f, 1.18f, 0.565f), Vector3.zero,
+                new Vector3(0.62f, 0.13f, 1f), BuildKit.MakeHologram(Color.Lerp(Color.black, Teal, 0.55f)), false);
+            BlockKit.Slab("Topper", p, new Vector3(0f, 2.08f, 0.66f), new Vector3(boxHalf * 2f + 0.02f, 0.26f, 0.16f), 0.02f, CabinetBody);
+            Marquee(p, new Vector3(0f, 2.08f, 0.57f), new Vector2(boxHalf * 2f - 0.1f, 0.18f), "NET ATTACK", Magenta, 1.05f);
 
             // High-score board on a stand beside the table.
             var board = new GameObject("HighScoreBoard").transform;
@@ -1043,7 +1047,35 @@ namespace Cyverse.Level
                 "HIGH SCORES\n1  ACE   98,410\n2  JLEE  87,200\n3  MO    64,050\n4  KAI   51,990",
                 Teal, 0.9f, 0.9f, 0.9f);
 
-            return new Screen { center = p.localPosition + new Vector3(0f, 1.52f, 0.55f), pitch = 0f, size = new Vector2(0.72f, 0.66f) };
+            return new Screen { center = p.localPosition + new Vector3(0f, 1.18f, 0.55f), pitch = 0f, size = new Vector2(0.62f, 0.13f) };
+        }
+
+        /// <summary>Texture of the office network map on the pinball backglass.</summary>
+        public const string NetworkDiagramResource = "Level4/NetworkDiagram";
+
+        /// <summary>The pinball backglass: the network diagram, self-lit so it
+        /// reads in the dim room, in a lit frame. <paramref name="width"/> is
+        /// the picture width; its height follows the image.</summary>
+        private static void NetworkBackglass(Transform p, Vector3 center, float width)
+        {
+            Texture2D map = Resources.Load<Texture2D>(NetworkDiagramResource);
+            float aspect = map != null ? (float)map.width / map.height : 2.24f;
+            var size = new Vector2(width, width / aspect);
+            BlockKit.Box("BackglassSurround", p, center + new Vector3(0f, 0f, 0.003f),
+                new Vector3(size.x + 0.04f, size.y + 0.04f, 0.004f), Glow(Violet, 0.8f));
+            Material mat;
+            if (map != null)
+            {
+                Shader unlit = Shader.Find("Unlit/Texture");
+                mat = unlit != null ? new Material(unlit) : BuildKit.MakeEmissive(Color.white, 1f);
+                mat.mainTexture = map;
+            }
+            else
+            {
+                mat = BuildKit.MakeHologram(Color.Lerp(Color.black, Teal, 0.55f));
+            }
+            BuildKit.SpawnLocal(PrimitiveType.Quad, "NetworkDiagram", p, center, Vector3.zero,
+                new Vector3(size.x, size.y, 1f), mat, false);
         }
     }
 }
