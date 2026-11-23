@@ -1050,16 +1050,15 @@ namespace Cyverse.Level
             return new Screen { center = p.localPosition + new Vector3(0f, 1.18f, 0.55f), pitch = 0f, size = new Vector2(0.62f, 0.13f) };
         }
 
-        /// <summary>Texture of the office network map on the pinball backglass.</summary>
-        public const string NetworkDiagramResource = Cyverse.UI.NetworkAttackRound.MapResource;
-
         /// <summary>The pinball backglass: the network diagram, self-lit so it
         /// reads in the dim room, in a lit frame. <paramref name="width"/> is
         /// the picture width; its height follows the image.</summary>
         private static void NetworkBackglass(Transform p, Vector3 center, float width)
         {
-            Texture2D map = Resources.Load<Texture2D>(NetworkDiagramResource);
-            float aspect = map != null ? (float)map.width / map.height : 2.24f;
+            // Drawn from code (Cyverse.UI.NetworkDiagramArt), shared with the
+            // Network Attack round's full-size map.
+            Texture2D map = Cyverse.UI.NetworkDiagram.Texture;
+            float aspect = Cyverse.UI.NetworkDiagram.Aspect;
             var size = new Vector2(width, width / aspect);
             BlockKit.Box("BackglassSurround", p, center + new Vector3(0f, 0f, 0.003f),
                 new Vector3(size.x + 0.04f, size.y + 0.04f, 0.004f), Glow(Violet, 0.8f));

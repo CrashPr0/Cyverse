@@ -87,9 +87,6 @@ namespace Cyverse.UI
         private static readonly Vector2 NodeSize = new Vector2(232f, 168f);
         private static readonly Vector2 AttackerPosition = new Vector2(0f, 120f);
 
-        /// <summary>Resources path of the network map (also on the pinball backglass).</summary>
-        public const string MapResource = "Level4/NetworkDiagram";
-
         private enum Step { Ask, Packet, Reveal }
 
         private int index;
@@ -217,9 +214,10 @@ namespace Cyverse.UI
             title.characterSpacing = 6f;
             title.enableWordWrapping = false;
 
-            Texture2D picture = Resources.Load<Texture2D>(MapResource);
+            // Drawn from code (NetworkDiagramArt), shared with the pinball backglass.
+            Texture2D picture = NetworkDiagram.Texture;
             float width = 1720f;
-            float height = picture != null ? width * picture.height / picture.width : 768f;
+            float height = width / NetworkDiagram.Aspect;
             var imageGo = new GameObject("Diagram", typeof(RectTransform), typeof(RawImage));
             imageGo.transform.SetParent(map.transform, false);
             var raw = imageGo.GetComponent<RawImage>();
