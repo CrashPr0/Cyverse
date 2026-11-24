@@ -1055,10 +1055,11 @@ namespace Cyverse.Level
         /// the picture width; its height follows the image.</summary>
         private static void NetworkBackglass(Transform p, Vector3 center, float width)
         {
-            // Drawn from code (Cyverse.UI.NetworkDiagramArt), shared with the
-            // Network Attack round's full-size map.
-            Texture2D map = Cyverse.UI.NetworkDiagram.Texture;
-            float aspect = Cyverse.UI.NetworkDiagram.Aspect;
+            // Drawn from code (Cyverse.UI.NetworkDiagramArt) in its bold glass
+            // cut: thicker lines, bigger labels, no grid, so it reads from a few
+            // metres away. The Network Attack round's map shows the exact one.
+            Texture2D map = Cyverse.UI.NetworkDiagram.GlassTexture;
+            float aspect = Cyverse.UI.NetworkDiagram.GlassAspect;
             var size = new Vector2(width, width / aspect);
             BlockKit.Box("BackglassSurround", p, center + new Vector3(0f, 0f, 0.003f),
                 new Vector3(size.x + 0.04f, size.y + 0.04f, 0.004f), Glow(Violet, 0.8f));

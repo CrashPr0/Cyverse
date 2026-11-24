@@ -27,6 +27,33 @@ namespace Cyverse.Tests
         }
 
         [Test]
+        public void GlassCutIsBolderAndCropped()
+        {
+            Type type = DiagramType();
+            Assert.That(type, Is.Not.Null, "Cyverse.UI.NetworkDiagram is missing.");
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+                Assert.Ignore("No graphics device: the diagram renders on a GPU.");
+            var tex = (Texture2D)type.GetMethod("RenderGlass").Invoke(null, new object[] { 2 });
+            // View 1162 x 540 diagram pixels from (18, -30).
+            Assert.That(tex.width, Is.EqualTo(2324));
+            Assert.That(tex.height, Is.EqualTo(1080));
+            // The access switch (diagram 210, 236) is still blue.
+            Color blue = tex.GetPixel((210 - 18) * 2, 1080 - (236 + 30) * 2);
+            Assert.That(blue.b - blue.r, Is.GreaterThan(0.3f), "The switch should be drawn in blue.");
+            // No grid: a major grid line (diagram x 74.7) in empty LAN space is paper white.
+            Color gap = tex.GetPixel(Mathf.RoundToInt((75f - 18f) * 2f), 1080 - (300 + 30) * 2);
+            Assert.That(gap.r + gap.g + gap.b, Is.GreaterThan(2.9f), "The glass cut should have no grid.");
+
+            string output = Environment.GetEnvironmentVariable("CYVERSE_DIAGRAM_OUTPUT");
+            if (Environment.GetEnvironmentVariable("CYVERSE_DIAGRAM_CAPTURE") == "1" && !string.IsNullOrWhiteSpace(output))
+            {
+                Directory.CreateDirectory(output);
+                File.WriteAllBytes(Path.Combine(output, "network-diagram-glass-2x.png"), tex.EncodeToPNG());
+            }
+            UnityEngine.Object.Destroy(tex);
+        }
+
+        [Test]
         public void RendersAtTwiceTheOriginalSize()
         {
             Type type = DiagramType();

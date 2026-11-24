@@ -27,9 +27,45 @@ namespace Cyverse.UI
         private static readonly string[] Weights = { "Regular", "SemiBold", "Bold" };
         private static Texture2D cached;
 
-        public static float Aspect => NetworkDiagramArt.Width / NetworkDiagramArt.Height;
+        private static Texture2D cachedGlass;
 
-        /// <summary>The diagram texture, rendered on first use.</summary>
+        /// <summary>How the art is drawn: <see cref="Exact"/> matches the
+        /// original; <see cref="Glass"/> is a bolder cut for the pinball
+        /// backglass, read from a few metres away.</summary>
+        public struct Style
+        {
+            /// <summary>Multiplier for wire and zone frame thickness.</summary>
+            public float Line;
+            /// <summary>Multiplier for label size.</summary>
+            public float Text;
+            /// <summary>Steps to add to every label's weight (capped at bold).</summary>
+            public int Heavier;
+            /// <summary>Draw the background grid.</summary>
+            public bool Grid;
+            /// <summary>White outline around labels, in diagram pixels, so
+            /// bigger labels still read over the wires they sit on.</summary>
+            public float Halo;
+            /// <summary>The part of the diagram to render, in diagram
+            /// coordinates (y = 0 at the original's top edge).</summary>
+            public Rect View;
+        }
+
+        public static readonly Style Exact = new Style
+        {
+            Line = 1f, Text = 1f, Heavier = 0, Grid = true, Halo = 0f,
+            View = new Rect(0f, -NetworkDiagramArt.Top, NetworkDiagramArt.Width, NetworkDiagramArt.Height),
+        };
+
+        public static readonly Style Glass = new Style
+        {
+            Line = 2f, Text = 1.3f, Heavier = 1, Grid = false, Halo = 0.9f,
+            View = new Rect(18f, -30f, 1162f, 540f),
+        };
+
+        public static float Aspect => Exact.View.width / Exact.View.height;
+        public static float GlassAspect => Glass.View.width / Glass.View.height;
+
+        /// <summary>The exact diagram, rendered on first use.</summary>
         public static Texture2D Texture
         {
             get
@@ -39,14 +75,29 @@ namespace Cyverse.UI
             }
         }
 
+        /// <summary>The bold cut for the pinball backglass, rendered on first use.</summary>
+        public static Texture2D GlassTexture
+        {
+            get
+            {
+                if (cachedGlass == null) cachedGlass = RenderGlass(Scale);
+                return cachedGlass;
+            }
+        }
+
+        /// <summary>The bold backglass cut at <paramref name="scale"/> times.</summary>
+        public static Texture2D RenderGlass(int scale) => RenderStyled(scale, Glass);
+
         /// <summary>Renders the diagram at <paramref name="scale"/> times its
         /// original 1199 x 535 size
         /// (plus <see cref="NetworkDiagramArt.Top"/> of paper above). Without a graphics device (headless test
         /// runs) it returns a small blank texture instead.</summary>
-        public static Texture2D Render(int scale)
+        public static Texture2D Render(int scale) => RenderStyled(scale, Exact);
+
+        private static Texture2D RenderStyled(int scale, Style style)
         {
-            int w = Mathf.RoundToInt(NetworkDiagramArt.Width * scale);
-            int h = Mathf.RoundToInt(NetworkDiagramArt.Height * scale);
+            int w = Mathf.RoundToInt(style.View.width * scale);
+            int h = Mathf.RoundToInt(style.View.height * scale);
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
             {
                 var blank = new Texture2D(4, 4, TextureFormat.RGB24, false) { name = "NetworkDiagram (no GPU)" };
@@ -71,7 +122,7 @@ namespace Cyverse.UI
             rt.sizeDelta = new Vector2(w, h);
             rt.pivot = new Vector2(0.5f, 0.5f);
 
-            var painter = new UiPainter(rt, scale, layer);
+            var painter = new UiPainter(rt, scale, layer, style);
             NetworkDiagramArt.Paint(painter);
             painter.Flush();
 
@@ -134,13 +185,15 @@ namespace Cyverse.UI
             private readonly RectTransform canvas;
             private readonly float s;
             private readonly int layer;
+            private readonly Style style;
             private readonly Font[] fonts = new Font[3];
             private DiagramShapeMesh run;
             private int count;
 
-            public UiPainter(RectTransform canvas, float scale, int layer)
+            public UiPainter(RectTransform canvas, float scale, int layer, Style style)
             {
                 this.canvas = canvas;
+                this.style = style;
                 s = scale;
                 this.layer = layer;
                 for (int i = 0; i < 3; i++)
@@ -150,7 +203,7 @@ namespace Cyverse.UI
                 }
             }
 
-            private Vector2 P(float x, float y) => new Vector2(x * s, -(y + NetworkDiagramArt.Top) * s);
+            private Vector2 P(float x, float y) => new Vector2((x - style.View.x) * s, -(y - style.View.y) * s);
 
             private DiagramShapeMesh Run()
             {
@@ -174,13 +227,17 @@ namespace Cyverse.UI
                 run = null;
             }
 
+            private static bool Same(Color32 a, Color32 b) => a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
+
             public void Rect(float x, float y, float w, float h, Color32 c)
             {
+                if (!style.Grid && (Same(c, NetworkDiagramArt.GridMinor) || Same(c, NetworkDiagramArt.GridMajor))) return;
                 Run().Quad(P(x, y), P(x + w, y), P(x + w, y + h), P(x, y + h), c);
             }
 
             public void Frame(float x, float y, float w, float h, float t, Color32 c)
             {
+                t *= style.Line;
                 float t2 = t * 0.5f;
                 Rect(x - t2, y - t2, w + t, t, c);
                 Rect(x - t2, y + h - t2, w + t, t, c);
@@ -190,6 +247,7 @@ namespace Cyverse.UI
 
             public void Line(float t, Color32 c, params float[] pts)
             {
+                t *= style.Line;
                 for (int i = 0; i + 3 < pts.Length; i += 2)
                 {
                     var a = new Vector2(pts[i], pts[i + 1]);
@@ -224,6 +282,8 @@ namespace Cyverse.UI
             public void Text(float cx, float baseline, string text, float size, int weight, Color32 c)
             {
                 Flush();
+                size *= style.Text;
+                weight = Mathf.Min(2, weight + style.Heavier);
                 var go = new GameObject("Label_" + text, typeof(RectTransform));
                 go.layer = layer;
                 go.transform.SetParent(canvas, false);
@@ -247,6 +307,14 @@ namespace Cyverse.UI
                 label.raycastTarget = false;
                 label.color = c;
                 label.text = text;
+                if (style.Halo > 0f)
+                {
+                    var halo = go.AddComponent<Outline>();
+                    halo.effectColor = Color.white;
+                    float d = style.Halo * s / k;
+                    halo.effectDistance = new Vector2(d, -d);
+                    halo.useGraphicAlpha = true;
+                }
             }
         }
     }
