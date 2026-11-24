@@ -154,7 +154,7 @@ namespace Cyverse.UI
             private DiagramShapeMesh Run()
             {
                 if (run != null) return run;
-                var go = new GameObject("Shapes" + count++, typeof(RectTransform));
+                var go = new GameObject("Shapes" + count++, typeof(RectTransform), typeof(CanvasRenderer));
                 go.layer = layer;
                 go.transform.SetParent(canvas, false);
                 var rt = (RectTransform)go.transform;
