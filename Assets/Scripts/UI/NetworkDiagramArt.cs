@@ -40,7 +40,12 @@ namespace Cyverse.UI
     public static class NetworkDiagramArt
     {
         public const float Width = 1199f;
-        public const float Height = 535f;
+        public const float Height = 567f;
+
+        /// <summary>Paper added above the original export, whose top edge cut
+        /// off the remote employee's head. Coordinates below stay those of the
+        /// original (y = 0 at its top edge); painters shift them down by this.</summary>
+        public const float Top = 32f;
 
         public static readonly Color32 Paper = new Color32(255, 255, 255, 255);
         public static readonly Color32 GridMinor = new Color32(244, 244, 244, 255);
@@ -72,7 +77,7 @@ namespace Cyverse.UI
 
         public static void Paint(IDiagramPainter p)
         {
-            p.Rect(0f, 0f, Width, Height, Paper);
+            p.Rect(0f, -Top, Width, Height, Paper);
             Grid(p);
             Zones(p);
             Devices(p);
@@ -88,12 +93,12 @@ namespace Cyverse.UI
             {
                 float gx = 11.5f + i * 15.805f;
                 Color32 cx = i % 4 == 0 ? GridMajor : GridMinor;
-                p.Rect(gx, 0f, 1f, Height, cx);
+                p.Rect(gx, -Top, 1f, Height, cx);
             }
-            for (int j = 0; j < 34; j++)
+            for (int j = -2; j < 34; j++)
             {
                 float gy = 10.57f + j * 15.803f;
-                Color32 cy = j % 4 == 2 ? GridMajor : GridMinor;
+                Color32 cy = (j + 4) % 4 == 2 ? GridMajor : GridMinor;
                 p.Rect(0f, gy, Width, 1f, cy);
             }
         }
@@ -292,11 +297,14 @@ namespace Cyverse.UI
 
         private static void Person(IDiagramPainter p)
         {
-            p.Rect(372f, 0f, 15.6f, 16.4f, Blue);
+            // The original export cut the figure off at y = 0: the head,
+            // shoulders and upper arms above it are completed here.
+            p.Ellipse(379.8f, -19.8f, 7f, 7f, Blue);
+            p.Rect(372f, -11f, 15.6f, 27.4f, Blue);
             p.Rect(372f, 16.4f, 7f, 17f, Blue);
             p.Rect(380.3f, 16.4f, 7.4f, 17f, Blue);
-            p.Rect(365f, 0f, 5.4f, 11.2f, Blue);
-            p.Rect(389.4f, 0f, 5.4f, 11.4f, Blue);
+            p.Rect(365f, -11f, 5.4f, 22.2f, Blue);
+            p.Rect(389.4f, -11f, 5.4f, 22.4f, Blue);
         }
 
         private static void InternetCloud(IDiagramPainter p)

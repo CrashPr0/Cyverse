@@ -40,7 +40,8 @@ namespace Cyverse.UI
         }
 
         /// <summary>Renders the diagram at <paramref name="scale"/> times its
-        /// original 1199 x 535 size. Without a graphics device (headless test
+        /// original 1199 x 535 size
+        /// (plus <see cref="NetworkDiagramArt.Top"/> of paper above). Without a graphics device (headless test
         /// runs) it returns a small blank texture instead.</summary>
         public static Texture2D Render(int scale)
         {
@@ -149,7 +150,7 @@ namespace Cyverse.UI
                 }
             }
 
-            private Vector2 P(float x, float y) => new Vector2(x * s, -y * s);
+            private Vector2 P(float x, float y) => new Vector2(x * s, -(y + NetworkDiagramArt.Top) * s);
 
             private DiagramShapeMesh Run()
             {

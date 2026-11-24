@@ -35,10 +35,14 @@ namespace Cyverse.Tests
                 Assert.Ignore("No graphics device: the diagram renders on a GPU.");
             var tex = (Texture2D)type.GetMethod("Render").Invoke(null, new object[] { 2 });
             Assert.That(tex.width, Is.EqualTo(2398));
-            Assert.That(tex.height, Is.EqualTo(1070));
+            // 535 px of the original plus 32 px of paper above it for the
+            // remote employee's head, which the original export cut off.
+            Assert.That(tex.height, Is.EqualTo(1134));
             // Paper is white; the access switch body (diagram 210, 236) is blue.
             Color paper = tex.GetPixel(4, 4);
-            Color blue = tex.GetPixel(210 * 2, 1070 - 236 * 2);
+            Color blue = tex.GetPixel(210 * 2, 1134 - (236 + 32) * 2);
+            Color head = tex.GetPixel(380 * 2, 1134 - (32 - 20) * 2);
+            Assert.That(head.b - head.r, Is.GreaterThan(0.3f), "The remote employee should have a head.");
             Assert.That(paper.r, Is.GreaterThan(0.9f), "Paper should be white.");
             Assert.That(blue.b - blue.r, Is.GreaterThan(0.3f), "The switch should be drawn in blue.");
 
