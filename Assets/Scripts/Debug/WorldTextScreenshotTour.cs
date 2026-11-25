@@ -1,4 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+using System;
 using System.Collections;
 using UnityEngine;
 using Cyverse.Interaction;
@@ -24,6 +25,21 @@ namespace Cyverse.Testing
 
             Camera camera = Camera.main;
             if (camera == null) yield break;
+            PrepareCaptureCamera(camera);
+            TryApplyView(camera, ViewFromUrl(Application.absoluteURL));
+
+            if (WorldTextLayoutManager.Instance != null)
+            {
+                WorldTextLayoutManager.Instance.RefreshNow();
+                WorldTextLayoutManager.Instance.EvaluateNow();
+            }
+        }
+
+        /// <summary>Detaches the main camera and hides first-person overlay
+        /// geometry so a screenshot can be framed independently of the player.</summary>
+        public static void PrepareCaptureCamera(Camera camera)
+        {
+            if (camera == null) return;
 
             foreach (FirstPersonController controller in FindObjectsOfType<FirstPersonController>())
                 controller.enabled = false;
@@ -38,33 +54,52 @@ namespace Cyverse.Testing
             // transform cannot pull it away from the deterministic QA view.
             camera.transform.SetParent(null, true);
             HideFirstPersonGeometry(camera.transform);
+            FirstPersonController.LockCursor(false);
+        }
 
-            string url = Application.absoluteURL;
-            if (url.Contains("view=locker_angle")) PositionLockerAngle(camera);
-            else if (url.Contains("view=locker_far")) PositionLockerFar(camera);
-            else if (url.Contains("view=locker")) PositionLocker(camera);
-            else if (url.Contains("view=custody")) PositionCustody(camera);
-            else if (url.Contains("view=report")) PositionForensicsReport(camera);
-            else if (url.Contains("view=upload")) PositionForensicsUpload(camera);
-            else if (url.Contains("view=forensics")) PositionForensicsOverview(camera);
-            else if (url.Contains("view=playbook")) PositionPlaybook(camera);
-            else if (url.Contains("view=workstations_north")) PositionWorkstationsNorth(camera);
-            else if (url.Contains("view=workstations")) PositionWorkstations(camera);
-            else if (url.Contains("view=soc")) PositionSocOverview(camera);
-            else if (url.Contains("view=iam_tasks")) PositionIamTasks(camera);
-            else if (url.Contains("view=iam_badge")) PositionIamBadge(camera);
-            else if (url.Contains("view=iam_mfa")) PositionIamMfa(camera);
-            else if (url.Contains("view=iam_authorization")) PositionIamAuthorization(camera);
-            else if (url.Contains("view=iam_audit")) PositionIamAudit(camera);
-            else if (url.Contains("view=iam_exit")) PositionIamExit(camera);
-            else if (url.Contains("view=iam_cert")) PositionCertification(camera);
-            else if (url.Contains("view=briefing")) PositionBriefing(camera);
-            else PositionAlertBoard(camera);
+        public static string ViewFromUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return "alert";
+            const string marker = "view=";
+            int at = url.IndexOf(marker, StringComparison.Ordinal);
+            if (at < 0) return "alert";
+            string rest = url.Substring(at + marker.Length);
+            int end = rest.IndexOfAny(new[] { '&', '#', '?' });
+            return end >= 0 ? rest.Substring(0, end) : rest;
+        }
 
-            if (WorldTextLayoutManager.Instance != null)
+        /// <summary>Places the camera at a named visual-QA view used by the
+        /// development screenshot tour and the portfolio capture toolbar.</summary>
+        public static bool TryApplyView(Camera camera, string view)
+        {
+            if (camera == null) return false;
+            switch (view)
             {
-                WorldTextLayoutManager.Instance.RefreshNow();
-                WorldTextLayoutManager.Instance.EvaluateNow();
+                case "locker_angle": PositionLockerAngle(camera); return true;
+                case "locker_far": PositionLockerFar(camera); return true;
+                case "locker": PositionLocker(camera); return true;
+                case "custody": PositionCustody(camera); return true;
+                case "report": PositionForensicsReport(camera); return true;
+                case "upload": PositionForensicsUpload(camera); return true;
+                case "forensics": PositionForensicsOverview(camera); return true;
+                case "playbook": PositionPlaybook(camera); return true;
+                case "workstations_north": PositionWorkstationsNorth(camera); return true;
+                case "workstations": PositionWorkstations(camera); return true;
+                case "soc": PositionSocOverview(camera); return true;
+                case "iam_tasks": PositionIamTasks(camera); return true;
+                case "iam_badge": PositionIamBadge(camera); return true;
+                case "iam_mfa": PositionIamMfa(camera); return true;
+                case "iam_authorization": PositionIamAuthorization(camera); return true;
+                case "iam_audit": PositionIamAudit(camera); return true;
+                case "iam_exit": PositionIamExit(camera); return true;
+                case "iam_cert": PositionCertification(camera); return true;
+                case "briefing": PositionBriefing(camera); return true;
+                case "alert":
+                case "":
+                case null:
+                    PositionAlertBoard(camera); return true;
+                default:
+                    return false;
             }
         }
 

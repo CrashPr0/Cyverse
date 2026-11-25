@@ -40,6 +40,34 @@ To reset between players, reload the page or use Settings (Esc) → Start Over.
 2. Add this folder as a project in Unity Hub and open it.
 3. Open `Assets/Scenes/Hub.unity` and press **Play**.
 
+## Portfolio screenshots
+
+The editor has a capture toolbar for portfolio stills of each level, without
+playing through them.
+
+1. Open the project in **Unity 2022.3.40f1**.
+2. Choose **Tools > CyVerse > Capture Toolbar**.
+3. Press a shot to jump there, **Capture** to save the current view, or
+   **Capture all** to run the whole set.
+
+PNGs are written at 1920x1080 to `Captures/portfolio/` (that folder is
+gitignored). The tool only changes playthrough PlayerPrefs inside Play Mode
+and restores them when Play Mode ends. It never loads the PasswordLock scene.
+
+To capture everything from the command line, launch Unity **without** `-quit`
+and **without** `-nographics` so the Game view can render. The method exits
+the editor itself with status 0 on success or 1 on failure:
+
+```sh
+/Applications/Unity/Hub/Editor/2022.3.40f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode \
+  -projectPath /absolute/path/to/Cyverse \
+  -executeMethod Cyverse.Editor.CyverseCaptureCli.CaptureAll \
+  -logFile /absolute/path/to/portfolio-capture.log
+```
+
+Optional: set `CYVERSE_CAPTURE_OUTPUT` to write the PNGs somewhere else.
+
 ## Tests, builds and deploys
 
 - Pull requests run the Play Mode tests and attach a WebGL build

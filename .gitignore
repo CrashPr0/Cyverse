@@ -23,6 +23,9 @@
 # They also could contain extremely sensitive data
 /[Mm]emoryCaptures/
 
+# Local screenshot dumps from the portfolio capture toolbar.
+/[Cc]aptures/
+
 # Recordings can get excessive in size
 /[Rr]ecordings/
 
