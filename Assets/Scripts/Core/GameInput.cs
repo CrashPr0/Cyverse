@@ -8,20 +8,30 @@ namespace Cyverse.Core
     /// </summary>
     public static class GameInput
     {
-        /// <summary>The "back / close" key: Esc or Tab. Tab doubles for Esc
-        /// because in a browser Esc also releases the mouse (and leaves
-        /// fullscreen), so closing a panel with it drops the player out of
-        /// mouse look. Screens that give Tab its own job (command completion,
-        /// show-password) keep handling Esc alone.</summary>
-        public static bool CancelDown =>
-            Input.GetKeyDown(KeyCode.Escape) || (Input.GetKeyDown(KeyCode.Tab) && TabReservedBy == null);
+        /// <summary>The "back / close" key: Tab, on every screen. Esc is
+        /// kept for Settings only (see <see cref="SettingsDown"/>): one key,
+        /// one job, because players found two keys that both closed screens
+        /// and both opened Settings confusing, and in a browser Esc also lets
+        /// go of the mouse. A screen that gives Tab its own job (show-password)
+        /// falls back to Esc while it is up.</summary>
+        public static bool CancelDown => TabReservedBy == null
+            ? Input.GetKeyDown(KeyCode.Tab)
+            : Input.GetKeyDown(KeyCode.Escape);
+
+        /// <summary>The Settings (pause) key: Esc. It never closes or skips
+        /// another screen.</summary>
+        public static bool SettingsDown =>
+            TabReservedBy == null && Input.GetKeyDown(KeyCode.Escape);
 
         /// <summary>Set by a screen that uses Tab for its own job while it is
         /// up, so Tab does not also close or open anything else.</summary>
         public static object TabReservedBy;
 
         /// <summary>How the cancel key is written in on-screen hints.</summary>
-        public const string CancelLabel = "ESC / TAB";
+        public const string CancelLabel = "TAB";
+
+        /// <summary>How the Settings key is written in on-screen hints.</summary>
+        public const string SettingsLabel = "ESC";
 
         /// <summary>Briefing-screen scrubbing: the left/right arrows. While
         /// the arrows also move the player, they scrub only while the player

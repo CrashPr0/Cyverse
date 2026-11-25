@@ -176,9 +176,15 @@ namespace Cyverse.Player
             ApplyMovement(Vector3.zero, Time.deltaTime);
         }
 
+        /// <summary>The game last asked for the mouse to be captured (play),
+        /// not released (a level's end flow). Settings uses it to tell a
+        /// player's Esc from the game letting go of the mouse itself.</summary>
+        public static bool LockWanted { get; private set; }
+
         /// <summary>Lock + hide the cursor for play, or release it for menus.</summary>
         public static void LockCursor(bool locked)
         {
+            LockWanted = locked;
             Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = !locked;
         }

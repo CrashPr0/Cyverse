@@ -266,20 +266,29 @@ namespace Cyverse.Settings
 
         void Update()
         {
-            // One-menu-at-a-time standard: Esc toggles settings only when
-            // settings is already the open menu, or when nothing owns the
-            // screen. This keeps it from stacking over the title screen, the
-            // glossary (whose close key is also Esc), a quiz, or the results.
-            // The MenuTransitionFrame check stops the Esc press that closed
-            // the glossary from also opening settings later this same frame.
-            // The two exceptions are screens with no cancel key of their own:
-            // a quiz question and the results card. Settings opens over them
-            // and hands the screen back when it closes.
-            bool canToggle = (GameState.MenuOpen || !GameState.AnyMenuOpen || ModalSession.SettingsOverlayAllowed)
-                             && Time.frameCount != GameState.MenuTransitionFrame
-                             && !(UI.ResultsScreen.Instance != null && UI.ResultsScreen.Instance.CertificateOpen);
-            if (GameInput.CancelDown && canToggle)
-                SetMenuOpen(!GameState.MenuOpen);
+            // Esc is the Settings key and Tab is the close key (GameInput).
+            // Esc opens settings only when nothing owns the screen, or over a
+            // screen that has no close key of its own (a quiz question, the
+            // results card), which gets the screen back when settings closes.
+            // Over any other screen Esc says how to close it instead.
+            // Either key closes settings. The MenuTransitionFrame check stops
+            // the key press that closed another screen from also acting here.
+            bool transition = Time.frameCount == GameState.MenuTransitionFrame;
+            if (!transition)
+            {
+                KeyRoute route = RouteKeys(GameInput.SettingsDown, GameInput.CancelDown,
+                    GameState.MenuOpen, GameState.AnyMenuOpen && !GameState.MenuOpen,
+                    ModalSession.SettingsOverlayAllowed,
+                    UI.ResultsScreen.Instance != null && UI.ResultsScreen.Instance.CertificateOpen,
+                    Time.unscaledTime - pausedByPointerAt < PointerPauseGuardSeconds);
+                if (route == KeyRoute.OpenSettings) SetMenuOpen(true);
+                else if (route == KeyRoute.CloseSettings) SetMenuOpen(false);
+                else if (route == KeyRoute.ShowCloseHint && !GameState.TitleActive && UI.HudUI.Instance != null)
+                    UI.HudUI.Instance.ShowToast(
+                        $"Press {GameInput.CancelLabel} to close this screen. {GameInput.SettingsLabel} opens Settings.",
+                        new Color(0.75f, 0.9f, 1f));
+            }
+            WatchPointerLock();
 
             if (!GameState.MenuOpen || panel == null) return;
 
@@ -306,6 +315,55 @@ namespace Cyverse.Settings
                 Activate();
 
             HandleMouse();
+        }
+
+        // ---- Key routing ------------------------------------------------------
+
+        public enum KeyRoute { None, OpenSettings, CloseSettings, ShowCloseHint }
+
+        /// <summary>What the Settings key (Esc) and the close key (Tab) do this
+        /// frame. Tab never opens settings; Esc never closes another screen.</summary>
+        /// <param name="otherScreenOpen">A screen other than settings owns the view.</param>
+        /// <param name="overlayAllowed">That screen lets settings open over it.</param>
+        /// <param name="certificateOpen">The certificate is up (Tab or C close it).</param>
+        /// <param name="justPausedByPointer">Settings opened from a lost mouse a moment ago,
+        /// so the same Esc must not close it again.</param>
+        public static KeyRoute RouteKeys(bool settingsKey, bool closeKey, bool settingsOpen,
+            bool otherScreenOpen, bool overlayAllowed, bool certificateOpen, bool justPausedByPointer)
+        {
+            if (settingsOpen)
+                return closeKey || (settingsKey && !justPausedByPointer) ? KeyRoute.CloseSettings : KeyRoute.None;
+            if (!settingsKey) return KeyRoute.None;
+            if (!certificateOpen && (!otherScreenOpen || overlayAllowed)) return KeyRoute.OpenSettings;
+            return KeyRoute.ShowCloseHint;
+        }
+
+        // ---- Pointer lock -------------------------------------------------------
+
+        // In a browser, the first Esc during play only lets go of the mouse:
+        // the page never sees that key press. So losing the mouse in free
+        // play counts as pressing Esc, and one press opens settings.
+        private const float PointerPauseGuardSeconds = 0.35f;
+        private float lockedSince = -1f;
+        private float pausedByPointerAt = -10f;
+
+        private void WatchPointerLock()
+        {
+            // Only a browser takes the mouse back on Esc without telling us.
+            if (Application.platform != RuntimePlatform.WebGLPlayer) return;
+            if (Cursor.lockState == CursorLockMode.Locked)
+            {
+                if (lockedSince < 0f) lockedSince = Time.unscaledTime;
+                return;
+            }
+            // Held long enough to rule out a lock request the browser refused.
+            bool wasPlaying = lockedSince >= 0f && Time.unscaledTime - lockedSince > 0.5f;
+            lockedSince = -1f;
+            if (!wasPlaying || !Application.isFocused) return;
+            if (GameState.AnyMenuOpen || GameState.MenuOpen || !FirstPersonController.LockWanted) return;
+            if (Time.frameCount == GameState.MenuTransitionFrame) return;
+            SetMenuOpen(true);
+            if (GameState.MenuOpen) pausedByPointerAt = Time.unscaledTime;
         }
 
         private void HandleMouse()
@@ -458,7 +516,7 @@ namespace Cyverse.Settings
             body.verticalOverflow = VerticalWrapMode.Overflow;
             Place(body.rectTransform, 48f, -100f, width - 96f, height - 180f);
 
-            Text hint = NewText("Hint", rt, "Enter or click to go back   ·   Esc to resume the game", 18, Muted,
+            Text hint = NewText("Hint", rt, "Enter or click to go back   ·   Esc or Tab to resume the game", 18, Muted,
                 TextAnchor.MiddleCenter, FontStyle.Normal);
             Place(hint.rectTransform, 48f, -(height - 58f), width - 96f, 36f);
         }

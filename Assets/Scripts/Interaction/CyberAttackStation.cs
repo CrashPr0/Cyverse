@@ -346,7 +346,7 @@ namespace Cyverse.Interaction
                     ? (reviewing && HasRound
                         ? "ENTER / SPACE PLAY AGAIN (PRACTICE)     ·     " + GameInput.CancelLabel + " CLOSE     ·     SYNTHETIC DATA ONLY"
                         : "PRESS ENTER OR SPACE TO CONTINUE     ·     SYNTHETIC DATA ONLY")
-                    : "CLICK A CHOICE OR PRESS 1 / 2 / 3     ·     ESC / TAB CLOSE     ·     SYNTHETIC DATA ONLY";
+                    : "CLICK A CHOICE OR PRESS 1 / 2 / 3     ·     TAB CLOSE     ·     SYNTHETIC DATA ONLY";
         }
 
         public void CloseForManager()
@@ -413,7 +413,7 @@ namespace Cyverse.Interaction
             titleText.fontSizeMax = 26f;
             titleText.enableWordWrapping = false;
 
-            Button close = MakeButton("Close", "ESC", new Color(0.12f, 0.10f, 0.15f, 1f));
+            Button close = MakeButton("Close", "TAB", new Color(0.12f, 0.10f, 0.15f, 1f));
             SetRect(close.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(1f, 1f),
                 new Vector2(-124f, -68f), new Vector2(-32f, -27f));
             TMP_Text closeLabel = close.GetComponentInChildren<TMP_Text>();
@@ -459,7 +459,7 @@ namespace Cyverse.Interaction
             TMP_Text controls = MakeText("Controls", 16f, TextAlignmentOptions.Center);
             SetRect(controls.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f),
                 new Vector2(42f, 12f), new Vector2(-42f, 43f));
-            controls.text = "CLICK A CHOICE OR PRESS 1 / 2 / 3     ·     ESC / TAB CLOSE     ·     SYNTHETIC DATA ONLY";
+            controls.text = "CLICK A CHOICE OR PRESS 1 / 2 / 3     ·     TAB CLOSE     ·     SYNTHETIC DATA ONLY";
             controlsText = controls;
             controls.color = new Color(0.60f, 0.74f, 0.82f);
 

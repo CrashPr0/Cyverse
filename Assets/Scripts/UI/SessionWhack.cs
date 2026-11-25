@@ -301,7 +301,7 @@ namespace Cyverse.UI
             img.raycastTarget = false;
 
             Text("Keys", panel.transform, 15, new Vector2(0f, -540f), 22f).text =
-                "<color=#607585>1-9 kick  ·  ESC give up</color>";
+                "<color=#607585>1-9 kick  ·  TAB give up</color>";
         }
 
         private static TMP_Text Text(string name, Transform parent, float size, Vector2 pos, float height)

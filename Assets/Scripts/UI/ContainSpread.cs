@@ -359,7 +359,7 @@ namespace Cyverse.UI
             img.raycastTarget = false;
 
             Text("Keys", panel.transform, 15, new Vector2(0f, -540f), 22f).text =
-                "<color=#607585>1-9 isolate  ·  bar = next hop  ·  ESC give up</color>";
+                "<color=#607585>1-9 isolate  ·  bar = next hop  ·  TAB give up</color>";
         }
 
         private static Vector2 TilePos(int col, int row, float size, float gap, float h) =>

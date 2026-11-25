@@ -12,7 +12,7 @@ namespace Cyverse.UI
     /// machines. A round runs after the player picks the right attack choice
     /// and acts that step out; it never blocks progress. The frame owns the
     /// cabinet-style panel, the INSERT TOKEN start, the result screen with
-    /// prize tickets, Esc to skip, and the hand-back to whoever launched it.
+    /// prize tickets, Tab to skip, and the hand-back to whoever launched it.
     /// Subclasses draw their own playfield and run their own rules.
     ///
     /// Drawn on the HUD canvas over the station's modal, and timed with
@@ -117,7 +117,7 @@ namespace Cyverse.UI
             if (Phase != State.Attract) return;
             Phase = State.Playing;
             HideOverlay();
-            if (keysText != null) keysText.text = PlayKeys + "     ·     ESC SKIP";
+            if (keysText != null) keysText.text = PlayKeys + "     ·     TAB SKIP";
             BeginPlay();
         }
 
@@ -140,7 +140,7 @@ namespace Cyverse.UI
                         Phase = State.Playing;
                         HideOverlay();
                         if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
-                        if (keysText != null) keysText.text = PlayKeys + "     ·     ESC SKIP";
+                        if (keysText != null) keysText.text = PlayKeys + "     ·     TAB SKIP";
                         BeginPlay();
                     }
                     else PulseOverlay();
@@ -284,8 +284,8 @@ namespace Cyverse.UI
                 (Practice ? "<size=50><b>PRACTICE ROUND</b></size>\n\n" : "<size=50><b>INSERT TOKEN</b></size>\n\n") +
                 $"<size=22>{Tagline}</size>\n\n" +
                 "<size=24><color=#FFC838><b>PRESS SPACE TO PLAY</b></color></size>\n" +
-                "<size=17><color=#7F93A3>or ESC to skip straight to the lesson</color></size>");
-            if (keysText != null) keysText.text = "SPACE PLAY     ·     ESC SKIP";
+                "<size=17><color=#7F93A3>or TAB to skip straight to the lesson</color></size>");
+            if (keysText != null) keysText.text = "SPACE PLAY     ·     TAB SKIP";
         }
 
         private void ShowOverlay(string text)

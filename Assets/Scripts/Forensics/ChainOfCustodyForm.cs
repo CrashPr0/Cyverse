@@ -170,7 +170,7 @@ namespace Cyverse.Forensics
             SetRect(caseLine.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f),
                 new Vector2(34f, -68f), new Vector2(-120f, 26f), new Vector2(0f, 1f));
 
-            Button close = MakeButton("Close", card.transform, "ESC / TAB", new Color(0.13f, 0.17f, 0.18f), Color.white);
+            Button close = MakeButton("Close", card.transform, "TAB", new Color(0.13f, 0.17f, 0.18f), Color.white);
             SetRect(close.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(1f, 1f),
                 new Vector2(-30f, -25f), new Vector2(130f, 38f), new Vector2(1f, 1f));
             close.onClick.AddListener(() =>

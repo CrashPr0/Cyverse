@@ -262,7 +262,7 @@ namespace Cyverse.Interaction
             Key(bar.transform, "E");
             Word(bar.transform, "FLAG", Ink, 80f);
             Spacer(bar.transform, 48f);
-            Key(bar.transform, "ESC");
+            Key(bar.transform, "TAB");
             Word(bar.transform, "CLOSE", Ink, 90f);
         }
 

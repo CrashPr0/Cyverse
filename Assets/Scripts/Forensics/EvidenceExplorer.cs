@@ -26,7 +26,7 @@ namespace Cyverse.Forensics
     ///
     /// Mouse-first so it works in WebGL: categories, rows and buttons are uGUI
     /// buttons on the HUD canvas. Keyboard too: type to filter, Up/Down to move
-    /// through the list, Enter to tag, Esc to step away. Progress lives in the
+    /// through the list, Enter to tag, Tab to step away. Progress lives in the
     /// InvestigationCase and the PhoneImage, so reopening resumes.
     ///
     /// Actions: Choose(i) picks category i · Select(row, _) picks a row ·
@@ -153,7 +153,7 @@ namespace Cyverse.Forensics
             sourceText.text = ExamineSourceLine();
             SetAccent(Cyan);
             SetFeedback(activeCase.IsComplete
-                ? "<color=#E5A823>Case closed. Browse freely, or Esc to step away.</color>"
+                ? "<color=#E5A823>Case closed. Browse freely, or Tab to step away.</color>"
                 : "Pick a category, select an item, and read its details. Tag only what proves the answer.",
                 Ink);
             RefreshList(keepSelection: true);
@@ -325,7 +325,7 @@ namespace Cyverse.Forensics
                 if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
                 string next = activeCase.IsComplete
                     ? "\n<color=#E5A823>" + (caseClosedNote ??
-                        "<b>CASE CLOSED.</b> Every finding is tagged. Esc to step away.") + "</color>"
+                        "<b>CASE CLOSED.</b> Every finding is tagged. Tab to step away.") + "</color>"
                     : "  Next question is up top.";
                 SetAccent(Green);
                 SetFeedback($"<color=#4CE087><b>TAGGED AS EVIDENCE</b>  +{award} points</color>{next}", Ink);
@@ -563,7 +563,7 @@ namespace Cyverse.Forensics
             titleText.enableWordWrapping = false;
             Place(titleText.rectTransform, 0.128f, 0.937f, 0.86f, 0.992f, 4f);
 
-            Button close = MakeButton("Close", root, "<b>ESC</b>   CLOSE", new Color(0.09f, 0.14f, 0.16f));
+            Button close = MakeButton("Close", root, "<b>TAB</b>   CLOSE", new Color(0.09f, 0.14f, 0.16f));
             Place(close.GetComponent<RectTransform>(), 0.88f, 0.944f, 0.988f, 0.986f, 0f);
             close.GetComponentInChildren<TMP_Text>().alignment = TextAlignmentOptions.Center;
             close.GetComponentInChildren<TMP_Text>().fontSize = 17;

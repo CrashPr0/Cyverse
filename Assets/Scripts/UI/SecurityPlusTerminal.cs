@@ -126,7 +126,7 @@ namespace Cyverse.UI
             bodyText.text = sb.ToString();
             feedbackText.text = sessionAttempted > 0
                 ? $"<color=#8FB8CC>This session: {sessionCorrect}/{sessionAttempted} correct</color>"
-                : "<color=#607585>Esc to close</color>";
+                : "<color=#607585>Tab to close</color>";
         }
 
         private void HandleRolesInput()
@@ -172,7 +172,7 @@ namespace Cyverse.UI
             if (bag == null || bag.Length == 0)
             {
                 bodyText.text = "<color=#FF8866>No questions in this category.</color>";
-                feedbackText.text = "<color=#607585>Esc for categories</color>";
+                feedbackText.text = "<color=#607585>Tab for categories</color>";
                 awaitingInput = false;
                 return;
             }
@@ -188,7 +188,7 @@ namespace Cyverse.UI
             for (int i = 0; i < q.options.Length; i++)
                 sb.AppendLine($"<color=#5BC8FF><b>[{i + 1}]</b></color>  {q.options[i]}");
             bodyText.text = sb.ToString();
-            feedbackText.text = "<color=#8FB8CC>Press 1-4 to answer   ·   Esc for categories</color>";
+            feedbackText.text = "<color=#8FB8CC>Press 1-4 to answer   ·   Tab for categories</color>";
             awaitingInput = true;
         }
 
@@ -232,7 +232,7 @@ namespace Cyverse.UI
             // The explanation stays until the player moves on (batch runs
             // keep the old short timer).
             if (Application.isBatchMode) { StartCoroutine(NextAfterDelay()); return; }
-            feedbackText.text += "\n<color=#8FB8CC>Press Enter or Space for the next question   ·   Esc for categories</color>";
+            feedbackText.text += "\n<color=#8FB8CC>Press Enter or Space for the next question   ·   Tab for categories</color>";
             awaitingNext = true;
             nextAt = Time.unscaledTime + 0.4f;
         }

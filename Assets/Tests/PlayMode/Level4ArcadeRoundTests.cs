@@ -158,6 +158,33 @@ namespace Cyverse.Tests
         }
 
         [UnityTest]
+        public IEnumerator ArcadeRound_SaysTabSkips_NeverEsc()
+        {
+            yield return LoadAndReach("EscalatePrivileges");
+            Component station = StationOf("EscalatePrivileges");
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            PlayerChooseCorrect(station);
+            Component round = ActiveRound();
+            Assert.That(round, Is.Not.Null);
+            yield return null;
+
+            bool tabSkip = false;
+            foreach (TMPro.TMP_Text text in Object.FindObjectsOfType<TMPro.TMP_Text>())
+            {
+                if (!text.isActiveAndEnabled) continue;
+                Assert.That(System.Text.RegularExpressions.Regex.IsMatch(text.text, @"\bESC\b"), Is.False,
+                    $"Esc is the Settings key and must not be offered as a way out: \"{text.text}\"");
+                tabSkip |= text.text.Contains("TAB SKIP");
+            }
+            Assert.That(tabSkip, Is.True, "The round should say Tab skips it.");
+            round.GetType().GetMethod("SkipForTest").Invoke(round, null);
+            yield return null;
+            Assert.That(GameplayActionTestDriver.Cancel(station), Is.True);
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator AutomatedChoice_NeverStartsARound()
         {
             yield return LoadAndReach("EscalatePrivileges");

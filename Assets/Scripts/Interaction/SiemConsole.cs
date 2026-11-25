@@ -273,7 +273,7 @@ namespace Cyverse.Interaction
             feedbackText.text = string.IsNullOrEmpty(hint)
                 ? "Only one row can be flagged at a time."
                 : "<color=#FFB347>" + hint + "</color>";
-            controlsText.text = "UP / DOWN SELECT ROW     ·     E / ENTER FLAG & GO INVESTIGATE     ·     ESC / TAB CLOSE";
+            controlsText.text = "UP / DOWN SELECT ROW     ·     E / ENTER FLAG & GO INVESTIGATE     ·     TAB CLOSE";
         }
 
         private void OpenVerification()
@@ -297,7 +297,7 @@ namespace Cyverse.Interaction
                 "<color=#5BD9FF><b>LIVE WORKSTATION ACTIVITY</b></color>\n" +
                 $"> {lines[0]}\n> {lines[1]}";
             feedbackText.text = "Does the flagged activity match what is visibly running here?";
-            controlsText.text = "[1] IT MATCHES — FALSE ALARM     ·     [2] NO MATCH — POSSIBLY REAL     ·     ESC / TAB CLOSE";
+            controlsText.text = "[1] IT MATCHES — FALSE ALARM     ·     [2] NO MATCH — POSSIBLY REAL     ·     TAB CLOSE";
         }
 
         private void ResolveVerdict(Level2Content.SocVerdict verdict)

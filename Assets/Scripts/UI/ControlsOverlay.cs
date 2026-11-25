@@ -70,7 +70,7 @@ namespace Cyverse.UI
                 if (!open && toggle) { Open(); return; }
                 if (open && summoned && (toggle || GameInput.CancelDown))
                 {
-                    // Claim the frame so the same Esc does not also open settings.
+                    // Claim the frame so the same key press does nothing else.
                     GameState.MenuTransitionFrame = Time.frameCount;
                     Close();
                     return;
@@ -124,7 +124,7 @@ namespace Cyverse.UI
             group.alpha = 1f;
             if (dismissHint != null)
             {
-                dismissHint.text = "Press H, F1 or Esc to close";
+                dismissHint.text = "Press H, F1 or Tab to close";
                 dismissHint.gameObject.SetActive(true);
             }
             group.gameObject.SetActive(true);
@@ -149,7 +149,7 @@ namespace Cyverse.UI
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(0, 60);
-            rt.sizeDelta = new Vector2(560, 530);
+            rt.sizeDelta = new Vector2(560, 600);
             HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.92f), HudUI.Accent);
             group = card.GetComponent<CanvasGroup>();
             open = true;
@@ -161,13 +161,14 @@ namespace Cyverse.UI
             hrt.anchorMin = new Vector2(0, 1); hrt.anchorMax = new Vector2(1, 1); hrt.pivot = new Vector2(0.5f, 1);
             hrt.sizeDelta = new Vector2(0, 50); hrt.anchoredPosition = new Vector2(0, -22);
 
-            float y = 135f;
+            float y = 165f;
             AddRow(card.transform, y, "WASD", "Move"); y -= 50f;
             AddRow(card.transform, y, "Shift", "Sprint"); y -= 50f;
             AddRow(card.transform, y, "Mouse", "Look around"); y -= 50f;
             AddRow(card.transform, y, "E", "Interact"); y -= 50f;
             AddRow(card.transform, y, "Space", "Advance dialogue"); y -= 50f;
             AddRow(card.transform, y, "G", "Glossary"); y -= 50f;
+            AddRow(card.transform, y, "Tab", "Close a screen"); y -= 50f;
             AddRow(card.transform, y, "Esc", "Settings"); y -= 50f;
             AddRow(card.transform, y, "H", "This help");
 
