@@ -1,5 +1,7 @@
 #if UNITY_EDITOR
+using System;
 using System.IO;
+using UnityEditor;
 using UnityEngine;
 
 namespace Cyverse.Testing
@@ -21,12 +23,17 @@ namespace Cyverse.Testing
         }
     }
 
-    /// <summary>Shared catalog and output path for the editor capture toolbar.</summary>
+    /// <summary>Shared catalog, scale, and output path for the editor capture toolbar.</summary>
     public static class CyversePortfolioCapture
     {
         public const int Width = 1920;
         public const int Height = 1080;
+        public const int MinScale = 1;
+        public const int MaxScale = 4;
+        public const string ScaleEnvVar = "CYVERSE_CAPTURE_SCALE";
         public const string LogPrefix = "[CAPTURE]";
+
+        internal const string ScalePrefKey = "Cyverse.Capture.Scale";
 
         public static readonly PortfolioShot[] Shots =
         {
@@ -45,11 +52,26 @@ namespace Cyverse.Testing
             new PortfolioShot("level4-certificate", "Level 4 results / certificate", "level4-certificate.png", "Level4_CyberAttack"),
         };
 
+        public static bool HasEnvScaleOverride => TryReadEnvScale(out _);
+
+        public static int Scale
+        {
+            get
+            {
+                if (TryReadEnvScale(out int envScale)) return envScale;
+                return Mathf.Clamp(EditorPrefs.GetInt(ScalePrefKey, 1), MinScale, MaxScale);
+            }
+            set => EditorPrefs.SetInt(ScalePrefKey, Mathf.Clamp(value, MinScale, MaxScale));
+        }
+
+        public static int ScaledWidth => Width * Scale;
+        public static int ScaledHeight => Height * Scale;
+
         public static string OutputDirectory
         {
             get
             {
-                string overridePath = System.Environment.GetEnvironmentVariable("CYVERSE_CAPTURE_OUTPUT");
+                string overridePath = Environment.GetEnvironmentVariable("CYVERSE_CAPTURE_OUTPUT");
                 if (!string.IsNullOrEmpty(overridePath)) return overridePath;
                 string project = Directory.GetParent(Application.dataPath)?.FullName ?? Application.dataPath;
                 return Path.Combine(project, "Captures", "portfolio");
@@ -67,6 +89,18 @@ namespace Cyverse.Testing
         public static string PathFor(PortfolioShot shot)
         {
             return Path.Combine(OutputDirectory, shot.FileName);
+        }
+
+        private static bool TryReadEnvScale(out int scale)
+        {
+            string raw = Environment.GetEnvironmentVariable(ScaleEnvVar);
+            if (!string.IsNullOrEmpty(raw) && int.TryParse(raw.Trim(), out int parsed))
+            {
+                scale = Mathf.Clamp(parsed, MinScale, MaxScale);
+                return true;
+            }
+            scale = 1;
+            return false;
         }
     }
 }

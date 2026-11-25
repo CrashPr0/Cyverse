@@ -18,7 +18,7 @@ namespace Cyverse.Testing
 {
     /// <summary>
     /// Play Mode driver for the editor capture toolbar. Jumps each level to a
-    /// representative state, frames the camera, and writes 1920x1080 PNGs.
+    /// representative state, frames the camera, and writes scaled 1080p PNGs.
     /// Editor-only: this file is compiled out of player builds.
     /// </summary>
     public sealed class CyversePortfolioCaptureDriver : MonoBehaviour
@@ -516,17 +516,25 @@ namespace Cyverse.Testing
             Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
             yield return new WaitForEndOfFrame();
 
+            int scale = CyversePortfolioCapture.Scale;
+            int targetWidth = CyversePortfolioCapture.ScaledWidth;
+            int targetHeight = CyversePortfolioCapture.ScaledHeight;
+
             Texture2D source = null;
             Texture2D sized = null;
             bool written = false;
             try
             {
-                source = TryScreenshotTexture();
-                if (source == null) source = TryCameraTexture();
+                // Render the main camera and active ScreenSpaceOverlay canvases directly
+                // into a targetWidth x targetHeight RenderTexture so 3D geometry, WorldSpace
+                // TMP SDF text, and ScaleWithScreenSize UI rasterize at full scaled resolution
+                // regardless of the Editor Game View panel size.
+                source = TryRenderScaledTexture(targetWidth, targetHeight);
+                if (source == null) source = TryScreenshotTexture(scale);
                 if (source == null)
                     throw new InvalidOperationException("No graphics device available to capture.");
 
-                sized = EnsureSize(source, CyversePortfolioCapture.Width, CyversePortfolioCapture.Height);
+                sized = EnsureSize(source, targetWidth, targetHeight);
                 File.WriteAllBytes(path, sized.EncodeToPNG());
                 written = File.Exists(path) && new FileInfo(path).Length > 0;
             }
@@ -542,46 +550,94 @@ namespace Cyverse.Testing
             done(written);
         }
 
-        private static Texture2D TryScreenshotTexture()
+        private struct OverlayCanvasState
         {
-            try
-            {
-                if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null)
-                    return null;
-                Texture2D shot = ScreenCapture.CaptureScreenshotAsTexture();
-                if (shot == null || shot.width < 8 || shot.height < 8)
-                {
-                    if (shot != null) Destroy(shot);
-                    return null;
-                }
-                return shot;
-            }
-            catch (Exception)
-            {
-                return null;
-            }
+            public Canvas canvas;
+            public Camera originalCamera;
+            public float originalPlaneDistance;
         }
 
-        private static Texture2D TryCameraTexture()
+        private struct LayerBackup
+        {
+            public GameObject go;
+            public int layer;
+        }
+
+        private static Texture2D TryRenderScaledTexture(int width, int height)
         {
             Camera camera = Camera.main;
             if (camera == null || SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null)
                 return null;
 
+            const int captureUiLayer = 31;
+            var overlayStates = new List<OverlayCanvasState>();
+            var layerBackups = new List<LayerBackup>();
+
             RenderTexture target = null;
             Texture2D pixels = null;
-            RenderTexture previous = RenderTexture.active;
+            RenderTexture previousActive = RenderTexture.active;
+            RenderTexture previousCameraTarget = camera.targetTexture;
+            GameObject uiCamGo = null;
+
             try
             {
-                target = new RenderTexture(CyversePortfolioCapture.Width, CyversePortfolioCapture.Height,
-                    24, RenderTextureFormat.ARGB32);
+                target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
                 target.Create();
+
+                // 1. Render 3D scene and any WorldSpace / ScreenSpaceCamera canvases on Camera.main.
                 camera.targetTexture = target;
                 camera.Render();
+                camera.targetTexture = previousCameraTarget;
+
+                // 2. Render active root ScreenSpaceOverlay canvases on top at target resolution.
+                foreach (Canvas canvas in FindObjectsOfType<Canvas>(false))
+                {
+                    if (canvas == null || !canvas.isRootCanvas) continue;
+                    if (canvas.renderMode != RenderMode.ScreenSpaceOverlay) continue;
+                    overlayStates.Add(new OverlayCanvasState
+                    {
+                        canvas = canvas,
+                        originalCamera = canvas.worldCamera,
+                        originalPlaneDistance = canvas.planeDistance,
+                    });
+                }
+
+                if (overlayStates.Count > 0)
+                {
+                    uiCamGo = new GameObject("CyverseCaptureUiCamera");
+                    Camera uiCam = uiCamGo.AddComponent<Camera>();
+                    uiCam.enabled = false;
+                    uiCam.orthographic = true;
+                    uiCam.orthographicSize = 5f;
+                    uiCam.nearClipPlane = 0.1f;
+                    uiCam.farClipPlane = 100f;
+                    uiCam.clearFlags = CameraClearFlags.Depth;
+                    uiCam.cullingMask = 1 << captureUiLayer;
+                    uiCam.allowHDR = false;
+                    uiCam.allowMSAA = false;
+                    uiCam.targetTexture = target;
+
+                    foreach (OverlayCanvasState state in overlayStates)
+                    {
+                        foreach (Transform t in state.canvas.GetComponentsInChildren<Transform>(true))
+                        {
+                            layerBackups.Add(new LayerBackup { go = t.gameObject, layer = t.gameObject.layer });
+                            t.gameObject.layer = captureUiLayer;
+                        }
+                        state.canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                        state.canvas.worldCamera = uiCam;
+                        state.canvas.planeDistance = 1f;
+                    }
+
+                    // Flush CanvasScaler and rebuild text/TMP meshes at the target RenderTexture size.
+                    Canvas.ForceUpdateCanvases();
+                    Canvas.ForceUpdateCanvases();
+                    uiCam.Render();
+                }
+
                 RenderTexture.active = target;
-                pixels = new Texture2D(CyversePortfolioCapture.Width, CyversePortfolioCapture.Height,
-                    TextureFormat.RGB24, false);
-                pixels.ReadPixels(new Rect(0f, 0f, CyversePortfolioCapture.Width, CyversePortfolioCapture.Height), 0, 0);
+                pixels = new Texture2D(width, height, TextureFormat.RGB24, false);
+                pixels.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
                 pixels.Apply();
                 return pixels;
             }
@@ -592,13 +648,52 @@ namespace Cyverse.Testing
             }
             finally
             {
-                RenderTexture.active = previous;
-                if (camera != null) camera.targetTexture = null;
+                for (int i = overlayStates.Count - 1; i >= 0; i--)
+                {
+                    OverlayCanvasState state = overlayStates[i];
+                    if (state.canvas != null)
+                    {
+                        state.canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                        state.canvas.worldCamera = state.originalCamera;
+                        state.canvas.planeDistance = state.originalPlaneDistance;
+                    }
+                }
+                for (int i = layerBackups.Count - 1; i >= 0; i--)
+                {
+                    LayerBackup backup = layerBackups[i];
+                    if (backup.go != null) backup.go.layer = backup.layer;
+                }
+                if (overlayStates.Count > 0)
+                    Canvas.ForceUpdateCanvases();
+
+                if (uiCamGo != null) Destroy(uiCamGo);
+                RenderTexture.active = previousActive;
+                if (camera != null) camera.targetTexture = previousCameraTarget;
                 if (target != null)
                 {
                     target.Release();
                     Destroy(target);
                 }
+            }
+        }
+
+        private static Texture2D TryScreenshotTexture(int superSize)
+        {
+            try
+            {
+                if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null)
+                    return null;
+                Texture2D shot = ScreenCapture.CaptureScreenshotAsTexture(Mathf.Max(1, superSize));
+                if (shot == null || shot.width < 8 || shot.height < 8)
+                {
+                    if (shot != null) Destroy(shot);
+                    return null;
+                }
+                return shot;
+            }
+            catch (Exception)
+            {
+                return null;
             }
         }
 
