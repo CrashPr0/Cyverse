@@ -453,6 +453,17 @@ namespace Cyverse.UI
         /// banner appears or goes away.</summary>
         public void RelayoutToasts() => CompactToastRows();
 
+        /// <summary>Destroys every active toast immediately. The editor
+        /// capture toolbar uses this so a leftover briefing message cannot
+        /// clip through a large investigation panel.</summary>
+        public void ClearToasts()
+        {
+            for (int i = 0; i < activeToasts.Count; i++)
+                if (activeToasts[i] != null)
+                    Destroy(activeToasts[i].gameObject);
+            activeToasts.Clear();
+        }
+
         private void CompactToastRows()
         {
             activeToasts.RemoveAll(toast => toast == null);
