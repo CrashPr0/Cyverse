@@ -2,6 +2,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Cyverse.Audio;
 using Cyverse.Core;
 using Cyverse.Level;
 using Cyverse.Player;
@@ -42,6 +43,20 @@ namespace Cyverse.Interaction
         // back as the lesson card when it ends.
         private ArcadeRound round;
         private int roundEndedFrame = -1;
+        // The lesson card was opened on a finished machine (review). From
+        // there a person can play the machine's round again for practice.
+        private bool reviewing;
+        private bool replaying;
+
+        /// <summary>The review card is up and this machine has a round to
+        /// play again.</summary>
+        public bool CanPlayAgain => open && lessonOpen && reviewing && round == null && HasRound;
+
+        private bool HasRound => ArcadeRoundsEnabled &&
+            (Kind == Level4CyberAttackContent.StationKind.SpotThePhish ||
+             Kind == Level4CyberAttackContent.StationKind.NetworkAttack ||
+             Kind == Level4CyberAttackContent.StationKind.BypassMfa ||
+             Kind == Level4CyberAttackContent.StationKind.EscalatePrivileges);
 
         /// <summary>An arcade round is on screen for this machine.</summary>
         public bool RoundPlaying => round != null;
@@ -102,6 +117,7 @@ namespace Cyverse.Interaction
 
             open = true;
             lessonOpen = false;
+            reviewing = false;
             SetLessonLayout(false);
             openedFrame = Time.frameCount;
             panel.SetActive(true);
@@ -137,9 +153,11 @@ namespace Cyverse.Interaction
             if (round != null || Time.frameCount == roundEndedFrame) return;
             if (lessonOpen)
             {
-                if (GameInput.CancelDown || Input.GetKeyDown(KeyCode.Return) ||
-                    Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space))
-                    Close();
+                bool go = Input.GetKeyDown(KeyCode.Return) ||
+                    Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space);
+                // On a finished machine, Enter/Space plays the round again.
+                if (go && CanPlayAgain) PlayAgain();
+                else if (GameInput.CancelDown || go) Close();
                 return;
             }
             if (GameInput.CancelDown)
@@ -201,8 +219,20 @@ namespace Cyverse.Interaction
             RefreshMeter();
         }
 
+        /// <summary>Plays a finished machine's round again from its review
+        /// card. Practice only: no tickets or points, and progress is unchanged.</summary>
+        public bool PlayAgain()
+        {
+            if (!CanPlayAgain) return false;
+            replaying = true;
+            if (Sfx.Instance != null) Sfx.Instance.PlayClick();
+            if (StartRound(practice: true)) return true;
+            replaying = false;
+            return false;
+        }
+
         /// <summary>Launches this machine's arcade round, if it has one.</summary>
-        private bool StartRound()
+        private bool StartRound(bool practice = false)
         {
             if (!ArcadeRoundsEnabled) return false;
             ArcadeRound launched;
@@ -210,19 +240,19 @@ namespace Cyverse.Interaction
             {
                 case Level4CyberAttackContent.StationKind.SpotThePhish:
                     if (panel != null) panel.SetActive(false);
-                    launched = ArcadeRound.Launch<SpotPhishRound>(OnRoundDone);
+                    launched = ArcadeRound.Launch<SpotPhishRound>(OnRoundDone, practice);
                     break;
                 case Level4CyberAttackContent.StationKind.NetworkAttack:
                     if (panel != null) panel.SetActive(false);
-                    launched = ArcadeRound.Launch<NetworkAttackRound>(OnRoundDone);
+                    launched = ArcadeRound.Launch<NetworkAttackRound>(OnRoundDone, practice);
                     break;
                 case Level4CyberAttackContent.StationKind.BypassMfa:
                     if (panel != null) panel.SetActive(false);
-                    launched = ArcadeRound.Launch<MailRunRound>(OnRoundDone);
+                    launched = ArcadeRound.Launch<MailRunRound>(OnRoundDone, practice);
                     break;
                 case Level4CyberAttackContent.StationKind.EscalatePrivileges:
                     if (panel != null) panel.SetActive(false);
-                    launched = ArcadeRound.Launch<ClawDropRound>(OnRoundDone);
+                    launched = ArcadeRound.Launch<ClawDropRound>(OnRoundDone, practice);
                     break;
                 default:
                     return false;
@@ -240,10 +270,12 @@ namespace Cyverse.Interaction
         {
             round = null;
             roundEndedFrame = Time.frameCount;
+            bool wasReplay = replaying;
+            replaying = false;
             if (!open || panel == null) return;
             panel.SetActive(true);
-            ShowLesson(review: false);
-            if (finished != null && !finished.Skipped && finished.Tickets > 0)
+            ShowLesson(review: wasReplay);
+            if (!wasReplay && finished != null && !finished.Skipped && finished.Tickets > 0)
                 feedbackText.text += $"\n\n<color=#FFC838><b>+{finished.Tickets} PRIZE TICKETS</b></color>";
             UiMotion.PanelIn(panel, null, 0.985f);
         }
@@ -271,6 +303,7 @@ namespace Cyverse.Interaction
             if (scenario == null) { Close(); return; }
 
             lessonOpen = true;
+            reviewing = review;
             SetLessonLayout(true);
             titleText.text = scenario.title + (review ? "  //  REVIEW" : "  //  STAGE COMPLETE");
             objectiveText.text = scenario.objective;
@@ -310,7 +343,9 @@ namespace Cyverse.Interaction
             }
             if (controlsText != null)
                 controlsText.text = lesson
-                    ? "PRESS ENTER OR SPACE TO CONTINUE     ·     SYNTHETIC DATA ONLY"
+                    ? (reviewing && HasRound
+                        ? "ENTER / SPACE PLAY AGAIN (PRACTICE)     ·     " + GameInput.CancelLabel + " CLOSE     ·     SYNTHETIC DATA ONLY"
+                        : "PRESS ENTER OR SPACE TO CONTINUE     ·     SYNTHETIC DATA ONLY")
                     : "CLICK A CHOICE OR PRESS 1 / 2 / 3     ·     ESC / TAB CLOSE     ·     SYNTHETIC DATA ONLY";
         }
 
@@ -325,6 +360,8 @@ namespace Cyverse.Interaction
             if (round != null) { round.Abort(); round = null; }
             open = false;
             lessonOpen = false;
+            reviewing = false;
+            replaying = false;
             if (panel != null) panel.SetActive(false);
             Level4ExfiltrationMeter.Instance?.SetVisible(true);
             modal?.Close();

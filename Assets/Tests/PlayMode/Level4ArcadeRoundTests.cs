@@ -105,6 +105,59 @@ namespace Cyverse.Tests
         }
 
         [UnityTest]
+        public IEnumerator FinishedMachine_PlaysItsRoundAgain_AsUnscoredPractice()
+        {
+            yield return LoadAndReach("EscalatePrivileges");
+            Component station = StationOf("EscalatePrivileges");
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            PlayerChooseCorrect(station);
+            Component first = ActiveRound();
+            Assert.That(first, Is.Not.Null);
+            first.GetType().GetMethod("CompleteForTest").Invoke(first, new object[] { true });
+            yield return null;
+            Assert.That((bool)StationType.GetProperty("CanPlayAgain").GetValue(station), Is.False,
+                "The first lesson card after a pick is not a review card.");
+            Assert.That(GameplayActionTestDriver.Cancel(station), Is.True);
+            yield return null;
+            yield return null;
+            int stationAfter = CurrentStationIndex();
+
+            // Reopen the finished machine: the review card offers a replay.
+            Assert.That(GameplayActionTestDriver.Interact(station), Is.True);
+            yield return null;
+            Assert.That((bool)StationType.GetProperty("LessonOpen").GetValue(station), Is.True);
+            Assert.That((bool)StationType.GetProperty("CanPlayAgain").GetValue(station), Is.True,
+                "A finished machine's review card should offer to play the round again.");
+
+            Type score = FindType("Cyverse.Core.ScoreSystem");
+            int scoreBefore = (int)score.GetProperty("Score").GetValue(null);
+            int ticketsBefore = (int)RoundType().GetProperty("TicketsThisRun").GetValue(null);
+
+            Assert.That((bool)StationType.GetMethod("PlayAgain").Invoke(station, null), Is.True);
+            Component replay = ActiveRound();
+            Assert.That(replay, Is.Not.Null, "Play again should start the machine's round.");
+            Assert.That(replay.GetType().Name, Is.EqualTo("ClawDropRound"));
+            Assert.That((bool)replay.GetType().GetProperty("Practice").GetValue(replay), Is.True);
+
+            replay.GetType().GetMethod("CompleteForTest").Invoke(replay, new object[] { true });
+            yield return null;
+            Assert.That(ActiveRound(), Is.Null);
+            Assert.That((int)score.GetProperty("Score").GetValue(null), Is.EqualTo(scoreBefore),
+                "A practice replay must not change the score.");
+            Assert.That((int)RoundType().GetProperty("TicketsThisRun").GetValue(null), Is.EqualTo(ticketsBefore));
+            Assert.That(CurrentStationIndex(), Is.EqualTo(stationAfter), "A replay must not change progress.");
+            Assert.That((bool)StationType.GetProperty("LessonOpen").GetValue(station), Is.True,
+                "The replay hands back to the review card.");
+            Assert.That((bool)StationType.GetProperty("CanPlayAgain").GetValue(station), Is.True,
+                "The review card can start another practice round.");
+
+            Assert.That(GameplayActionTestDriver.Cancel(station), Is.True);
+            yield return null;
+            Assert.That((bool)StationType.GetProperty("LessonOpen").GetValue(station), Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator AutomatedChoice_NeverStartsARound()
         {
             yield return LoadAndReach("EscalatePrivileges");
