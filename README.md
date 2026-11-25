@@ -66,7 +66,7 @@ the editor itself with status 0 on success or 1 on failure:
   -logFile /absolute/path/to/portfolio-capture.log
 ```
 
-Optional: set `CYVERSE_CAPTURE_OUTPUT` to write the PNGs somewhere else.
+Optional: set `CYVERSE_CAPTURE_OUTPUT` to write the PNGs somewhere else, and `CYVERSE_CAPTURE_SCALE=2` (or the Scale dropdown in the toolbar) for 3840x2160 supersampled captures.
 
 ## Tests, builds and deploys
 

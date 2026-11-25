@@ -270,6 +270,12 @@ namespace Cyverse.Editor
                 return;
             }
             Directory.CreateDirectory(CyversePortfolioCapture.OutputDirectory);
+            Debug.Log(string.Format("{0} Starting CaptureAll at {1}x{2} (scale {3}x) -> {4}",
+                CyversePortfolioCapture.LogPrefix,
+                CyversePortfolioCapture.ScaledWidth,
+                CyversePortfolioCapture.ScaledHeight,
+                CyversePortfolioCapture.Scale,
+                CyversePortfolioCapture.OutputDirectory));
             CyverseCaptureSession.RequestCaptureAll(true);
         }
     }
@@ -315,13 +321,26 @@ namespace Cyverse.Editor
             EditorGUILayout.LabelField("Portfolio screenshots", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
                 "Each button enters Play Mode if needed, loads the scene, jumps to that state, and frames the camera. " +
-                "Capture writes a 1920×1080 PNG. Capture all runs the whole list. " +
+                $"Capture writes a {CyversePortfolioCapture.ScaledWidth}x{CyversePortfolioCapture.ScaledHeight} PNG. Capture all runs the whole list. " +
                 "PNGs land in Captures/portfolio/. Progress PlayerPrefs are restored when Play Mode ends. " +
                 "The PasswordLock scene is never loaded.",
                 MessageType.Info);
 
             EditorGUILayout.LabelField("Output", CyversePortfolioCapture.OutputDirectory);
             var driver = CyversePortfolioCaptureDriver.Instance;
+            int currentScale = CyversePortfolioCapture.Scale;
+            bool envLocked = CyversePortfolioCapture.HasEnvScaleOverride;
+            EditorGUI.BeginDisabledGroup(envLocked || (driver != null && driver.Busy));
+            int nextScale = EditorGUILayout.IntPopup(
+                "Scale",
+                currentScale,
+                new[] { "1x (1920x1080)", "2x (3840x2160)", "3x (5760x3240)", "4x (7680x4320)" },
+                new[] { 1, 2, 3, 4 });
+            if (!envLocked && nextScale != currentScale)
+                CyversePortfolioCapture.Scale = nextScale;
+            EditorGUI.EndDisabledGroup();
+            if (envLocked)
+                EditorGUILayout.LabelField("Scale override", CyversePortfolioCapture.ScaleEnvVar);
             if (driver != null && !string.IsNullOrEmpty(driver.Status))
                 status = driver.Status;
             EditorGUILayout.LabelField("Status", string.IsNullOrEmpty(status) ? "—" : status);
