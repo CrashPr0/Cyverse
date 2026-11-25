@@ -44,13 +44,14 @@ Shader "Hidden/Cyverse/PostFX"
 
     half3 Sample (float2 uv) { return tex2D(_MainTex, uv).rgb; }
 
-    // A shaded pixel can come out NaN or Inf: browsers on Apple GPUs run
-    // fragment shaders at half precision, and the Standard shader's specular
-    // term on a glossy surface (vault door, chrome, the shiny light floors)
-    // overflows 65504. Fed into the bloom chain, one such pixel becomes a
-    // white dot that blooms through the wall in front of it, and a NaN spreads
-    // through the down/up samples as flickering 16-32 px blocks on the floor.
-    // Every pixel that enters the bloom is made finite and capped first.
+    // A few scene pixels come out far brighter than anything authored, or
+    // as Inf/NaN: specular glints on glossy trim, a lamp or emissive core
+    // peeking through a hairline seam in a wall. The old first downsample
+    // only capped the averaged value at 64, so one such pixel still bloomed
+    // into a large white glow (on High it looked like light shining through
+    // the MFA vault wall), and a NaN, which min() doesn't remove on every
+    // GPU, spread through the down/up samples as flickering blocks on the
+    // floor. Every pixel that enters the bloom is made finite and capped first.
     #define BLOOM_MAX 8.0
     half3 Finite (half3 c)
     {
