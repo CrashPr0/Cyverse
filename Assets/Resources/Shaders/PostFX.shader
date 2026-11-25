@@ -44,6 +44,43 @@ Shader "Hidden/Cyverse/PostFX"
 
     half3 Sample (float2 uv) { return tex2D(_MainTex, uv).rgb; }
 
+    // A few scene pixels come out far brighter than anything authored, or
+    // as Inf/NaN: specular glints on glossy trim, a lamp or emissive core
+    // peeking through a hairline seam in a wall. The old first downsample
+    // only capped the averaged value at 64, so one such pixel still bloomed
+    // into a large white glow (on High it looked like light shining through
+    // the MFA vault wall), and a NaN, which min() doesn't remove on every
+    // GPU, spread through the down/up samples as flickering blocks on the
+    // floor. Every pixel that enters the bloom is made finite and capped first.
+    #define BLOOM_MAX 8.0
+    half3 Finite (half3 c)
+    {
+        c = isnan(c) ? 0.0 : c;   // per channel
+        return clamp(c, 0.0, BLOOM_MAX);
+    }
+    half3 SafeSample (float2 uv) { return Finite(tex2D(_MainTex, uv).rgb); }
+
+    // First downsample from the scene: like Down, but each tap made finite
+    // and capped, and weighted down when it's very bright (Karis average), so
+    // a single hot pixel can't dominate its block and pop as it flickers.
+    half3 KarisTap (float2 uv)
+    {
+        half3 s = SafeSample(uv);
+        return s / (1.0 + max(s.r, max(s.g, s.b)) * 0.25);
+    }
+    half3 DownPrefilter (float2 uv)
+    {
+        float4 d = _MainTex_TexelSize.xyxy * float4(-1.0, -1.0, 1.0, 1.0);
+        half3 s = KarisTap(uv) * 4.0;
+        s += KarisTap(uv + d.xy);
+        s += KarisTap(uv + d.zy);
+        s += KarisTap(uv + d.xw);
+        s += KarisTap(uv + d.zw);
+        s *= 1.0 / 8.0;
+        // Undo the tone weight on the average so normal brightness keeps its level.
+        return s / max(1.0 - max(s.r, max(s.g, s.b)) * 0.25, 1e-3);
+    }
+
     // Dual-filter downsample: the centre plus four diagonal taps.
     half3 Down (float2 uv)
     {
@@ -107,7 +144,7 @@ Shader "Hidden/Cyverse/PostFX"
             #pragma fragment frag
             half4 frag (v2f i) : SV_Target
             {
-                half3 c = min(Down(i.uv), 64.0); // tame single-pixel fireflies
+                half3 c = min(DownPrefilter(i.uv), BLOOM_MAX);
                 return half4(Prefilter(c), 1.0);
             }
             ENDCG
@@ -142,8 +179,11 @@ Shader "Hidden/Cyverse/PostFX"
             #pragma fragment frag
             half4 frag (v2f i) : SV_Target
             {
+                // NaN or Inf from the scene shows as a single bright pixel
+                // rather than a black or garbage one.
                 half3 c = tex2D(_MainTex, i.uv).rgb;
-                c += tex2D(_BloomTex, i.uv).rgb * _BloomIntensity * _BloomTint.rgb;
+                c = isnan(c) ? 1.0 : min(c, 64.0);
+                c += Finite(tex2D(_BloomTex, i.uv).rgb) * _BloomIntensity * _BloomTint.rgb;
 
                 c = Shoulder(max(c, 0.0) * _Exposure);
 
