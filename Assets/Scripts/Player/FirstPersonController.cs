@@ -16,8 +16,11 @@ namespace Cyverse.Player
     {
         [Header("Movement")]
         public float moveSpeed = 5.2f;
-        public float sprintMultiplier = 1.6f; // while Shift is held
+        public float sprintMultiplier = 2.0f; // while Shift is held (playtesters found 1.6x too slow)
         public float gravity = -9.81f;
+
+        /// <summary>Speed while Shift is held.</summary>
+        public float SprintSpeed => moveSpeed * sprintMultiplier;
 
         [Header("Look")]
         public float lookSensitivity = 2f;
@@ -118,7 +121,7 @@ namespace Cyverse.Player
             bool sprint = controller != null && controller.enabled &&
                           (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) &&
                           !(HardMode.Active && Carryable.Carried != null);
-            float speed = sprint ? moveSpeed * sprintMultiplier : moveSpeed;
+            float speed = sprint ? SprintSpeed : moveSpeed;
 
             Vector3 velocity = Vector3.ClampMagnitude(
                 transform.right * h + transform.forward * v, 1f) * speed;
