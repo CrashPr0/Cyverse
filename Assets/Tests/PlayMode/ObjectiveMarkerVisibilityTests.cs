@@ -17,6 +17,8 @@ namespace Cyverse.Tests
         private static readonly Vector3 Origin = new Vector3(0f, 600f, 0f);
 
         private GameObject cameraObject, wall, target;
+        private Component aimedBeacon;
+        private Color aimedColour;
         private RenderTexture renderTexture;
         private Texture2D pixels;
 
@@ -113,14 +115,27 @@ namespace Cyverse.Tests
 
             Type beaconType = FindType("Cyverse.Level.ObjectiveBeacon");
             var beacon = (Component)beaconType.GetMethod("Ensure").Invoke(null, null);
-            beaconType.GetMethod("PointAt").Invoke(beacon,
-                new object[] { target.transform, "TEST", colour, 2.9f });
+            aimedBeacon = beacon;
+            aimedColour = colour;
+            AimBeacon();
             return beacon;
+        }
+
+        /// <summary>Points the beacon at the test target. Whatever level an
+        /// earlier test left loaded re-aims (or hides) the beacon at its own
+        /// objective every 0.4 s, so after any yielded frame the marker may be
+        /// elsewhere; re-aiming right before each render keeps the test about
+        /// the marker, not about that timer.</summary>
+        private void AimBeacon()
+        {
+            aimedBeacon.GetType().GetMethod("PointAt").Invoke(aimedBeacon,
+                new object[] { target.transform, "TEST", aimedColour, 2.9f });
         }
 
         /// <summary>Renders the camera and counts warm yellow/orange pixels.</summary>
         private int CountMarkerPixels(Camera cam)
         {
+            AimBeacon();
             cam.Render();
             RenderTexture previous = RenderTexture.active;
             RenderTexture.active = renderTexture;
