@@ -16,8 +16,11 @@ namespace Cyverse.Player
     {
         [Header("Movement")]
         public float moveSpeed = 5.2f;
-        public float sprintMultiplier = 1.6f; // while Shift is held
+        public float sprintMultiplier = 2.0f; // while Shift is held (playtesters found 1.6x too slow)
         public float gravity = -9.81f;
+
+        /// <summary>Speed while Shift is held.</summary>
+        public float SprintSpeed => moveSpeed * sprintMultiplier;
 
         [Header("Look")]
         public float lookSensitivity = 2f;
@@ -118,7 +121,7 @@ namespace Cyverse.Player
             bool sprint = controller != null && controller.enabled &&
                           (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) &&
                           !(HardMode.Active && Carryable.Carried != null);
-            float speed = sprint ? moveSpeed * sprintMultiplier : moveSpeed;
+            float speed = sprint ? SprintSpeed : moveSpeed;
 
             Vector3 velocity = Vector3.ClampMagnitude(
                 transform.right * h + transform.forward * v, 1f) * speed;
@@ -173,9 +176,15 @@ namespace Cyverse.Player
             ApplyMovement(Vector3.zero, Time.deltaTime);
         }
 
+        /// <summary>The game last asked for the mouse to be captured (play),
+        /// not released (a level's end flow). Settings uses it to tell a
+        /// player's Esc from the game letting go of the mouse itself.</summary>
+        public static bool LockWanted { get; private set; }
+
         /// <summary>Lock + hide the cursor for play, or release it for menus.</summary>
         public static void LockCursor(bool locked)
         {
+            LockWanted = locked;
             Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = !locked;
         }

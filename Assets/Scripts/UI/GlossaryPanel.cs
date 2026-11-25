@@ -185,7 +185,7 @@ namespace Cyverse.UI
 
             var hint = MakeText(card.transform, "Hint", 20, TextAnchor.LowerCenter);
             hint.color = new Color(0.56f, 0.72f, 0.80f);
-            hint.text = "Up/Down: select    G or Esc: close";
+            hint.text = "Up/Down: select    G or Tab: close";
             var nrt = hint.rectTransform;
             nrt.anchorMin = new Vector2(0, 0); nrt.anchorMax = new Vector2(1, 0); nrt.pivot = new Vector2(0.5f, 0);
             nrt.sizeDelta = new Vector2(0, 34); nrt.anchoredPosition = new Vector2(0, 12);

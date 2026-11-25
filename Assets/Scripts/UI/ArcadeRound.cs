@@ -12,7 +12,7 @@ namespace Cyverse.UI
     /// machines. A round runs after the player picks the right attack choice
     /// and acts that step out; it never blocks progress. The frame owns the
     /// cabinet-style panel, the INSERT TOKEN start, the result screen with
-    /// prize tickets, Esc to skip, and the hand-back to whoever launched it.
+    /// prize tickets, Tab to skip, and the hand-back to whoever launched it.
     /// Subclasses draw their own playfield and run their own rules.
     ///
     /// Drawn on the HUD canvas over the station's modal, and timed with
@@ -35,6 +35,9 @@ namespace Cyverse.UI
         public int Tickets { get; private set; }
         /// <summary>True when the player left with Esc instead of finishing.</summary>
         public bool Skipped { get; private set; }
+        /// <summary>A replay from a finished machine: tickets are shown but
+        /// never scored.</summary>
+        public bool Practice { get; private set; }
 
         protected abstract string MachineName { get; }
         protected abstract string Tagline { get; }
@@ -71,11 +74,12 @@ namespace Cyverse.UI
 
         /// <summary>Starts a round. <paramref name="done"/> runs once, when the
         /// player continues past the result screen or skips with Esc.</summary>
-        public static T Launch<T>(Action<ArcadeRound> done) where T : ArcadeRound
+        public static T Launch<T>(Action<ArcadeRound> done, bool practice = false) where T : ArcadeRound
         {
             if (Active != null) Active.Abort();
             var round = new GameObject(typeof(T).Name).AddComponent<T>();
             round.onDone = done;
+            round.Practice = practice;
             round.Build();
             if (round.panel == null)
             {
@@ -113,7 +117,7 @@ namespace Cyverse.UI
             if (Phase != State.Attract) return;
             Phase = State.Playing;
             HideOverlay();
-            if (keysText != null) keysText.text = PlayKeys + "     ·     ESC SKIP";
+            if (keysText != null) keysText.text = PlayKeys + "     ·     TAB SKIP";
             BeginPlay();
         }
 
@@ -136,7 +140,7 @@ namespace Cyverse.UI
                         Phase = State.Playing;
                         HideOverlay();
                         if (Sfx.Instance != null) Sfx.Instance.PlayConfirm();
-                        if (keysText != null) keysText.text = PlayKeys + "     ·     ESC SKIP";
+                        if (keysText != null) keysText.text = PlayKeys + "     ·     TAB SKIP";
                         BeginPlay();
                     }
                     else PulseOverlay();
@@ -179,8 +183,12 @@ namespace Cyverse.UI
             Phase = State.Result;
             Won = won;
             Tickets = Mathf.Max(0, tickets);
-            TicketsThisRun += Tickets;
-            if (Tickets > 0) ScoreSystem.Add(Tickets);
+            // Practice replays never change the score.
+            if (!Practice)
+            {
+                TicketsThisRun += Tickets;
+                if (Tickets > 0) ScoreSystem.Add(Tickets);
+            }
             resultAge = 0f;
             if (Sfx.Instance != null)
             {
@@ -191,7 +199,9 @@ namespace Cyverse.UI
             ShowOverlay(
                 $"<size=46><b><color={color}>{headline}</color></b></size>\n\n" +
                 $"<size=21>{detail}</size>\n\n" +
-                $"<size=30><color=#FFC838><b>+{Tickets} TICKETS</b></color></size>\n\n" +
+                (Practice
+                    ? $"<size=26><color=#9FB4C4><b>PRACTICE ROUND · {Tickets} TICKETS (NOT SCORED)</b></color></size>\n\n"
+                    : $"<size=30><color=#FFC838><b>+{Tickets} TICKETS</b></color></size>\n\n") +
                 "<size=19><color=#9FB4C4>PRESS SPACE TO CONTINUE</color></size>");
             if (keysText != null) keysText.text = "SPACE / ENTER CONTINUE";
         }
@@ -271,11 +281,11 @@ namespace Cyverse.UI
             Phase = State.Attract;
             ShowOverlay(
                 $"<size=26><color=#9FB4C4>{MachineName}</color></size>\n" +
-                "<size=50><b>INSERT TOKEN</b></size>\n\n" +
+                (Practice ? "<size=50><b>PRACTICE ROUND</b></size>\n\n" : "<size=50><b>INSERT TOKEN</b></size>\n\n") +
                 $"<size=22>{Tagline}</size>\n\n" +
                 "<size=24><color=#FFC838><b>PRESS SPACE TO PLAY</b></color></size>\n" +
-                "<size=17><color=#7F93A3>or ESC to skip straight to the lesson</color></size>");
-            if (keysText != null) keysText.text = "SPACE PLAY     ·     ESC SKIP";
+                "<size=17><color=#7F93A3>or TAB to skip straight to the lesson</color></size>");
+            if (keysText != null) keysText.text = "SPACE PLAY     ·     TAB SKIP";
         }
 
         private void ShowOverlay(string text)

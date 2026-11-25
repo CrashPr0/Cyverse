@@ -85,12 +85,12 @@ namespace Cyverse.UI
 
             headerText.text = header;
             bodyText.text = body;
-            feedbackText.text = "<color=#8FB8CC>ENTER submit   ·   ESC / TAB step away</color>";
+            feedbackText.text = "<color=#8FB8CC>ENTER submit   ·   TAB step away</color>";
             card.SetActive(true);
             UiMotion.PanelIn(card);
             if (phone)
             {
-                feedbackText.text = "<color=#8FB8CC>TYPE YOUR SECRET PASSCODE\nENTER submit   ·   ESC / TAB step away</color>";
+                feedbackText.text = "<color=#8FB8CC>TYPE YOUR SECRET PASSCODE\nENTER submit   ·   TAB step away</color>";
                 // The card can cover the in-world phone, so its own phone
                 // panel always shows the code too; the in-world phone lights up
                 // with it as well.

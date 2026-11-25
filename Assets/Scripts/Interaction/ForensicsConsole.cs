@@ -124,7 +124,7 @@ namespace Cyverse.Interaction
             bool lastCase = current == null || current == Cases[Cases.Length - 1];
             string closedNote = lastCase
                 ? null // default "results are waiting" close-out
-                : "<b>CASE CLOSED.</b> A new case file just hit your desk — Esc, then press E at the desk again.";
+                : "<b>CASE CLOSED.</b> A new case file just hit your desk — Tab, then press E at the desk again.";
 
             if (EvidenceExplorer.Instance == null)
             {

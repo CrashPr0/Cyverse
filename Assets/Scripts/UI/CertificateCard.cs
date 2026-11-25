@@ -105,7 +105,7 @@ namespace Cyverse.UI
             Label(sheet, "Prototype",
                 "Training certificate  ·  not an official credential", 15, InkSoft, -322f, FontStyle.Italic);
 
-            Button close = MakeButton(root.transform, "Close", "CLOSE   [C] / Esc");
+            Button close = MakeButton(root.transform, "Close", "CLOSE   [C] / Tab");
             var crt = (RectTransform)close.transform;
             crt.anchoredPosition = new Vector2(CanvasImage.Supported ? 140f : 0f, -400f);
             close.onClick.AddListener(Hide);

@@ -26,13 +26,14 @@ To reset between players, reload the page or use Settings (Esc) → Start Over.
 | Key | Action |
 | --- | --- |
 | W A S D (or arrows) | Move |
-| Shift | Sprint |
+| Shift | Sprint (2x walking speed) |
 | Mouse | Look around |
 | E | Interact |
 | Space | Advance dialogue |
 | G | Glossary |
 | H | Controls help |
-| Esc | Settings |
+| Tab | Close a screen (back) |
+| Esc | Settings (pause) |
 
 ## Run it in the editor
 

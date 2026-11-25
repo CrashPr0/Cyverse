@@ -561,7 +561,7 @@ Security+ practice questions, one per **NICE Workforce Framework** category
 (Design & Development, Implementation & Operations, Investigation, Oversight
 & Governance, Protection & Defense — 294 questions total). Press `E`, pick a
 category with `1`-`5`, then answer definition-matching questions with `1`-`4`;
-`Esc` steps back a screen (category select, then closed). Questions are
+`Tab` steps back a screen (category select, then closed). Questions are
 served from a shuffled, no-repeat bag per category, and each category tracks
 a **personal best accuracy %** (PlayerPrefs), shown next to it on the select
 screen.
@@ -594,7 +594,7 @@ follows:
    (and freezes its timers) while `AnyMenuOpen` is true, and resumes when
    the screen is free — it can never overlap the title screen or any menu.
 3. **Shared keys can't double-fire.** `GameState.MenuTransitionFrame` records
-   the frame a menu opened/closed; the Esc press that closes the glossary is
+   the frame a menu opened/closed; the key press that closes the glossary is
    ignored by settings that same frame instead of immediately reopening a
    different menu.
 

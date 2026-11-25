@@ -39,7 +39,8 @@ Typical play time: 15–25 minutes.
 | --- | --- |
 | Move / look | WASD (or arrow keys) + mouse |
 | Interact with a station | **E** |
-| Close a screen | **Esc** or **Tab** (Tab keeps the mouse captured in a browser; Esc releases it) |
+| Close a screen | **Tab** |
+| Settings (pause) | **Esc** |
 | Briefing: scrub slides | **←/→** while looking at the screen |
 | Process steps: pick an option | Click it, or press **1–4** |
 | Process steps: start / skip / continue | **Enter** or the green button |
@@ -132,7 +133,7 @@ tags turn gold (`[EVIDENCE]`) and the desk's centre monitor counts them.
 A wrong tag tells you which category holds the proof (or to re-read the fields
 if you are already in the right one).
 
-When Case 1 closes, press **Esc**, then **E** at the desk again to open Case 2.
+When Case 1 closes, press **Tab**, then **E** at the desk again to open Case 2.
 The phone stays processed; Case 2 opens straight into Examine.
 
 ### Step 7 — Submit the forensic report (03)
@@ -295,12 +296,12 @@ flag?
 | "Hands are full" at the locker | Put the carried item down with Q, then take the device. |
 | The desk says "Complete the chain-of-custody form first" | Intake isn't accepted yet; go back to 01 and fix the red [X] blanks. |
 | Pressing E at the desk didn't open the Explorer | The first E docks the phone. Press E again (this also skips the imaging). |
-| The case closed but there are more questions on the task list | Case 2 is a new file: press Esc, then E at the desk again. |
+| The case closed but there are more questions on the task list | Case 2 is a new file: press Tab, then E at the desk again. |
 | The report desk says "locked" | Both cases (11 findings) and intake must be done first; check the task list. |
 | Number keys don't answer the knowledge check | Wait for "Press 1, 2 or 3 to answer" under the question (a short read delay), and click the game first so it has keyboard focus. |
 | The witness phone won't scroll | Select a contact first, then use the wheel, drag, or Page Up/Page Down. Short conversations fit without scrolling. |
 | Keys don't type into the search box | Click inside the browser window first so the game has keyboard focus. |
-| Pressing Esc drops out of mouse look / fullscreen | That's the browser. Use **Tab** to close screens instead, then click to re-capture the mouse. |
+| Pressing Esc opened Settings instead of closing a screen | Esc is only for Settings. Use **Tab** to close screens. After Settings, click the game to capture the mouse again. |
 | Left the level halfway | Progress inside a level isn't saved; re-entering from the Hub starts Level 3 fresh. Completing it is saved. |
 | Text is small on a small window | Make the browser window larger or use fullscreen; the UI scales with the window. |
 | Animations are distracting | Settings → Reduce Motion. |
