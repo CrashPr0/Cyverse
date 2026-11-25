@@ -166,6 +166,8 @@ namespace Cyverse.Testing
 
         private IEnumerator CaptureOnly(string fileName)
         {
+            HideTransientUi();
+            yield return null;
             Status = "Capturing " + fileName;
             bool ok = false;
             yield return SavePng(Path.Combine(CyversePortfolioCapture.OutputDirectory, fileName),
@@ -187,6 +189,12 @@ namespace Cyverse.Testing
             yield return PrepareState(shot);
             FrameCamera(shot);
             yield return new WaitForSecondsRealtime(0.35f);
+            // HideTransientUi also runs at the start of the jump, but FinishBriefing
+            // and other state setup can spawn a fresh toast or task-complete banner
+            // after that. Clear them again just before the shutter so they cannot
+            // clip through a large investigation panel.
+            HideTransientUi();
+            yield return null;
 
             if (!capture) yield break;
 
