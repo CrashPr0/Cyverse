@@ -124,6 +124,7 @@ namespace Cyverse.Quiz
             bodyText.text = BodyFor(q, chosen: -1);
             acceptInputAt = Time.unscaledTime + readDelay;
             feedbackText.text = ReadDelayOver ? PromptText : ReadingText;
+            FitLayout();
             card.SetActive(true);
             awaitingInput = true;
         }
@@ -164,6 +165,7 @@ namespace Cyverse.Quiz
             headerText.text = header;
             bodyText.text = body;
             feedbackText.text = "<color=#8FB8CC>Press 1 or Enter to continue</color>";
+            FitLayout();
             onMessageDone = done;
             card.SetActive(true);
             messageOpen = true;
@@ -280,11 +282,13 @@ namespace Cyverse.Quiz
             lastAnswerCorrect = correct;
             if (AutoAdvance)
             {
+                FitLayout();
                 StartCoroutine(CloseAfterFeedback());
                 return;
             }
             // Under the explanation, so the eye reads the why before the key.
             feedbackText.text += "\n<size=20><color=#8FB8CC>Press Enter or Space to continue</color></size>";
+            FitLayout();
             continueAt = Time.unscaledTime + ContinueGuardSeconds;
             awaitingContinue = true;
         }
@@ -340,8 +344,8 @@ namespace Cyverse.Quiz
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = new Vector2(0, 40);
-            rt.sizeDelta = new Vector2(920, 520);
+            rt.anchoredPosition = new Vector2(0, RestingOffsetY);
+            rt.sizeDelta = new Vector2(CardWidth, MinCardHeight);
             UI.HudUI.StylePanel(card, new Color(0.02f, 0.04f, 0.07f, 0.95f), UI.HudUI.Accent);
 
             var header = MakeText(card.transform, "Header", 32, TextAnchor.UpperCenter);
@@ -353,17 +357,100 @@ namespace Cyverse.Quiz
             hrt.anchorMin = new Vector2(0, 1); hrt.anchorMax = new Vector2(1, 1); hrt.pivot = new Vector2(0.5f, 1);
             hrt.sizeDelta = new Vector2(0, 50); hrt.anchoredPosition = new Vector2(0, -22);
 
-            bodyText = MakeText(card.transform, "Body", 26, TextAnchor.UpperLeft);
+            bodyText = MakeText(card.transform, "Body", BodyFontSize, TextAnchor.UpperLeft);
             var brt = bodyText.rectTransform;
             brt.anchorMin = new Vector2(0, 0); brt.anchorMax = new Vector2(1, 1);
-            brt.offsetMin = new Vector2(50, 108); brt.offsetMax = new Vector2(-50, -84);
+            brt.offsetMin = new Vector2(BodyInset, FeedbackBottom + FeedbackMinHeight + 4f);
+            brt.offsetMax = new Vector2(-BodyInset, -HeaderSpace);
 
-            feedbackText = MakeText(card.transform, "Feedback", 24, TextAnchor.MiddleCenter);
+            feedbackText = MakeText(card.transform, "Feedback", FeedbackFontSize, TextAnchor.MiddleCenter);
             var frt = feedbackText.rectTransform;
             frt.anchorMin = new Vector2(0, 0); frt.anchorMax = new Vector2(1, 0); frt.pivot = new Vector2(0.5f, 0);
-            frt.sizeDelta = new Vector2(-60, 96); frt.anchoredPosition = new Vector2(0, 8);
+            frt.sizeDelta = new Vector2(-2f * FeedbackInset, FeedbackMinHeight);
+            frt.anchoredPosition = new Vector2(0, FeedbackBottom);
 
             card.SetActive(false);
+        }
+
+        // ---- Layout ------------------------------------------------------------
+        // The card used to be a fixed 920 x 520 box with text set to overflow,
+        // so a long exam review (several missed questions, each with its
+        // explanation) or a long wrong-answer explanation ran out of the panel
+        // and over the "Press Enter" prompt. FitLayout sizes the feedback strip
+        // to its text, stacks the body above it, grows the card to fit (up to
+        // what the screen allows below the objective bar), and only then steps
+        // the body text down a few sizes.
+
+        private const float CardWidth = 920f;
+        private const float MinCardHeight = 520f;
+        private const float RestingOffsetY = 40f;
+        private const float HeaderSpace = 84f;     // header band above the body
+        private const float BodyInset = 50f;
+        private const float FeedbackInset = 30f;
+        private const float FeedbackBottom = 8f;
+        private const float FeedbackMinHeight = 96f;
+        private const float ScreenMargin = 100f;   // kept clear above (objective bar) and below
+        private const int BodyFontSize = 26;
+        private const int MinBodyFontSize = 18;
+        private const int FeedbackFontSize = 24;
+        private const int MinFeedbackFontSize = 18;
+
+        /// <summary>The tallest card the screen allows, in canvas units.</summary>
+        private float MaxCardHeight()
+        {
+            float screen = 1080f;
+            var canvasRect = card.transform.parent as RectTransform;
+            if (canvasRect != null && canvasRect.rect.height > 1f) screen = canvasRect.rect.height;
+            return Mathf.Max(MinCardHeight, screen - 2f * ScreenMargin);
+        }
+
+        private static float PreferredHeight(Text text, float width)
+        {
+            TextGenerationSettings settings = text.GetGenerationSettings(new Vector2(width, 0f));
+            return text.cachedTextGeneratorForLayout.GetPreferredHeight(text.text, settings) / text.pixelsPerUnit;
+        }
+
+        /// <summary>Sizes the card and its text blocks so everything stays
+        /// inside the panel and the body never runs into the prompt.</summary>
+        private void FitLayout()
+        {
+            if (card == null) return;
+            var cardRect = (RectTransform)card.transform;
+            float maxHeight = MaxCardHeight();
+            float feedbackWidth = CardWidth - 2f * FeedbackInset;
+            float bodyWidth = CardWidth - 2f * BodyInset;
+
+            // Feedback strip: as tall as its text, at most a third of the card.
+            int feedbackSize = FeedbackFontSize;
+            feedbackText.fontSize = feedbackSize;
+            float feedbackNeed = PreferredHeight(feedbackText, feedbackWidth);
+            while (feedbackNeed + 12f > maxHeight / 3f && feedbackSize > MinFeedbackFontSize)
+            {
+                feedbackText.fontSize = feedbackSize -= 2;
+                feedbackNeed = PreferredHeight(feedbackText, feedbackWidth);
+            }
+            float feedbackHeight = Mathf.Max(FeedbackMinHeight, feedbackNeed + 12f);
+            feedbackText.rectTransform.sizeDelta = new Vector2(-2f * FeedbackInset, feedbackHeight);
+
+            float bodyBottom = FeedbackBottom + feedbackHeight + 4f;
+            bodyText.rectTransform.offsetMin = new Vector2(BodyInset, bodyBottom);
+            bodyText.rectTransform.offsetMax = new Vector2(-BodyInset, -HeaderSpace);
+
+            // Body: grow the card first, then shrink the text if it still won't fit.
+            int bodySize = BodyFontSize;
+            bodyText.fontSize = bodySize;
+            float bodyNeed = PreferredHeight(bodyText, bodyWidth);
+            while (HeaderSpace + bodyNeed + bodyBottom > maxHeight && bodySize > MinBodyFontSize)
+            {
+                bodyText.fontSize = bodySize -= 2;
+                bodyNeed = PreferredHeight(bodyText, bodyWidth);
+            }
+
+            float height = Mathf.Clamp(HeaderSpace + bodyNeed + bodyBottom, MinCardHeight, maxHeight);
+            cardRect.sizeDelta = new Vector2(CardWidth, height);
+            // A taller card is centred so it stays clear of the objective bar.
+            float extra = height - MinCardHeight;
+            cardRect.anchoredPosition = new Vector2(0f, Mathf.Max(0f, RestingOffsetY - extra * 0.5f));
         }
 
         private static Text MakeText(Transform parent, string name, int size, TextAnchor anchor)
