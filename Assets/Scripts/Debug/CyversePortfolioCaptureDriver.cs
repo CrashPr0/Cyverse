@@ -95,28 +95,52 @@ namespace Cyverse.Testing
         private IEnumerator Run(IEnumerator routine)
         {
             Busy = true;
-            try
+            yield return Pump(routine);
+            if (string.IsNullOrEmpty(Failure) && failures.Count == 0)
+                Passed = true;
+            else if (failures.Count > 0)
+                Failure = string.Join("; ", failures.ToArray());
+            Busy = false;
+            Finished = true;
+            running = null;
+            if (!string.IsNullOrEmpty(Failure))
+                Debug.LogError(CyversePortfolioCapture.LogPrefix + " " + Failure);
+            else
+                Debug.Log(CyversePortfolioCapture.LogPrefix + " Ready.");
+        }
+
+        /// <summary>Advances <paramref name="routine"/> one step at a time so
+        /// exceptions can be caught without yielding inside a try/catch (CS1626).</summary>
+        private IEnumerator Pump(IEnumerator routine)
+        {
+            while (true)
             {
-                yield return routine;
-                if (string.IsNullOrEmpty(Failure) && failures.Count == 0)
-                    Passed = true;
-                else if (failures.Count > 0)
-                    Failure = string.Join("; ", failures.ToArray());
-            }
-            catch (Exception exception)
-            {
-                Failure = exception.Message;
-                Debug.LogException(exception);
-            }
-            finally
-            {
-                Busy = false;
-                Finished = true;
-                running = null;
-                if (!string.IsNullOrEmpty(Failure))
-                    Debug.LogError(CyversePortfolioCapture.LogPrefix + " " + Failure);
+                object current = null;
+                bool moved = false;
+                bool failed = false;
+                try
+                {
+                    moved = routine.MoveNext();
+                    if (moved)
+                        current = routine.Current;
+                }
+                catch (Exception exception)
+                {
+                    Failure = exception.Message;
+                    Debug.LogException(exception);
+                    failed = true;
+                }
+
+                if (failed || !moved)
+                    yield break;
+
+                // Nested enumerators are pumped here too, so a throw inside
+                // LoadScene or PrepareState is still caught on MoveNext.
+                IEnumerator nested = current as IEnumerator;
+                if (nested != null)
+                    yield return Pump(nested);
                 else
-                    Debug.Log(CyversePortfolioCapture.LogPrefix + " Ready.");
+                    yield return current;
             }
         }
 
